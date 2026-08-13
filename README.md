@@ -4,9 +4,14 @@ Production website for **Koinos AI**: a fully self-contained landing page (inlin
 
 ```
 public/index.html     the landing page (self-contained; do not split into assets)
+public/whitepaper.pdf the Koinos AI white paper, served at /whitepaper.pdf
 server.js             Express server + waitlist API
 data/waitlist.jsonl   signups, one JSON object per line (created at runtime, gitignored)
 ```
+
+## White paper
+
+The paper is served straight from `public/` at the stable path **`/whitepaper.pdf`**, linked from the top ribbon, the nav, the mobile menu, and the footer. To publish a new revision, overwrite `public/whitepaper.pdf` and update the version wording in the ribbon (search `Working Draft v0.2` in `public/index.html`) — keep the filename unchanged so shared links keep working.
 
 ## Run locally
 

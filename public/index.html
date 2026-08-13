@@ -71,6 +71,20 @@ p{margin:0}
 .btn-value{border-color:transparent;background:linear-gradient(180deg,#f6bd55,#e59a26);color:#1a1204;box-shadow:0 10px 30px rgba(242,176,61,.16)}
 .btn-ghost{background:transparent}
 
+/* ---- whitepaper ribbon ---- */
+.ribbon{display:block;position:relative;z-index:60;border-bottom:1px solid var(--line);
+  background:linear-gradient(90deg,rgba(242,176,61,.06),rgba(51,230,192,.08));transition:background .18s}
+.ribbon:hover{background:linear-gradient(90deg,rgba(242,176,61,.10),rgba(51,230,192,.13))}
+.ribbon-in{display:flex;align-items:center;justify-content:center;gap:8px 14px;flex-wrap:wrap;
+  padding:10px 0;font-family:var(--mono);font-size:12px;color:var(--soft);text-align:center}
+.ribbon .tag{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--signal);
+  border:1px solid var(--signal-dim);border-radius:999px;padding:3px 9px;background:rgba(51,230,192,.06)}
+.ribbon .desc{color:var(--muted)}
+.ribbon .go{color:var(--signal);display:inline-flex;align-items:center;gap:6px}
+.ribbon .go .arw{transition:transform .18s}
+.ribbon:hover .go .arw{transform:translateX(3px)}
+@media(max-width:700px){.ribbon .desc{display:none}.ribbon-in{font-size:11.5px;padding:9px 0}}
+
 /* ---- nav ---- */
 .nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
   background:linear-gradient(to bottom,rgba(10,10,12,.9),rgba(10,10,12,.5) 70%,transparent);
@@ -355,6 +369,14 @@ footer{border-top:1px solid var(--line);padding:36px 0 52px}
 </head>
 <body>
 
+<a class="ribbon" href="/whitepaper.pdf" target="_blank" rel="noopener">
+  <span class="wrap ribbon-in">
+    <span class="tag">White paper</span>
+    <span class="desc">Working Draft v0.2 — the architecture, KAI economics, and roadmap in full.</span>
+    <span class="go">Read the paper <span class="arw">→</span></span>
+  </span>
+</a>
+
 <header class="nav" id="nav"><div class="wrap nav-in">
   <a class="brand" href="#top">
     <span class="mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 L28 9 V23 L16 30 L4 23 V9 Z" fill="none" stroke="#33E6C0" stroke-width="1.5"/><path d="M12 10 V22 M12 16 L20 10 M12 16 L20 22" stroke="#F2B03D" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
@@ -364,12 +386,13 @@ footer{border-top:1px solid var(--line);padding:36px 0 52px}
     <a href="#problem">Why</a><a href="#how">How it works</a><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#kai">KAI</a><a href="#roadmap">Roadmap</a>
   </nav>
   <div class="nav-cta">
+    <a class="btn btn-ghost" href="/whitepaper.pdf" target="_blank" rel="noopener">White paper</a>
     <a class="btn btn-signal" href="#waitlist">Get early access <span class="arw">→</span></a>
     <button class="btn burger" id="burger" aria-label="Menu" aria-expanded="false">☰</button>
   </div>
 </div>
 <div class="wrap"><div class="mobile" id="mobile">
-  <a href="#problem">Why</a><a href="#how">How it works</a><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#kai">KAI</a><a href="#roadmap">Roadmap</a><a href="#waitlist">Get early access →</a>
+  <a href="#problem">Why</a><a href="#how">How it works</a><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#kai">KAI</a><a href="#roadmap">Roadmap</a><a href="/whitepaper.pdf" target="_blank" rel="noopener">White paper (PDF) →</a><a href="#waitlist">Get early access →</a>
 </div></div>
 </header>
 
@@ -692,7 +715,7 @@ r = client.chat.completions.<span class="f">create</span>(
 
 <footer><div class="wrap"><div class="foot">
   <div>© 2026 Koinos AI · Your hardware first. The network when you need it.</div>
-  <div class="foot-links"><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#roadmap">Roadmap</a><a href="#waitlist">Early access</a></div>
+  <div class="foot-links"><a href="/whitepaper.pdf" target="_blank" rel="noopener">White paper</a><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#roadmap">Roadmap</a><a href="#waitlist">Early access</a></div>
 </div></div></footer>
 
 <script>
