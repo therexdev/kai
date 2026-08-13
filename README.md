@@ -104,6 +104,21 @@ A password-protected page listing both waitlists with per-list CSV/JSON download
 - Admin HTML lives in `views/`, outside the static directory, so it can't be fetched without a session
 - CSV exports neutralize cells starting with `=`, `+`, `-`, or `@`, so a crafted address can't execute as a formula in Excel or Sheets
 
+**"Incorrect password" when the hash looks right**
+
+Run the checker locally against the value stored in the panel — it verifies the pair without touching the server:
+
+```bash
+npm run check-password              # prompts for hash, then password
+node scripts/check-password.js 'scrypt$16384$8$1$…' 'my password'
+```
+
+It reports whether the hash is intact and whether that password matches it. Common causes:
+
+- **The shell rewrote the password before hashing.** Double quotes expand `$` in PowerShell and bash, so `"Kai$2026"` is hashed as `Kai026`. Use single quotes.
+- **The panel mangled the hash.** If `$` signs were expanded or the value was truncated on paste, no password can match. The app now detects this at boot, logs the reason, and returns 503 at `/admin` instead of silently rejecting logins — so check the app log first.
+- **The app wasn't restarted** after the variable changed.
+
 **Sending email to these lists:** this area is for storing and exporting, not sending. When you're ready to email people, download the CSV and import it into a service built for bulk mail (deliverability, one-click unsubscribe, and the opt-out records GDPR/CAN-SPAM expect). Keep this app as the source of truth and treat the export as a one-way sync.
 
 ## Deploy on Hostinger (Node.js hosting)

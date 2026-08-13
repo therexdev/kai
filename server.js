@@ -37,13 +37,27 @@ app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: false, limit: "10kb" }));
 
 /* ------------------------------------------------------- admin credentials */
-const ADMIN_HASH = process.env.ADMIN_PASSWORD_HASH || "";
+const ADMIN_HASH = auth.normalizeHash(process.env.ADMIN_PASSWORD_HASH);
 const ADMIN_PLAIN = process.env.ADMIN_PASSWORD || "";
-const ADMIN_ENABLED = Boolean(ADMIN_HASH || ADMIN_PLAIN);
+// A malformed hash can never match any password, so treat it as broken
+// configuration rather than silently rejecting every correct login.
+const HASH_CHECK = ADMIN_HASH ? auth.describeHash(ADMIN_HASH) : { ok: false, reason: "empty" };
+const HASH_BROKEN = Boolean(ADMIN_HASH) && !HASH_CHECK.ok;
+const ADMIN_ENABLED = Boolean((ADMIN_HASH && HASH_CHECK.ok) || (!ADMIN_HASH && ADMIN_PLAIN));
 const SESSION_SECRET = process.env.SESSION_SECRET || auth.randomSecret();
 const SESSION_COOKIE = "kai_admin";
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
+if (HASH_BROKEN) {
+  console.error(
+    "\n*** ADMIN_PASSWORD_HASH is malformed — no password can ever match it. ***\n" +
+      `    Problem: ${HASH_CHECK.reason}.\n` +
+      `    Got ${ADMIN_HASH.length} characters; a valid hash is ~130 and looks like\n` +
+      "    scrypt$16384$8$1$<salt>$<key>\n" +
+      "    Re-copy the whole line from `npm run hash-password`, or check whether the\n" +
+      "    panel expanded the $ signs. Verify locally with `npm run check-password`.\n"
+  );
+}
 if (!ADMIN_ENABLED) {
   console.warn(
     "admin area DISABLED: set ADMIN_PASSWORD_HASH (or ADMIN_PASSWORD) to enable /admin"
@@ -194,7 +208,11 @@ app.get("/admin", (req, res) => {
     return res
       .status(503)
       .type("text/plain")
-      .send("Admin area is not configured. Set ADMIN_PASSWORD_HASH and restart.");
+      .send(
+        HASH_BROKEN
+          ? "Admin area is misconfigured: ADMIN_PASSWORD_HASH is malformed, so no password can match. See the app log for details."
+          : "Admin area is not configured. Set ADMIN_PASSWORD_HASH and restart."
+      );
   }
   const page = currentSession(req) ? "admin.html" : "login.html";
   return res.sendFile(path.join(VIEWS_DIR, page));
