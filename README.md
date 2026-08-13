@@ -5,7 +5,11 @@ Production website for **Koinos AI**: a fully self-contained landing page (inlin
 ```
 public/index.html     the landing page (self-contained; do not split into assets)
 public/whitepaper.pdf the Koinos AI white paper, served at /whitepaper.pdf
-server.js             Express server + waitlist API
+server.js             Express server + waitlist API + admin area
+lib/auth.js           password hashing (scrypt) and signed session cookies
+lib/store.js          reads the signup file; dedupe + CSV/JSON export
+views/                admin pages — served only to a signed-in session, never static
+scripts/hash-password.js  generates ADMIN_PASSWORD_HASH
 data/waitlist.jsonl   signups, one JSON object per line (created at runtime, gitignored)
 ```
 
@@ -42,6 +46,45 @@ Body: `{"email": "you@domain.com", "segment": "people" | "dev"}`
 
 Returns `{"ok":true}` — use it to confirm the Node app (not a cached page) is answering.
 
+## Admin area (`/admin`)
+
+A password-protected page listing both waitlists with per-list CSV/JSON downloads. The signup file stays on your server — no third-party service holds the addresses.
+
+**Set it up (required — the area stays disabled until you do):**
+
+1. Generate a password hash. The prompt keeps the password out of your shell history:
+   ```bash
+   npm run hash-password
+   ```
+   It prints a line like `ADMIN_PASSWORD_HASH=scrypt$16384$8$1$…`.
+2. Add two environment variables to the Node.js app in hPanel:
+
+   | Variable | Value |
+   |---|---|
+   | `ADMIN_PASSWORD_HASH` | the `scrypt$…` string from step 1 |
+   | `SESSION_SECRET` | a long random string (e.g. `openssl rand -base64 32`) |
+3. Restart the app and open `https://yourdomain.tld/admin`.
+
+`ADMIN_PASSWORD` (plaintext) also works if you can't run the hash script, but the app logs a warning at boot — prefer the hash. If neither is set, `/admin` returns 503 and every data endpoint returns 401: **it fails closed, never open.** If `SESSION_SECRET` is unset the app generates a random one at boot, which works fine but signs you out on every restart.
+
+**What it does**
+
+- `GET /admin` — login form, or the dashboard once signed in
+- `GET /admin/export.csv?segment=people|dev|all` — CSV download
+- `GET /admin/export.json?segment=people|dev|all` — JSON download
+- Repeat signups are collapsed by email (earliest kept); exports carry the full list, the table shows the 200 most recent
+
+**How it's protected**
+
+- Password hashed with scrypt + per-password random salt; verified in constant time
+- Session is an HMAC-signed cookie — `HttpOnly`, `SameSite=Strict`, and `Secure` automatically once served over HTTPS — expiring after 12 hours
+- Login is rate limited to 8 attempts / 15 min / IP; failures are logged with the IP
+- `/admin` responses are `no-store`, `noindex`, and `X-Frame-Options: DENY`; `/admin` is disallowed in `robots.txt`
+- Admin HTML lives in `views/`, outside the static directory, so it can't be fetched without a session
+- CSV exports neutralize cells starting with `=`, `+`, `-`, or `@`, so a crafted address can't execute as a formula in Excel or Sheets
+
+**Sending email to these lists:** this area is for storing and exporting, not sending. When you're ready to email people, download the CSV and import it into a service built for bulk mail (deliverability, one-click unsubscribe, and the opt-out records GDPR/CAN-SPAM expect). Keep this app as the source of truth and treat the export as a one-way sync.
+
 ## Deploy on Hostinger (Node.js hosting)
 
 1. Push this repository to GitHub (already done if you're reading this there).
@@ -60,6 +103,7 @@ Returns `{"ok":true}` — use it to confirm the Node app (not a cached page) is 
    ```
 6. **Environment variables** (Node.js app → Environment variables):
    - `PORT` — **injected by Hostinger automatically; don't set it yourself.** The app reads `process.env.PORT` and falls back to 3000 locally.
+   - `ADMIN_PASSWORD_HASH` and `SESSION_SECRET` — see [Admin area](#admin-area-admin). Required to use `/admin`.
    - Optional signup-notification emails (off by default — the site runs fine with none of these set; enabling requires `SMTP_HOST` **and** `SMTP_TO`):
 
      | Variable | Meaning |

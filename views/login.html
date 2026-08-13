@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Sign in · Koinos AI</title>
+<style>
+:root{
+  --ink:#0A0A0C; --panel:#111117; --line:#22222b; --line-2:#2f2f3a;
+  --text:#F4F3F0; --muted:#a6a4b0; --faint:#7d7c89;
+  --signal:#33E6C0; --signal-dim:#1c8f7c; --danger:#ff6b6b;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+  --sans:"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;
+  background:var(--ink);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(60% 50% at 50% 0%,rgba(51,230,192,.07),transparent 70%)}
+.card{width:min(400px,100%);background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:30px 26px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+.brand b{font-size:15px;letter-spacing:.02em}
+.brand .ai{font-family:var(--mono);font-size:10px;color:#04231d;background:var(--signal);
+  padding:2px 6px;border-radius:5px;font-weight:700}
+h1{margin:0 0 6px;font-size:20px;letter-spacing:-.01em}
+.sub{margin:0 0 22px;color:var(--muted);font-size:13.5px;line-height:1.5}
+label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+input{width:100%;background:#0c0c11;border:1px solid var(--line-2);border-radius:10px;
+  color:var(--text);padding:12px 13px;font-size:14.5px;font-family:var(--sans);outline:none}
+input:focus{border-color:var(--signal-dim);box-shadow:0 0 0 3px rgba(51,230,192,.12)}
+button{width:100%;margin-top:16px;padding:12px;border:0;border-radius:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13px;font-weight:700;color:#04231d;
+  background:linear-gradient(180deg,#4ff0cd,#25c9a8)}
+button:disabled{opacity:.65;cursor:default}
+.msg{margin-top:14px;font-family:var(--mono);font-size:12px;line-height:1.5;color:var(--danger);
+  min-height:18px}
+.foot{margin-top:20px;padding-top:16px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:11px;color:var(--faint);line-height:1.6}
+a{color:var(--muted)}
+</style>
+</head>
+<body>
+<form class="card" id="f">
+  <div class="brand">
+    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 L28 9 V23 L16 30 L4 23 V9 Z" fill="none" stroke="#33E6C0" stroke-width="1.5"/><path d="M12 10 V22 M12 16 L20 10 M12 16 L20 22" stroke="#F2B03D" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+    <b>KOINOS</b><span class="ai">AI</span>
+  </div>
+  <h1>Waitlist admin</h1>
+  <p class="sub">Sign in to view and export the early-access lists.</p>
+  <label for="pw">Password</label>
+  <input type="password" id="pw" name="password" autocomplete="current-password" required autofocus>
+  <button type="submit" id="go">Sign in</button>
+  <div class="msg" id="msg" role="alert"></div>
+  <div class="foot">Authorized access only. Sessions expire after 12 hours.<br><a href="/">← Back to site</a></div>
+</form>
+<script>
+(function(){
+  var f=document.getElementById("f"), pw=document.getElementById("pw"),
+      msg=document.getElementById("msg"), go=document.getElementById("go"), busy=false;
+  f.addEventListener("submit",function(e){e.preventDefault();
+    if(busy||!pw.value){return;}
+    busy=true; go.disabled=true; msg.textContent="";
+    fetch("/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({password:pw.value})})
+      .then(function(r){return r.json().then(function(j){return {ok:r.ok&&j.ok,err:j.error};});})
+      .then(function(res){
+        if(res.ok){location.href="/admin";return;}
+        throw new Error(res.err||"Sign in failed.");
+      })
+      .catch(function(err){msg.textContent=err.message||"Sign in failed."; pw.value=""; pw.focus();})
+      .then(function(){busy=false; go.disabled=false;});
+  });
+})();
+</script>
+</body>
+</html>
