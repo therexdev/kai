@@ -67,15 +67,16 @@ A password-protected page listing both waitlists with per-list CSV/JSON download
    node scripts/hash-password.js
    ```
 
-   Calling `node` directly is the reliable form on Windows: `npm run` wraps scripts in `cmd.exe`, which can break the hidden password prompt, and PowerShell's execution policy sometimes blocks `npm.ps1` outright (`running scripts is disabled on this system` — use `npm.cmd` or run `node` directly).
+   Call `node` directly rather than `npm run` on Windows: npm wraps scripts in `cmd.exe`, which hands the script an empty stdin (`No password given — nothing to hash.`), and PowerShell's execution policy sometimes blocks `npm.ps1` outright (`running scripts is disabled on this system`).
 
-   To pipe a password instead of typing it at the prompt:
+   If the prompt still doesn't appear — Git Bash/MinTTY reports stdin as a pipe, so Node can't detect the terminal — pass the password another way:
+
    ```powershell
-   $p = Read-Host "Password" -AsSecureString
-   [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-     [Runtime.InteropServices.Marshal]::SecureStringToBSTR($p)
-   ) | node scripts/hash-password.js
+   $env:KAI_ADMIN_PW="your password"; node scripts/hash-password.js; Remove-Item Env:\KAI_ADMIN_PW
+   node scripts/hash-password.js "your password"    # simplest, but lands in shell history
    ```
+
+   PowerShell records commands in `ConsoleHost_history.txt`, so prefer the env-var form, or clear that file afterwards.
    </details>
 2. Add two environment variables to the Node.js app in hPanel:
 
