@@ -50,9 +50,26 @@ Returns `{"ok":true}` — use it to confirm the Node app (not a cached page) is 
 
 A password-protected page listing both waitlists with per-list CSV/JSON downloads. The signup file stays on your server — no third-party service holds the addresses.
 
-**Set it up (required — the area stays disabled until you do):**
+**Set it up — two environment variables, no tooling:**
 
-1. Generate a password hash. The prompt keeps the password out of your shell history:
+| Variable | Value |
+|---|---|
+| `ADMIN_EMAIL` | the email you want to sign in with |
+| `ADMIN_PASSWORD` | the password you want to sign in with |
+| `SESSION_SECRET` | any long random string (keeps you signed in across restarts) |
+
+Add them to the Node.js app in hPanel, restart, and open `https://yourdomain.tld/admin`.
+
+Two things make problems obvious: the boot log prints `admin credentials: email "…" + password`, and the login form only shows an email field when `ADMIN_EMAIL` actually loaded — **if you set it and still see just a password box, the app didn't restart.**
+
+`ADMIN_EMAIL` is optional; without it the form asks for the password alone. Use a password without `$` or quotes to avoid any chance of the panel or a shell rewriting it.
+
+<details>
+<summary>Optional: store a hash instead of the password</summary>
+
+Stronger, because the password itself never sits in the panel — if someone reads your environment variables they still can't sign in. Costs a setup step:
+
+1. Generate the hash. The prompt keeps the password out of your shell history:
    ```bash
    npm run hash-password
    ```
@@ -78,15 +95,13 @@ A password-protected page listing both waitlists with per-list CSV/JSON download
 
    PowerShell records commands in `ConsoleHost_history.txt`, so prefer the env-var form, or clear that file afterwards.
    </details>
-2. Add two environment variables to the Node.js app in hPanel:
+2. Set `ADMIN_PASSWORD_HASH` in hPanel to the whole `scrypt$…` string, and remove `ADMIN_PASSWORD`.
+3. Restart the app.
 
-   | Variable | Value |
-   |---|---|
-   | `ADMIN_PASSWORD_HASH` | the `scrypt$…` string from step 1 |
-   | `SESSION_SECRET` | a long random string (e.g. `openssl rand -base64 32`) |
-3. Restart the app and open `https://yourdomain.tld/admin`.
+A valid hash takes precedence over `ADMIN_PASSWORD`. A malformed one is ignored with a logged reason and the plaintext password is used instead, so a bad paste can't lock you out.
+</details>
 
-`ADMIN_PASSWORD` (plaintext) also works if you can't run the hash script, but the app logs a warning at boot — prefer the hash. If neither is set, `/admin` returns 503 and every data endpoint returns 401: **it fails closed, never open.** If `SESSION_SECRET` is unset the app generates a random one at boot, which works fine but signs you out on every restart.
+If no credentials are set, `/admin` returns 503 and every data endpoint returns 401: **it fails closed, never open.** If `SESSION_SECRET` is unset the app generates a random one at boot, which works fine but signs you out on every restart.
 
 **What it does**
 
@@ -139,7 +154,7 @@ It reports whether the hash is intact and whether that password matches it. Comm
    ```
 6. **Environment variables** (Node.js app → Environment variables):
    - `PORT` — **injected by Hostinger automatically; don't set it yourself.** The app reads `process.env.PORT` and falls back to 3000 locally.
-   - `ADMIN_PASSWORD_HASH` and `SESSION_SECRET` — see [Admin area](#admin-area-admin). Required to use `/admin`.
+   - `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `SESSION_SECRET` — see [Admin area](#admin-area-admin). Required to use `/admin`.
    - Optional signup-notification emails (off by default — the site runs fine with none of these set; enabling requires `SMTP_HOST` **and** `SMTP_TO`):
 
      | Variable | Meaning |

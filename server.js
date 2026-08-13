@@ -37,35 +37,44 @@ app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: false, limit: "10kb" }));
 
 /* ------------------------------------------------------- admin credentials */
-const ADMIN_HASH = auth.normalizeHash(process.env.ADMIN_PASSWORD_HASH);
+// Simple path: set ADMIN_EMAIL + ADMIN_PASSWORD and you're done.
+// Optional hardening: ADMIN_PASSWORD_HASH (npm run hash-password) takes
+// precedence when it is present and valid.
+const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
 const ADMIN_PLAIN = process.env.ADMIN_PASSWORD || "";
-// A malformed hash can never match any password, so treat it as broken
-// configuration rather than silently rejecting every correct login.
+const ADMIN_HASH = auth.normalizeHash(process.env.ADMIN_PASSWORD_HASH);
+
+// A malformed hash can never match any password. Fall back to the plaintext
+// password if one is set, so a stale broken hash can't lock you out.
 const HASH_CHECK = ADMIN_HASH ? auth.describeHash(ADMIN_HASH) : { ok: false, reason: "empty" };
 const HASH_BROKEN = Boolean(ADMIN_HASH) && !HASH_CHECK.ok;
-const ADMIN_ENABLED = Boolean((ADMIN_HASH && HASH_CHECK.ok) || (!ADMIN_HASH && ADMIN_PLAIN));
+const USE_HASH = Boolean(ADMIN_HASH) && HASH_CHECK.ok;
+const ADMIN_ENABLED = USE_HASH || Boolean(ADMIN_PLAIN);
 const SESSION_SECRET = process.env.SESSION_SECRET || auth.randomSecret();
 const SESSION_COOKIE = "kai_admin";
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
 if (HASH_BROKEN) {
   console.error(
-    "\n*** ADMIN_PASSWORD_HASH is malformed — no password can ever match it. ***\n" +
-      `    Problem: ${HASH_CHECK.reason}.\n` +
-      `    Got ${ADMIN_HASH.length} characters; a valid hash is ~130 and looks like\n` +
-      "    scrypt$16384$8$1$<salt>$<key>\n" +
-      "    Re-copy the whole line from `npm run hash-password`, or check whether the\n" +
-      "    panel expanded the $ signs. Verify locally with `npm run check-password`.\n"
+    `\n*** ADMIN_PASSWORD_HASH is malformed (${HASH_CHECK.reason}) — ignoring it. ***\n` +
+      (ADMIN_PLAIN
+        ? "    Falling back to ADMIN_PASSWORD. Delete ADMIN_PASSWORD_HASH to silence this.\n"
+        : "    Set ADMIN_PASSWORD to a plain password, or re-copy the whole hash.\n")
   );
 }
 if (!ADMIN_ENABLED) {
   console.warn(
-    "admin area DISABLED: set ADMIN_PASSWORD_HASH (or ADMIN_PASSWORD) to enable /admin"
+    "admin area DISABLED: set ADMIN_EMAIL and ADMIN_PASSWORD to enable /admin"
   );
-} else if (!ADMIN_HASH) {
-  console.warn(
-    "admin using plaintext ADMIN_PASSWORD — prefer ADMIN_PASSWORD_HASH (npm run hash-password)"
+} else {
+  // Print exactly what login will expect, so a missed restart is obvious.
+  console.log(
+    `admin credentials: ${ADMIN_EMAIL ? `email "${ADMIN_EMAIL}" + password` : "password only"}` +
+      ` (${USE_HASH ? "hashed" : "plaintext ADMIN_PASSWORD"})`
   );
+  if (!ADMIN_EMAIL) {
+    console.log("  tip: set ADMIN_EMAIL to sign in with an email as well as a password");
+  }
 }
 if (!process.env.SESSION_SECRET) {
   console.warn("SESSION_SECRET not set — using a random one; admin sessions end on restart");
@@ -185,6 +194,18 @@ app.use("/admin", (_req, res, next) => {
   next();
 });
 
+// The login form mirrors the credentials the server actually loaded: if you
+// set ADMIN_EMAIL but still see no email field, the app didn't restart.
+let LOGIN_PAGE = "";
+function loginPage() {
+  if (!LOGIN_PAGE) {
+    LOGIN_PAGE = fs
+      .readFileSync(path.join(VIEWS_DIR, "login.html"), "utf8")
+      .replace("__EMAIL_MODE__", ADMIN_EMAIL ? "true" : "false");
+  }
+  return LOGIN_PAGE;
+}
+
 function currentSession(req) {
   const cookies = auth.parseCookies(req.headers.cookie);
   const token = cookies[SESSION_COOKIE];
@@ -210,12 +231,12 @@ app.get("/admin", (req, res) => {
       .type("text/plain")
       .send(
         HASH_BROKEN
-          ? "Admin area is misconfigured: ADMIN_PASSWORD_HASH is malformed, so no password can match. See the app log for details."
-          : "Admin area is not configured. Set ADMIN_PASSWORD_HASH and restart."
+          ? "Admin area is misconfigured: ADMIN_PASSWORD_HASH is malformed and no ADMIN_PASSWORD is set. Delete the hash, set ADMIN_PASSWORD, and restart."
+          : "Admin area is not configured. Set ADMIN_EMAIL and ADMIN_PASSWORD, then restart the app."
       );
   }
-  const page = currentSession(req) ? "admin.html" : "login.html";
-  return res.sendFile(path.join(VIEWS_DIR, page));
+  if (currentSession(req)) return res.sendFile(path.join(VIEWS_DIR, "admin.html"));
+  return res.type("html").send(loginPage());
 });
 
 app.post("/admin/login", (req, res) => {
@@ -228,14 +249,24 @@ app.post("/admin/login", (req, res) => {
       .json({ ok: false, error: "Too many attempts — wait 15 minutes and try again." });
   }
 
-  const password = req.body && typeof req.body.password === "string" ? req.body.password : "";
-  const okPassword = ADMIN_HASH
-    ? auth.verifyPassword(password, ADMIN_HASH)
-    : auth.verifyPlaintext(password, ADMIN_PLAIN);
+  const body = req.body || {};
+  const password = typeof body.password === "string" ? body.password : "";
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
 
-  if (!password || !okPassword) {
-    console.warn(`failed admin login from ${req.ip}`);
-    return res.status(401).json({ ok: false, error: "Incorrect password." });
+  const okEmail = !ADMIN_EMAIL || (Boolean(email) && auth.verifyPlaintext(email, ADMIN_EMAIL));
+  const okPassword =
+    Boolean(password) &&
+    (USE_HASH ? auth.verifyPassword(password, ADMIN_HASH) : auth.verifyPlaintext(password, ADMIN_PLAIN));
+
+  if (!okEmail || !okPassword) {
+    // Log which half failed so the app log can settle it; the response stays
+    // deliberately vague so a stranger learns nothing.
+    const why = !okEmail ? (email ? "email mismatch" : "email missing") : "password mismatch";
+    console.warn(`failed admin login from ${req.ip} (${why})`);
+    return res.status(401).json({
+      ok: false,
+      error: ADMIN_EMAIL ? "Incorrect email or password." : "Incorrect password.",
+    });
   }
 
   const now = Date.now();

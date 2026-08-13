@@ -49,6 +49,11 @@ a{color:var(--muted)}
   </div>
   <h1>Waitlist admin</h1>
   <p class="sub">Sign in to view and export the early-access lists.</p>
+  <div id="emailRow" hidden>
+    <label for="em">Email</label>
+    <input type="email" id="em" name="email" autocomplete="username" spellcheck="false">
+    <div style="height:14px"></div>
+  </div>
   <label for="pw">Password</label>
   <input type="password" id="pw" name="password" autocomplete="current-password" required autofocus>
   <button type="submit" id="go">Sign in</button>
@@ -58,12 +63,17 @@ a{color:var(--muted)}
 <script>
 (function(){
   var f=document.getElementById("f"), pw=document.getElementById("pw"),
-      msg=document.getElementById("msg"), go=document.getElementById("go"), busy=false;
+      msg=document.getElementById("msg"), go=document.getElementById("go"), busy=false,
+      em=document.getElementById("em"), needEmail=__EMAIL_MODE__;
+  if(needEmail){
+    document.getElementById("emailRow").hidden=false;
+    em.required=true; em.focus();
+  }
   f.addEventListener("submit",function(e){e.preventDefault();
-    if(busy||!pw.value){return;}
+    if(busy||!pw.value||(needEmail&&!em.value)){return;}
     busy=true; go.disabled=true; msg.textContent="";
     fetch("/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({password:pw.value})})
+      body:JSON.stringify({email:needEmail?em.value:"",password:pw.value})})
       .then(function(r){return r.json().then(function(j){return {ok:r.ok&&j.ok,err:j.error};});})
       .then(function(res){
         if(res.ok){location.href="/admin";return;}
