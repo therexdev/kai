@@ -252,11 +252,13 @@ table.cmp tbody tr:last-child th,table.cmp tbody tr:last-child td{border-bottom:
 /* ---- privacy routing selector ---- */
 .route{display:grid;grid-template-columns:.85fr 1.15fr;gap:26px;align-items:center}
 .route-modes{display:grid;gap:9px}
-.rbtn{text-align:left;border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--ink-2);cursor:pointer;transition:.15s;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
+/* buttons do not inherit color — without this the labels render UA black */
+.rbtn{text-align:left;border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--ink-2);color:var(--text);cursor:pointer;transition:.15s;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
 .rbtn:hover{border-color:#463f5a}
 .rbtn[aria-pressed="true"]{border-color:var(--signal);background:rgba(51,230,192,.06)}
 .rbtn .rk{width:9px;height:9px;border-radius:2px;background:var(--faint);transform:rotate(45deg)}
 .rbtn[aria-pressed="true"] .rk{background:var(--signal)}
+.rbtn[aria-pressed="true"] b{color:var(--signal)}
 .rbtn b{font-family:var(--mono);font-size:13px} .rbtn small{display:block;color:var(--muted);font-size:12.5px}
 .route-viz{border:1px solid var(--line);border-radius:16px;padding:22px;background:var(--panel);min-height:230px}
 .rv-track{display:flex;align-items:center;gap:8px;margin-top:4px}
@@ -266,7 +268,8 @@ table.cmp tbody tr:last-child th,table.cmp tbody tr:last-child td{border-bottom:
 .rv-node.hot b{color:var(--signal)}
 .rv-node.warm-hot{border-color:var(--value);color:var(--value);box-shadow:0 0 0 1px var(--value-dim) inset,0 8px 26px rgba(242,176,61,.12)}
 .rv-node.warm-hot b{color:var(--value)}
-.rv-node.blocked{opacity:.32}
+/* dimmed to read as unavailable, but still legible (.32 was invisible) */
+.rv-node.blocked{opacity:.75}
 .rv-arrow{color:var(--faint);font-family:var(--mono)}
 .rv-desc{margin-top:18px;font-size:14px;color:var(--soft);min-height:44px}
 .rv-desc b{color:var(--text)}
