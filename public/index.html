@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Koinos AI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Local-first, decentralized AI you own. Run private AI on your hardware, earn KAI from idle compute, and self-host an OpenAI-compatible API that overflows into the network.">
+<style>
+:root{
+  /* dark-committed instrument palette — painted explicitly so it holds on any host ground */
+  --ink:#0A0A0C; --ink-2:#0E0E12; --panel:#111117; --panel-2:#15151c;
+  --line:#22222b; --line-2:#2f2f3a;
+  --text:#F4F3F0; --soft:#cdccce; --muted:#918f9a; --faint:#63626d;
+  --signal:#33E6C0;      /* network / cool */
+  --signal-dim:#1c8f7c;
+  --value:#F2B03D;       /* your hardware / earn / KAI — warm */
+  --value-dim:#a9782a;
+  --danger:#ff6b6b;
+  --max:1180px; --r:14px;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+  --sans:"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --grain:0;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--ink); color:var(--text);
+  font-family:var(--sans); line-height:1.55; -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+body::before{ /* ambient field, warm on one corner, cool on the other — the two temperatures */
+  content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
+  background:
+    radial-gradient(760px 460px at 88% -4%, rgba(51,230,192,.10), transparent 62%),
+    radial-gradient(680px 460px at 6% 44%, rgba(242,176,61,.06), transparent 60%),
+    var(--ink);
+}
+body::after{ /* fine measurement grid */
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:72px 72px;
+  mask-image:linear-gradient(to bottom,#000,transparent 82%);
+}
+a{color:inherit;text-decoration:none}
+.wrap{width:min(var(--max),calc(100% - 44px));margin-inline:auto}
+:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:4px}
+::selection{background:rgba(51,230,192,.28);color:#fff}
+
+/* ---- type system ---- */
+.mono{font-family:var(--mono)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--signal);font-weight:600}
+.eyebrow.warm{color:var(--value)}
+h1,h2,h3{text-wrap:balance;margin:0;font-weight:640;letter-spacing:-.03em;line-height:1.02}
+h1{font-size:clamp(44px,6.4vw,78px);letter-spacing:-.045em}
+h2{font-size:clamp(30px,3.9vw,50px)}
+h3{font-size:19px;letter-spacing:-.02em}
+p{margin:0}
+.lead{color:var(--soft);font-size:clamp(16px,1.4vw,19px);max-width:60ch}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ---- buttons ---- */
+.btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:13px;font-weight:600;
+  letter-spacing:.01em;padding:13px 18px;border-radius:11px;border:1px solid var(--line-2);
+  background:var(--panel);color:var(--text);cursor:pointer;transition:transform .15s ease,border-color .15s,background .15s}
+.btn:hover{transform:translateY(-1px);border-color:#463f5a}
+.btn .arw{transition:transform .18s}
+.btn:hover .arw{transform:translateX(3px)}
+.btn-signal{border-color:transparent;background:linear-gradient(180deg,#3ff0cc,#22c8a6);color:#04120e;box-shadow:0 10px 30px rgba(51,230,192,.18)}
+.btn-signal:hover{border-color:transparent;box-shadow:0 14px 40px rgba(51,230,192,.26)}
+.btn-value{border-color:transparent;background:linear-gradient(180deg,#f6bd55,#e59a26);color:#1a1204;box-shadow:0 10px 30px rgba(242,176,61,.16)}
+.btn-ghost{background:transparent}
+
+/* ---- nav ---- */
+.nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
+  background:linear-gradient(to bottom,rgba(10,10,12,.9),rgba(10,10,12,.5) 70%,transparent);
+  border-bottom:1px solid transparent}
+.nav.stuck{border-bottom-color:var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:66px}
+.brand{display:flex;align-items:center;gap:11px;font-family:var(--mono);font-weight:700;letter-spacing:.02em;font-size:14px}
+.mark{width:26px;height:26px;position:relative;display:grid;place-items:center}
+.mark svg{width:26px;height:26px;filter:drop-shadow(0 0 10px rgba(51,230,192,.4))}
+.brand b{font-weight:700}
+.brand .ai{color:var(--ink);background:var(--signal);padding:1px 5px;border-radius:4px;font-size:11px}
+.nav-links{display:flex;gap:26px;font-family:var(--mono);font-size:12.5px;color:var(--muted);letter-spacing:.02em}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{display:flex;gap:9px}
+.burger{display:none;width:42px;height:42px;font-size:16px}
+.mobile{display:none}
+
+/* ---- hero ---- */
+.hero{position:relative;padding:46px 0 30px}
+.hero-grid{display:grid;grid-template-columns:1.06fr .94fr;gap:30px;align-items:center;min-height:560px}
+.badge{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--soft);border:1px solid var(--line-2);border-radius:999px;padding:7px 13px;background:rgba(255,255,255,.015)}
+.badge .dot{width:6px;height:6px;border-radius:50%;background:var(--signal);box-shadow:0 0 0 4px rgba(51,230,192,.14)}
+.hero h1{margin:22px 0 0}
+.hero h1 .warm{color:var(--value)}
+.hero h1 .cool{color:var(--signal)}
+.hero h1 .danger{color:var(--danger)}
+.hero-sub .warm{color:var(--value)} .hero-sub .cool{color:var(--signal)}
+.hero-sub{margin-top:20px;font-size:clamp(16px,1.45vw,19px);color:var(--soft);max-width:56ch}
+/* dual path */
+.paths{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px}
+.path{border:1px solid var(--line);border-radius:var(--r);padding:16px;background:var(--ink-2);position:relative;transition:border-color .18s,transform .18s}
+.path:hover{transform:translateY(-2px)}
+.path.warm:hover{border-color:var(--value-dim)}
+.path.cool:hover{border-color:var(--signal-dim)}
+.path .tick{position:absolute;top:9px;right:11px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--faint)}
+.path .who{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:7px}
+.path.warm .who{color:var(--value)} .path.cool .who{color:var(--signal)}
+.path h3{font-size:17px;margin-bottom:5px}
+.path p{color:var(--muted);font-size:13.5px;margin-bottom:14px}
+.path .go{font-family:var(--mono);font-size:12.5px;display:inline-flex;gap:7px;align-items:center}
+.path.warm .go{color:var(--value)} .path.cool .go{color:var(--signal)}
+.hero-foot{margin-top:26px;display:flex;gap:8px 22px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--faint);letter-spacing:.04em}
+.hero-foot span{display:inline-flex;align-items:center;gap:7px}
+.hero-foot span::before{content:"";width:5px;height:5px;border-radius:1px;background:var(--signal);transform:rotate(45deg)}
+
+/* hero canvas */
+.hero-art{position:relative;height:520px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:
+  radial-gradient(120% 120% at 15% 90%, rgba(242,176,61,.05), transparent 42%),
+  radial-gradient(120% 120% at 85% 10%, rgba(51,230,192,.06), transparent 46%),
+  var(--ink-2)}
+.hero-art canvas{display:block;width:100%;height:100%}
+.art-label{position:absolute;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--muted);
+  border:1px solid var(--line);background:rgba(10,10,12,.72);padding:6px 9px;border-radius:8px;backdrop-filter:blur(3px)}
+.art-label b{display:block;font-size:9px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:2px}
+.art-label.warm b{color:var(--value)} .art-label.cool b{color:var(--signal)}
+.al-1{left:16px;bottom:16px} .al-2{right:16px;top:16px}
+.corner{position:absolute;width:12px;height:12px;border:1px solid var(--line-2)}
+.corner.tl{top:9px;left:9px;border-right:0;border-bottom:0}
+.corner.tr{top:9px;right:9px;border-left:0;border-bottom:0}
+.corner.bl{bottom:9px;left:9px;border-right:0;border-top:0}
+.corner.br{bottom:9px;right:9px;border-left:0;border-top:0}
+
+/* ---- section scaffolding ---- */
+section{padding:84px 0;position:relative}
+.shead{max-width:760px}
+.shead.center{margin-inline:auto;text-align:center}
+.shead h2{margin:12px 0 12px}
+.shead p{color:var(--muted);font-size:17px;max-width:64ch}
+.shead.center p{margin-inline:auto}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--line),transparent)}
+
+/* instrument panel primitive */
+.panel{position:relative;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:24px}
+.panel .plabel{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+
+/* ---- problem / enemies ---- */
+.enemies{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
+.enemy{border:1px solid var(--line);border-radius:var(--r);background:linear-gradient(180deg,var(--panel),var(--ink-2));padding:24px;position:relative;overflow:hidden}
+.enemy .idx{font-family:var(--mono);font-size:11px;color:var(--danger);letter-spacing:.1em}
+.enemy h3{margin:14px 0 8px}
+.enemy p{color:var(--muted);font-size:14.5px}
+.enemy .barb{margin-top:16px;font-family:var(--mono);font-size:12px;color:var(--soft);border-top:1px dashed var(--line-2);padding-top:12px}
+.enemy .barb b{color:var(--signal)}
+
+/* ---- the shift / layers ---- */
+.layers{display:grid;grid-template-columns:1.05fr .95fr;gap:34px;align-items:center}
+.layer-list{display:grid;gap:10px;margin-top:6px}
+.layer{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:15px 17px;background:var(--ink-2)}
+.layer .lg{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:13px}
+.layer.l-local .lg{background:rgba(242,176,61,.12);color:var(--value);border:1px solid var(--value-dim)}
+.layer.l-private .lg{background:rgba(242,176,61,.06);color:var(--value);border:1px solid var(--line-2)}
+.layer.l-network .lg{background:rgba(51,230,192,.10);color:var(--signal);border:1px solid var(--signal-dim)}
+.layer.l-conf .lg{background:rgba(51,230,192,.05);color:var(--signal);border:1px dashed var(--line-2)}
+.layer strong{font-size:15px} .layer small{display:block;color:var(--muted);font-size:13px;margin-top:1px}
+.layer .cost{font-family:var(--mono);font-size:11px;color:var(--faint);text-align:right;white-space:nowrap}
+.layer.l-local .cost{color:var(--value)}
+.thesis-card{position:relative;border:1px solid var(--line);border-radius:18px;padding:28px;background:
+  radial-gradient(90% 90% at 50% 0,rgba(51,230,192,.06),transparent 60%),var(--panel)}
+.thesis-card .q{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.thesis-card blockquote{margin:14px 0 0;font-size:23px;line-height:1.32;letter-spacing:-.02em}
+.thesis-card blockquote .warm{color:var(--value)} .thesis-card blockquote .cool{color:var(--signal)}
+.flowbar{margin-top:22px;display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;color:var(--muted);flex-wrap:wrap}
+.flowbar .n{border:1px solid var(--line-2);border-radius:7px;padding:6px 9px}
+.flowbar .n.on-w{color:var(--value);border-color:var(--value-dim)}
+.flowbar .n.on-c{color:var(--signal);border-color:var(--signal-dim)}
+.flowbar .ar{color:var(--faint)}
+
+/* ---- developers ---- */
+.dev-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.code{border:1px solid var(--line);border-radius:var(--r);background:#08080b;overflow:hidden}
+.code-top{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--faint)}
+.code-top .dots{display:flex;gap:6px}
+.code-top .dots i{width:9px;height:9px;border-radius:50%;background:var(--line-2)}
+.code pre{margin:0;padding:18px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.85;color:#c6c5cc}
+.code .k{color:var(--signal)} .code .s{color:var(--value)} .code .c{color:var(--faint)} .code .f{color:#8fb8ff}
+.modes{display:grid;gap:10px;margin-top:2px}
+.mode{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--ink-2);display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center}
+.mode b{font-family:var(--mono);font-size:13px}
+.mode small{color:var(--muted);font-size:13px;grid-column:1}
+.mode .pin{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--signal);border:1px solid var(--signal-dim);border-radius:6px;padding:3px 7px;grid-row:1/3;justify-self:end}
+.mode .pin.w{color:var(--value);border-color:var(--value-dim)}
+
+/* ---- earnings estimator ---- */
+.est{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch}
+.est-controls .gpu-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{font-family:var(--mono);font-size:12px;padding:9px 13px;border-radius:9px;border:1px solid var(--line-2);background:var(--ink-2);color:var(--soft);cursor:pointer;transition:.15s}
+.chip:hover{border-color:#4a4460}
+.chip[aria-pressed="true"]{border-color:var(--value);color:var(--value);background:rgba(242,176,61,.08)}
+.slider-row{margin-top:22px}
+.slider-row label{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
+input[type=range]{width:100%;margin-top:12px;accent-color:var(--value)}
+.readout{display:grid;place-content:center;text-align:center;gap:6px}
+.readout .big{font-family:var(--mono);font-size:clamp(42px,6vw,62px);font-weight:700;letter-spacing:-.03em;color:var(--value);line-height:1}
+.readout .unit{font-size:18px;color:var(--soft)}
+.readout .sub{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.readout .grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:20px;width:100%}
+.readout .kv{border:1px solid var(--line);border-radius:10px;padding:12px}
+.readout .kv span{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);display:block}
+.readout .kv b{font-family:var(--mono);font-size:16px;color:var(--text)}
+.disclaimer{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:16px;line-height:1.6}
+
+/* how earning works — a real sequence, so numbered */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
+.step{border:1px solid var(--line);border-radius:12px;padding:20px;background:var(--ink-2)}
+.step .num{font-family:var(--mono);font-size:12px;color:var(--value);letter-spacing:.1em}
+.step h3{margin:12px 0 6px;font-size:17px}
+.step p{color:var(--muted);font-size:14px}
+
+/* ---- comparison ---- */
+.cmp-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+table.cmp{width:100%;border-collapse:collapse;min-width:640px;font-size:14.5px}
+table.cmp th,table.cmp td{padding:16px 20px;text-align:left;border-bottom:1px solid var(--line)}
+table.cmp thead th{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+table.cmp thead th.kai{color:var(--signal)}
+table.cmp thead th.big{color:var(--muted)}
+table.cmp tbody th{font-weight:500;color:var(--soft)}
+table.cmp td.kai{color:var(--text)}
+table.cmp td.big{color:var(--muted)}
+table.cmp td.kai::before{content:"✓ ";color:var(--signal);font-family:var(--mono)}
+table.cmp td.big::before{content:"✕ ";color:var(--faint);font-family:var(--mono)}
+table.cmp tbody tr:last-child th,table.cmp tbody tr:last-child td{border-bottom:0}
+.cmp col.c-kai{background:rgba(51,230,192,.03)}
+
+/* ---- privacy routing selector ---- */
+.route{display:grid;grid-template-columns:.85fr 1.15fr;gap:26px;align-items:center}
+.route-modes{display:grid;gap:9px}
+.rbtn{text-align:left;border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--ink-2);cursor:pointer;transition:.15s;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
+.rbtn:hover{border-color:#463f5a}
+.rbtn[aria-pressed="true"]{border-color:var(--signal);background:rgba(51,230,192,.06)}
+.rbtn .rk{width:9px;height:9px;border-radius:2px;background:var(--faint);transform:rotate(45deg)}
+.rbtn[aria-pressed="true"] .rk{background:var(--signal)}
+.rbtn b{font-family:var(--mono);font-size:13px} .rbtn small{display:block;color:var(--muted);font-size:12.5px}
+.route-viz{border:1px solid var(--line);border-radius:16px;padding:22px;background:var(--panel);min-height:230px}
+.rv-track{display:flex;align-items:center;gap:8px;margin-top:4px}
+.rv-node{flex:1;border:1px solid var(--line-2);border-radius:11px;padding:14px 10px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--faint);transition:.25s}
+.rv-node b{display:block;font-size:12.5px;color:var(--muted);margin-bottom:3px}
+.rv-node.hot{border-color:var(--signal);color:var(--signal);box-shadow:0 0 0 1px var(--signal-dim) inset,0 8px 26px rgba(51,230,192,.12)}
+.rv-node.hot b{color:var(--signal)}
+.rv-node.warm-hot{border-color:var(--value);color:var(--value);box-shadow:0 0 0 1px var(--value-dim) inset,0 8px 26px rgba(242,176,61,.12)}
+.rv-node.warm-hot b{color:var(--value)}
+.rv-node.blocked{opacity:.32}
+.rv-arrow{color:var(--faint);font-family:var(--mono)}
+.rv-desc{margin-top:18px;font-size:14px;color:var(--soft);min-height:44px}
+.rv-desc b{color:var(--text)}
+
+/* ---- KAI / dual network ---- */
+.two-net{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.netcard{border:1px solid var(--line);border-radius:var(--r);padding:24px;background:var(--panel);position:relative}
+.netcard .token{font-family:var(--mono);font-size:11px;letter-spacing:.12em;padding:5px 10px;border-radius:999px;display:inline-block;margin-bottom:14px}
+.netcard.kai .token{color:var(--signal);border:1px solid var(--signal-dim);background:rgba(51,230,192,.06)}
+.netcard.koin .token{color:var(--value);border:1px solid var(--value-dim);background:rgba(242,176,61,.06)}
+.netcard h3{font-size:24px;margin-bottom:8px}
+.netcard p{color:var(--muted);font-size:14.5px}
+.netcard .rw{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline}
+.netcard .rw span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.netcard .rw b{font-family:var(--mono);font-size:24px}
+.netcard.kai .rw b{color:var(--signal)} .netcard.koin .rw b{color:var(--value)}
+.clean-note{margin-top:16px;font-size:14px;color:var(--muted)}
+.clean-note b{color:var(--soft)}
+
+/* ---- roadmap ---- */
+.eras{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.era{border:1px solid var(--line);border-radius:12px;padding:20px;background:var(--ink-2);position:relative}
+.era .en{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--signal)}
+.era.now{border-color:var(--signal-dim);background:linear-gradient(180deg,rgba(51,230,192,.05),var(--ink-2))}
+.era.now .en{color:var(--signal)}
+.era h3{font-size:16px;margin:8px 0 12px}
+.era ul{margin:0;padding-left:16px;color:var(--muted);font-size:13px;display:grid;gap:6px}
+.era .flag{position:absolute;top:16px;right:16px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--signal)}
+
+/* ---- waitlist ---- */
+.cta{border:1px solid var(--line);border-radius:20px;padding:clamp(30px,5vw,58px);text-align:center;position:relative;overflow:hidden;background:
+  radial-gradient(700px 240px at 50% -10%,rgba(51,230,192,.10),transparent 65%),var(--panel)}
+.cta h2{margin-bottom:12px}
+.cta h2 .warm{color:var(--value)} .cta h2 .cool{color:var(--signal)}
+.cta p{color:var(--muted);max-width:56ch;margin-inline:auto}
+.wl{margin:26px auto 0;max-width:520px}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:10px;padding:3px;font-family:var(--mono);font-size:12px;margin-bottom:12px}
+.seg button{padding:8px 16px;border-radius:7px;background:transparent;color:var(--muted);border:0;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--text)}
+.wl-form{display:flex;gap:9px}
+.wl-form input{flex:1;background:var(--ink);border:1px solid var(--line-2);border-radius:11px;padding:14px 15px;color:var(--text);font-family:var(--mono);font-size:13px}
+.wl-form input::placeholder{color:var(--faint)}
+.wl-note{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:11px}
+.wl-ok{color:var(--signal);font-family:var(--mono);font-size:13px;margin-top:12px;display:none}
+
+/* ---- faq ---- */
+.faq{max-width:820px;margin-inline:auto}
+.faq details{border-bottom:1px solid var(--line);padding:18px 2px}
+.faq summary{cursor:pointer;font-size:16.5px;font-weight:560;list-style:none;display:flex;justify-content:space-between;gap:16px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font-family:var(--mono);color:var(--signal);transition:.2s}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq p{color:var(--muted);font-size:14.5px;margin-top:12px;max-width:70ch}
+
+/* ---- footer ---- */
+footer{border-top:1px solid var(--line);padding:36px 0 52px}
+.foot{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.foot a:hover{color:var(--text)}
+.foot-links{display:flex;gap:18px;flex-wrap:wrap}
+
+/* reveal */
+.rise{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.2,.7,.2,1),transform .6s cubic-bezier(.2,.7,.2,1)}
+.rise.in{opacity:1;transform:none}
+
+@media(max-width:940px){
+  .nav-links{display:none} .burger{display:inline-flex} .nav-cta .btn:not(.burger){display:none}
+  .mobile.open{display:grid;gap:2px;padding:12px;border:1px solid var(--line);border-radius:12px;margin:6px 0 0;background:var(--panel)}
+  .mobile a{font-family:var(--mono);font-size:13px;color:var(--soft);padding:9px}
+  .hero-grid,.layers,.dev-grid,.est,.route,.two-net{grid-template-columns:1fr}
+  .hero-art{height:340px}
+  .enemies,.steps{grid-template-columns:1fr} .eras{grid-template-columns:1fr 1fr}
+}
+@media(max-width:560px){
+  .paths{grid-template-columns:1fr} .eras{grid-template-columns:1fr}
+  .wl-form{flex-direction:column} .readout .grid2{grid-template-columns:1fr}
+  section{padding:60px 0}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto}.rise{opacity:1;transform:none}}
+
+/* MANIFESTO / THE FIGHT */
+.manifesto{border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(255,107,107,.055),transparent 62%);padding:74px 0}
+.manifesto .mgrid{display:grid;grid-template-columns:1.15fr .85fr;gap:44px;align-items:start}
+.manifesto h2{font-size:clamp(30px,4.3vw,52px);line-height:1.03;letter-spacing:-.025em;margin:14px 0 0;text-wrap:balance;max-width:16ch}
+.manifesto h2 em{font-style:normal;color:var(--danger)}
+.manifesto .mbody{color:var(--soft);font-size:clamp(16px,1.45vw,19px);line-height:1.55;max-width:52ch;margin-top:20px}
+.manifesto .mbody b{color:var(--text)}
+.manifesto .resolve{margin-top:24px;font-size:clamp(16px,1.5vw,20px);line-height:1.45;max-width:52ch;text-wrap:balance;color:var(--soft)}
+.manifesto .resolve b{color:var(--text)}
+.manifesto .resolve .warm{color:var(--value)} .manifesto .resolve .cool{color:var(--signal)}
+.manifesto .caps{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--panel)}
+.manifesto .cap{padding:20px 22px;border-bottom:1px solid var(--line)}
+.manifesto .cap:last-child{border-bottom:0}
+.manifesto .cap b{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:var(--danger);text-transform:uppercase;display:flex;align-items:center;gap:9px}
+.manifesto .cap b::before{content:"";width:6px;height:6px;background:var(--danger);transform:rotate(45deg);flex:none;box-shadow:0 0 0 4px rgba(255,107,107,.12)}
+.manifesto .cap span{display:block;margin-top:9px;color:var(--soft);font-size:14.5px;line-height:1.5}
+.manifesto .cap span b{color:var(--text);font-family:inherit;letter-spacing:0}
+@media(max-width:820px){ .manifesto .mgrid{grid-template-columns:1fr;gap:30px} .manifesto{padding:56px 0} }
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav"><div class="wrap nav-in">
+  <a class="brand" href="#top">
+    <span class="mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 L28 9 V23 L16 30 L4 23 V9 Z" fill="none" stroke="#33E6C0" stroke-width="1.5"/><path d="M12 10 V22 M12 16 L20 10 M12 16 L20 22" stroke="#F2B03D" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
+    <b>KOINOS</b><span class="ai">AI</span>
+  </a>
+  <nav class="nav-links" aria-label="Primary">
+    <a href="#problem">Why</a><a href="#how">How it works</a><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#kai">KAI</a><a href="#roadmap">Roadmap</a>
+  </nav>
+  <div class="nav-cta">
+    <a class="btn btn-signal" href="#waitlist">Get early access <span class="arw">→</span></a>
+    <button class="btn burger" id="burger" aria-label="Menu" aria-expanded="false">☰</button>
+  </div>
+</div>
+<div class="wrap"><div class="mobile" id="mobile">
+  <a href="#problem">Why</a><a href="#how">How it works</a><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#kai">KAI</a><a href="#roadmap">Roadmap</a><a href="#waitlist">Get early access →</a>
+</div></div>
+</header>
+
+<main id="top">
+
+<!-- HERO -->
+<section class="hero"><div class="wrap"><div class="hero-grid">
+  <div>
+    <span class="badge"><span class="dot"></span> The people's AI network · not Big AI</span>
+    <h1>Take AI back from<br>the <span class="danger">data centers</span>.</h1>
+    <p class="hero-sub">A few corporations hoard the GPUs, meter every request, and keep your private data on their servers. Koinos AI puts the first layer back in your hands — private AI on hardware you <span class="warm">already own</span> — and turns the rest into a <span class="cool">decentralized network</span> no single company controls. Two ways to take it back:</p>
+
+    <div class="paths">
+      <a class="path warm" href="#earn">
+        <span class="tick mono">01 · people</span>
+        <div class="who">Run &amp; earn</div>
+        <h3>Private AI. Idle GPU that pays.</h3>
+        <p>Chat privately on your own machine. Turn unused compute into KAI.</p>
+        <span class="go">Start earning <span class="arw">→</span></span>
+      </a>
+      <a class="path cool" href="#developers">
+        <span class="tick mono">02 · builders</span>
+        <div class="who">Self-host</div>
+        <h3>Your API. Your GPUs first.</h3>
+        <p>An OpenAI-compatible endpoint you control that overflows to the network.</p>
+        <span class="go">Read the docs <span class="arw">→</span></span>
+      </a>
+    </div>
+
+    <div class="hero-foot">
+      <span>OpenAI-compatible</span><span>No KAI to start</span><span>Private by architecture</span><span>Settled on Koinos</span>
+    </div>
+  </div>
+
+  <div class="hero-art" aria-hidden="true">
+    <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+    <canvas id="mesh"></canvas>
+    <span class="art-label cool al-2"><b>The network</b>elastic · decentralized</span>
+    <span class="art-label warm al-1"><b>Your machine</b>local · private · earning</span>
+  </div>
+</div></div></section>
+
+<!-- MANIFESTO / THE FIGHT -->
+<section class="manifesto"><div class="wrap">
+  <div class="mgrid">
+    <div class="rise">
+      <div class="eyebrow" style="color:var(--danger)">The stakes</div>
+      <h2>Whoever owns the compute owns the <em>intelligence</em>.</h2>
+      <p class="mbody">Intelligence is becoming the most valuable resource on Earth — and it's being locked inside a handful of hyperscale data centers owned by a few of the largest companies that have ever existed. <b>That isn't a market. It's a monopoly on thought.</b></p>
+      <p class="resolve">Koinos AI is the counter-move: <b>millions of machines, owned by the people who run them</b>, coordinated by an <span class="cool">open network</span> no single company controls — with the <span class="warm">private machine on your desk</span> as the default, not the exception.</p>
+    </div>
+    <div class="caps rise" aria-label="How AI is being concentrated">
+      <div class="cap"><b>Compute</b><span>The GPUs that produce modern intelligence are <b>hoarded in hyperscale clusters</b> most people can never access.</span></div>
+      <div class="cap"><b>Data</b><span>Your prompts, files, and source code <b>become their asset</b> the moment they leave your device.</span></div>
+      <div class="cap"><b>Power</b><span>Prices, rate limits, and who's even allowed in <b>change on their terms</b> — never yours.</span></div>
+    </div>
+  </div>
+</div></section>
+
+<div class="wrap"><div class="divider"></div></div>
+
+<!-- PROBLEM -->
+<section id="problem"><div class="wrap">
+  <div class="shead rise">
+    <div class="eyebrow" style="color:var(--danger)">The status quo</div>
+    <h2>Modern AI runs on someone else's computer — and bills you for it forever.</h2>
+    <p>The dominant model concentrates the GPUs, the pricing power, and your data inside a handful of data centers. Meanwhile the capable machine on your desk sits idle most of the day.</p>
+  </div>
+  <div class="enemies">
+    <article class="enemy rise"><div class="idx">ENEMY 01</div><h3>Permanent API rent</h3><p>You build your product on an endpoint whose price, limits, and rules can change the moment it's inconvenient for you.</p><div class="barb"><b>Koinos AI →</b> your hardware is the default; the network is the overflow.</div></article>
+    <article class="enemy rise"><div class="idx">ENEMY 02</div><h3>Your data, their servers</h3><p>Prompts, files, source code, and business context leave hardware you control every time you hit a cloud model.</p><div class="barb"><b>Koinos AI →</b> local execution never leaves the device. Privacy is a mode, not a promise.</div></article>
+    <article class="enemy rise"><div class="idx">ENEMY 03</div><h3>Idle compute, wasted</h3><p>Millions of capable GPUs do nothing all night while all AI demand is funneled to hyperscale clusters.</p><div class="barb"><b>Koinos AI →</b> that idle GPU does verified AI work and earns KAI.</div></article>
+  </div>
+</div></section>
+
+<!-- HOW IT WORKS / LAYERS -->
+<section id="how"><div class="wrap">
+  <div class="layers">
+    <div class="rise">
+      <div class="eyebrow">The architecture</div>
+      <h2 style="margin:12px 0 14px">One request. Four places it can run — <span style="color:var(--value)">you</span> choose which.</h2>
+      <p class="lead" style="margin-bottom:8px">Every request is checked against your privacy and spending policy <em>before</em> anything about quality, speed, or price. Local always wins first. The network is a fallback you opt into.</p>
+      <div class="layer-list">
+        <div class="layer l-local"><span class="lg">L</span><div><strong>Local</strong><small>Runs on your machine. Strongest privacy.</small></div><span class="cost">no KAI charge</span></div>
+        <div class="layer l-private"><span class="lg">P</span><div><strong>Private pool</strong><small>Hardware your org owns or explicitly trusts.</small></div><span class="cost">internal</span></div>
+        <div class="layer l-network"><span class="lg">N</span><div><strong>Verified network</strong><small>Encrypted transport to reputation-bearing providers.</small></div><span class="cost">settled in KAI</span></div>
+        <div class="layer l-conf"><span class="lg">C</span><div><strong>Confidential <span class="mono" style="color:var(--faint);font-size:11px">· future</span></strong><small>Attested confidential-compute hardware.</small></div><span class="cost">premium KAI</span></div>
+      </div>
+    </div>
+    <aside class="thesis-card rise">
+      <div class="q">The whole thesis, one line</div>
+      <blockquote>Your hardware <span class="warm">first</span>. The network <span class="cool">when you need it</span>.</blockquote>
+      <div class="flowbar">
+        <span class="n on-w">Request</span><span class="ar">→</span>
+        <span class="n on-w">Policy check</span><span class="ar">→</span>
+        <span class="n on-w">Local</span><span class="ar">→</span>
+        <span class="n on-c">Network</span><span class="ar">→</span>
+        <span class="n on-c">Settle · KAI</span>
+      </div>
+      <p style="margin-top:20px;color:var(--muted);font-size:14px">Fallback can never silently break a privacy or spending rule. Prompts, files, and model weights never touch the chain — Koinos records ownership and settlement, nothing else.</p>
+    </aside>
+  </div>
+</div></section>
+
+<div class="wrap"><div class="divider"></div></div>
+
+<!-- DEVELOPERS -->
+<section id="developers"><div class="wrap">
+  <div class="shead rise">
+    <div class="eyebrow">For developers · your way out</div>
+    <h2>Stop renting your product's brain from a company that competes with you.</h2>
+    <p>Every app built on a hyperscale API is one price hike, rate-limit, or deprecation away from breaking — and it hands your users' data to the same firm racing to ship your product itself. Koinos AI is the exit: self-host an OpenAI-compatible gateway on hardware you own, keep your GPUs as the primary inference layer, and overflow into a decentralized network by policy, not a rewrite. Same SDK. Scoped app keys, never wallet keys. Nobody holding your roadmap hostage.</p>
+  </div>
+  <div class="dev-grid">
+    <div class="code rise">
+      <div class="code-top"><span class="dots"><i></i><i></i><i></i></span><span>app.py · drop-in OpenAI SDK</span></div>
+<pre><span class="c"># same SDK. your endpoint. your hardware first.</span>
+client = <span class="f">OpenAI</span>(
+  base_url=<span class="s">"http://localhost:8181/v1"</span>,
+  api_key=<span class="s">"kai_proj_live_••••"</span>,
+)
+
+r = client.chat.completions.<span class="f">create</span>(
+  model=<span class="s">"koinos-smart"</span>,
+  messages=[{<span class="k">"role"</span>:<span class="s">"user"</span>,<span class="k">"content"</span>:<span class="s">"…"</span>}],
+  <span class="c"># overflow policy, not a different API</span>
+  extra_body={<span class="k">"routing"</span>:<span class="s">"local-first"</span>,
+              <span class="k">"max_spend_kai"</span>:<span class="s">2.5</span>},
+)</pre>
+    </div>
+    <div class="modes rise">
+      <div class="mode"><b>Local only</b><span class="pin w">warm</span><small>Never leaves the box. Zero network charge.</small></div>
+      <div class="mode"><b>Private-pool first</b><span class="pin w">warm</span><small>Your trusted GPUs before any public provider.</small></div>
+      <div class="mode"><b>Local → network overflow</b><span class="pin">elastic</span><small>Burst to the public network only when local is saturated.</small></div>
+      <div class="mode"><b>Lowest cost / fastest</b><span class="pin">elastic</span><small>Optimize eligible routes under your budget + privacy rules.</small></div>
+      <div class="panel" style="padding:15px 16px;margin-top:2px">
+        <span class="plabel">Included</span>
+        <p style="margin-top:8px;color:var(--soft);font-size:13.5px">Streaming · project keys · per-request/day/month budgets · hard stops · model pinning · usage logs. Embeddings, tools &amp; batch on the roadmap.</p>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<!-- EARN + ESTIMATOR -->
+<section id="earn"><div class="wrap">
+  <div class="shead rise">
+    <div class="eyebrow warm">For you · earn with your computer</div>
+    <h2>The data centers get paid for compute like yours. Now you do.</h2>
+    <p>The same GPU that runs your games can run real AI work for the network. Install, let it benchmark your hardware, and press one button — Koinos AI handles models, safe resource limits, and pricing. You earn KAI for <em>verified useful work</em>, not idle uptime, and intelligence gets a little less centralized every time you do.</p>
+  </div>
+
+  <div class="est panel rise" style="padding:26px">
+    <div class="est-controls">
+      <span class="plabel">Estimator · pick your hardware</span>
+      <div class="gpu-row" id="gpuRow" role="group" aria-label="GPU class">
+        <button class="chip" data-w="1" aria-pressed="false">RTX 3060</button>
+        <button class="chip" data-w="1.7" aria-pressed="false">RTX 4070</button>
+        <button class="chip" data-w="2.6" aria-pressed="true">RTX 4080</button>
+        <button class="chip" data-w="3.6" aria-pressed="false">RTX 4090</button>
+        <button class="chip" data-w="7.5" aria-pressed="false">A100 / pro</button>
+      </div>
+      <div class="slider-row">
+        <label>Hours contributed / day <span class="mono tnum" id="hrsOut" style="color:var(--value)">8h</span></label>
+        <input type="range" id="hrs" min="1" max="24" value="8" step="1" aria-label="Hours per day">
+      </div>
+      <div class="slider-row">
+        <label>Network utilization <span class="mono" id="utilOut" style="color:var(--value)">moderate</span></label>
+        <input type="range" id="util" min="1" max="3" value="2" step="1" aria-label="Network utilization">
+      </div>
+      <p class="disclaimer">Illustrative, pre-launch model — a relative earning weight from GPU class × hours × demand, not a yield promise. Real KAI reward depends on verified work, live network demand, and the KAI reference price, all still in economic simulation.</p>
+    </div>
+    <div class="readout">
+      <div>
+        <div class="big tnum" id="kaiDay">—</div>
+        <div class="unit">KAI / day <span class="mono" style="color:var(--faint);font-size:12px">· est.</span></div>
+      </div>
+      <div class="grid2">
+        <div class="kv"><span>Eligible work</span><b id="eligible">LLM · Embed</b></div>
+        <div class="kv"><span>Est. KAI / month</span><b class="tnum" id="kaiMonth">—</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step rise"><div class="num">STEP 01</div><h3>Install &amp; detect</h3><p>Koinos AI finds your CPU, GPU, VRAM, and drivers and configures a compatible runtime and model automatically.</p></div>
+    <div class="step rise"><div class="num">STEP 02</div><h3>Press Start Earning</h3><p>No KAI, KOIN, MANA, or manual pricing. Foreground use always wins; battery and thermal limits protect the hardware.</p></div>
+    <div class="step rise"><div class="num">STEP 03</div><h3>Do verified work</h3><p>Completed, verified AI jobs settle in KAI through Koinos — with gasless onboarding sponsored underneath.</p></div>
+  </div>
+</div></section>
+
+<div class="wrap"><div class="divider"></div></div>
+
+<!-- COMPARISON -->
+<section><div class="wrap">
+  <div class="shead center rise">
+    <div class="eyebrow">The difference, plainly</div>
+    <h2>Centralized AI vs. AI you own.</h2>
+    <p>Same familiar API surface. A completely different relationship to your compute, your data, and your bill.</p>
+  </div>
+  <div class="cmp-wrap rise">
+    <table class="cmp">
+      <colgroup><col><col class="c-kai"><col></colgroup>
+      <thead><tr><th></th><th class="kai">Koinos AI</th><th class="big">Centralized AI API</th></tr></thead>
+      <tbody>
+        <tr><th>Where inference runs</th><td class="kai">Your hardware first, network on demand</td><td class="big">Always their data center</td></tr>
+        <tr><th>Your prompts &amp; files</th><td class="kai">Stay local unless you opt out</td><td class="big">Leave your control by default</td></tr>
+        <tr><th>Cost floor</th><td class="kai">$0 for local — you own the compute</td><td class="big">Per-token rent, forever</td></tr>
+        <tr><th>Idle GPU</th><td class="kai">Earns KAI for verified work</td><td class="big">Earns nothing</td></tr>
+        <tr><th>Elastic scale</th><td class="kai">Overflow into a decentralized network</td><td class="big">Only theirs, at their price</td></tr>
+        <tr><th>Lock-in</th><td class="kai">Open, self-hostable, forkable</td><td class="big">Their SDK, their terms</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div></section>
+
+<!-- PRIVACY ROUTING SELECTOR -->
+<section><div class="wrap">
+  <div class="shead rise">
+    <div class="eyebrow">Privacy by architecture</div>
+    <h2>Your data stops being their asset. You decide where it runs.</h2>
+    <p>To Big AI, your prompts and files leave your control the moment you hit send. Koinos AI flips the default: local execution never leaves your device, and when you <em>do</em> reach for the network you pick the exact privacy mode — and see precisely where your request is allowed to run.</p>
+  </div>
+  <div class="route">
+    <div class="route-modes" id="routeModes" role="group" aria-label="Privacy mode">
+      <button class="rbtn" data-mode="local" aria-pressed="true"><span class="rk"></span><span><b>Local only</b><small>Never sent off the device.</small></span></button>
+      <button class="rbtn" data-mode="private" aria-pressed="false"><span class="rk"></span><span><b>Private pool</b><small>Only your trusted hardware.</small></span></button>
+      <button class="rbtn" data-mode="network" aria-pressed="false"><span class="rk"></span><span><b>Verified network</b><small>Encrypted transport to public providers.</small></span></button>
+      <button class="rbtn" data-mode="confidential" aria-pressed="false"><span class="rk"></span><span><b>Confidential · future</b><small>Attested confidential compute only.</small></span></button>
+    </div>
+    <div class="route-viz">
+      <span class="plabel">Where this request may run</span>
+      <div class="rv-track" id="rvTrack">
+        <div class="rv-node" data-k="local"><b>Local</b>your machine</div>
+        <span class="rv-arrow">→</span>
+        <div class="rv-node" data-k="private"><b>Private</b>trusted pool</div>
+        <span class="rv-arrow">→</span>
+        <div class="rv-node" data-k="network"><b>Network</b>public providers</div>
+        <span class="rv-arrow">→</span>
+        <div class="rv-node" data-k="confidential"><b>Confidential</b>attested TEE</div>
+      </div>
+      <p class="rv-desc" id="rvDesc"></p>
+    </div>
+  </div>
+</div></section>
+
+<!-- KAI / TWO NETWORKS -->
+<section id="kai"><div class="wrap">
+  <div class="shead rise">
+    <div class="eyebrow">The KAI economy</div>
+    <h2>Value flows to useful work — not to a meter on your own machine.</h2>
+    <p>KAI settles the network: providers earn it for verified compute, model creators can earn bounded royalties, and you spend it only when you use resources someone else supplied. Local inference has no KAI charge, ever.</p>
+  </div>
+  <div class="two-net">
+    <article class="netcard kai rise">
+      <span class="token">AI COMPUTE</span>
+      <h3>Share compute → earn KAI</h3>
+      <p>Benchmark, route, protect foreground use, and settle verified AI work automatically. Providers can earn KAI without first buying KAI or KOIN.</p>
+      <div class="rw"><span>Native reward</span><b>KAI</b></div>
+    </article>
+    <article class="netcard koin rise">
+      <span class="token">KOINOS CONSENSUS</span>
+      <h3>Secure Koinos → earn KOIN</h3>
+      <p>An optional module runs a full node and, if you choose, Proof-of-Burn block production. A separate earning path with its own economics — no GPU mining required.</p>
+      <div class="rw"><span>Native reward</span><b>KOIN</b></div>
+    </article>
+  </div>
+  <p class="clean-note"><b>Clean by design:</b> KAI rewards useful AI work. KOIN rewards Koinos consensus. We never double-pay KAI just for producing blocks. Token supply, fees, and bootstrap pricing stay provisional pending economic simulation and legal review.</p>
+</div></section>
+
+<!-- ROADMAP -->
+<section id="roadmap"><div class="wrap">
+  <div class="shead rise">
+    <div class="eyebrow">Roadmap</div>
+    <h2>From private local AI to distributed intelligence.</h2>
+    <p>Prove the core loop first — install, run local AI, earn, settle, overflow — then earn the harder layers. Gated by readiness, not a calendar.</p>
+  </div>
+  <div class="eras">
+    <article class="era now rise"><span class="flag">▲ building</span><div class="en">ERA I</div><h3>Network Genesis</h3><ul><li>Local AI &amp; chat</li><li>Provider earning</li><li>KAI settlement</li><li>Self-hosted API</li><li>Network overflow</li></ul></article>
+    <article class="era rise"><div class="en">ERA II</div><h3>Open Compute</h3><ul><li>Public providers</li><li>More models &amp; hardware</li><li>Private pools</li><li>Batch / spot compute</li><li>Model marketplace</li></ul></article>
+    <article class="era rise"><div class="en">ERA III</div><h3>Autonomous AI</h3><ul><li>Persistent agents</li><li>Tools &amp; permissions</li><li>Machine payments</li><li>Confidential compute</li></ul></article>
+    <article class="era rise"><div class="en">ERA IV</div><h3>Distributed Intelligence</h3><ul><li>Synthetic data</li><li>Fine-tuning</li><li>Distillation</li><li>Distributed training</li><li>Koinos-native models</li></ul></article>
+  </div>
+</div></section>
+
+<!-- WAITLIST -->
+<section id="waitlist"><div class="wrap">
+  <div class="cta rise">
+    <div class="eyebrow">Early access</div>
+    <h2>Own your <span class="warm">AI</span>. Share the <span class="cool">scale</span>.</h2>
+    <p>Be first to run private AI on your own hardware — and first to earn from it when the network opens.</p>
+    <div class="wl">
+      <div class="seg" id="seg" role="group" aria-label="I am a">
+        <button data-seg="people" aria-pressed="true">I want to run &amp; earn</button>
+        <button data-seg="dev" aria-pressed="false">I'm a developer</button>
+      </div>
+      <form class="wl-form" id="wlForm">
+        <input type="text" id="wlHp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none">
+        <input type="email" id="wlEmail" placeholder="you@domain.com" aria-label="Email" required>
+        <button class="btn btn-signal" type="submit">Request access <span class="arw">→</span></button>
+      </form>
+      <div class="wl-ok" id="wlOk">✓ You're on the list. We'll reach out as spots open.</div>
+      <div class="wl-note" id="wlNote">No spam. No token sale. A working product first — then price discovery.</div>
+    </div>
+  </div>
+</div></section>
+
+<!-- FAQ -->
+<section><div class="wrap">
+  <div class="shead center rise"><div class="eyebrow">FAQ</div><h2>Straight answers.</h2></div>
+  <div class="faq rise">
+    <details open><summary>Do I need cryptocurrency to use it?</summary><p>No. Local AI runs on your own hardware with no KAI required. Network services can be paid through familiar payment and credit experiences, with Koinos handling settlement underneath.</p></details>
+    <details><summary>Do I need KAI or KOIN to start earning?</summary><p>No. Entry-level providers start with compatible hardware and sponsored (gasless) Koinos resource usage. Higher-value provider classes may later use KAI collateral — but you never have to buy KAI to begin earning KAI.</p></details>
+    <details><summary>Is network inference private?</summary><p>Not automatically — and we won't pretend otherwise. Local mode never leaves your device; private pools restrict execution to trusted hardware; verified-network mode uses encrypted transport; confidential compute (future) adds hardware attestation. You choose the fallback order.</p></details>
+    <details><summary>Why does the self-hosted API matter?</summary><p>It keeps your own GPUs as the primary inference layer while giving you an elastic path to decentralized capacity — instead of building your product permanently around a hyperscale API whose terms you don't control.</p></details>
+    <details><summary>Is this just crypto mining?</summary><p>No. You're not rewarded for burning power on hashes — you earn KAI for completing verified, useful AI work: inference, embeddings, evaluation, and later fine-tuning. Passive uptime isn't the reward.</p></details>
+  </div>
+</div></section>
+
+</main>
+
+<footer><div class="wrap"><div class="foot">
+  <div>© 2026 Koinos AI · Your hardware first. The network when you need it.</div>
+  <div class="foot-links"><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#roadmap">Roadmap</a><a href="#waitlist">Early access</a></div>
+</div></div></footer>
+
+<script>
+(function(){
+  "use strict";
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* nav */
+  var nav=document.getElementById("nav");
+  addEventListener("scroll",function(){nav.classList.toggle("stuck",scrollY>8);},{passive:true});
+  var burger=document.getElementById("burger"), mobile=document.getElementById("mobile");
+  burger.addEventListener("click",function(){var o=mobile.classList.toggle("open");burger.setAttribute("aria-expanded",o);});
+  mobile.querySelectorAll("a").forEach(function(a){a.addEventListener("click",function(){mobile.classList.remove("open");});});
+
+  /* reveal */
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});},{threshold:.12});
+  document.querySelectorAll(".rise").forEach(function(el){io.observe(el);});
+
+  /* hero mesh — warm local node feeding cool network nodes */
+  var cv=document.getElementById("mesh"), ctx=cv.getContext("2d"), W,H,DPR, nodes=[], packets=[], t=0, local;
+  function size(){DPR=Math.min(devicePixelRatio||1,2);var r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);build();}
+  function build(){
+    nodes=[]; local={x:W*0.2,y:H*0.78,r:6,local:true};
+    nodes.push(local);
+    var n=Math.max(10,Math.round(W/62));
+    for(var i=0;i<n;i++){nodes.push({x:Math.random()*W*0.9+W*0.05,y:Math.random()*H*0.82+H*0.05,r:1.6+Math.random()*1.8,ph:Math.random()*6.28});}
+  }
+  function emit(){
+    if(reduce)return;
+    var target=nodes[1+Math.floor(Math.random()*(nodes.length-1))];
+    packets.push({a:local,b:target,t:0,sp:0.012+Math.random()*0.02});
+  }
+  function line(a,b,al){ctx.strokeStyle="rgba(120,120,140,"+al+")";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+  function frame(){
+    t+=0.016; ctx.clearRect(0,0,W,H);
+    for(var i=0;i<nodes.length;i++)for(var j=i+1;j<nodes.length;j++){var a=nodes[i],b=nodes[j],dx=a.x-b.x,dy=a.y-b.y,d=Math.hypot(dx,dy);if(d<150)line(a,b,(1-d/150)*0.10);}
+    for(var k=0;k<nodes.length;k++){var nd=nodes[k];var pul=nd.local?1:0.5+0.5*Math.sin(t*1.4+ (nd.ph||0));
+      if(nd.local){ctx.fillStyle="rgba(242,176,61,0.9)";ctx.shadowColor="rgba(242,176,61,0.8)";ctx.shadowBlur=18;}
+      else{ctx.fillStyle="rgba(51,230,192,"+(0.35+0.45*pul)+")";ctx.shadowColor="rgba(51,230,192,0.6)";ctx.shadowBlur=8;}
+      ctx.beginPath();ctx.arc(nd.x,nd.y,nd.r,0,6.2832);ctx.fill();ctx.shadowBlur=0;
+    }
+    if(nodes.length>1){ctx.strokeStyle="rgba(242,176,61,0.10)";ctx.lineWidth=1;for(var m=1;m<Math.min(nodes.length,7);m++){ctx.beginPath();ctx.moveTo(local.x,local.y);ctx.lineTo(nodes[m].x,nodes[m].y);ctx.stroke();}}
+    for(var p=packets.length-1;p>=0;p--){var pk=packets[p];pk.t+=pk.sp;if(pk.t>=1){packets.splice(p,1);continue;}
+      var x=pk.a.x+(pk.b.x-pk.a.x)*pk.t, y=pk.a.y+(pk.b.y-pk.a.y)*pk.t;
+      var g=ctx.createLinearGradient(pk.a.x,pk.a.y,x,y);g.addColorStop(0,"rgba(242,176,61,0)");g.addColorStop(1,"rgba(51,230,192,0.7)");
+      ctx.strokeStyle=g;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(pk.a.x,pk.a.y);ctx.lineTo(x,y);ctx.stroke();
+      ctx.fillStyle="rgba(180,255,238,0.95)";ctx.beginPath();ctx.arc(x,y,1.8,0,6.2832);ctx.fill();
+    }
+    requestAnimationFrame(frame);
+  }
+  size(); addEventListener("resize",size);
+  if(reduce){/* one static frame */ var pf=function(){ctx.clearRect(0,0,W,H);for(var i=0;i<nodes.length;i++)for(var j=i+1;j<nodes.length;j++){var a=nodes[i],b=nodes[j],d=Math.hypot(a.x-b.x,a.y-b.y);if(d<150)line(a,b,(1-d/150)*0.1);}nodes.forEach(function(nd){ctx.fillStyle=nd.local?"rgba(242,176,61,0.9)":"rgba(51,230,192,0.6)";ctx.beginPath();ctx.arc(nd.x,nd.y,nd.r,0,6.28);ctx.fill();});};pf();}
+  else{frame(); setInterval(emit,520);}
+
+  /* estimator */
+  var gpuRow=document.getElementById("gpuRow"), hrs=document.getElementById("hrs"), util=document.getElementById("util");
+  var kaiDay=document.getElementById("kaiDay"), kaiMonth=document.getElementById("kaiMonth"), hrsOut=document.getElementById("hrsOut"),
+      utilOut=document.getElementById("utilOut"), eligible=document.getElementById("eligible");
+  var w=2.6; var utilLabels={1:"light",2:"moderate",3:"high"}, utilMul={1:0.55,2:1,3:1.5};
+  var eligByW=[[1.6,"LLM · Embed"],[3,"LLM · Embed · Vision"],[99,"LLM · Vision · Train-ready"]];
+  function elig(w){for(var i=0;i<eligByW.length;i++)if(w<=eligByW[i][0])return eligByW[i][1];return eligByW[eligByW.length-1][1];}
+  function calc(){
+    var h=+hrs.value, u=+util.value;
+    var day=w*h*utilMul[u]*3.1;
+    kaiDay.textContent=day.toFixed(1);
+    kaiMonth.textContent=Math.round(day*30).toLocaleString();
+    hrsOut.textContent=h+"h"; utilOut.textContent=utilLabels[u]; eligible.textContent=elig(w);
+  }
+  gpuRow.addEventListener("click",function(e){var b=e.target.closest(".chip");if(!b)return;
+    gpuRow.querySelectorAll(".chip").forEach(function(c){c.setAttribute("aria-pressed","false");});
+    b.setAttribute("aria-pressed","true"); w=+b.dataset.w; calc();});
+  hrs.addEventListener("input",calc); util.addEventListener("input",calc); calc();
+
+  /* privacy routing */
+  var order=["local","private","network","confidential"];
+  var desc={
+    local:"Stays on <b>your machine</b>. Nothing is sent anywhere — the strongest, simplest privacy guarantee.",
+    private:"Runs on <b>your machine or trusted private-pool</b> hardware. Public providers are off-limits.",
+    network:"Falls back to <b>reputation-bearing public providers</b> over encrypted transport when local isn't enough. The host can access workload plaintext — so this is opt-in.",
+    confidential:"<span style='color:var(--faint)'>Future:</span> remote fallback only to <b>attested confidential-compute</b> environments that prove their execution state first."
+  };
+  var rmodes=document.getElementById("routeModes"), rvDesc=document.getElementById("rvDesc");
+  var rvNodes={}; document.querySelectorAll("#rvTrack .rv-node").forEach(function(n){rvNodes[n.dataset.k]=n;});
+  function setMode(mode){
+    rmodes.querySelectorAll(".rbtn").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.mode===mode));});
+    var idx=order.indexOf(mode);
+    order.forEach(function(k,i){var nd=rvNodes[k];nd.className="rv-node";
+      if(i<=idx){ if(k==="local"||k==="private"){nd.classList.add("warm-hot");} else {nd.classList.add("hot");} }
+      else nd.classList.add("blocked");
+    });
+    rvDesc.innerHTML=desc[mode];
+  }
+  rmodes.addEventListener("click",function(e){var b=e.target.closest(".rbtn");if(b)setMode(b.dataset.mode);});
+  setMode("local");
+
+  /* waitlist */
+  var seg=document.getElementById("seg"), form=document.getElementById("wlForm"), ok=document.getElementById("wlOk"),
+      note=document.getElementById("wlNote"), email=document.getElementById("wlEmail"), hp=document.getElementById("wlHp");
+  var segVal="people", sending=false, noteText=note.textContent;
+  seg.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
+    seg.querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed","false");});
+    b.setAttribute("aria-pressed","true"); segVal=b.dataset.seg;
+    email.placeholder = segVal==="dev" ? "you@company.com" : "you@domain.com";});
+  form.addEventListener("submit",function(e){e.preventDefault();
+    if(!email.value||sending){return;}
+    var btn=form.querySelector('button[type="submit"]');
+    sending=true; btn.disabled=true; btn.style.opacity=".7";
+    note.textContent=noteText; note.style.color="";
+    fetch("/api/waitlist",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({email:email.value.trim(),segment:segVal,website:hp?hp.value:""})
+    }).then(function(r){
+      return r.json().then(function(j){return {ok:r.ok&&j&&j.ok===true,err:j&&j.error};},
+                           function(){return {ok:r.ok,err:null};});
+    }).then(function(res){
+      if(!res.ok){throw new Error(res.err||"");}
+      form.style.display="none"; note.style.display="none"; ok.style.display="block";
+    }).catch(function(err){
+      note.textContent=(err&&err.message)||"Something went wrong — please try again.";
+      note.style.color="var(--danger)";
+    }).then(function(){sending=false; btn.disabled=false; btn.style.opacity="";});
+  });
+})();
+</script>
+</body>
+</html>

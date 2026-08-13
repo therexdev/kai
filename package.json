@@ -1,0 +1,18 @@
+{
+  "name": "kai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Koinos AI production website — Express landing page + waitlist API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "nodemailer": "^7.0.0"
+  }
+}
