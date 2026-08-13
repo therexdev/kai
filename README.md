@@ -57,6 +57,26 @@ A password-protected page listing both waitlists with per-list CSV/JSON download
    npm run hash-password
    ```
    It prints a line like `ADMIN_PASSWORD_HASH=scrypt$16384$8$1$…`.
+
+   <details>
+   <summary>Windows / PowerShell</summary>
+
+   Needs [Node.js](https://nodejs.org) (`node --version` to check) but **not** `npm install` — the script uses only built-in modules. From the project folder:
+
+   ```powershell
+   node scripts/hash-password.js
+   ```
+
+   Calling `node` directly is the reliable form on Windows: `npm run` wraps scripts in `cmd.exe`, which can break the hidden password prompt, and PowerShell's execution policy sometimes blocks `npm.ps1` outright (`running scripts is disabled on this system` — use `npm.cmd` or run `node` directly).
+
+   To pipe a password instead of typing it at the prompt:
+   ```powershell
+   $p = Read-Host "Password" -AsSecureString
+   [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+     [Runtime.InteropServices.Marshal]::SecureStringToBSTR($p)
+   ) | node scripts/hash-password.js
+   ```
+   </details>
 2. Add two environment variables to the Node.js app in hPanel:
 
    | Variable | Value |

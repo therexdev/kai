@@ -13,7 +13,9 @@ const readline = require("readline");
 const { hashPassword } = require("../lib/auth");
 
 function emit(password) {
-  const pw = String(password).replace(/\r?\n$/, "");
+  // Strip the line ending only — PowerShell and cmd pipe CRLF, so a lone
+  // trailing \r would otherwise be hashed as part of the password.
+  const pw = String(password).replace(/[\r\n]+$/, "");
   if (!pw) {
     console.error("No password given — nothing to hash.");
     process.exit(1);
