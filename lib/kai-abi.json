@@ -70,6 +70,13 @@
             "entryPoint": 3617403992,
             "readOnly": true
         },
+        "claim_value": {
+            "input": "kai.claim_value_arguments",
+            "output": "kai.claim_value_result",
+            "description": "Claim epoch rewards by VALUE with a Merkle proof; mints 'amount' satoshis to the worker (Amendment A1)",
+            "entryPoint": 2819061626,
+            "readOnly": false
+        },
         "deposit": {
             "input": "kai.deposit_arguments",
             "output": "kai.deposit_result",
@@ -270,6 +277,45 @@
                             "value": {
                                 "type": "bool",
                                 "id": 1
+                            }
+                        }
+                    },
+                    "claim_value_arguments": {
+                        "fields": {
+                            "epoch": {
+                                "type": "uint64",
+                                "id": 1
+                            },
+                            "worker": {
+                                "type": "string",
+                                "id": 2
+                            },
+                            "amount": {
+                                "type": "uint64",
+                                "id": 3,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            },
+                            "index": {
+                                "type": "uint64",
+                                "id": 4
+                            },
+                            "proof": {
+                                "rule": "repeated",
+                                "type": "bytes",
+                                "id": 5
+                            }
+                        }
+                    },
+                    "claim_value_result": {
+                        "fields": {
+                            "minted": {
+                                "type": "uint64",
+                                "id": 1,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
                             }
                         }
                     },
