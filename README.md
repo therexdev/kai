@@ -169,9 +169,18 @@ It reports whether the hash is intact and whether that password matches it. Comm
    - `https://yourdomain.tld/` renders the site
    - `https://yourdomain.tld/api/health` returns `{"ok":true}`
 
-### Waitlist data
+### Persistent data (waitlist + scheduler)
 
-Signups live in `<application root>/data/waitlist.jsonl` on the server. The file is **gitignored** and append-only — download it periodically (File Manager or `scp`) and back it up before any deploy that wipes the application directory. Git-based deploys that only sync tracked files leave it alone.
+All persistent state lives in `~/.koinos-ai/` in the hosting account's **home directory** — outside the application root, so hPanel Git redeploys (which replace the application directory's contents) cannot touch it:
+
+- `~/.koinos-ai/website/waitlist.jsonl` — append-only signup log
+- `~/.koinos-ai/scheduler/` — epoch records, deposit-credit ledger, oracle state
+
+Override the base directory with `KAI_STATE_DIR` (or just the scheduler's with `SCHEDULER_DATA`). On first boot after updating, the server automatically migrates anything still present in the legacy in-root locations (`<application root>/data/`, `<application root>/.data/scheduler/`), merging rather than overwriting.
+
+Earlier versions kept this data inside the application root, where **every hPanel Git redeploy deleted it**. If signups were lost to a redeploy and signup-notification emails were configured (`SMTP_TO`), each lost signup still exists as a "KAI waitlist signup" notification in that inbox.
+
+Download `waitlist.jsonl` periodically as a backup (admin → export, File Manager, or `scp`).
 
 ### Notes
 

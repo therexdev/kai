@@ -9,6 +9,7 @@
  */
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const express = require("express");
 const auth = require("./lib/auth");
@@ -19,8 +20,55 @@ const PORT = process.env.PORT || 3000;
 
 const PUBLIC_DIR = path.join(__dirname, "public");
 const VIEWS_DIR = path.join(__dirname, "views");
-const DATA_DIR = path.join(__dirname, "data");
+// Persistent state lives OUTSIDE the application root. Hostinger's Git
+// deploy replaces the app directory's contents, which deletes untracked
+// files — waitlist signups and scheduler state were wiped on every
+// redeploy while they lived here (field finding). The hosting account's
+// home directory survives deploys.
+const STATE_ROOT = process.env.KAI_STATE_DIR || path.join(os.homedir(), ".koinos-ai");
+const DATA_DIR = path.join(STATE_ROOT, "website");
 const WAITLIST_FILE = path.join(DATA_DIR, "waitlist.jsonl");
+const SCHEDULER_DATA = process.env.SCHEDULER_DATA || path.join(STATE_ROOT, "scheduler");
+
+// One-time migration: carry whatever survives in the legacy in-root
+// locations over to the durable state dir. Merge, never clobber — the
+// legacy copy may be stale (post-wipe) while the new dir is live, or the
+// only copy of pre-wipe data. Legacy files are left in place; the next
+// redeploy removes them.
+function migrateLegacyState() {
+  try {
+    const legacyWaitlist = path.join(__dirname, "data", "waitlist.jsonl");
+    if (fs.existsSync(legacyWaitlist)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+      let have = new Set();
+      try {
+        have = new Set(fs.readFileSync(WAITLIST_FILE, "utf8").split("\n").filter(Boolean));
+      } catch { /* no durable file yet */ }
+      const add = fs.readFileSync(legacyWaitlist, "utf8").split("\n").filter((l) => l.trim() && !have.has(l));
+      if (add.length) fs.appendFileSync(WAITLIST_FILE, add.join("\n") + "\n");
+      console.log(`[migrate] waitlist: ${add.length} legacy signup(s) merged into ${WAITLIST_FILE}`);
+    }
+    const legacySched = path.join(__dirname, ".data", "scheduler");
+    if (fs.existsSync(legacySched)) {
+      fs.mkdirSync(SCHEDULER_DATA, { recursive: true });
+      let copied = 0;
+      for (const f of fs.readdirSync(legacySched)) {
+        // Epoch records are append-only — backfill any the durable dir
+        // lacks. Live ledgers (credits, oracle) copy only when absent:
+        // the durable copy, if present, is newer than the legacy one.
+        const dest = path.join(SCHEDULER_DATA, f);
+        if (!fs.existsSync(dest)) {
+          fs.copyFileSync(path.join(legacySched, f), dest);
+          copied++;
+        }
+      }
+      if (copied) console.log(`[migrate] scheduler: ${copied} legacy file(s) copied into ${SCHEDULER_DATA}`);
+    }
+  } catch (err) {
+    console.error("[migrate] legacy state migration failed:", err.message);
+  }
+}
+migrateLegacyState();
 
 app.disable("x-powered-by");
 // Hostinger fronts Node apps with a reverse proxy — trust the first hop so
@@ -52,7 +100,7 @@ if (process.env.KAI_OPERATOR_WIF) {
   console.log("[scheduler] on-chain settlement enabled");
 }
 const scheduler = new Scheduler({
-  dataDir: process.env.SCHEDULER_DATA || path.join(__dirname, ".data", "scheduler"),
+  dataDir: SCHEDULER_DATA,
   operatorSecret: process.env.KAI_OPERATOR_SECRET || null,
   settlement,
   onEvent: (e) => console.log(`[scheduler] ${e.type}`, e.worker ?? e.root ?? ""),
