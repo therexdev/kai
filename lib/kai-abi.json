@@ -69,6 +69,20 @@
             "description": "Whether an epoch reward was already claimed",
             "entryPoint": 3617403992,
             "readOnly": true
+        },
+        "deposit": {
+            "input": "kai.deposit_arguments",
+            "output": "kai.deposit_result",
+            "description": "Deposit (burn) KAI to fund network credits; requires 'from' authority (§23 phase A)",
+            "entryPoint": 3283745656,
+            "readOnly": false
+        },
+        "deposits_of": {
+            "input": "kai.deposits_of_arguments",
+            "output": "kai.deposits_of_result",
+            "description": "Cumulative KAI ever deposited by an account (monotonic; schedulers diff it)",
+            "entryPoint": 2083968106,
+            "readOnly": true
         }
     },
     "types": {
@@ -256,6 +270,49 @@
                             "value": {
                                 "type": "bool",
                                 "id": 1
+                            }
+                        }
+                    },
+                    "deposit_arguments": {
+                        "fields": {
+                            "from": {
+                                "type": "bytes",
+                                "id": 1,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            },
+                            "value": {
+                                "type": "uint64",
+                                "id": 2,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            }
+                        }
+                    },
+                    "deposit_result": {
+                        "fields": {}
+                    },
+                    "deposits_of_arguments": {
+                        "fields": {
+                            "owner": {
+                                "type": "bytes",
+                                "id": 1,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            }
+                        }
+                    },
+                    "deposits_of_result": {
+                        "fields": {
+                            "value": {
+                                "type": "uint64",
+                                "id": 1,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
                             }
                         }
                     }
