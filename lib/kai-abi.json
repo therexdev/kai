@@ -1,0 +1,266 @@
+{
+    "methods": {
+        "name": {
+            "input": "kai.name_arguments",
+            "output": "kai.name_result",
+            "description": "Returns the token name",
+            "entryPoint": 2191741823,
+            "readOnly": true
+        },
+        "symbol": {
+            "input": "kai.symbol_arguments",
+            "output": "kai.symbol_result",
+            "description": "Returns the token symbol",
+            "entryPoint": 3077209249,
+            "readOnly": true
+        },
+        "decimals": {
+            "input": "kai.decimals_arguments",
+            "output": "kai.decimals_result",
+            "description": "Returns the token decimals",
+            "entryPoint": 4001430831,
+            "readOnly": true
+        },
+        "total_supply": {
+            "input": "kai.total_supply_arguments",
+            "output": "kai.total_supply_result",
+            "description": "Returns the total supply",
+            "entryPoint": 2967091508,
+            "readOnly": true
+        },
+        "balance_of": {
+            "input": "kai.balance_of_arguments",
+            "output": "kai.balance_of_result",
+            "description": "Returns the balance of an account",
+            "entryPoint": 1550980247,
+            "readOnly": true
+        },
+        "transfer": {
+            "input": "kai.transfer_arguments",
+            "output": "kai.transfer_result",
+            "description": "Transfers tokens",
+            "entryPoint": 670398154,
+            "readOnly": false
+        },
+        "submit_root": {
+            "input": "kai.submit_root_arguments",
+            "output": "kai.submit_root_result",
+            "description": "Operator submits an epoch's receipt Merkle root",
+            "entryPoint": 2102030706,
+            "readOnly": false
+        },
+        "get_root": {
+            "input": "kai.get_root_arguments",
+            "output": "kai.get_root_result",
+            "description": "Returns the stored root for an epoch",
+            "entryPoint": 54790350,
+            "readOnly": true
+        },
+        "claim": {
+            "input": "kai.claim_arguments",
+            "output": "kai.claim_result",
+            "description": "Claim epoch rewards with a Merkle proof; mints KAI to the worker",
+            "entryPoint": 3709549617,
+            "readOnly": false
+        },
+        "claimed": {
+            "input": "kai.claimed_arguments",
+            "output": "kai.claimed_result",
+            "description": "Whether an epoch reward was already claimed",
+            "entryPoint": 3617403992,
+            "readOnly": true
+        }
+    },
+    "types": {
+        "nested": {
+            "kai": {
+                "nested": {
+                    "name_arguments": {
+                        "fields": {}
+                    },
+                    "name_result": {
+                        "fields": {
+                            "value": {
+                                "type": "string",
+                                "id": 1
+                            }
+                        }
+                    },
+                    "symbol_arguments": {
+                        "fields": {}
+                    },
+                    "symbol_result": {
+                        "fields": {
+                            "value": {
+                                "type": "string",
+                                "id": 1
+                            }
+                        }
+                    },
+                    "decimals_arguments": {
+                        "fields": {}
+                    },
+                    "decimals_result": {
+                        "fields": {
+                            "value": {
+                                "type": "uint32",
+                                "id": 1
+                            }
+                        }
+                    },
+                    "total_supply_arguments": {
+                        "fields": {}
+                    },
+                    "total_supply_result": {
+                        "fields": {
+                            "value": {
+                                "type": "uint64",
+                                "id": 1,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            }
+                        }
+                    },
+                    "balance_of_arguments": {
+                        "fields": {
+                            "owner": {
+                                "type": "bytes",
+                                "id": 1,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            }
+                        }
+                    },
+                    "balance_of_result": {
+                        "fields": {
+                            "value": {
+                                "type": "uint64",
+                                "id": 1,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            }
+                        }
+                    },
+                    "transfer_arguments": {
+                        "fields": {
+                            "from": {
+                                "type": "bytes",
+                                "id": 1,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            },
+                            "to": {
+                                "type": "bytes",
+                                "id": 2,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            },
+                            "value": {
+                                "type": "uint64",
+                                "id": 3,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            }
+                        }
+                    },
+                    "transfer_result": {
+                        "fields": {}
+                    },
+                    "submit_root_arguments": {
+                        "fields": {
+                            "epoch": {
+                                "type": "uint64",
+                                "id": 1
+                            },
+                            "root": {
+                                "type": "bytes",
+                                "id": 2
+                            }
+                        }
+                    },
+                    "submit_root_result": {
+                        "fields": {}
+                    },
+                    "get_root_arguments": {
+                        "fields": {
+                            "epoch": {
+                                "type": "uint64",
+                                "id": 1
+                            }
+                        }
+                    },
+                    "get_root_result": {
+                        "fields": {
+                            "value": {
+                                "type": "bytes",
+                                "id": 1
+                            }
+                        }
+                    },
+                    "claim_arguments": {
+                        "fields": {
+                            "epoch": {
+                                "type": "uint64",
+                                "id": 1
+                            },
+                            "worker": {
+                                "type": "string",
+                                "id": 2
+                            },
+                            "count": {
+                                "type": "uint64",
+                                "id": 3
+                            },
+                            "index": {
+                                "type": "uint64",
+                                "id": 4
+                            },
+                            "proof": {
+                                "rule": "repeated",
+                                "type": "bytes",
+                                "id": 5
+                            }
+                        }
+                    },
+                    "claim_result": {
+                        "fields": {
+                            "minted": {
+                                "type": "uint64",
+                                "id": 1,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            }
+                        }
+                    },
+                    "claimed_arguments": {
+                        "fields": {
+                            "epoch": {
+                                "type": "uint64",
+                                "id": 1
+                            },
+                            "worker": {
+                                "type": "string",
+                                "id": 2
+                            }
+                        }
+                    },
+                    "claimed_result": {
+                        "fields": {
+                            "value": {
+                                "type": "bool",
+                                "id": 1
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

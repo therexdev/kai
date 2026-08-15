@@ -37,9 +37,24 @@ app.use((_req, res, next) => {
 // because it reads its own request streams. Workers connect outbound from
 // the desktop app; operator endpoints stay closed unless a secret is set.
 const { Scheduler, startAutoOps } = require("./lib/scheduler");
+// With KAI_OPERATOR_WIF set, every closed epoch settles itself on-chain
+// (submit_root + per-worker claims) and /scheduler/balance serves KAI
+// balances to the app's Earn tab. Without it, epochs still close and
+// persist — settlement can be run later via /scheduler/operator/settle.
+let settlement = null;
+if (process.env.KAI_OPERATOR_WIF) {
+  const { makeSettlement } = require("./lib/chain");
+  settlement = makeSettlement({
+    wif: process.env.KAI_OPERATOR_WIF,
+    contractId: process.env.KAI_CONTRACT || "149YvYQfj4MNaFecd7Rm3Z2rK6y2fkPYXz",
+    abiPath: path.join(__dirname, "lib", "kai-abi.json"),
+  });
+  console.log("[scheduler] on-chain settlement enabled");
+}
 const scheduler = new Scheduler({
   dataDir: process.env.SCHEDULER_DATA || path.join(__dirname, ".data", "scheduler"),
   operatorSecret: process.env.KAI_OPERATOR_SECRET || null,
+  settlement,
   onEvent: (e) => console.log(`[scheduler] ${e.type}`, e.worker ?? e.root ?? ""),
 });
 startAutoOps(scheduler);
