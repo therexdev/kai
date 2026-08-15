@@ -424,6 +424,13 @@ app.get("/admin/api/feedback", requireAuth, async (_req, res, next) => {
   }
 });
 
+// Live network shape for the admin dashboard — connected computers and
+// which model classes they serve. Will graduate to a public page once the
+// numbers are worth bragging about.
+app.get("/admin/api/network", requireAuth, (_req, res) => {
+  res.json({ ok: true, ...scheduler.statsPublic({ detail: true }) });
+});
+
 app.get("/admin/api/summary", requireAuth, async (_req, res, next) => {
   try {
     const all = await store.readEntries(WAITLIST_FILE);

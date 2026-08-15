@@ -90,6 +90,16 @@ td.when{font-family:var(--mono);font-size:11.5px;color:var(--faint);white-space:
     <div class="stat"><div class="k">Total signups</div><div class="v" id="cAll">—</div></div>
     <div class="stat people"><div class="k">People · run &amp; earn</div><div class="v" id="cPeople">—</div></div>
     <div class="stat dev"><div class="k">Developers · self-host</div><div class="v" id="cDev">—</div></div>
+    <div class="stat"><div class="k">Computers online</div><div class="v" id="cWorkers">—</div></div>
+    <div class="stat"><div class="k">Model classes live</div><div class="v" id="cModels">—</div></div>
+  </section>
+
+  <section class="panel" id="network-panel">
+    <h2>Network — live</h2>
+    <p class="desc">Connected provider machines and the model classes they serve right now. Refreshes every 15s.</p>
+    <div id="net-models" style="margin:10px 0"></div>
+    <div id="net-workers" style="font-size:.85em"></div>
+    <div id="net-queue" style="font-size:.8em;opacity:.7;margin-top:8px"></div>
   </section>
 
   <section class="lists">
@@ -221,6 +231,33 @@ td.when{font-family:var(--mono);font-size:11.5px;color:var(--faint);white-space:
       if(h){h.innerHTML='<div class="empty">Could not load feedback.</div>';}
     });
 })();
+
+// ---- live network panel ----
+async function loadNetwork() {
+  try {
+    const r = await fetch("/admin/api/network");
+    if (!r.ok) return;
+    const j = await r.json();
+    document.getElementById("cWorkers").textContent = j.workersOnline;
+    document.getElementById("cModels").textContent = j.models.length;
+    document.getElementById("net-models").innerHTML = j.models.length
+      ? j.models.map((m) => `<span style="display:inline-block;border:1px solid #3b3370;border-radius:999px;padding:3px 12px;margin:0 6px 6px 0">${m.model} <b>×${m.providers}</b></span>`).join("")
+      : "<em>No providers online.</em>";
+    document.getElementById("net-workers").innerHTML = (j.workers || [])
+      .map(
+        (w) =>
+          `<div style="padding:6px 0;border-top:1px solid #26243f">
+            <code>${w.address}</code> ${w.busy ? "🔶 busy" : "🟢 idle"} · seen ${w.lastSeenSecs}s ago ·
+            ${w.jobsThisEpoch} jobs this epoch${w.perf ? ` · ${w.perf.tokPerSec} tok/s (CU ${w.perf.cuRating})` : ""}<br/>
+            <span style="opacity:.75">${(w.models || []).join(", ") || "no rated models"}</span>
+          </div>`
+      )
+      .join("");
+    document.getElementById("net-queue").textContent = `Queue: ${j.queueDepth} waiting · ${j.pendingJobs} running`;
+  } catch { /* next tick */ }
+}
+loadNetwork();
+setInterval(loadNetwork, 15000);
 </script>
 </body>
 </html>
