@@ -123,6 +123,15 @@ td.when{font-family:var(--mono);font-size:11.5px;color:var(--faint);white-space:
     <div id="tableHost"><div class="empty">Loading…</div></div>
   </section>
 
+  <section class="panel">
+    <div class="panel-head">
+      <h2>App feedback</h2>
+      <span class="spacer"></span>
+      <span class="note" id="fbCount"></span>
+    </div>
+    <div id="fbHost"><div class="empty">Loading…</div></div>
+  </section>
+
   <p class="note" id="note"></p>
 </main>
 
@@ -187,6 +196,29 @@ td.when{font-family:var(--mono);font-size:11.5px;color:var(--faint);white-space:
     .catch(function(e){
       if(e && e.message==="auth"){return;}
       document.getElementById("tableHost").innerHTML='<div class="empty">Could not load signups.</div>';
+    });
+
+  function fbEsc(s){var d=document.createElement("div");d.textContent=String(s==null?"":s);return d.innerHTML;}
+  fetch("/admin/api/feedback",{headers:{Accept:"application/json"}})
+    .then(function(r){if(r.status===401){throw new Error("auth");}return r.json();})
+    .then(function(d){
+      document.getElementById("fbCount").textContent=d.total+" message"+(d.total===1?"":"s");
+      var host=document.getElementById("fbHost");
+      if(!d.recent||!d.recent.length){host.innerHTML='<div class="empty">No feedback yet — it lands here the moment a tester presses Send in the app.</div>';return;}
+      host.innerHTML=d.recent.map(function(e){
+        return '<div style="border-bottom:1px solid var(--border,#243044);padding:12px 4px">'
+          +'<div style="white-space:pre-wrap">'+fbEsc(e.message)+'</div>'
+          +'<div class="note" style="margin-top:6px">'+fbEsc(new Date(e.ts).toLocaleString())
+          +(e.appVersion?' · v'+fbEsc(e.appVersion):'')+(e.platform?' · '+fbEsc(e.platform):'')
+          +(e.email?' · <a href="mailto:'+fbEsc(e.email)+'">'+fbEsc(e.email)+'</a>':'')
+          +'</div>'
+          +(e.logTail?'<details style="margin-top:6px"><summary class="note" style="cursor:pointer">diagnostic log</summary><pre style="font-size:11px;overflow-x:auto;max-height:240px;overflow-y:auto;background:rgba(0,0,0,0.25);padding:8px;border-radius:6px">'+fbEsc(e.logTail)+'</pre></details>':'')
+          +'</div>';
+      }).join("");
+    })
+    .catch(function(){
+      var h=document.getElementById("fbHost");
+      if(h){h.innerHTML='<div class="empty">Could not load feedback.</div>';}
     });
 })();
 </script>

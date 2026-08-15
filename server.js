@@ -185,6 +185,8 @@ function makeLimiter({ windowMs, max }) {
 }
 
 const waitlistLimit = makeLimiter({ windowMs: 10 * 60 * 1000, max: 5 });
+const feedbackLimit = makeLimiter({ windowMs: 10 * 60 * 1000, max: 6 });
+const FEEDBACK_FILE = path.join(DATA_DIR, "feedback.jsonl");
 const loginLimit = makeLimiter({ windowMs: 15 * 60 * 1000, max: 8 });
 
 /* -------------------------- optional signup notifications (nodemailer) --- */
@@ -227,6 +229,44 @@ app.get("/testers", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "testers.h
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+// In-app tester feedback (alpha): one honest box in the desktop app posts
+// here. Appended durably; readable in /admin; optionally mailed like
+// signups. logTail is the app's event log — no chat content, no keys.
+app.post("/api/feedback", async (req, res) => {
+  try {
+    if (feedbackLimit(req.ip || "unknown")) {
+      return res.status(429).json({ ok: false, error: "Too many messages — try again in a few minutes." });
+    }
+    const b = req.body || {};
+    const message = typeof b.message === "string" ? b.message.trim().slice(0, 4000) : "";
+    if (!message) return res.status(400).json({ ok: false, error: "Feedback needs a message." });
+    const entry = {
+      ts: new Date().toISOString(),
+      message,
+      email: typeof b.email === "string" ? b.email.trim().slice(0, 200) : null,
+      appVersion: typeof b.appVersion === "string" ? b.appVersion.slice(0, 40) : null,
+      platform: typeof b.platform === "string" ? b.platform.slice(0, 60) : null,
+      logTail: typeof b.logTail === "string" ? b.logTail.slice(0, 20000) : null,
+    };
+    await fs.promises.mkdir(DATA_DIR, { recursive: true });
+    await fs.promises.appendFile(FEEDBACK_FILE, JSON.stringify(entry) + "\n", "utf8");
+    if (mailer) {
+      mailer
+        .sendMail({
+          from: process.env.SMTP_FROM || process.env.SMTP_USER,
+          to: process.env.SMTP_TO,
+          subject: `KAI feedback: ${message.slice(0, 60)}${message.length > 60 ? "…" : ""}`,
+          text: `App feedback\n\nversion:  ${entry.appVersion}\nplatform: ${entry.platform}\nemail:    ${entry.email || "(none)"}\ntime:     ${entry.ts}\n\n${message}\n${entry.logTail ? `\n--- diagnostic log tail ---\n${entry.logTail}\n` : ""}`,
+        })
+        .catch(() => {});
+    }
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("feedback error:", err);
+    return res.status(500).json({ ok: false, error: "Server error — please try again." });
+  }
+});
 
 app.post("/api/waitlist", async (req, res) => {
   try {
@@ -366,6 +406,22 @@ app.post("/admin/login", (req, res) => {
 app.post("/admin/logout", (req, res) => {
   res.clearCookie(SESSION_COOKIE, { httpOnly: true, sameSite: "strict", secure: req.secure, path: "/" });
   return res.json({ ok: true });
+});
+
+app.get("/admin/api/feedback", requireAuth, async (_req, res, next) => {
+  try {
+    let entries = [];
+    try {
+      entries = (await fs.promises.readFile(FEEDBACK_FILE, "utf8"))
+        .split("\n")
+        .filter(Boolean)
+        .map((l) => { try { return JSON.parse(l); } catch { return null; } })
+        .filter(Boolean);
+    } catch { /* none yet */ }
+    return res.json({ ok: true, total: entries.length, recent: entries.slice(-100).reverse() });
+  } catch (err) {
+    return next(err);
+  }
 });
 
 app.get("/admin/api/summary", requireAuth, async (_req, res, next) => {
