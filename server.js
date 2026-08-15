@@ -221,6 +221,9 @@ function notifySignup(entry) {
 
 /* --------------------------------------------------------- public routes */
 app.get("/", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
+// Clean URL for the tester quickstart (the static middleware only serves it
+// as /testers.html).
+app.get("/testers", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "testers.html")));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;

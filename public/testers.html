@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Koinos AI — Tester Quickstart</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Install the Koinos AI alpha in minutes: download for Windows, get past SmartScreen, chat privately on your own hardware, and optionally earn testnet KAI for serving network jobs.">
+<meta property="og:title" content="Koinos AI — Tester Quickstart">
+<meta property="og:description" content="Install the Koinos AI alpha in minutes: download for Windows, chat privately on your own hardware, and optionally earn testnet KAI for serving network jobs.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 L28 9 V23 L16 30 L4 23 V9 Z' fill='none' stroke='%2333E6C0' stroke-width='1.5'/%3E%3Cpath d='M12 10 V22 M12 16 L20 10 M12 16 L20 22' stroke='%23F2B03D' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  /* dark-committed instrument palette — same tokens as the landing page */
+  --ink:#0A0A0C; --ink-2:#0E0E12; --panel:#111117; --panel-2:#15151c;
+  --line:#22222b; --line-2:#2f2f3a;
+  --text:#F4F3F0; --soft:#d7d6d9; --muted:#a6a4b0; --faint:#7d7c89;
+  --signal:#33E6C0;      /* network / cool */
+  --signal-dim:#1c8f7c;
+  --value:#F2B03D;       /* your hardware / earn / KAI — warm */
+  --value-dim:#a9782a;
+  --danger:#ff6b6b;
+  --max:880px; --r:14px;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+  --sans:"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--ink); color:var(--text);
+  font-family:var(--sans); line-height:1.55; -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+body::before{ /* ambient field — cool corner, warm corner */
+  content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
+  background:
+    radial-gradient(760px 460px at 88% -4%, rgba(51,230,192,.10), transparent 62%),
+    radial-gradient(680px 460px at 6% 44%, rgba(242,176,61,.06), transparent 60%),
+    var(--ink);
+}
+body::after{ /* fine measurement grid */
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:72px 72px;
+  mask-image:linear-gradient(to bottom,#000,transparent 82%);
+}
+a{color:inherit;text-decoration:none}
+.wrap{width:min(var(--max),calc(100% - 44px));margin-inline:auto}
+:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:4px}
+::selection{background:rgba(51,230,192,.28);color:#fff}
+
+/* ---- type ---- */
+.mono{font-family:var(--mono)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--signal);font-weight:600}
+h1,h2,h3{text-wrap:balance;margin:0;font-weight:640;letter-spacing:-.03em;line-height:1.06}
+h1{font-size:clamp(34px,5.4vw,56px);letter-spacing:-.04em}
+h2{font-size:clamp(22px,2.8vw,30px)}
+h3{font-size:17px;letter-spacing:-.02em}
+p{margin:0}
+.lead{color:var(--soft);font-size:clamp(16px,1.4vw,18px);max-width:62ch}
+.lead a,.body-link{color:var(--signal)}
+.lead a:hover,.body-link:hover{text-decoration:underline}
+
+/* ---- buttons ---- */
+.btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:13px;font-weight:600;
+  letter-spacing:.01em;padding:13px 18px;border-radius:11px;border:1px solid var(--line-2);
+  background:var(--panel);color:var(--text);cursor:pointer;transition:transform .15s ease,border-color .15s,background .15s}
+.btn:hover{transform:translateY(-1px);border-color:#463f5a}
+.btn .arw{transition:transform .18s}
+.btn:hover .arw{transform:translateX(3px)}
+.btn-signal{border-color:transparent;background:linear-gradient(180deg,#3ff0cc,#22c8a6);color:#04120e;box-shadow:0 10px 30px rgba(51,230,192,.18)}
+.btn-signal:hover{border-color:transparent;box-shadow:0 14px 40px rgba(51,230,192,.26)}
+.btn-ghost{background:transparent}
+
+/* ---- nav ---- */
+.nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
+  background:linear-gradient(to bottom,rgba(10,10,12,.9),rgba(10,10,12,.5) 70%,transparent);
+  border-bottom:1px solid var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:66px;gap:12px}
+.brand{display:flex;align-items:center;gap:11px;font-family:var(--mono);font-weight:700;letter-spacing:.02em;font-size:14px}
+.mark{width:26px;height:26px;display:grid;place-items:center}
+.mark svg{width:26px;height:26px;filter:drop-shadow(0 0 10px rgba(51,230,192,.4))}
+.brand .ai{color:var(--ink);background:var(--signal);padding:1px 5px;border-radius:4px;font-size:11px}
+.nav .back{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.nav .back:hover{color:var(--text)}
+
+/* ---- page scaffolding ---- */
+section{padding:46px 0;position:relative}
+.head{padding:56px 0 10px}
+.head h1{margin:16px 0 18px}
+.badge{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--soft);border:1px solid var(--line-2);border-radius:999px;padding:7px 13px;background:rgba(255,255,255,.015)}
+.badge .dot{width:6px;height:6px;border-radius:50%;background:var(--signal);box-shadow:0 0 0 4px rgba(51,230,192,.14)}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--line),transparent)}
+.panel{position:relative;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:24px}
+.plabel{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+
+/* ---- downloads ---- */
+.dl-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+.dl-note{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:12px;letter-spacing:.02em}
+.dl-note b{color:var(--muted);font-weight:600}
+
+/* ---- system requirements ---- */
+.req-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:16px}
+.req{border:1px solid var(--line);border-radius:11px;padding:14px 16px;background:var(--ink-2)}
+.req span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:5px}
+.req b{font-size:14px;font-weight:560;color:var(--soft)}
+
+/* ---- numbered steps ---- */
+.qsteps{display:grid;gap:12px;margin-top:22px;counter-reset:qs}
+.qstep{display:grid;grid-template-columns:auto 1fr;gap:16px;border:1px solid var(--line);border-radius:var(--r);padding:20px;background:var(--ink-2)}
+.qstep .n{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:13px;
+  background:rgba(242,176,61,.12);color:var(--value);border:1px solid var(--value-dim)}
+.qstep.opt .n{background:rgba(51,230,192,.10);color:var(--signal);border-color:var(--signal-dim)}
+.qstep h3{margin-bottom:6px}
+.qstep h3 .tag{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--signal);
+  border:1px solid var(--signal-dim);border-radius:999px;padding:2px 8px;vertical-align:2px;margin-left:8px}
+.qstep p{color:var(--muted);font-size:14.5px;max-width:64ch}
+.qstep p b{color:var(--soft)}
+.qstep p .warm{color:var(--value)}
+.qstep .callout{margin-top:10px;border-left:2px solid var(--value-dim);padding:8px 0 8px 14px;font-size:13.5px;color:var(--soft)}
+.qstep .callout .k{font-family:var(--mono);font-size:12px;color:var(--value);border:1px solid var(--value-dim);border-radius:6px;padding:1px 7px;white-space:nowrap}
+
+/* ---- what to report ---- */
+.report-list{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:8px}
+.report-list li{display:flex;gap:10px;align-items:baseline;color:var(--muted);font-size:14.5px}
+.report-list li::before{content:"";width:5px;height:5px;border-radius:1px;background:var(--signal);transform:rotate(45deg);flex:none;position:relative;top:-2px}
+.report-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+
+/* ---- honesty block ---- */
+.honest{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--panel)}
+.honest .cap{padding:18px 22px;border-bottom:1px solid var(--line)}
+.honest .cap:last-child{border-bottom:0}
+.honest .cap b{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:var(--value);text-transform:uppercase;display:flex;align-items:center;gap:9px}
+.honest .cap b::before{content:"";width:6px;height:6px;background:var(--value);transform:rotate(45deg);flex:none;box-shadow:0 0 0 4px rgba(242,176,61,.12)}
+.honest .cap span{display:block;margin-top:8px;color:var(--soft);font-size:14.5px;line-height:1.5}
+
+/* ---- footer ---- */
+footer{border-top:1px solid var(--line);padding:36px 0 52px;margin-top:24px}
+.foot{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.foot a:hover{color:var(--text)}
+.foot-links{display:flex;gap:18px;flex-wrap:wrap}
+
+@media(max-width:560px){
+  .req-grid{grid-template-columns:1fr}
+  .qstep{grid-template-columns:1fr}
+  .qstep .n{width:30px;height:30px}
+  section{padding:36px 0}
+  .head{padding:40px 0 6px}
+}
+</style>
+</head>
+<body>
+
+<header class="nav"><div class="wrap nav-in">
+  <a class="brand" href="/">
+    <span class="mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 L28 9 V23 L16 30 L4 23 V9 Z" fill="none" stroke="#33E6C0" stroke-width="1.5"/><path d="M12 10 V22 M12 16 L20 10 M12 16 L20 22" stroke="#F2B03D" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
+    <b>KOINOS</b><span class="ai">AI</span>
+  </a>
+  <a class="back" href="/">← Back to koinosai.com</a>
+</div></header>
+
+<main>
+
+<!-- HEAD + DOWNLOADS -->
+<section class="head"><div class="wrap">
+  <span class="badge"><span class="dot"></span> Alpha · Koinos testnet (harbinger)</span>
+  <h1>Tester Quickstart</h1>
+  <p class="lead">Thank you for testing the Koinos AI alpha. Ten minutes gets you from download to a private, local AI chat — and optionally earning testnet KAI for serving network jobs. Everything below is honest about what works and what's rough.</p>
+  <div class="dl-row">
+    <a class="btn btn-signal" href="https://github.com/therexdev/kaiapp/releases/latest" target="_blank" rel="noopener">Download for Windows — free <span class="arw">→</span></a>
+    <a class="btn btn-ghost" href="https://github.com/therexdev/kaiapp/releases/latest" target="_blank" rel="noopener">Linux AppImage · experimental</a>
+  </div>
+  <p class="dl-note">Both buttons go to the <b>latest GitHub release</b> — pick the <b>.exe</b> installer on Windows or the <b>.AppImage</b> on Linux.</p>
+</div></section>
+
+<!-- SYSTEM REQUIREMENTS -->
+<section><div class="wrap">
+  <div class="panel">
+    <span class="plabel">System requirements</span>
+    <div class="req-grid">
+      <div class="req"><span>OS</span><b>Windows 10/11 x64 · Linux (AppImage, experimental)</b></div>
+      <div class="req"><span>Disk</span><b>~2 GB free (app + engine + model)</b></div>
+      <div class="req"><span>Memory</span><b>8 GB RAM recommended</b></div>
+      <div class="req"><span>GPU</span><b>NVIDIA optional — CPU works fine</b></div>
+    </div>
+  </div>
+</div></section>
+
+<div class="wrap"><div class="divider"></div></div>
+
+<!-- STEPS -->
+<section><div class="wrap">
+  <span class="eyebrow">Setup · six steps, last two optional</span>
+  <div class="qsteps">
+    <div class="qstep">
+      <span class="n">1</span>
+      <div>
+        <h3>Download and run the installer</h3>
+        <p>Grab the Windows installer from the <a class="body-link" href="https://github.com/therexdev/kaiapp/releases/latest" target="_blank" rel="noopener">latest release</a> and run it. It installs per-user — no admin rights needed.</p>
+      </div>
+    </div>
+    <div class="qstep">
+      <span class="n">2</span>
+      <div>
+        <h3>Get past the SmartScreen warning</h3>
+        <p>Windows SmartScreen will warn you that the app is unrecognized. That's expected: the alpha build is <b>not yet code-signed</b>, so Windows can't verify the publisher. It is not a virus detection — just an unknown-publisher notice.</p>
+        <div class="callout">Click <span class="k">More info</span> then <span class="k">Run anyway</span>. Code signing ships before beta, and this warning goes away.</div>
+      </div>
+    </div>
+    <div class="qstep">
+      <span class="n">3</span>
+      <div>
+        <h3>Let the first run finish downloading</h3>
+        <p>On first launch the app downloads the AI engine and the Koinos Fast model (<b>~1 GB</b> total). Progress shows inside the app — leave it open until the download completes. This happens once.</p>
+      </div>
+    </div>
+    <div class="qstep">
+      <span class="n">4</span>
+      <div>
+        <h3>Chat locally</h3>
+        <p>Everything runs on your machine: <b>private, free, and it works offline</b>. Your prompts never leave the device in the default mode.</p>
+      </div>
+    </div>
+    <div class="qstep opt">
+      <span class="n">5</span>
+      <div>
+        <h3>Start earning <span class="tag">optional</span></h3>
+        <p>Open the <b>Earn</b> tab, create your earning account, and press <b>Start Earning</b>. The app connects to the Koinos scheduler automatically and earns <span class="warm">testnet KAI</span> for serving network jobs while your machine is idle.</p>
+        <div class="callout"><b>Write down the backup code</b> when you create the account — it's the only way to recover your earnings account.</div>
+      </div>
+    </div>
+    <div class="qstep opt">
+      <span class="n">6</span>
+      <div>
+        <h3>Try Local-First privacy mode <span class="tag">optional</span></h3>
+        <p>Switch privacy mode to <b>Local-First</b> to let chats overflow to the network when your machine can't serve them. The first <b>25,000 AI tokens per epoch are free</b>.</p>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<div class="wrap"><div class="divider"></div></div>
+
+<!-- WHAT TO REPORT -->
+<section><div class="wrap">
+  <span class="eyebrow">What to report</span>
+  <h2 style="margin:12px 0 10px">Anything that made you stop, squint, or swear.</h2>
+  <p class="lead">Every report makes the beta better. We especially want to hear about:</p>
+  <ul class="report-list">
+    <li>Crashes — on launch, mid-chat, or while earning</li>
+    <li>Confusing screens — anywhere you weren't sure what to do next</li>
+    <li>Stuck downloads — engine or model downloads that stall or never finish</li>
+    <li>Earnings that don't appear — jobs served but no testnet KAI credited</li>
+  </ul>
+  <div class="report-cta">
+    <a class="btn btn-signal" href="https://github.com/therexdev/kaiapp/issues" target="_blank" rel="noopener">Open a GitHub issue <span class="arw">→</span></a>
+    <a class="btn btn-ghost" href="mailto:aioptimizer@web20ranker.com">Email us instead</a>
+  </div>
+</div></section>
+
+<div class="wrap"><div class="divider"></div></div>
+
+<!-- HONESTY BLOCK -->
+<section><div class="wrap">
+  <span class="eyebrow" style="color:var(--value)">The honest fine print</span>
+  <div class="honest" style="margin-top:16px">
+    <div class="cap"><b>Alpha software</b><span>Expect rough edges, missing features, and the occasional crash. That's exactly what this phase is for.</span></div>
+    <div class="cap"><b>Testnet tokens only</b><span>KAI earned during alpha lives on Koinos testnet and has <b>no monetary value</b>. Mainnet economics come later.</span></div>
+    <div class="cap"><b>Unsigned installer</b><span>The installer is not yet code-signed, which is why SmartScreen warns. Signing ships before beta.</span></div>
+    <div class="cap"><b>Model answers can be wrong</b><span>Local models are small and can be confidently incorrect. Don't rely on answers for anything important without checking.</span></div>
+  </div>
+</div></section>
+
+</main>
+
+<footer><div class="wrap"><div class="foot">
+  <div>© 2026 Koinos AI · Your hardware first. The network when you need it.</div>
+  <div class="foot-links"><a href="/">Home</a><a href="https://github.com/therexdev/kaiapp" target="_blank" rel="noopener">GitHub</a><a href="https://github.com/therexdev/kaiapp/issues" target="_blank" rel="noopener">Report a bug</a><a href="/whitepaper.pdf" target="_blank" rel="noopener">White paper</a><a href="mailto:aioptimizer@web20ranker.com">Contact</a></div>
+</div></div></footer>
+
+</body>
+</html>

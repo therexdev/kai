@@ -4,7 +4,11 @@
 <meta charset="utf-8">
 <title>Koinos AI</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Local-first, decentralized AI you own. Run private AI on your hardware, earn KAI from idle compute, and self-host an OpenAI-compatible API that overflows into the network.">
+<meta name="description" content="Local-first, decentralized AI you own. Alpha available now: run private AI on your hardware, earn testnet KAI from idle compute, and self-host an OpenAI-compatible API that overflows into the network.">
+<meta property="og:title" content="Koinos AI — alpha available now">
+<meta property="og:description" content="Local-first, decentralized AI you own. Download the alpha: chat privately on your own hardware for free, and earn KAI on Koinos testnet for verified AI work.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 L28 9 V23 L16 30 L4 23 V9 Z' fill='none' stroke='%2333E6C0' stroke-width='1.5'/%3E%3Cpath d='M12 10 V22 M12 16 L20 10 M12 16 L20 22' stroke='%23F2B03D' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
 :root{
   /* dark-committed instrument palette — painted explicitly so it holds on any host ground */
@@ -127,6 +131,8 @@ p{margin:0}
 .path p{color:var(--muted);font-size:13.5px;margin-bottom:14px}
 .path .go{font-family:var(--mono);font-size:12.5px;display:inline-flex;gap:7px;align-items:center}
 .path.warm .go{color:var(--value)} .path.cool .go{color:var(--signal)}
+.hero-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
+.hero-note{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:12px;letter-spacing:.02em}
 .hero-foot{margin-top:26px;display:flex;gap:8px 22px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--faint);letter-spacing:.04em}
 .hero-foot span{display:inline-flex;align-items:center;gap:7px}
 .hero-foot span::before{content:"";width:5px;height:5px;border-radius:1px;background:var(--signal);transform:rotate(45deg)}
@@ -233,6 +239,11 @@ input[type=range]{width:100%;margin-top:12px;accent-color:var(--value)}
 .step .num{font-family:var(--mono);font-size:12px;color:var(--value);letter-spacing:.1em}
 .step h3{margin:12px 0 6px;font-size:17px}
 .step p{color:var(--muted);font-size:14px}
+a.step{transition:border-color .18s,transform .18s}
+a.step:hover{transform:translateY(-2px);border-color:var(--value-dim)}
+.step .go{margin-top:12px;font-family:var(--mono);font-size:12.5px;color:var(--value);display:inline-flex;gap:7px;align-items:center}
+.step .go .arw{transition:transform .18s}
+a.step:hover .go .arw{transform:translateX(3px)}
 
 /* ---- comparison ---- */
 .cmp-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
@@ -404,9 +415,15 @@ footer{border-top:1px solid var(--line);padding:36px 0 52px}
 <!-- HERO -->
 <section class="hero"><div class="wrap"><div class="hero-grid">
   <div>
-    <span class="badge"><span class="dot"></span> The people's AI network · not Big AI</span>
+    <span class="badge"><span class="dot"></span> Alpha available now · live on Koinos testnet</span>
     <h1>Take AI back from<br>the <span class="danger">data centers</span>.</h1>
-    <p class="hero-sub">A few corporations hoard the GPUs, meter every request, and keep your private data on their servers. Koinos AI puts the first layer back in your hands — private AI on hardware you <span class="warm">already own</span> — and turns the rest into a <span class="cool">decentralized network</span> no single company controls. Two ways to take it back:</p>
+    <p class="hero-sub">A few corporations hoard the GPUs, meter every request, and keep your private data on their servers. Koinos AI puts the first layer back in your hands — private AI on hardware you <span class="warm">already own</span> — and turns the rest into a <span class="cool">decentralized network</span> no single company controls. The alpha is downloadable today, and the network is live on Koinos testnet (harbinger): chatting locally is <span class="warm">free and private</span>, and earning pays <span class="cool">KAI on testnet</span>. Two ways to take it back:</p>
+
+    <div class="hero-cta">
+      <a class="btn btn-signal" href="https://github.com/therexdev/kaiapp/releases/latest" target="_blank" rel="noopener">Download the alpha <span class="arw">→</span></a>
+      <a class="btn btn-ghost" href="#waitlist">Join the waitlist</a>
+    </div>
+    <p class="hero-note">Windows 10/11 · free · alpha earnings are testnet KAI — no monetary value yet.</p>
 
     <div class="paths">
       <a class="path warm" href="#earn">
@@ -416,17 +433,17 @@ footer{border-top:1px solid var(--line);padding:36px 0 52px}
         <p>Chat privately on your own machine. Turn unused compute into KAI.</p>
         <span class="go">Start earning <span class="arw">→</span></span>
       </a>
-      <a class="path cool" href="#developers">
+      <a class="path cool" href="/testers">
         <span class="tick mono">02 · builders</span>
         <div class="who">Self-host</div>
         <h3>Your API. Your GPUs first.</h3>
         <p>An OpenAI-compatible endpoint you control that overflows to the network.</p>
-        <span class="go">Read the docs <span class="arw">→</span></span>
+        <span class="go">Tester quickstart <span class="arw">→</span></span>
       </a>
     </div>
 
     <div class="hero-foot">
-      <span>OpenAI-compatible</span><span>No KAI to start</span><span>Private by architecture</span><span>Settled on Koinos</span>
+      <span>OpenAI-compatible</span><span>No KAI to start</span><span>Private by architecture</span><span>Settled on Koinos testnet</span>
     </div>
   </div>
 
@@ -544,7 +561,7 @@ r = client.chat.completions.<span class="f">create</span>(
   <div class="shead rise">
     <div class="eyebrow warm">For you · earn with your computer</div>
     <h2>The data centers get paid for compute like yours. Now you do.</h2>
-    <p>The same GPU that runs your games can run real AI work for the network. Install, let it benchmark your hardware, and press one button — Koinos AI handles models, safe resource limits, and pricing. You earn KAI for <em>verified useful work</em>, not idle uptime, and intelligence gets a little less centralized every time you do.</p>
+    <p>The same GPU that runs your games can run real AI work for the network. Install, let it benchmark your hardware, and press one button — Koinos AI handles models, safe resource limits, and pricing. You earn KAI for <em>verified useful work</em>, not idle uptime, and intelligence gets a little less centralized every time you do. During alpha, earnings are testnet KAI on Koinos testnet (harbinger) — they have no monetary value yet.</p>
   </div>
 
   <div class="est panel rise" style="padding:26px">
@@ -565,7 +582,7 @@ r = client.chat.completions.<span class="f">create</span>(
         <label>Network utilization <span class="mono" id="utilOut" style="color:var(--value)">moderate</span></label>
         <input type="range" id="util" min="1" max="3" value="2" step="1" aria-label="Network utilization">
       </div>
-      <p class="disclaimer">Illustrative, pre-launch model — a relative earning weight from GPU class × hours × demand, not a yield promise. Real KAI reward depends on verified work, live network demand, and the KAI reference price, all still in economic simulation.</p>
+      <p class="disclaimer">Illustrative model — a relative earning weight from GPU class × hours × demand, not a yield promise. Real KAI reward depends on verified work, live network demand, and the KAI reference price, all still in economic simulation. Alpha earnings are testnet KAI — no monetary value yet.</p>
     </div>
     <div class="readout">
       <div>
@@ -580,7 +597,7 @@ r = client.chat.completions.<span class="f">create</span>(
   </div>
 
   <div class="steps">
-    <div class="step rise"><div class="num">STEP 01</div><h3>Install &amp; detect</h3><p>Koinos AI finds your CPU, GPU, VRAM, and drivers and configures a compatible runtime and model automatically.</p></div>
+    <a class="step rise" href="https://github.com/therexdev/kaiapp/releases/latest" target="_blank" rel="noopener"><div class="num">STEP 01</div><h3>Install &amp; detect</h3><p>Koinos AI finds your CPU, GPU, VRAM, and drivers and configures a compatible runtime and model automatically.</p><span class="go">Download for Windows — free <span class="arw">→</span></span></a>
     <div class="step rise"><div class="num">STEP 02</div><h3>Press Start Earning</h3><p>No KAI, KOIN, MANA, or manual pricing. Foreground use always wins; battery and thermal limits protect the hardware.</p></div>
     <div class="step rise"><div class="num">STEP 03</div><h3>Do verified work</h3><p>Completed, verified AI jobs settle in KAI through Koinos — with gasless onboarding sponsored underneath.</p></div>
   </div>
@@ -718,7 +735,7 @@ r = client.chat.completions.<span class="f">create</span>(
 
 <footer><div class="wrap"><div class="foot">
   <div>© 2026 Koinos AI · Your hardware first. The network when you need it.</div>
-  <div class="foot-links"><a href="/whitepaper.pdf" target="_blank" rel="noopener">White paper</a><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#roadmap">Roadmap</a><a href="#waitlist">Early access</a></div>
+  <div class="foot-links"><a href="/testers">Tester quickstart</a><a href="https://github.com/therexdev/kaiapp" target="_blank" rel="noopener">GitHub</a><a href="/whitepaper.pdf" target="_blank" rel="noopener">White paper</a><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#roadmap">Roadmap</a><a href="#waitlist">Early access</a><a href="mailto:aioptimizer@web20ranker.com">Contact</a></div>
 </div></div></footer>
 
 <script>
