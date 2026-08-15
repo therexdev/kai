@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "express": "^4.21.2",
+    "koilib": "^9.3.0",
     "nodemailer": "^7.0.0"
   }
 }

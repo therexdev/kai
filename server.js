@@ -33,6 +33,22 @@ app.use((_req, res, next) => {
   res.setHeader("Referrer-Policy", "no-referrer");
   next();
 });
+// Koinos AI earning scheduler (M2 alpha) — mounted BEFORE the body parsers
+// because it reads its own request streams. Workers connect outbound from
+// the desktop app; operator endpoints stay closed unless a secret is set.
+const { Scheduler, startAutoOps } = require("./lib/scheduler");
+const scheduler = new Scheduler({
+  dataDir: process.env.SCHEDULER_DATA || path.join(__dirname, ".data", "scheduler"),
+  operatorSecret: process.env.KAI_OPERATOR_SECRET || null,
+  onEvent: (e) => console.log(`[scheduler] ${e.type}`, e.worker ?? e.root ?? ""),
+});
+startAutoOps(scheduler);
+app.use("/scheduler", (req, res) => {
+  scheduler.handle(req, res).catch((err) => {
+    try { res.status(500).json({ ok: false, error: String(err.message) }); } catch { /* gone */ }
+  });
+});
+
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: false, limit: "10kb" }));
 
