@@ -317,6 +317,97 @@ async function main() {
   check(closeOk, "epoch close does not throw (BigInt(NaN) can't happen)");
 
   await sched.close();
+
+  // ---- Economics: network-wide bootstrap pool + daily free tier ----
+  console.log("probe 14: bootstrap pool is network-wide, useful-work-divided, unused stays in reserve");
+  {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "probe-econ-"));
+    // Pool = 10 KAI/epoch. Each eval is nominally 1 KAI.
+    const s2 = new Scheduler({ dataDir: dir, leaseMs: 150, bootstrapPoolSat: String(10n * 100000000n) });
+    PORT = await s2.listen(0);
+    const W = [];
+    for (let i = 0; i < 3; i++) { const w = mkWorker(["koinos-fast"]); await register(w); W.push(w); }
+    const runEvals = async (w, n) => {
+      for (let i = 0; i < n; i++) {
+        await j("POST", "/operator/enqueue", { type: "inference-eval", model: "koinos-fast", prompt: "2+2?", forWorker: w.address });
+        const r = await poll(w, 2000);
+        if (!r.job) throw new Error("econ eval never reached worker");
+        await submit(w, r.job, { completion: 10, output: "4" });
+      }
+    };
+    // Under-subscribed: 4 evals total, pool 10 KAI -> each mints full 1 KAI, 6 KAI unused.
+    await runEvals(W[0], 4);
+    let sum = s2.closeEpoch();
+    let mintedKai = Number(sum.bootstrap.mintedSat) / 1e8;
+    check(Math.abs(mintedKai - 4) < 1e-6, `under-subscribed: 4 evals mint 4 KAI, not the full 10 pool (got ${mintedKai})`);
+    check(Number(sum.bootstrap.poolSat) === 10 * 1e8, "summary reports the network pool, not a per-worker cap");
+    // Over-subscribed: 30 evals across workers, pool 10 KAI -> total mint capped at 10, pro-rata.
+    await runEvals(W[0], 12); await runEvals(W[1], 12); await runEvals(W[2], 6);
+    sum = s2.closeEpoch();
+    mintedKai = Number(sum.bootstrap.mintedSat) / 1e8;
+    check(mintedKai <= 10 + 1e-6 && mintedKai > 9.5, `over-subscribed: 30 evals mint ~10 KAI total (the pool), not 30 (got ${mintedKai})`);
+    // Worker 0 did 2× worker 2's work -> earns ~2× the share (useful-work-divided).
+    const e0 = Number(sum.totals[W[0].address] || 0), e2 = Number(sum.totals[W[2].address] || 0);
+    check(e0 > e2 * 1.8 && e0 < e2 * 2.2, `pool divided by useful work: W0 (12 evals) ≈ 2× W2 (6 evals) [${e0} vs ${e2}]`);
+    await s2.close();
+  }
+
+  console.log("probe 15: free tier is DAILY and has a global ceiling that pauses free (not paid)");
+  {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "probe-free-"));
+    // Global daily ceiling 100 tokens; per-account 80.
+    const s3 = new Scheduler({ dataDir: dir, leaseMs: 150, freeTokensPerDay: 80, freeTokensPerDayGlobal: 100, freeTokensPerIp: 0 });
+    PORT = await s3.listen(0);
+    const a1 = new Signer({ privateKey: crypto.randomBytes(32).toString("hex") }).getAddress();
+    const a2 = new Signer({ privateKey: crypto.randomBytes(32).toString("hex") }).getAddress();
+    // Account 1 draws 80 (its whole daily allowance).
+    s3._chargeUsage(a1, { prompt_tokens: 40, completion_tokens: 40 }, null, "koinos-fast");
+    check(s3._freeTokensLeft(a1, null) === 0, "per-account daily allowance is exhausted after 80 tokens");
+    // Account 2 should only get the remaining 20 of the 100 global ceiling.
+    check(s3._freeTokensLeft(a2, null) === 20, "global ceiling caps a second account to the network remainder (20)");
+    s3._chargeUsage(a2, { prompt_tokens: 20, completion_tokens: 40 }, null, "koinos-fast");
+    check(s3._freeTokensLeft(a2, null) === 0 && s3.freeUsedGlobalDay === 100, "global daily free budget is fully spent");
+    // A closeEpoch (15-min settlement) must NOT reset the daily free counters.
+    s3.receipts.push({ honest: true, worker: a1, jobType: "chat", usage: { prompt_tokens: 1, completion_tokens: 1 } });
+    s3.closeEpoch();
+    check(s3.freeUsedGlobalDay === 100, "a settlement epoch close does NOT reset the daily free tier (the 96× bug stays fixed)");
+    // Rolling the UTC day DOES reset it.
+    s3.freeDay = "2000-01-01";
+    check(s3._freeTokensLeft(a1, null) === 80, "a new UTC day restores the full daily allowance");
+    await s3.close();
+  }
+
+  console.log("probe 16: consumption is authorized only against non-shrinkable (paid) earnings");
+  {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "probe-debt-"));
+    const s4 = new Scheduler({ dataDir: dir, leaseMs: 150, bootstrapPoolSat: String(15625n * 100000n) });
+    PORT = await s4.listen(0);
+    const wc = mkWorker(["koinos-fast"]); // worker+consumer, same wallet ("cover usage with work")
+    await register(wc);
+    // Earn a pile of EVAL (pool-subsidy) receipts only — no paid revenue.
+    for (let i = 0; i < 6; i++) {
+      await j("POST", "/operator/enqueue", { type: "inference-eval", model: "koinos-fast", prompt: "2+2?", forWorker: wc.address });
+      const r = await poll(wc, 2000);
+      if (!r.job) throw new Error("debt-probe eval never arrived");
+      await submit(wc, r.job, { completion: 10, output: "4" });
+    }
+    // Guaranteed floor excludes the shrinkable pool subsidy -> eval-only
+    // earnings authorize ZERO consumption spend (can't over-commit).
+    const capMine = s4._consumeCapacity(wc.address, null);
+    check(capMine.earningsLeftSat === 0n, "eval-only (pool-subsidy) earnings do NOT authorize consumption spend");
+    await s4.close();
+  }
+
+  console.log("probe 17: a fractional pool config does not throw");
+  {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "probe-frac-"));
+    let ok = true;
+    try { const s5 = new Scheduler({ dataDir: dir, bootstrapPoolSat: 15.625 * 1e8 }); await s5.listen(0); await s5.close(); }
+    catch { ok = false; }
+    check(ok, "constructor tolerates a fractional bootstrapPoolSat (rounded, no BigInt throw)");
+  }
+
+  console.log("\nECON PROBES PASSED");
   console.log(failures === 0 ? "\nPROBE PASSED" : `\nPROBE FAILED (${failures} assertion(s))`);
   process.exit(failures === 0 ? 0 : 1);
 }
