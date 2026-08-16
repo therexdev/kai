@@ -87,6 +87,11 @@ app.use((_req, res, next) => {
 // the desktop app; operator endpoints stay closed unless a secret is set.
 const { Scheduler, startAutoOps } = require("./lib/scheduler");
 const { startBackups, snapshotOnce, latestBackupPath } = require("./lib/state-backup");
+const { startRuntimeLog } = require("./lib/runtime-log");
+// Restart forensics: bumps a boot counter and captures WHY the previous
+// process exited (host signal vs code crash) so a mystery restart becomes
+// evidence on the next boot. Surfaced on /api/health.
+const runtime = startRuntimeLog(SCHEDULER_DATA, (m) => console.log(`[runtime] ${m}`));
 // With KAI_OPERATOR_WIF set, every closed epoch settles itself on-chain
 // (submit_root + per-worker claims) and /scheduler/balance serves KAI
 // balances to the app's Earn tab. Without it, epochs still close and
@@ -232,7 +237,7 @@ app.get("/testers", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "testers.h
 // Public live-network page: the app's Network tab, for the open web. Reads
 // only the public truncated-address status feed.
 app.get("/network", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "network.html")));
-app.get("/api/health", (_req, res) => res.json({ ok: true }));
+app.get("/api/health", (_req, res) => res.json({ ok: true, runtime: runtime.summary() }));
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
