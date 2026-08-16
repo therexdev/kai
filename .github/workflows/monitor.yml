@@ -1,0 +1,91 @@
+name: Network monitor
+
+# Real alerting with zero extra infrastructure: every 30 minutes a runner
+# checks the live network from the outside — exactly what a consumer sees.
+# On failure it opens (or comments on) a GitHub issue, which emails the
+# owner; on recovery it closes the issue. Scheduled workflows only run from
+# the repository's default branch. Public endpoints only.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the live network
+        id: check
+        run: |
+          set +e
+          FAILS=""
+          WORKERS="?"
+          # Only true SERVICE failures page. Zero workers online is a normal
+          # overnight state for a young volunteer network — it is NOT an
+          # outage and must not train the owner to ignore the alert channel.
+          STATUS=$(curl -sSL --max-time 25 https://koinosai.com/scheduler/network/status)
+          if [ $? -ne 0 ] || [ -z "$STATUS" ]; then
+            FAILS="scheduler status endpoint unreachable"
+          else
+            OK=$(echo "$STATUS" | python3 -c "import sys,json; d=json.load(sys.stdin); print('yes' if d.get('ok') else 'no')" 2>/dev/null)
+            WORKERS=$(echo "$STATUS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('workersOnline',0))" 2>/dev/null)
+            [ "$OK" != "yes" ] && FAILS="scheduler responded but not ok"
+          fi
+          # -L so a legitimate 3xx canonicalization redirect is not read as
+          # an outage (matches what a browser sees).
+          SITE=$(curl -sSL --max-time 25 -o /dev/null -w '%{http_code}' https://koinosai.com/)
+          [ "$SITE" != "200" ] && FAILS="${FAILS:+$FAILS; }homepage HTTP $SITE"
+          PAGE=$(curl -sSL --max-time 25 -o /dev/null -w '%{http_code}' https://koinosai.com/network)
+          [ "$PAGE" != "200" ] && FAILS="${FAILS:+$FAILS; }/network page HTTP $PAGE"
+          {
+            echo "fails=$FAILS"
+            echo "workers=$WORKERS"
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Open, update, or close the alert issue
+        uses: actions/github-script@v7
+        env:
+          FAILS: ${{ steps.check.outputs.fails }}
+          WORKERS: ${{ steps.check.outputs.workers }}
+        with:
+          script: |
+            const fails = process.env.FAILS || "";
+            const workers = process.env.WORKERS || "?";
+            const now = new Date().toISOString().replace("T", " ").slice(0, 16) + " UTC";
+            const { owner, repo } = context.repo;
+            const open = await github.rest.issues.listForRepo({ owner, repo, state: "open", labels: "net-monitor" });
+            const existing = open.data[0];
+            if (fails) {
+              if (!existing) {
+                await github.rest.issues.create({
+                  owner, repo,
+                  title: "Network monitor: koinosai.com unhealthy",
+                  labels: ["net-monitor"],
+                  body: `Automated monitor failure at ${now}:\n\n- ${fails}\n\nChecks run every 30 minutes; a comment is added only when the failure changes, and this issue closes itself on recovery.`,
+                });
+              } else {
+                // Comment ONLY when the failure SET changes — otherwise a
+                // multi-hour outage would post dozens of identical "still
+                // failing" emails and bury the signal (review finding).
+                const comments = await github.rest.issues.listComments({ owner, repo, issue_number: existing.number, per_page: 100 });
+                const last = comments.data.length ? comments.data[comments.data.length - 1].body : existing.body;
+                const changed = !last || !last.includes(fails);
+                if (changed) {
+                  await github.rest.issues.createComment({
+                    owner, repo, issue_number: existing.number,
+                    body: `Failure changed at ${now}: ${fails}`,
+                  });
+                }
+              }
+            } else if (existing) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: existing.number,
+                body: `Recovered at ${now} — ${workers} workers online.`,
+              });
+              await github.rest.issues.update({ owner, repo, issue_number: existing.number, state: "closed" });
+            }

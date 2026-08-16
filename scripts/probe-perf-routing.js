@@ -30,7 +30,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { Signer } = require("koilib");
-const { Scheduler, seedOnce } = require("../lib/scheduler");
+const { Scheduler, seedOnce, seedMysteryOnce } = require("../lib/scheduler");
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let PORT = 0;
@@ -211,6 +211,110 @@ async function main() {
   await submit(A, slowJob.job, { completion: 10, output: "working" });
   const toAfter = (sched.perf[A.address] && sched.perf[A.address].to) || 0;
   check(toAfter === toBefore, "the slow-but-streaming worker was never timeout-blamed");
+
+  console.log("probe 8: server-side stamps never reach the client");
+  await j("POST", "/operator/enqueue", { type: "inference-eval", model: "koinos-fast", prompt: "2+2?", forWorker: A.address });
+  const stamped = await poll(A, 2000);
+  if (!stamped.job) throw new Error("stamped eval never reached A");
+  check(
+    !("forWorker" in stamped.job) && !("preferWorker" in stamped.job) && !("challenge" in stamped.job) && !("challengeTier" in stamped.job),
+    "dispatched payload carries no forWorker/preferWorker/challenge fields"
+  );
+  await submit(A, stamped.job, { completion: 10 });
+
+  console.log("probe 9: mystery chat — paid-path audit is shadow (records, never burns)");
+  const myst1 = seedMysteryOnce(sched); // targets a live worker; A and B qualify
+  if (!myst1) throw new Error("mystery seed produced nothing");
+  const mTarget = myst1.forWorker === A.address ? A : B;
+  const mPoll = await poll(mTarget, 2000);
+  if (!mPoll.job) throw new Error("mystery chat never reached its target");
+  check(
+    mPoll.job.type === "chat" && Array.isArray(mPoll.job.messages) &&
+      !("forWorker" in mPoll.job) && !("challenge" in mPoll.job) && !("challengeTier" in mPoll.job),
+    "mystery chat is shaped exactly like a real consumer chat (no server fields leak)"
+  );
+  // Answer it correctly (compute from the actual prompt, whatever shape).
+  const mExpected = String(myst1.challenge.expected);
+  await submit(mTarget, mPoll.job, { completion: 8, output: mExpected });
+  let rc = sched.receipts[sched.receipts.length - 1];
+  check(rc.jobType === "chat" && rc.challenged && rc.honest === true, "correct mystery answer -> honest chat receipt");
+  check(!!(sched.perf[mTarget.address].chal && sched.perf[mTarget.address].chal.t0), "mystery pass/fail recorded under tier 0 (not collapsed into t1)");
+  const myst2 = seedMysteryOnce(sched);
+  if (!myst2) throw new Error("second mystery seed produced nothing");
+  const m2Target = myst2.forWorker === A.address ? A : B;
+  const m2Poll = await poll(m2Target, 2000);
+  if (!m2Poll.job) throw new Error("second mystery chat never reached its target");
+  await submit(m2Target, m2Poll.job, { completion: 8, output: "totally wrong answer here" });
+  rc = sched.receipts[sched.receipts.length - 1];
+  check(rc.challenged && rc.honest === true, "SHADOW: wrong mystery answer is recorded but receipt is NOT burned");
+  check(sched.perf[m2Target.address].chal.t0.bad >= 1, "the wrong mystery answer was recorded as a tier-0 fail");
+
+  console.log("probe 10: answer-bank dump does NOT pass a normalized challenge");
+  await j("POST", "/operator/enqueue", {
+    type: "inference-eval", model: "koinos-fast", prompt: "add", expected: "42", norm: "digits", challengeTier: 1, forWorker: A.address,
+  });
+  const bankJob = await poll(A, 2000);
+  if (!bankJob.job) throw new Error("answer-bank eval never reached A");
+  await submit(A, bankJob.job, { completion: 12, output: "0 1 2 3 4 5 6 7 8 9 40 41 42 43 44" });
+  rc = sched.receipts[sched.receipts.length - 1];
+  check(rc.honest === false, "digit-dump carrying the answer is rejected (dominance check)");
+
+  console.log("probe 11: tier-3 class discriminators run in shadow until armed");
+  await j("POST", "/operator/enqueue", {
+    type: "inference-eval", model: "qwen25-32b", prompt: "Reverse 'candle', capitals only.",
+    expected: "ELDNAC", norm: "letters", challengeTier: 3, forWorker: B.address,
+  });
+  const t3a = await poll(B, 2000);
+  if (!t3a.job) throw new Error("tier-3 eval never reached B");
+  await submit(B, t3a.job, { completion: 6, output: "CANDLE" }); // wrong on purpose
+  rc = sched.receipts[sched.receipts.length - 1];
+  const bPerf = sched.perf[B.address];
+  check(rc.honest === true && bPerf.chal && bPerf.chal.t3 && bPerf.chal.t3.bad >= 1, "shadow mode: tier-3 fail recorded, receipt NOT burned");
+  sched.classEnforce = true;
+  await j("POST", "/operator/enqueue", {
+    type: "inference-eval", model: "qwen25-32b", prompt: "Reverse 'forest', capitals only.",
+    expected: "TSEROF", norm: "letters", challengeTier: 3, forWorker: B.address,
+  });
+  const t3b = await poll(B, 2000);
+  if (!t3b.job) throw new Error("second tier-3 eval never reached B");
+  await submit(B, t3b.job, { completion: 6, output: "FOREST" });
+  rc = sched.receipts[sched.receipts.length - 1];
+  check(rc.honest === false, "armed: tier-3 fail burns the receipt");
+  sched.classEnforce = false;
+
+  console.log("probe 12: egregious token inflation earns strikes, then burns receipts");
+  let lastHonest = null;
+  for (let i = 0; i < 4; i++) {
+    await j("POST", "/operator/enqueue", { type: "inference-eval", model: "koinos-fast", prompt: "hi", forWorker: A.address });
+    const r = await poll(A, 2000);
+    if (!r.job) throw new Error(`inflation eval ${i} never reached A`);
+    await submit(A, r.job, { completion: 1900000, output: "x" });
+    lastHonest = sched.receipts[sched.receipts.length - 1].honest;
+  }
+  const aPerf = sched.perf[A.address];
+  check(aPerf.clampEgregious >= 4, "egregious clamps are counted");
+  check(lastHonest === false, "fourth egregious inflation burns the receipt");
+
+  console.log("probe 13: non-numeric usage cannot poison a receipt or crash settlement (CRITICAL)");
+  await j("POST", "/operator/enqueue", { type: "inference-eval", model: "koinos-fast", prompt: "hi", forWorker: B.address });
+  const nanJob = await poll(B, 2000);
+  if (!nanJob.job) throw new Error("NaN eval never reached B");
+  // Sign a result whose usage is a garbage object — the raw fetch, since our
+  // submit() helper sends clean numbers.
+  {
+    const output = "4";
+    const hash = crypto.createHash("sha256").update(`${nanJob.job.id}|${output}`).digest();
+    const signature = Buffer.from(await B.signer.signHash(hash)).toString("base64");
+    await j("POST", `/worker/result?token=${B.token}`, {
+      jobId: nanJob.job.id, output, usage: { prompt_tokens: {}, completion_tokens: "abc" }, signature,
+    });
+  }
+  rc = sched.receipts[sched.receipts.length - 1];
+  check(Number.isFinite(rc.usage.prompt_tokens) && Number.isFinite(rc.usage.completion_tokens), "garbage usage coerced to finite numbers");
+  // Prove settlement doesn't throw on the poisoned-turned-clean receipt.
+  let closeOk = true;
+  try { sched.closeEpoch(); } catch { closeOk = false; }
+  check(closeOk, "epoch close does not throw (BigInt(NaN) can't happen)");
 
   await sched.close();
   console.log(failures === 0 ? "\nPROBE PASSED" : `\nPROBE FAILED (${failures} assertion(s))`);

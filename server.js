@@ -11,6 +11,7 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const crypto = require("crypto");
 const express = require("express");
 const auth = require("./lib/auth");
 const store = require("./lib/store");
@@ -85,6 +86,7 @@ app.use((_req, res, next) => {
 // because it reads its own request streams. Workers connect outbound from
 // the desktop app; operator endpoints stay closed unless a secret is set.
 const { Scheduler, startAutoOps } = require("./lib/scheduler");
+const { startBackups, snapshotOnce, latestBackupPath } = require("./lib/state-backup");
 // With KAI_OPERATOR_WIF set, every closed epoch settles itself on-chain
 // (submit_root + per-worker claims) and /scheduler/balance serves KAI
 // balances to the app's Earn tab. Without it, epochs still close and
@@ -106,6 +108,7 @@ const scheduler = new Scheduler({
   onEvent: (e) => console.log(`[scheduler] ${e.type}`, e.worker ?? e.root ?? ""),
 });
 startAutoOps(scheduler);
+startBackups(SCHEDULER_DATA, (m) => console.log(`[backup] ${m}`));
 app.use("/scheduler", (req, res) => {
   scheduler.handle(req, res).catch((err) => {
     try { res.status(500).json({ ok: false, error: String(err.message) }); } catch { /* gone */ }
@@ -432,6 +435,53 @@ app.get("/admin/api/feedback", requireAuth, async (_req, res, next) => {
 // numbers are worth bragging about.
 app.get("/admin/api/network", requireAuth, (_req, res) => {
   res.json({ ok: true, ...scheduler.statsPublic({ detail: true }) });
+});
+
+// Mainnet-readiness: rotating snapshots of the scheduler's ledgers (see
+// lib/state-backup.js) plus an offsite pull. The bundle holds worker
+// tokens and balances, so it is gated: an admin session, or the operator
+// secret for an owner-run cron on any other machine —
+//   curl -H "x-operator-secret: $SECRET" https://koinosai.com/admin/api/state-export -o kai-state.json.gz
+function timingSafeEq(a, b) {
+  const x = Buffer.from(String(a || ""));
+  const y = Buffer.from(String(b || ""));
+  // Length leak is unavoidable via timing; compare into a fixed buffer so
+  // the byte comparison itself is constant-time and never throws on length.
+  if (x.length !== y.length) return false;
+  return crypto.timingSafeEqual(x, y);
+}
+function exportAuth(req, res, next) {
+  const secret = process.env.KAI_OPERATOR_SECRET;
+  if (secret && timingSafeEq(req.headers["x-operator-secret"], secret)) return next();
+  return requireAuth(req, res, next);
+}
+app.get("/admin/api/state-export", exportAuth, async (req, res, next) => {
+  try {
+    // Always snapshot on export: an offsite cron must pull CURRENT ledgers,
+    // not a rotation file up to KAI_BACKUP_EVERY_MS (6h) stale — that gap is
+    // exactly the data that matters after an incident. ?cached=1 opts into
+    // the last rotation instead (cheap health poll).
+    let p = null;
+    if (req.query.cached === "1") p = latestBackupPath(SCHEDULER_DATA);
+    if (!p) {
+      await snapshotOnce(SCHEDULER_DATA);
+      p = latestBackupPath(SCHEDULER_DATA);
+    }
+    if (!p) return res.status(404).json({ ok: false, error: "no snapshot yet" });
+    res.setHeader("content-type", "application/gzip");
+    res.setHeader("content-disposition", `attachment; filename="${path.basename(p)}"`);
+    const stream = fs.createReadStream(p);
+    // pipe() does not forward source errors and Express can't catch an async
+    // 'error' event — without this handler a mid-read failure crashes the
+    // whole process (review finding).
+    stream.on("error", (e) => {
+      if (!res.headersSent) res.status(500).json({ ok: false, error: "snapshot read failed" });
+      else res.destroy(e);
+    });
+    stream.pipe(res);
+  } catch (e) {
+    return next(e);
+  }
 });
 
 app.get("/admin/api/summary", requireAuth, async (_req, res, next) => {
