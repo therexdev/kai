@@ -1,0 +1,4 @@
+# Installed at /etc/sudoers.d/koinos-deploy (mode 0440).
+# Lets the unprivileged deploy user restart ONLY the app service — nothing
+# else. This is the single privileged step the auto-deploy needs.
+koinos ALL=(root) NOPASSWD: /usr/bin/systemctl restart koinos, /usr/bin/systemctl restart koinos.service

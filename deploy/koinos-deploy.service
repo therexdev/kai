@@ -1,0 +1,11 @@
+[Unit]
+Description=Koinos auto-deploy (pull production branch, restart app on change)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=koinos
+WorkingDirectory=/opt/koinos/kai
+ExecStart=/opt/koinos/deploy.sh
+# Deploy history is in the journal: journalctl -u koinos-deploy.service
