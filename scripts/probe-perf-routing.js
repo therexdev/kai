@@ -30,7 +30,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { Signer } = require("koilib");
-const { Scheduler } = require("../lib/scheduler");
+const { Scheduler, seedOnce } = require("../lib/scheduler");
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let PORT = 0;
@@ -168,6 +168,49 @@ async function main() {
   });
   check(resp.servedModel === "koinos-fast", `auto served the healthy class (got: ${resp.servedModel || JSON.stringify(resp.error || resp)})`);
   await loops;
+
+  console.log("probe 5: server clamps inflated token counts (§17)");
+  await j("POST", "/operator/enqueue", { type: "inference-eval", model: "koinos-fast", prompt: "2+2?", forWorker: A.address });
+  const inflated = await poll(A, 2000);
+  if (!inflated.job) throw new Error("clamp eval never reached A");
+  await submit(A, inflated.job, { completion: 1500000, output: "4" });
+  const lastReceipt = sched.receipts[sched.receipts.length - 1];
+  check(
+    lastReceipt && lastReceipt.usage.completion_tokens < 1000,
+    `a 4-char output can't bill 1.5M tokens (receipt says: ${lastReceipt?.usage?.completion_tokens})`
+  );
+
+  console.log("probe 6: challenges are generated, not a memorizable fixed pool (§17)");
+  const legacyPrompts = new Set([
+    "What is 2+2? Reply with just the number.",
+    "Name the capital of France in one word.",
+    "Write one short sentence about local AI.",
+  ]);
+  const seen = [];
+  for (let i = 0; i < 24; i++) {
+    const job = seedOnce(sched);
+    if (job) seen.push(job);
+    sched.queue.splice(0); // drain so backpressure never blocks the next seed
+  }
+  check(
+    seen.length >= 20 && seen.some((s) => !legacyPrompts.has(s.prompt)),
+    "seeds include generated challenge prompts beyond the legacy pool"
+  );
+
+  console.log("probe 7: a worker actively streaming chunks keeps its lease (no false timeout)");
+  await j("POST", "/operator/enqueue", { type: "inference-eval", model: "koinos-fast", prompt: "slow one", forWorker: A.address });
+  const slowJob = await poll(A, 2000);
+  if (!slowJob.job) throw new Error("chunk-lease eval never reached A");
+  const toBefore = (sched.perf[A.address] && sched.perf[A.address].to) || 0;
+  await sleep(100); // inside the 150ms lease
+  await j("POST", `/worker/chunk?token=${A.token}`, { jobId: slowJob.job.id, delta: "wor" });
+  await sleep(90); // past the ORIGINAL lease, inside the chunk-refreshed one
+  await j("GET", "/network/models"); // runs the reaper
+  check(sched.pending.has(slowJob.job.id), "chunk-streaming job is still leased past the original window");
+  await j("POST", `/worker/chunk?token=${A.token}`, { jobId: slowJob.job.id, delta: "king" });
+  await submit(A, slowJob.job, { completion: 10, output: "working" });
+  const toAfter = (sched.perf[A.address] && sched.perf[A.address].to) || 0;
+  check(toAfter === toBefore, "the slow-but-streaming worker was never timeout-blamed");
 
   await sched.close();
   console.log(failures === 0 ? "\nPROBE PASSED" : `\nPROBE FAILED (${failures} assertion(s))`);

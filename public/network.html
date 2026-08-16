@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Koinos Network — live status</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="The Koinos Network, live: every computer serving right now, the model classes online, measured speeds, and delivery reliability — straight from the scheduler.">
+<meta property="og:title" content="Koinos Network — live status">
+<meta property="og:description" content="Computers online, model classes served, measured speeds and reliability — the live state of the Koinos Network.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 L28 9 V23 L16 30 L4 23 V9 Z' fill='none' stroke='%2333E6C0' stroke-width='1.5'/%3E%3Cpath d='M12 10 V22 M12 16 L20 10 M12 16 L20 22' stroke='%23F2B03D' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --ink:#0A0A0C; --ink-2:#0E0E12; --panel:#111117; --panel-2:#15151c;
+  --line:#22222b; --line-2:#2f2f3a;
+  --text:#F4F3F0; --soft:#d7d6d9; --muted:#a6a4b0; --faint:#7d7c89;
+  --signal:#33E6C0; --signal-dim:#1c8f7c;
+  --value:#F2B03D; --value-dim:#a9782a;
+  --danger:#ff6b6b;
+  --max:1180px; --r:14px;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+  --sans:"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:radial-gradient(760px 460px at 88% -4%,rgba(51,230,192,.10),transparent 62%),
+             radial-gradient(680px 460px at 6% 44%,rgba(242,176,61,.06),transparent 60%),var(--ink)}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:72px 72px;mask-image:linear-gradient(to bottom,#000,transparent 82%)}
+a{color:inherit;text-decoration:none}
+.wrap{width:min(var(--max),calc(100% - 44px));margin-inline:auto}
+:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:4px}
+::selection{background:rgba(51,230,192,.28);color:#fff}
+.mono{font-family:var(--mono)}
+.tnum{font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--signal);font-weight:600}
+h1,h2,h3{text-wrap:balance;margin:0;font-weight:640;letter-spacing:-.03em;line-height:1.02}
+h1{font-size:clamp(34px,4.8vw,56px);letter-spacing:-.04em}
+h2{font-size:clamp(22px,2.6vw,30px)}
+p{margin:0}
+.lead{color:var(--soft);font-size:clamp(15px,1.3vw,18px);max-width:62ch}
+.btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:13px;font-weight:600;
+  letter-spacing:.01em;padding:13px 18px;border-radius:11px;border:1px solid var(--line-2);
+  background:var(--panel);color:var(--text);cursor:pointer;transition:transform .15s ease,border-color .15s}
+.btn:hover{transform:translateY(-1px);border-color:#463f5a}
+.btn-signal{border-color:transparent;background:linear-gradient(180deg,#3ff0cc,#22c8a6);color:#04120e;box-shadow:0 10px 30px rgba(51,230,192,.18)}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
+  background:linear-gradient(to bottom,rgba(10,10,12,.9),rgba(10,10,12,.5) 70%,transparent);border-bottom:1px solid var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:66px}
+.brand{display:flex;align-items:center;gap:11px;font-family:var(--mono);font-weight:700;letter-spacing:.02em;font-size:14px}
+.mark svg{width:26px;height:26px;filter:drop-shadow(0 0 10px rgba(51,230,192,.4))}
+.brand .ai{color:var(--ink);background:var(--signal);padding:1px 5px;border-radius:4px;font-size:11px}
+.nav-links{display:flex;gap:26px;font-family:var(--mono);font-size:12.5px;color:var(--muted);letter-spacing:.02em}
+.nav-links a:hover{color:var(--text)}
+@media(max-width:760px){.nav-links{display:none}}
+
+/* page */
+.head{padding:52px 0 26px}
+.live-flag{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--signal);border:1px solid var(--signal-dim);border-radius:999px;padding:4px 11px;
+  background:rgba(51,230,192,.06);margin-bottom:16px}
+.live-flag .pulse{width:7px;height:7px;border-radius:50%;background:var(--signal);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion: reduce){.live-flag .pulse{animation:none}}
+
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:30px 0 10px}
+@media(max-width:900px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px}
+.tile .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.tile .v{font-size:clamp(28px,3vw,40px);font-weight:640;letter-spacing:-.03em;line-height:1.1;margin-top:6px}
+.tile .s{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:4px}
+
+section{padding:26px 0}
+.sec-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:12px}
+
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.tbl-wrap{border-radius:var(--r);overflow-x:auto;border:1px solid var(--line)}
+.tbl-wrap table{border:0;min-width:420px}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600;text-align:left;padding:12px 16px;border-bottom:1px solid var(--line)}
+td{padding:11px 16px;border-bottom:1px solid var(--line);font-size:14px}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right}
+.chip{display:inline-block;font-family:var(--mono);font-size:11px;color:var(--soft);border:1px solid var(--line-2);border-radius:999px;padding:2px 9px;margin:2px 3px 2px 0;background:var(--panel-2)}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px}
+.card .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card .addr{font-family:var(--mono);font-size:14px;font-weight:600}
+.status{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase}
+.status .dot{width:8px;height:8px;border-radius:50%}
+.status.online{color:var(--signal)} .status.online .dot{background:var(--signal)}
+.status.serving{color:var(--value)} .status.serving .dot{background:var(--value)}
+.card .meta{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:3px}
+.card .models{margin-top:12px}
+.card .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px;border-top:1px dashed var(--line-2);padding-top:12px}
+.card .stat .k{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.card .stat .v{font-size:16px;font-weight:640;margin-top:2px}
+.card .stat .v .u{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:400}
+
+.note{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:18px;letter-spacing:.02em}
+.err{display:none;font-family:var(--mono);font-size:12.5px;color:var(--danger);border:1px solid rgba(255,107,107,.35);
+  background:rgba(255,107,107,.06);border-radius:11px;padding:11px 15px;margin:14px 0}
+.empty{font-family:var(--mono);font-size:13px;color:var(--muted);background:var(--panel);border:1px dashed var(--line-2);border-radius:var(--r);padding:26px;text-align:center}
+
+footer{border-top:1px solid var(--line);padding:36px 0 52px;margin-top:40px}
+.foot{display:flex;justify-content:space-between;gap:14px 26px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--faint)}
+.foot-links{display:flex;gap:18px;flex-wrap:wrap}
+.foot-links a:hover{color:var(--text)}
+</style>
+</head>
+<body>
+
+<div class="nav"><div class="wrap nav-in">
+  <a class="brand" href="/">
+    <span class="mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 L28 9 V23 L16 30 L4 23 V9 Z" fill="none" stroke="#33E6C0" stroke-width="1.5"/><path d="M12 10 V22 M12 16 L20 10 M12 16 L20 22" stroke="#F2B03D" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
+    <b>Koinos</b><span class="ai">AI</span>
+  </a>
+  <nav class="nav-links" aria-label="Primary">
+    <a href="/">Home</a><a href="/#how">How it works</a><a href="/#earn">Earn</a><a href="/testers">Testers</a>
+  </nav>
+  <a class="btn btn-signal" href="/testers">Download the alpha <span aria-hidden="true">→</span></a>
+</div></div>
+
+<main class="wrap">
+  <div class="head">
+    <div class="live-flag"><span class="pulse" aria-hidden="true"></span> Live network status</div>
+    <h1>The network, live.</h1>
+    <p class="lead" style="margin-top:14px">Every computer serving the Koinos Network right now — what it serves, how fast the
+    scheduler has measured it, and how reliably it delivers. This is the scheduler's own data, not self-reported claims,
+    refreshed every 10 seconds.</p>
+  </div>
+
+  <div class="err" id="err" role="status">Can’t reach the network right now — retrying. Showing the last data received.</div>
+
+  <div class="tiles" aria-live="polite">
+    <div class="tile"><div class="k">Computers online</div><div class="v tnum" id="tWorkers">—</div><div class="s" id="tWorkersSub">&nbsp;</div></div>
+    <div class="tile"><div class="k">Model classes live</div><div class="v tnum" id="tModels">—</div><div class="s">priced classes served right now</div></div>
+    <div class="tile"><div class="k">Jobs in flight</div><div class="v tnum" id="tJobs">—</div><div class="s" id="tJobsSub">queued + being served</div></div>
+    <div class="tile"><div class="k">Updated</div><div class="v tnum" id="tAge">—</div><div class="s">straight from the scheduler</div></div>
+  </div>
+
+  <section>
+    <div class="sec-label">Model classes on the network</div>
+    <div class="tbl-wrap"><table id="modelsTable" aria-label="Model classes and provider counts">
+      <thead><tr><th>Class</th><th class="num">Providers</th></tr></thead>
+      <tbody id="modelsBody"><tr><td colspan="2" class="mono" style="color:var(--muted)">Loading…</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="sec-label">Computers serving</div>
+    <div class="cards" id="cards"></div>
+    <div class="empty" id="emptyState" style="display:none">No computers are online right now. Open the app and press
+      <b>Start Earning</b> to be the first.</div>
+    <p class="note">Provider addresses are truncated — full addresses never appear on public surfaces. Speed is the
+    scheduler’s own measurement of delivered tokens per second; reliability is the share of accepted jobs delivered on time.
+    New machines show “measuring” until their first jobs land.</p>
+  </section>
+</main>
+
+<footer><div class="wrap"><div class="foot">
+  <div>© 2026 Koinos AI · Your hardware first. The network when you need it.</div>
+  <div class="foot-links"><a href="/">Home</a><a href="/testers">Tester quickstart</a><a href="https://github.com/therexdev/kaiapp" target="_blank" rel="noopener">GitHub</a><a href="/whitepaper.pdf" target="_blank" rel="noopener">White paper</a></div>
+</div></div></footer>
+
+<script>
+(function(){
+  "use strict";
+  var lastData = null, lastAt = 0;
+  var $ = function(id){ return document.getElementById(id); };
+
+  function fmtSpeed(p){
+    if (!p || !(p.srvTokPerSec > 0)) return '<span class="u">measuring…</span>';
+    return p.srvTokPerSec.toFixed(1) + ' <span class="u">tok/s</span>';
+  }
+  function fmtReliability(p){
+    if (!p || typeof p.sr !== "number") return '<span class="u">measuring…</span>';
+    return Math.round(p.sr * 100) + '<span class="u">%</span>';
+  }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
+
+  function render(d){
+    $("tWorkers").textContent = d.workersOnline;
+    $("tWorkersSub").textContent = d.workersOnline === 1 ? "one machine holding the line" : "independent machines";
+    $("tModels").textContent = (d.models || []).length;
+    var jobs = (d.queueDepth || 0) + (d.pendingJobs || 0);
+    $("tJobs").textContent = jobs;
+    $("tJobsSub").textContent = jobs === 0 ? "quiet right now — capacity to spare" : "queued + being served";
+
+    var mb = $("modelsBody");
+    if ((d.models || []).length === 0){
+      mb.innerHTML = '<tr><td colspan="2" class="mono" style="color:var(--muted)">No classes live</td></tr>';
+    } else {
+      mb.innerHTML = d.models.map(function(m){
+        return '<tr><td class="mono">' + esc(m.model) + '</td><td class="num tnum">' + m.providers + '</td></tr>';
+      }).join("");
+    }
+
+    var cards = $("cards");
+    var ws = d.workers || [];
+    $("emptyState").style.display = ws.length ? "none" : "block";
+    cards.innerHTML = ws.map(function(w){
+      var st = w.busy ? '<span class="status serving"><span class="dot"></span>Serving</span>'
+                      : '<span class="status online"><span class="dot"></span>Online</span>';
+      var chips = (w.models || []).map(function(m){ return '<span class="chip">' + esc(m) + '</span>'; }).join("");
+      return '<div class="card">' +
+        '<div class="top"><span class="addr">' + esc(w.address) + '</span>' + st + '</div>' +
+        '<div class="meta">last contact ' + w.lastSeenSecs + 's ago</div>' +
+        '<div class="models">' + chips + '</div>' +
+        '<div class="stats">' +
+          '<div class="stat"><div class="k">Speed</div><div class="v tnum">' + fmtSpeed(w.perf) + '</div></div>' +
+          '<div class="stat"><div class="k">Reliability</div><div class="v tnum">' + fmtReliability(w.perf) + '</div></div>' +
+          '<div class="stat"><div class="k">Jobs this epoch</div><div class="v tnum">' + (w.jobsThisEpoch || 0) + '</div></div>' +
+        '</div></div>';
+    }).join("");
+  }
+
+  function tickAge(){
+    if (!lastAt){ return; }
+    var s = Math.max(0, Math.round((Date.now() - lastAt) / 1000));
+    $("tAge").innerHTML = s + '<span class="u" style="font-family:var(--mono);font-size:13px;color:var(--muted)">s ago</span>';
+  }
+
+  function refresh(){
+    fetch("/scheduler/network/status", { cache: "no-store" })
+      .then(function(r){ if (!r.ok) throw new Error("bad status"); return r.json(); })
+      .then(function(d){
+        lastData = d; lastAt = Date.now();
+        $("err").style.display = "none";
+        render(d); tickAge();
+      })
+      .catch(function(){
+        $("err").style.display = "block";
+      });
+  }
+
+  refresh();
+  setInterval(refresh, 10000);
+  setInterval(tickAge, 1000);
+})();
+</script>
+</body>
+</html>
