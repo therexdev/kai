@@ -88,6 +88,7 @@ app.use((_req, res, next) => {
 const { Scheduler, startAutoOps } = require("./lib/scheduler");
 const { startBackups, snapshotOnce, latestBackupPath } = require("./lib/state-backup");
 const { startRuntimeLog } = require("./lib/runtime-log");
+const { computeTrends } = require("./lib/shadow-trends");
 // Restart forensics: bumps a boot counter and captures WHY the previous
 // process exited (host signal vs code crash) so a mystery restart becomes
 // evidence on the next boot. Surfaced on /api/health.
@@ -487,6 +488,16 @@ app.get("/admin/api/state-export", exportAuth, async (req, res, next) => {
   } catch (e) {
     return next(e);
   }
+});
+
+// §7.4 shadow-data trends: reputation + §17 challenge history over recent
+// epochs, plus the flat-vs-gated pool-share preview. The evidence view for
+// arming the anti-Sybil gate / shadow tiers. Read-only; same operator-or-admin
+// gate as the state export (full addresses appear — never a public surface).
+//   curl -H "x-operator-secret: $SECRET" https://koinosai.com/admin/api/shadow-trends?epochs=96
+app.get("/admin/api/shadow-trends", exportAuth, (req, res) => {
+  const epochs = Math.max(1, Math.min(500, Number(req.query.epochs) || 96));
+  return res.json(computeTrends(SCHEDULER_DATA, { maxEpochs: epochs }));
 });
 
 app.get("/admin/api/summary", requireAuth, async (_req, res, next) => {
