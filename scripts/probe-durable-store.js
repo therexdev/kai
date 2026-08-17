@@ -52,7 +52,11 @@ async function main() {
   check([...s1.workers.values()][0]?.repPaidJobs === 9, "migration: worker roster (incl. reputation fields) imported");
   check(s1.perf[W]?.jobs === 4, "migration: perf imported");
   check(s1.store.readEpoch(42)?.summary?.root === "r", "migration: settled epochs imported");
-  check(fs.existsSync(path.join(dir, "credits.json.migrated")) && !fs.existsSync(path.join(dir, "credits.json")), "migration: source files renamed *.json.migrated (kept, not deleted)");
+  check(fs.existsSync(path.join(dir, "credits.json.migrated")), "migration: source files kept as *.json.migrated");
+  // The migration immediately re-derives JSON views from the DB (review fix:
+  // otherwise every backup until the first close would bundle an empty dir).
+  const view = JSON.parse(fs.readFileSync(path.join(dir, "credits.json"), "utf8"));
+  check(view[W]?.balanceMicro === "777000", "migration: fresh JSON views re-derived for the backup tooling");
 
   // ---- 2. sqlite round-trip without json files ----
   s1.balances[W].balanceMicro = "555000";

@@ -114,7 +114,7 @@ const scheduler = new Scheduler({
   onEvent: (e) => console.log(`[scheduler] ${e.type}`, e.worker ?? e.root ?? ""),
 });
 startAutoOps(scheduler);
-startBackups(SCHEDULER_DATA, (m) => console.log(`[backup] ${m}`));
+startBackups(SCHEDULER_DATA, (m) => console.log(`[backup] ${m}`), () => scheduler.store?.exportViews?.());
 app.use("/scheduler", (req, res) => {
   scheduler.handle(req, res).catch((err) => {
     try { res.status(500).json({ ok: false, error: String(err.message) }); } catch { /* gone */ }
