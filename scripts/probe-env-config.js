@@ -96,6 +96,30 @@ check("health reports the store that actually engaged", () => {
   assert.ok(/scheduler\.store\?\.degraded/.test(src), "degradation is surfaced");
 });
 
+check("deploy/app.env oracle block survives the parser as valid sources", () => {
+  // The KAI_PRICE_SOURCES value is raw JSON full of quotes, braces and
+  // colons — exactly the shape a naive KEY=VALUE parser mangles. Assert the
+  // real file round-trips into the sources the oracle actually consumes.
+  const { loadEnvFile } = require("../lib/env-file");
+  const { parseSources } = require("../lib/oracle");
+  const env = {};
+  loadEnvFile(path.join(__dirname, "..", "deploy", "app.env"), env);
+  if (env.KAI_PRICE_SOURCES === undefined) return; // rehearsal not enabled — fine
+  const srcs = parseSources(env.KAI_PRICE_SOURCES);
+  assert.strictEqual(srcs.length, 2, "median-of-two: both feeds parse");
+  for (const s of srcs) {
+    assert.ok(/^https:\/\//.test(s.url), "feeds are https");
+    assert.ok(s.path && typeof s.path === "string", "each feed names its value path");
+  }
+  const floor = Number(env.KAI_PRICE_FLOOR_USD);
+  const ceil = Number(env.KAI_PRICE_CEIL_USD);
+  const ref = Number(env.KAI_REF_USD);
+  assert.ok(floor > 0 && ceil > floor, "floor/ceil bracket is sane (oracle throws otherwise)");
+  assert.ok(ref > floor && ref < ceil, "anchor sits inside the breaker bracket");
+  const step = Number(env.KAI_PRICE_MAX_STEP_PCT);
+  assert.ok(step > 0 && step <= 25, "step cap is a real brake, not wide open");
+});
+
 check("deploy/app.env exists, has no secret-shaped entries, flips the store", () => {
   const src = fs.readFileSync(path.join(__dirname, "..", "deploy", "app.env"), "utf8");
   assert.ok(/^KAI_STORE=sqlite$/m.test(src), "sqlite flip is present");
