@@ -46,6 +46,31 @@ Body: `{"email": "you@domain.com", "segment": "people" | "dev"}`
 
 Returns `{"ok":true}` — use it to confirm the Node app (not a cached page) is answering.
 
+### `GET /scheduler/network/roster`
+
+The **payout roster**: full Koinos addresses of every provider serving the AI
+compute network right now.
+
+```json
+{ "ok": true, "count": 2, "workers": ["1FullAddressOne", "1FullAddressTwo"] }
+```
+
+No auth, `Cache-Control: no-store`, de-duplicated, capped at 5000 addresses.
+"Serving right now" is the same rule `/network/status` uses — seen within 90s,
+**or** busy mid-job — shared in code (`_liveWorkers`) so the two surfaces can
+never disagree about who was online during a snapshot.
+
+Consumed by [Free Koinos Node](https://github.com/therexdev/free-koinos-node),
+which redistributes block-reward profit to eligible nodes and pays these
+addresses directly on chain.
+
+**These addresses are deliberately public and deliberately NOT truncated.**
+`/network/status` shortens addresses to `1AbCdE…wXyZ` because a display surface
+needs no full key; a shortened address fails a checksum and cannot be paid, so
+this endpoint does not shorten. The trade-off was taken knowingly: anyone can
+enumerate the active provider set and follow its on-chain earnings. Do not
+"fix" one endpoint to match the other — they answer different questions.
+
 ## Admin area (`/admin`)
 
 A password-protected page listing both waitlists with per-list CSV/JSON downloads. The signup file stays on your server — no third-party service holds the addresses.
