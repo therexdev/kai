@@ -181,6 +181,12 @@ footer{border-top:1px solid var(--line);padding:36px 0 52px;margin-top:40px}
     if (!p || typeof p.sr !== "number") return '<span class="u">measuring…</span>';
     return Math.round(p.sr * 100) + '<span class="u">%</span>';
   }
+  // Shadow trust score (§7.4): earned from age, reliability, verification
+  // history, and real paid work. Absent-safe against older schedulers.
+  function fmtTrust(rep){
+    if (!rep || typeof rep.r !== "number") return '<span class="u">building…</span>';
+    return rep.r.toFixed(2);
+  }
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
 
   function render(d){
@@ -214,6 +220,7 @@ footer{border-top:1px solid var(--line);padding:36px 0 52px;margin-top:40px}
         '<div class="stats">' +
           '<div class="stat"><div class="k">Speed</div><div class="v tnum">' + fmtSpeed(w.perf) + '</div></div>' +
           '<div class="stat"><div class="k">Reliability</div><div class="v tnum">' + fmtReliability(w.perf) + '</div></div>' +
+          '<div class="stat"><div class="k">Trust</div><div class="v tnum">' + fmtTrust(w.reputation) + '</div></div>' +
           '<div class="stat"><div class="k">Jobs this epoch</div><div class="v tnum">' + (w.jobsThisEpoch || 0) + '</div></div>' +
         '</div></div>';
     }).join("");
