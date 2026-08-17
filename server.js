@@ -470,6 +470,10 @@ app.get("/admin/api/state-export", exportAuth, async (req, res, next) => {
     let p = null;
     if (req.query.cached === "1") p = latestBackupPath(SCHEDULER_DATA);
     if (!p) {
+      // In sqlite mode the DB is the authority — refresh the derived JSON
+      // views first so the snapshot bundles CURRENT ledgers, not the last
+      // epoch-close export.
+      try { scheduler.store?.exportViews?.(); } catch { /* best-effort */ }
       await snapshotOnce(SCHEDULER_DATA);
       p = latestBackupPath(SCHEDULER_DATA);
     }
