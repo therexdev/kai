@@ -107,6 +107,17 @@ async function main() {
   const after = settle();
   check(before === after, `settlement is reputation-independent — SHADOW (${before} === ${after})`);
 
+  // Paid-demand accrual counts ONLY genuinely paid chats. Feed the epoch one
+  // fully-free-tier chat and one paid chat, close it, and assert repPaidJobs
+  // rose by exactly 1 (the free one excluded — a self-dealer can't pump it).
+  const w3 = [...sched.workers.values()].find((x) => x.address === A.address);
+  const repBefore = Number(w3.repPaidJobs || 0);
+  const chat = (freeTok) => ({ jobId: crypto.randomUUID(), worker: A.address, jobType: "chat", modelClass: "koinos-fast", usage: { prompt_tokens: 100, completion_tokens: 100 }, totalTok: 200, freeTok, honest: true });
+  sched.receipts = [chat(200), chat(0)]; // fully-free, then fully-paid
+  sched.closeEpoch();
+  const w3b = [...sched.workers.values()].find((x) => x.address === A.address);
+  check(Number(w3b.repPaidJobs || 0) === repBefore + 1, `only genuinely-paid chats accrue paid demand (free-tier excluded): ${repBefore} -> ${Number(w3b.repPaidJobs || 0)}`);
+
   await sched.close?.();
   console.log(failures ? `\nFAILED (${failures} check${failures > 1 ? "s" : ""})` : "\nAll reputation checks passed");
   process.exit(failures ? 1 : 0);
