@@ -8,6 +8,17 @@
  * Designed for Hostinger Node.js hosting: no build step, no database.
  */
 
+// Operational flags travel with the repo (deploy/app.env) because production
+// deploys are git-pull only; the real environment (systemd's kai.env) always
+// wins. Loaded before EVERYTHING else — several modules read env at require
+// time (scheduler: KAI_REF_USD / KAI_PRICE_SOURCES / KAI_STORE).
+{
+  const { loadEnvFile } = require("./lib/env-file");
+  const r = loadEnvFile(require("path").join(__dirname, "deploy", "app.env"));
+  if (r.applied.length) console.log(`[env] deploy/app.env applied: ${r.applied.join(", ")}`);
+  if (r.skipped.length) console.log(`[env] deploy/app.env skipped (real env wins): ${r.skipped.join(", ")}`);
+}
+
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -238,7 +249,18 @@ app.get("/testers", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "testers.h
 // Public live-network page: the app's Network tab, for the open web. Reads
 // only the public truncated-address status feed.
 app.get("/network", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "network.html")));
-app.get("/api/health", (_req, res) => res.json({ ok: true, runtime: runtime.summary() }));
+app.get("/api/health", (_req, res) =>
+  res.json({
+    ok: true,
+    runtime: runtime.summary(),
+    // Store truth from the process itself: which ledger backend actually
+    // engaged (a KAI_STORE flip that didn't take shows `degraded` here),
+    // plus the node runtime — both needed to operate the git-driven env
+    // channel (deploy/app.env) from outside the box.
+    store: { mode: scheduler.store?.mode || "json", ...(scheduler.store?.degraded ? { degraded: scheduler.store.degraded } : {}) },
+    node: process.version,
+  })
+);
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
