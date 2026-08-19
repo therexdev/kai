@@ -8,10 +8,12 @@
  * protocol shares fold back into compute — full pass-through. Configuring one
  * routes 3% + 7% to the treasury instead.
  *
- * NOTE, found by this probe and NOT what the /pricing wording implies: the cut
- * lands on every chat receipt's MINTED value, which includes bootstrap-pool
- * subsidy on free-tier chats — not revenue alone. Eval receipts are exempt.
- * Sections 5-7 pin all three behaviours so none of it is folklore.
+ * HISTORY: the first cut of this flag split every chat receipt's MINTED
+ * value — which on a free-tier chat is bootstrap-pool emission, so providers
+ * lost 10% of pure subsidy while paid demand was zero. This probe surfaced
+ * that; the owner ruled 2026-08-19 that role shares divide PAID value only
+ * and emission passes through whole. Sections 5-8 pin the ruling — section 6
+ * FAILS on the pre-ruling code, which is the point.
  *
  *   node scripts/probe-splits.js
  *
@@ -83,7 +85,7 @@ function main() {
   check(exact, "compute absorbs every rounding remainder across awkward amounts");
   check(!treasuryEverNegative, "no bucket ever goes negative on a tiny value");
 
-  console.log("\n5) an epoch credits the treasury 10% of every CHAT receipt's minted value");
+  console.log("\n5) an epoch credits the treasury 10% of every chat receipt's PAID value");
   // A pool large enough that nothing is capped — today's normal case.
   const budget = { poolSat: 10n ** 14n, demandSat: 1n, eligPpmByAddr: null };
   const usage = { prompt_tokens: 1000, completion_tokens: 4000 };
@@ -98,23 +100,35 @@ function main() {
     "epoch split totals reconcile against the pass-through baseline"
   );
 
-  console.log("\n6) *** the 10% is taken from POOL-FUNDED value too, not only revenue ***");
-  // Discovered while writing this probe. _settleFor splits paidSat + the
-  // minted subsidy, so a FREE-TIER chat — funded by the bootstrap pool, not
-  // by a paying customer — also loses 10% to the treasury. The code is
-  // internally consistent (`this.splits` is documented as shares of each
-  // chat receipt's MINTED value) but /pricing describes the same numbers as
-  // shares of "paid chat value", and today essentially all traffic is free
-  // tier. Pinned here so the behaviour is deliberate and visible, whichever
-  // way the owner decides it should work.
+  console.log("\n6) *** free-tier (pool-funded) chats are NEVER split — emission passes through whole ***");
+  // Owner ruling 2026-08-19. The pre-ruling code split paidSat + minted
+  // subsidy, so a FREE-TIER chat — funded by the bootstrap pool, not by a
+  // paying customer — lost 10% to the treasury. Now the subsidy fraction
+  // bypasses _splitValueSat entirely: activating the treasury must be
+  // revenue-sharing, never an emission cut.
   const freeChat = [{ worker: "1WorkerAAA", jobType: "chat", modelClass: "koinos-fast", usage, freeTok: 5000, totalTok: 5000 }];
   const fa = on._settleFor(freeChat, budget);
   const fb = off._settleFor(freeChat, budget);
   check(fa.subsidyMintedSat > 0n, "this chat really is pool-funded (subsidy minted, no revenue)");
-  check(fa.treasurySat === fb.workerSat - fa.workerSat, "the treasury still takes its cut, out of the provider's pool share");
-  check(fa.treasurySat * 10n === fb.workerSat, "same 10%, on emission rather than revenue");
+  check(fa.treasurySat === 0n, `the treasury takes NOTHING from emission (got ${fa.treasurySat} sat; pre-ruling code FAILS here)`);
+  check(fa.workerSat === fb.workerSat, "provider earns identically with splits on or off");
+  check(fa.workerSat === fa.subsidyMintedSat, "every minted subsidy satoshi lands on the provider");
 
-  console.log("\n7) eval receipts are untouched");
+  console.log("\n7) a half-free chat splits ONLY its paid half");
+  // The mixed case is where the two rules visibly diverge: minted-value
+  // splitting would cut the whole receipt; paid-value splitting cuts the
+  // paid fraction and hands the subsidy fraction through untouched.
+  const mixed = [{ worker: "1WorkerAAA", jobType: "chat", modelClass: "koinos-fast", usage, freeTok: 2500, totalTok: 5000 }];
+  const ma = on._settleFor(mixed, budget);
+  const mb = off._settleFor(mixed, budget);
+  // Recover paidSat without duplicating scheduler internals: pass-through
+  // worker pay is paid + minted subsidy, and the subsidy mint is reported.
+  const mixedPaidSat = mb.workerSat - ma.subsidyMintedSat;
+  check(ma.subsidyMintedSat > 0n && mixedPaidSat > 0n, "the receipt genuinely has both a paid and a subsidized fraction");
+  check(ma.treasurySat === (mixedPaidSat * 1000n) / 10000n, "treasury gets exactly 10% of the PAID fraction alone");
+  check(ma.treasurySat === mb.workerSat - ma.workerSat, "treasury gain equals provider delta — nothing minted, nothing lost");
+
+  console.log("\n8) eval receipts are untouched");
   // Seed evals are flat useful-work value, not split. They dominate the
   // current job mix, which bounds today's real impact.
   const evals = [{ worker: "1WorkerAAA", jobType: "inference-eval" }];

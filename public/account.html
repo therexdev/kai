@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Koinos AI — Account</title>
+<meta name="robots" content="noindex" />
+<style>
+:root{
+  --ink:#0A0A0C; --panel:#111117; --panel-2:#15151c;
+  --line:#22222b; --line-2:#2f2f3a;
+  --text:#F4F3F0; --soft:#d7d6d9; --muted:#a6a4b0; --faint:#7d7c89;
+  --signal:#33E6C0; --signal-dim:#1c8f7c;
+  --value:#F2B03D; --danger:#ff6b6b;
+  --r:14px;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+  --sans:"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.wrap{width:min(560px,calc(100% - 40px));margin:0 auto;padding:48px 0 80px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--signal);font-weight:600}
+h1{font-size:clamp(26px,4vw,34px);margin:.35em 0 .4em}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px;margin:18px 0}
+.card h2{font-size:15px;margin:0 0 12px;color:var(--soft)}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted);font-size:13.5px}
+.btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:13px;font-weight:600;
+  padding:12px 16px;border-radius:11px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);
+  cursor:pointer;transition:border-color .15s}
+.btn:hover{border-color:#463f5a}
+.btn.primary{background:var(--signal-dim);border-color:var(--signal-dim);color:#04110d}
+.btn.primary:hover{background:var(--signal);color:#04110d}
+.btn:disabled{opacity:.5;cursor:default}
+input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line-2);background:var(--ink);
+  color:var(--text);font-family:var(--mono);font-size:14px}
+input:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
+.row{display:flex;gap:10px;margin:10px 0}
+.row input{flex:1}
+.msg{font-size:13.5px;margin:10px 0 0;min-height:1.3em}
+.msg.err{color:var(--danger)}
+.msg.ok{color:var(--signal)}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.item:first-of-type{border-top:0}
+.item .addr{font-family:var(--mono);font-size:13px;word-break:break-all}
+.x{background:none;border:0;color:var(--faint);cursor:pointer;font-size:16px;padding:4px 8px}
+.x:hover{color:var(--danger)}
+.hide{display:none}
+hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Koinos AI</div>
+  <h1 id="title">Account</h1>
+
+  <!-- ------------------------------------------------ signed OUT -------- -->
+  <div id="signedOut" class="hide">
+    <div class="card">
+      <h2>Sign in with a passkey</h2>
+      <p class="muted">Your device's fingerprint, face unlock, or PIN. Nothing to remember.</p>
+      <button class="btn primary" id="pkLogin">Use a passkey</button>
+      <p class="msg" id="pkMsg"></p>
+    </div>
+    <div class="card">
+      <h2>Sign in with email</h2>
+      <div class="row"><input id="email" type="email" placeholder="you@example.com" autocomplete="email" /></div>
+      <div class="row hide" id="codeRow"><input id="code" inputmode="numeric" placeholder="6-digit code" autocomplete="one-time-code" /></div>
+      <button class="btn" id="emailBtn">Send code</button>
+      <p class="msg" id="emailMsg"></p>
+    </div>
+    <div class="card">
+      <h2>Sign in with Google</h2>
+      <a class="btn" href="/auth/google">Continue with Google</a>
+      <p class="muted" style="margin-top:10px">Only your email address is requested.</p>
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------ signed IN --------- -->
+  <div id="signedIn" class="hide">
+    <div class="card" id="linkCard">
+      <h2>Approve a device</h2>
+      <p class="muted">Type the code the Koinos AI app is showing.</p>
+      <div class="row"><input id="linkCode" placeholder="XXXX-XXXX" autocapitalize="characters" spellcheck="false" /></div>
+      <button class="btn primary" id="linkBtn">Approve device</button>
+      <p class="msg" id="linkMsg"></p>
+    </div>
+
+    <div class="card">
+      <h2>You</h2>
+      <p class="mono" id="who" style="font-size:14px;margin:0"></p>
+      <p class="muted" id="methods" style="margin:8px 0 0"></p>
+      <hr />
+      <button class="btn" id="pkAdd">Add a passkey to this account</button>
+      <p class="msg" id="pkAddMsg"></p>
+    </div>
+
+    <div class="card">
+      <h2>Linked wallets</h2>
+      <div id="wallets"></div>
+      <p class="muted" style="margin-top:12px">Link a wallet from the Koinos AI app: Earn tab → Account → “Link this wallet”. The app signs the proof with the wallet's own key — the key never leaves your machine.</p>
+    </div>
+
+    <div class="card">
+      <h2>Session</h2>
+      <button class="btn" id="logout">Sign out on this browser</button>
+    </div>
+  </div>
+
+  <p class="muted" style="margin-top:26px"><a href="/">← koinosai.com</a></p>
+</div>
+
+<script>
+"use strict";
+/* Self-contained page logic, no build step (repo posture). Talks to the
+ * /auth + /account JSON endpoints with same-origin cookies. */
+const $ = (id) => document.getElementById(id);
+const j = async (url, body, method) => {
+  const r = await fetch(url, {
+    method: method || (body === undefined ? "GET" : "POST"),
+    headers: body === undefined ? {} : { "content-type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    credentials: "same-origin",
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+  return d;
+};
+const b64uToBuf = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+const bufToB64u = (b) => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const say = (id, text, ok) => { const el = $(id); el.textContent = text || ""; el.className = "msg " + (ok ? "ok" : "err"); };
+
+let account = null;
+
+async function refresh() {
+  try {
+    account = (await j("/auth/session")).account;
+  } catch {
+    account = null;
+  }
+  const inEl = $("signedIn"), outEl = $("signedOut");
+  inEl.classList.toggle("hide", !account);
+  outEl.classList.toggle("hide", !!account);
+  const linking = new URLSearchParams(location.search).get("code");
+  if (linking) $("linkCode").value = linking;
+  $("title").textContent = location.pathname === "/link" ? "Approve a device" : "Account";
+  if (!account) return;
+  $("who").textContent = account.email || account.id;
+  const m = [];
+  if (account.email) m.push("email");
+  if (account.google) m.push("Google");
+  if (account.passkeys.length) m.push(`${account.passkeys.length} passkey${account.passkeys.length > 1 ? "s" : ""}`);
+  $("methods").textContent = "Sign-in methods: " + (m.join(", ") || "none yet");
+  const w = $("wallets");
+  w.innerHTML = "";
+  if (!account.wallets.length) w.innerHTML = '<p class="muted">No wallets linked yet.</p>';
+  for (const it of account.wallets) {
+    const d = document.createElement("div");
+    d.className = "item";
+    d.innerHTML = `<span class="addr"></span><button class="x" title="Unlink">✕</button>`;
+    d.querySelector(".addr").textContent = it.address;
+    d.querySelector(".x").onclick = async () => {
+      if (!confirm(`Unlink ${it.address}?`)) return;
+      await j(`/account/wallets/${it.address}`, undefined, "DELETE").catch((e) => alert(e.message));
+      refresh();
+    };
+    w.appendChild(d);
+  }
+}
+
+/* ---- email code ---- */
+$("emailBtn").onclick = async () => {
+  const email = $("email").value.trim();
+  try {
+    if ($("codeRow").classList.contains("hide")) {
+      await j("/auth/email/start", { email });
+      $("codeRow").classList.remove("hide");
+      $("emailBtn").textContent = "Sign in";
+      say("emailMsg", "Code sent — check your inbox.", true);
+      $("code").focus();
+    } else {
+      await j("/auth/email/verify", { email, code: $("code").value.trim() });
+      refresh();
+    }
+  } catch (e) { say("emailMsg", e.message); }
+};
+
+/* ---- passkey login ---- */
+$("pkLogin").onclick = async () => {
+  try {
+    const o = await j("/auth/passkey/login/options", { email: $("email").value.trim() || undefined });
+    const pk = o.publicKey;
+    pk.challenge = b64uToBuf(pk.challenge);
+    pk.allowCredentials = (pk.allowCredentials || []).map((c) => ({ ...c, id: b64uToBuf(c.id) }));
+    const cred = await navigator.credentials.get({ publicKey: pk });
+    await j("/auth/passkey/login/verify", {
+      challengeId: o.challengeId,
+      credentialId: bufToB64u(cred.rawId),
+      authenticatorData: bufToB64u(cred.response.authenticatorData),
+      clientDataJSON: bufToB64u(cred.response.clientDataJSON),
+      signature: bufToB64u(cred.response.signature),
+    });
+    refresh();
+  } catch (e) { say("pkMsg", e.message); }
+};
+
+/* ---- passkey add (signed in) ---- */
+$("pkAdd").onclick = async () => {
+  try {
+    const o = await j("/auth/passkey/register/options", {});
+    const pk = o.publicKey;
+    pk.challenge = b64uToBuf(pk.challenge);
+    pk.user.id = b64uToBuf(pk.user.id);
+    pk.excludeCredentials = (pk.excludeCredentials || []).map((c) => ({ ...c, id: b64uToBuf(c.id) }));
+    const cred = await navigator.credentials.create({ publicKey: pk });
+    await j("/auth/passkey/register/verify", {
+      challengeId: o.challengeId,
+      attestationObject: bufToB64u(cred.response.attestationObject),
+      clientDataJSON: bufToB64u(cred.response.clientDataJSON),
+      label: navigator.platform || "passkey",
+    });
+    say("pkAddMsg", "Passkey added.", true);
+    refresh();
+  } catch (e) { say("pkAddMsg", e.message); }
+};
+
+/* ---- device approval ---- */
+$("linkBtn").onclick = async () => {
+  try {
+    await j("/auth/device/approve", { userCode: $("linkCode").value.trim() });
+    say("linkMsg", "Approved — the app will sign itself in within a few seconds.", true);
+  } catch (e) { say("linkMsg", e.message); }
+};
+
+$("logout").onclick = async () => { await j("/auth/logout", {}); refresh(); };
+
+refresh();
+</script>
+</body>
+</html>

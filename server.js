@@ -209,10 +209,13 @@ const feedbackLimit = makeLimiter({ windowMs: 10 * 60 * 1000, max: 6 });
 const FEEDBACK_FILE = path.join(DATA_DIR, "feedback.jsonl");
 const loginLimit = makeLimiter({ windowMs: 15 * 60 * 1000, max: 8 });
 
-/* -------------------------- optional signup notifications (nodemailer) --- */
-// Off by default: enabled only when SMTP_HOST and SMTP_TO are both set.
+/* ------------------------------------- outbound mail (nodemailer, shared) */
+// One transport, two consumers: waitlist signup notifications (needs
+// SMTP_TO as the destination) and account sign-in codes (sent to the user,
+// so SMTP_HOST alone enables them). No SMTP_HOST -> both quietly off, and
+// the auth endpoint says so with a 503 instead of pretending.
 let mailer = null;
-if (process.env.SMTP_HOST && process.env.SMTP_TO) {
+if (process.env.SMTP_HOST) {
   const nodemailer = require("nodemailer");
   const smtpPort = Number(process.env.SMTP_PORT || 587);
   mailer = nodemailer.createTransport({
@@ -225,11 +228,11 @@ if (process.env.SMTP_HOST && process.env.SMTP_TO) {
       ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
       : undefined,
   });
-  console.log(`signup notifications enabled -> ${process.env.SMTP_TO}`);
+  if (process.env.SMTP_TO) console.log(`signup notifications enabled -> ${process.env.SMTP_TO}`);
 }
 
 function notifySignup(entry) {
-  if (!mailer) return;
+  if (!mailer || !process.env.SMTP_TO) return;
   // Fire and forget — a mail failure must never fail the signup.
   mailer
     .sendMail({
@@ -240,6 +243,41 @@ function notifySignup(entry) {
     })
     .catch((err) => console.error("signup notification failed:", err.message));
 }
+
+/* --------------------------------- accounts + cross-device auth (task #49) */
+// Email-code / passkey / Google sign-in with device-link for the desktop app
+// and signed wallet attachment. Its own sqlite DB under STATE_ROOT/accounts.
+// If sqlite is unavailable the whole surface answers 503 LOUDLY — an identity
+// system must never silently degrade.
+let accounts = null;
+try {
+  const { createAccounts } = require("./lib/accounts");
+  accounts = createAccounts({
+    stateDir: STATE_ROOT,
+    sendMail: mailer
+      ? (m) => mailer.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, ...m })
+      : null,
+    siteOrigin: process.env.KAI_SITE_ORIGIN || "https://koinosai.com",
+    google:
+      process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+        ? { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET }
+        : null,
+    onEvent: (e) => console.log(`[accounts] ${e.type}`, e.account ?? e.address ?? e.id ?? ""),
+  });
+  app.use(accounts.router);
+  console.log(
+    `[accounts] enabled — passkeys on, email ${mailer ? "on" : "OFF (set SMTP_HOST)"}, ` +
+      `google ${process.env.GOOGLE_CLIENT_ID ? "on" : "OFF (set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET)"}`
+  );
+} catch (e) {
+  console.error(`[accounts] DISABLED: ${e.message}`);
+  app.use(["/auth", "/account"], (_req, res) =>
+    res.status(503).json({ ok: false, error: "accounts are unavailable on this server right now" })
+  );
+}
+// One page serves sign-in, the account view, and device-link approval; the
+// /link deep-link is what the desktop app shows next to its code.
+app.get(["/account", "/link"], (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "account.html")));
 
 /* --------------------------------------------------------- public routes */
 app.get("/", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
