@@ -279,6 +279,35 @@ try {
 // /link deep-link is what the desktop app shows next to its code.
 app.get(["/account", "/link"], (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "account.html")));
 
+/* ----------------------------------------- tester docs (docs.koinosai.com) */
+// The docs SITE lives in public/docs — no build step, markdown rendered
+// client-side by the same safe renderer the app uses for chat. Served two
+// ways: koinosai.com/docs works the moment this deploys, and the
+// docs.koinosai.com hostname works once the owner adds (1) a DNS A record
+// for `docs` pointing at this box and (2) one Caddyfile block:
+//
+//     docs.koinosai.com {
+//         reverse_proxy 127.0.0.1:3000
+//     }
+//
+// Caddy handles TLS for the subdomain automatically; this middleware routes
+// by Host header (trust proxy is on, so req.hostname is the real one).
+const DOCS_DIR = path.join(PUBLIC_DIR, "docs");
+const docsStatic = express.static(DOCS_DIR);
+app.use((req, res, next) => {
+  if (!/^docs\./i.test(req.hostname || "")) return next();
+  if (req.path === "/") return res.sendFile(path.join(DOCS_DIR, "index.html"));
+  return docsStatic(req, res, () => res.status(404).type("text/plain").send("Not found"));
+});
+// Without the trailing slash the page's relative assets (md.js, content/)
+// would resolve against the site root — redirect so they resolve under
+// /docs/. NOTE express matches "/docs" for BOTH spellings (strict routing
+// is off), so the handler must branch on the exact path or it redirect-loops.
+app.get("/docs", (req, res) => {
+  if (req.path === "/docs") return res.redirect("/docs/");
+  return res.sendFile(path.join(DOCS_DIR, "index.html"));
+});
+
 /* --------------------------------------------------------- public routes */
 app.get("/", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
 // Clean URL for the tester quickstart (the static middleware only serves it

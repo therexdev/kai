@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Koinos AI Docs</title>
+<meta name="description" content="Documentation for Koinos AI testers — every deployed feature, how to find it, how to use it." />
+<style>
+:root{
+  --ink:#0A0A0C; --panel:#111117; --panel-2:#15151c;
+  --line:#22222b; --line-2:#2f2f3a;
+  --text:#F4F3F0; --soft:#d7d6d9; --muted:#a6a4b0; --faint:#7d7c89;
+  --signal:#33E6C0; --signal-dim:#1c8f7c; --value:#F2B03D;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+  --sans:"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--signal);text-decoration:none}
+a:hover{text-decoration:underline}
+.top{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--ink);z-index:5}
+.top .brand{font-weight:700;letter-spacing:.02em;color:var(--text)}
+.top .brand span{color:var(--signal)}
+.top .tag{font-family:var(--mono);font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:6px;padding:2px 8px}
+.top .site{margin-left:auto;font-size:13.5px;color:var(--muted)}
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);max-width:1120px;margin:0 auto}
+nav{border-right:1px solid var(--line);padding:22px 0 60px;position:sticky;top:53px;height:calc(100vh - 53px);overflow-y:auto}
+nav .group{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);padding:16px 22px 6px}
+nav a{display:block;padding:6px 22px;color:var(--muted);font-size:14px;border-left:2px solid transparent}
+nav a:hover{color:var(--text);text-decoration:none}
+nav a.on{color:var(--signal);border-left-color:var(--signal);background:rgba(51,230,192,.05)}
+main{padding:30px 34px 90px;min-width:0}
+main h1{font-size:28px;margin:.2em 0 .5em}
+main h2{font-size:19px;margin:1.6em 0 .5em;padding-top:.4em;border-top:1px solid var(--line)}
+main h3{font-size:15.5px;margin:1.3em 0 .4em;color:var(--soft)}
+main p, main li{color:var(--soft);font-size:15px}
+main li{margin:.25em 0}
+main code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:1.5px 6px;font-size:12.8px}
+main pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto}
+main pre code{background:none;border:0;padding:0;font-size:13px}
+main blockquote{margin:1em 0;padding:10px 16px;border-left:3px solid var(--value);background:var(--panel);border-radius:0 8px 8px 0;color:var(--soft)}
+main hr{border:0;border-top:1px solid var(--line);margin:24px 0}
+.burger{display:none}
+@media (max-width: 800px){
+  .layout{grid-template-columns:1fr}
+  nav{position:fixed;left:0;top:53px;width:250px;background:var(--ink);transform:translateX(-100%);transition:transform .18s;z-index:4;border-right:1px solid var(--line-2)}
+  nav.open{transform:none}
+  .burger{display:block;background:none;border:1px solid var(--line-2);color:var(--text);border-radius:8px;padding:5px 10px;font-size:16px;cursor:pointer}
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <button class="burger" id="burger" aria-label="Menu">☰</button>
+  <div class="brand">Koinos <span>AI</span> Docs</div>
+  <span class="tag">ALPHA</span>
+  <a class="site" href="https://koinosai.com">koinosai.com →</a>
+</div>
+<div class="layout">
+  <nav id="nav"></nav>
+  <main id="main"><p>Loading…</p></main>
+</div>
+
+<script src="md.js"></script>
+<script>
+"use strict";
+/* Hash-routed docs shell, no build step (repo posture): the sidebar manifest
+ * lives here, pages are plain .md files under content/, rendered by the same
+ * safe markdown renderer the app uses for chat. Add a page = add one line
+ * here + one file there. */
+const PAGES = [
+  { group: "Start here" },
+  { id: "getting-started", title: "Getting started" },
+  { id: "chat", title: "Chat & local models" },
+  { group: "Earning" },
+  { id: "earn", title: "Earn — serve the network" },
+  { id: "wallet", title: "Wallet — KOIN & VHP" },
+  { id: "network-ai", title: "Network AI & billing" },
+  { group: "Do more" },
+  { id: "tools", title: "Tools, agents & MCP" },
+  { id: "teams", title: "AI Teams & run code" },
+  { id: "email-calendar", title: "Email, calendar, memory" },
+  { id: "node", title: "Run a Koinos node" },
+  { group: "Reference" },
+  { id: "accounts", title: "Accounts & sign-in" },
+  { id: "troubleshooting", title: "Troubleshooting" },
+];
+
+const nav = document.getElementById("nav");
+const main = document.getElementById("main");
+for (const p of PAGES) {
+  if (p.group) {
+    const g = document.createElement("div");
+    g.className = "group";
+    g.textContent = p.group;
+    nav.appendChild(g);
+  } else {
+    const a = document.createElement("a");
+    a.href = `#${p.id}`;
+    a.dataset.id = p.id;
+    a.textContent = p.title;
+    nav.appendChild(a);
+  }
+}
+
+async function show() {
+  const id = (location.hash || "").replace(/^#/, "") || "getting-started";
+  const page = PAGES.find((p) => p.id === id) || PAGES.find((p) => p.id);
+  for (const a of nav.querySelectorAll("a")) a.classList.toggle("on", a.dataset.id === page.id);
+  try {
+    const r = await fetch(`content/${page.id}.md`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    main.innerHTML = mdToHtml(await r.text());
+  } catch (e) {
+    main.innerHTML = `<p>Could not load this page (${e.message}). <a href="#getting-started">Back to start</a>.</p>`;
+  }
+  main.parentElement.scrollTop = 0;
+  window.scrollTo(0, 0);
+  nav.classList.remove("open");
+}
+window.addEventListener("hashchange", show);
+document.getElementById("burger").addEventListener("click", () => nav.classList.toggle("open"));
+show();
+</script>
+</body>
+</html>
