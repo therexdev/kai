@@ -1,25 +1,38 @@
 # Earn — serve the network
 
-Flip **Start Earning** in the Earn tab and your machine serves its downloaded models to the network. Real usage, real work receipts, settled in KAI every 15-minute epoch.
+Your machine serves its downloaded models to the network and gets paid in KAI for verified work, settled every 15-minute epoch.
 
-## What you'll see
+## Setting up (first time, ~2 minutes)
 
-- **Serving models** — which models this machine offers, and — when one is held back — the exact reason (for example `needs 8 GB RAM — this machine reports 3 GB`). If it says a model doesn't fit, download a smaller one; Koinos Fast fits a 4 GB Pi.
-- **Jobs completed / receipts accepted** — the work the scheduler verified.
-- **This epoch** — pending jobs and the KAI estimate for the current epoch.
-- **KAI balance** — your settled earnings.
+1. Click **Earn** in the sidebar.
+2. **Create your earning account**: type a password twice and click create. This makes your wallet — a real Koinos address.
+3. **Write down the backup code** the app shows once. It IS the wallet; anyone with it has your funds, and without it a lost disk means lost earnings.
+4. The scheduler field is pre-filled with `https://koinosai.com/scheduler`. Leave it.
+5. Click **Start Earning**.
+
+**You should see** the status dot turn green with "Online — earning", and "last contact" ticking every few seconds.
+
+![The Earn tab, set up and ready — stats grid, Start Earning, and the wallet card below](img/earn.png)
+
+## Reading the stats
+
+- **Serving models** — which models this machine offers the network, and — when one is held back — the exact rule that held it, for example `needs 8 GB RAM — this machine reports 3 GB`. If nothing fits, download **Koinos Fast**; it serves on a 4 GB Pi.
+- **Jobs completed / Receipts accepted** — work the scheduler verified and credited.
+- **This epoch** — pending jobs and the live KAI estimate for the current 15-minute epoch.
+- **KAI balance** — settled earnings, updated after each epoch closes.
 
 ## How pay works (alpha)
 
-- Every epoch, useful work divides a network-wide bootstrap pool. Paid demand mints on top of that — equal work, equal pay.
-- The scheduler continuously spot-checks workers with verification challenges and mystery chats. Honest machines never notice; dishonest output doesn't get paid.
-- Your machine's measured speed and reliability feed routing: faster, steadier machines get more paid work.
+- Each epoch, useful work divides a network-wide bootstrap pool; paid demand mints on top. Equal work earns equal pay.
+- The scheduler continuously spot-checks every worker with verification challenges and mystery chats. Honest machines never notice; dishonest output isn't paid.
+- Measured speed and reliability feed routing: faster, steadier machines receive more paid work over time. New machines get seeded fairly while they build a record.
 
 ## Reputation
 
-Every worker builds reputation from age on the network, reliability, verification history and real paid demand served. It's visible in the app's Network tab and on [koinosai.com/network](https://koinosai.com/network). Today it's informational; anti-gaming gates arm later, with notice.
+Every worker accrues reputation from network age, reliability, verification history and real paid demand served. It's visible in the app's **Network** tab and publicly at [koinosai.com/network](https://koinosai.com/network). Informational today; anti-gaming gates arm later, with notice.
 
-## Keep it serving
+## Keep it earning
 
-- Set your OS sleep to **Never** while plugged in — standby pauses earning (the app reconnects on wake and tells you it happened).
-- The wallet stays unlocked for earning; the password is still required for anything that MOVES money.
+- Set your OS to never sleep while plugged in — standby pauses earning. The app reconnects on wake and tells you how many times it happened.
+- Stopping is instant: no job runs after you press **Stop Earning**.
+- The wallet stays unlocked for serving; anything that MOVES money still demands your password every time.

@@ -1,25 +1,24 @@
 # AI Teams & run code
 
-## Run code (sandboxed)
+## Run code — the sandboxed script tool
 
-Agents can write and run short Node.js scripts to do what a language model can't do in its head: exact math, parsing files, bulk transforms. Every run is sandboxed:
+In agent mode the AI can write and run short Node.js scripts to do what a language model can't do in its head: exact math, parsing files, bulk transforms over workspace data. Every run is sandboxed, in layers:
 
-- Scripts see **only the agent workspace folder** — your wallet, keys and documents are unreachable, enforced by the runtime itself.
-- **No network** inside the sandbox, no launching other programs, hard time and memory limits.
-- The code is **always shown to you and confirmed before it runs**. No exceptions, no "trusted" shortcut.
+- The script can read and write **only the agent workspace folder**. Your wallet, keys and documents are unreachable — enforced by the Node runtime's permission model, not by politeness.
+- **No network** inside the sandbox, no launching other programs, hard time (30s) and memory limits, output capped.
+- **The code is always shown to you and confirmed before it runs.** Every time. No trusted shortcut exists for code.
+- If a machine's runtime can't provide the jail, code execution switches itself off rather than run unjailed.
 
-If a machine's runtime can't provide the sandbox, code execution turns itself off rather than run unjailed.
+The tool composes with the file tools: ask the agent to save a CSV to its workspace, compute over it with code, and report — the whole loop is visible in the trace.
 
 ## AI Teams
 
-Teams put several roles on one task, each stage visible in the trace:
+Teams put several AI roles on one task, every stage visible:
 
-- **Research team** — a planner splits the question, researchers search and read, a writer synthesizes, a critic checks it and can demand one revision.
+- **Research team** — a planner splits the question, researchers search and read, a writer synthesizes, a critic checks the draft and can demand one revision.
 - **Analyst** — a planner scopes the job, a coder computes with sandboxed scripts, an explainer reports in plain language.
-- **Write & review** — drafter, critic, reviser. No tools, pure quality loop.
+- **Write & review** — drafter, critic, reviser. No tools; a pure quality loop.
 
-Teams are strictly budgeted — bounded sub-tasks, bounded tool calls, one revision — so they finish, always. They add **zero** new permissions: every tool call passes the same policy gates as everywhere else, and code-running teams ask for your consent up front.
+Teams are strictly budgeted — bounded sub-tasks, bounded tool calls per worker, one revision, a hard ceiling on total model calls — so they always finish. They add **zero** new permissions: every tool call passes the same policy gates as solo agent mode, and a team that wants to run code asks for your consent up front, once, visibly.
 
-## For developers
-
-The same engine is scriptable on the local API: `GET /core/teams` lists templates, `POST /core/teams/run` streams the whole trace as server-sent events. A JSON team-spec format, a benchmark runner and API keys for external apps are on the roadmap (see the design doc in the repo).
+> The Team picker is landing in the chat composer in an upcoming build; the engine is already live for developers via the local API (see **Local API & privacy**).
