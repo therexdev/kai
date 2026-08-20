@@ -44,13 +44,11 @@ Two flags relax this for scripted use, one gate each:
 
 ## Useful options
 
-| Option | What it does |
-| --- | --- |
-| `--dir <path>` | work on a different folder than the current one |
-| `--model <alias>` | pick a model (default: first one your gateway lists) |
-| `--url <base>` | a different gateway (default `http://127.0.0.1:41100`) |
-| `--key <secret>` | your API key, if you created keys in the app |
-| `--max-steps <n>` | tool-step budget per task (default 25) |
+- `--dir <path>` — work on a different folder than the current one.
+- `--model <alias>` — pick a model (default: the first one your gateway lists).
+- `--url <base>` — a different gateway (default `http://127.0.0.1:41100`).
+- `--key <secret>` — your API key, if you created keys in the app.
+- `--max-steps <n>` — tool-step budget per task (default 25).
 
 ## What to expect from small models
 
