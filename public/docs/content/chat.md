@@ -2,32 +2,50 @@
 
 ## Picking a model
 
-The model picker in the composer lists what's downloaded. The catalog ladder:
+The model picker sits in the chat composer. It lists what's downloaded; the catalog ladder in **Models** is:
 
-- **Koinos Fast** (~1 GB) — quick answers on any machine, needs ~3 GB RAM.
-- **Koinos Balanced** (~2 GB) — smarter, still CPU-friendly, 8 GB RAM.
-- **Koinos Smart** (~4.7 GB) — the strongest local default, 12 GB RAM.
-- Plus gemma3, mistral, qwen-coder, llama31 and larger classes for bigger machines.
+- **Koinos Fast** (~1 GB, needs ~3 GB RAM) — quick answers on any machine, Pi included.
+- **Koinos Balanced** (~2 GB, 8 GB RAM) — noticeably smarter, still CPU-friendly.
+- **Koinos Smart** (~4.7 GB, 12 GB RAM) — the strongest local default.
+- Larger classes (gemma3-12b, qwen2.5-14b, mistral-small-24b, …) for big machines.
 
-Models are verified by SHA-256 against a pinned catalog before they load — a corrupted or swapped file refuses to run.
+Each catalog entry shows its download size and the memory it needs — the same rule the network uses when your machine serves (see Earn).
 
-## Vision
+## Vision — chat with images
 
-`gemma3-4b` can see. Attach an image with the paperclip and ask about it. Vision runs locally like everything else.
+1. Download **gemma3-4b** from Models (it's the vision-capable class).
+2. In a chat with gemma3-4b selected, click the paperclip and attach an image.
+3. Ask anything about it. The image is processed locally like everything else.
 
 ## Voice
 
-- **Voice input**: the mic button records, a local Whisper model transcribes — audio never leaves the machine. First use offers a one-click setup.
-- **Read aloud**: the speaker icon on any reply.
+- **Talk instead of typing**: click the microphone in the composer. The first use offers a one-click setup of a local Whisper model; after that your speech is transcribed on-device — audio never leaves the machine.
+- **Hear replies**: click the speaker icon on any assistant message.
 
 ## Web search in chat
 
-Toggle the 🌐 button in the composer to let the model search and read pages before answering (needs Local-First or Network privacy mode). **Deep Research** runs multi-round research with visible sources.
+Toggle the **🌐** button in the composer (needs Local-First or Network privacy). The model then searches and reads pages before answering, and shows what it looked at. **Deep Research** (in the composer's mode menu) runs multiple search-read-refine rounds and cites sources.
+
+## Compare models
+
+The **Compare** view in the sidebar sends one prompt to two models side by side — the honest way to feel the difference between Fast and Smart, or local versus network, before you commit to one.
+
+![Compare — one prompt, two models, side by side](img/compare.png)
+
+## Chat with your documents
+
+The **Docs** view (sidebar) lets you add documents and chat about their contents — summaries, questions, extractions — all local.
+
+## Scheduled tasks
+
+The **Tasks** view runs a prompt on a schedule — a morning summary, a recurring check — and drops each result into your chat history. Disabled tasks never run; re-enabling restarts the clock rather than bursting.
+
+![Scheduled tasks — a prompt on a timer, results land in chat](img/tasks.png)
 
 ## Importing your own models
 
-Models → Import lets you load any GGUF file. Private imports stay private: they never advertise to the network and never earn — by design.
+**Models → Import** loads any GGUF file. Private imports stay private: they never advertise to the network and never earn — by design, so unvetted weights can't ride the paid network.
 
-## Chats
+## Housekeeping
 
-Pin favorites, rename, delete. History is stored locally on your disk, nowhere else.
+Pin favorite chats, rename or delete them from the chat list. History is a local file on your disk, nowhere else.

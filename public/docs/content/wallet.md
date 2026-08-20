@@ -1,27 +1,35 @@
 # Wallet — KOIN & VHP on mainnet
 
-Your Koinos AI wallet is a real Koinos address. The Earn tab's **Wallet** card works on every machine — desktop, Pi, browser — no node required.
+Your earning account doubles as a real Koinos mainnet wallet. The **Wallet** card sits at the bottom of the Earn tab and works on every machine — Windows, Linux, Raspberry Pi, browser — with no node.
+
+![The Wallet card — receive address, balances on demand, and the send form](img/earn-wallet.png)
 
 ## Receive
 
-Copy your address with the **Copy address** button and share it. KOIN or VHP sent to it on mainnet is yours.
+1. Open **Earn** and scroll to **Wallet — send & receive on Koinos mainnet**.
+2. Click **Copy address** and share it. Any KOIN or VHP sent to that address on mainnet is yours.
 
 ## Check balances
 
-**Show balances** reads KOIN, VHP and mana from the chain when you ask — nothing polls in the background.
+Click **Show balances**. The app reads KOIN, VHP and mana from the chain at that moment — nothing polls in the background, by design.
 
-## Send
+## Send (read once before your first send)
 
-1. Pick the token (KOIN or VHP), paste the recipient address, enter the amount.
-2. Type your **wallet password** — required on every send, even when the wallet is unlocked.
-3. Click **Send** twice: the first click repeats exactly what's about to happen (amount, token, recipient, MAINNET) and arms; the second sends. Editing anything disarms.
+1. Pick the token — **KOIN** or **VHP**.
+2. Paste the recipient's address and enter the amount.
+3. Type your **wallet password**. It's required on every send, even though the wallet is unlocked — unlocked is for earning, never for moving money.
+4. Click **Send**. The first click only ARMS: the app repeats exactly what's about to happen — amount, token, recipient, and a MAINNET warning.
+5. Click **Send** again to confirm. Editing any field in between disarms it.
 
-> This is real mainnet value. Check the recipient address character by character — a chain transfer cannot be undone.
+> This is real value on a public chain. A transfer cannot be undone. Check the recipient address character by character.
+
+**You should see** "Sent. Transaction …" with the transaction id. Balances update once the block settles.
 
 ## Mana
 
-Sending spends mana, which recharges over about five days. Keep a little KOIN in the wallet so transactions always have fuel. If a send is refused for mana, wait or send less.
+Every transaction spends mana, which recharges over about five days and scales with your KOIN balance. Keep a little KOIN in the wallet so sends always have fuel. If a send is refused for mana, wait a bit or send less.
 
-## Backup
+## Backup & restore
 
-Earn tab → **Show backup code** reveals your key (password required). Write it down somewhere safe — it IS the wallet. Restore works from the same card.
+- **Show backup code** (Earn tab, password required) reveals your key. Store it somewhere safe and offline.
+- **Restore from backup code** on the Earn tab's lock screen brings the same wallet to any machine.

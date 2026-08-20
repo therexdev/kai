@@ -91,7 +91,25 @@ async function main() {
     }
     check(all200, "every page serves with real content over HTTP");
 
-    console.log("\n3) host route: docs.koinosai.com");
+    console.log("\n3) screenshots: every image a page references exists and serves");
+    const imgDir = path.join(__dirname, "..", "public", "docs", "img");
+    const refs = new Set();
+    for (const f of files) {
+      for (const m of fs.readFileSync(path.join(contentDir, `${f}.md`), "utf8").matchAll(/!\[[^\]]*\]\((img\/[\w.-]+)\)/g)) {
+        refs.add(m[1]);
+      }
+    }
+    check(refs.size >= 5, `pages reference ${refs.size} screenshots`);
+    const broken = [...refs].filter((r) => !fs.existsSync(path.join(imgDir, path.basename(r))));
+    check(broken.length === 0, `no broken image reference (${broken.join(", ") || "all resolve"})`);
+    let imgs200 = true;
+    for (const r of refs) {
+      const res = await raw(port, `/docs/${r}`);
+      if (res.status !== 200) imgs200 = false;
+    }
+    check(imgs200, "every referenced screenshot serves over HTTP");
+
+    console.log("\n4) host route: docs.koinosai.com");
     const sub = await raw(port, "/", "docs.koinosai.com");
     check(sub.status === 200 && sub.body.includes("Koinos AI Docs"), "the subdomain serves the shell from /");
     const subMd = await raw(port, "/content/wallet.md", "docs.koinosai.com");
