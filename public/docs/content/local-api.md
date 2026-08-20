@@ -38,30 +38,8 @@ The localhost control plane (`/core/...`) drives everything the UI does — and 
 - `GET /core/teams` — list the AI Team templates.
 - `POST /core/teams/run` — run a team; the whole trace streams back as server-sent events.
 
-## Developer tools (v0.28.9+)
+## Developer tools (v0.30.0+)
 
-At the bottom of the Local API view there is a **Developer tools** switch. It ships **off**; flip it and a panel appears with two things:
+At the bottom of the Local API view there is a **Developer tools** switch. It ships **off**; flip it and a **Developer Tools** section appears in the sidebar — its own page with four parts: build full multi-agent teams (named agents that converse, use tools, and can pause to ask you), watch them run in a live playground, define simple pipeline teams, and benchmark your model on a fixed objective suite.
 
-![Developer tools on — the custom team spec box and the benchmark](img/api-dev.png)
-
-### Custom team (JSON spec)
-
-Instead of the built-in team templates, define your own pipeline as JSON — which stages run (`plan`, `work`, `write`, `critique`, `revise`), which tools the workers may use, budget limits, and extra per-role instructions. The box comes prefilled with a working example:
-
-1. Click the **Developer tools** switch. The panel opens with an example spec.
-2. Edit the spec (or keep it), type a task in **Task for the team**, and click **Run team**.
-3. Watch the live trace — every stage and tool call prints as it happens, then the answer.
-
-Rules that always hold, whatever the spec says:
-
-- Budgets only go **down**: 4 sub-tasks, 4 actions per worker, and 24 model calls are hard ceilings.
-- Your role instructions are **added to** the built-in ones, never replacing them.
-- The switch reveals capability, not permission — a spec that includes `run_code` still asks you before anything executes, exactly like the Analyst template.
-
-Apps can POST the same spec to `POST /core/teams/run` (as `{"spec": {...}, "question": "...", "model": "..."}`).
-
-### Benchmark
-
-**Run benchmark** scores the current model on a fixed suite of ten objective tasks — arithmetic, exact instruction following, JSON output, extraction, counting, and a tool-using agent case. Every check is mechanical (a regex, a substring, a JSON shape), so the score is honest and comparable across models and app versions.
-
-You should see: a ✓/✗ line per task as it finishes, then a score line like `Score: 6/10 on "core" with koinos-fast`. Small local models fail some of these — that is the point of measuring. The last report is also saved to `bench-last.json` in the app's data folder, and the same suite is available at `POST /core/bench/run`.
+The whole area is documented on its own page: **Developer Tools** in this sidebar. The switch reveals capability, not permission — anything involving `run_code` still asks you before code executes, and every tool call obeys the same privacy rules as the rest of the app.
