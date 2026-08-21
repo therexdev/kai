@@ -67,3 +67,11 @@ Everything this page does, your own programs can do against the local API (all e
 - `POST /core/teams/run` — the simple pipeline track.
 - `POST /core/code/run` — the coding agent against a project folder; file edits and commands stream out as `approval-request` events, answered at `POST /core/code/approve` — nothing touches disk unapproved.
 - `POST /core/bench/run` — the benchmark.
+
+### If you put a reverse proxy in front of Core (v0.33.1+)
+
+Core binds to `127.0.0.1` only, so on a normal desktop install nothing outside your machine can reach these endpoints. Headless operators sometimes front Core with nginx or Caddy to reach it from elsewhere on their network — and that is the one shape where a request arrives from off-machine.
+
+The coding-agent endpoints treat that case differently from the rest, because they are different: teams' `run_code` is sandboxed to the app's workspace, while `POST /core/code/run` writes files anywhere you point it and runs shell commands as your user. So from v0.33.1, any request to `/core/code/*` that carries proxy headers (`X-Forwarded-For`, `X-Forwarded-Host`, `X-Real-IP`, `Forwarded`) is **refused with 403 unless `KAI_CORE_TOKEN` is set** on the Core process. Set the token, send it as `Authorization: Bearer …`, and the endpoints work through your proxy as before.
+
+Nothing changes for ordinary desktop use — a direct loopback call sends no forwarded headers and never sees this.
