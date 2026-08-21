@@ -1,10 +1,63 @@
-# Koinos Code — a coding agent in your terminal
+# Koinos Code — a coding agent, in the app and in your terminal
 
-**Koinos Code** (v0.29.0+) is a command-line coding agent, in the mold of tools like Claude Code — except the model is **yours**: the local model running in your Koinos AI app, or the Koinos Network class when your privacy mode allows it. No cloud account, no per-token bill.
+**Koinos Code** is a coding agent in the mold of tools like Claude Code — except the model is **yours**: the local model running in your Koinos AI app, or the Koinos Network class when your privacy mode allows it. No cloud account, no per-token bill.
 
-It ships inside the app. You point it at a project folder, give it a task in plain words, and it reads your files, proposes edits, and runs commands — with you approving every change.
+You point it at a project folder, give it a task in plain words, and it reads your files, proposes edits, and runs commands — with you approving every change.
 
-## Start it
+There are two ways in, and they are the same agent:
+
+- **In the app (v0.35.0+)** — its own **Koinos Code** item in the sidebar, with your projects, their sessions, and GitHub. Turn it on in **Settings → Koinos Code**. Start here.
+- **In your terminal** — the `koinos-code` command, for when you are already in a shell.
+
+## In the app
+
+Flip the **Koinos Code** switch in Settings and a **Koinos Code** entry appears in the sidebar.
+
+### Projects
+
+Click **Add** and give the full path to a folder on this machine. That folder becomes a project, and the agent works inside it — never outside it.
+
+- Add as many as you like and click between them.
+- **Rename** gives a project a friendlier name than its folder.
+- **Forget** removes a project from the list. It does **not** delete the folder or anything in it.
+- If a project's folder is moved or deleted, it stays in the list marked *folder not found*, rather than quietly disappearing.
+
+### Sessions
+
+Each project keeps **sessions** — threads of what you asked and what it answered. A session remembers, so the second instruction can build on the first: ask it to rename something, then say *"now do the same in the tests"*, and it knows what you mean.
+
+Click **New** for a fresh thread, or click an old session to read it back. Sessions are titled by the first thing you asked.
+
+### Approving changes
+
+Unchanged, and it will stay unchanged: **every file change appears as a card with its diff, every command as a card with the exact line, and nothing happens until you press the button.** Deny leaves the disk untouched and the agent is told honestly. A card nobody answers times out as a deny after five minutes. There is deliberately no "approve everything" switch in the app.
+
+## GitHub (v0.36.0+)
+
+Connect a GitHub account and Koinos Code can clone repositories and publish work back.
+
+**Connect** — click **Connect** under GitHub in the sidebar and paste a personal access token (GitHub → Settings → Developer settings → Personal access tokens). Give it access to the repositories you want to work on.
+
+**What happens to your token:** it is stored on **this machine only**, in a file only your user account can read. It is never put in a command line, never written into the repository's config, never shown again in the app, and never sent anywhere except github.com. Disconnect deletes it.
+
+**Clone a repo** — click **Clone a repo**, give it `owner/name` (or the GitHub URL) and a folder to clone into. It becomes a project automatically. Public repositories can be cloned without connecting; private ones need the token.
+
+**Working with a repo** — when a project is a git repository, a bar appears above the transcript showing the branch and what has changed:
+
+- **Branch** — make or switch to a branch.
+- **Commit** — stage everything and commit with a message you write.
+- **Push** — push the current branch, setting its upstream the first time.
+- **Pull request** — open a PR from the current branch against the default branch.
+
+Each of these happens because you clicked it. The agent proposes edits through its approval cards; committing and publishing are separate, deliberate acts that it never takes on your behalf.
+
+## How this compares to Claude Code
+
+Honestly: the shape matches — its own place in the app, many projects, sessions that remember, an agent that edits and runs commands behind approval gates, a terminal CLI, and GitHub. What it does **not** have yet: subagents, hooks, custom slash commands, MCP tools inside the coding agent, plan mode, and background tasks.
+
+The other real difference is the model. Koinos Code runs on whatever your local gateway serves. That is the point — your machine, your model, no bill — but a small local model genuinely behaves differently from a large hosted one. Give it smaller, clearer tasks and the results are much better.
+
+## In your terminal
 
 1. Make sure the Koinos AI app is running (Koinos Code talks to the app's local API).
 2. Open a terminal **in your project folder**.
