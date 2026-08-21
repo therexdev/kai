@@ -31,6 +31,64 @@ curl http://localhost:41100/v1/chat/completions \
 
 Using `"model": "koinos-network"` routes the same request to the network's models and settles in KAI — your self-hosted gateway to paid inference.
 
+### Grounded answers — `koinos.ground` (v0.34.0+)
+
+Building a support bot usually means building a retrieval pipeline first: search, fetch pages, chunk them, assemble a prompt. You can skip that. Add an optional `koinos.ground` block and your Core does the retrieval before answering:
+
+```
+curl http://localhost:41100/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "koinos-fast",
+    "messages": [{"role": "user", "content": "Is the venue open tomorrow?"}],
+    "koinos": { "ground": {
+      "sources": ["https://help.acme.com/**"],
+      "web": true,
+      "max_pages": 4
+    }}
+  }'
+```
+
+**Two sources, one block, and the useful case is both at once.**
+
+- **`sources`** — an allowlist of URL patterns over *your own* material. Only matching pages are ever read. `**` matches any path depth, `*` stops at a `/`. Each pattern must name one concrete host: `https://help.acme.com/**` works, `https://*.acme.com/**` is refused (a wildcard host would quietly turn an allowlist into open-web access while still reading like a restriction — if you want the open web, ask for it with `web`).
+- **`web: true`** — the open web, for questions no static page answers: today's news, the weather, whether a service is down.
+- **Both** — your docs are consulted first and the web fills what is left. That is the shape most support bots want.
+- **`max_pages`** — how many pages to read. Default 3, hard ceiling 8.
+
+**What comes back.** A normal OpenAI-shaped response, plus the sources it used. Non-streaming calls get a `koinos` field in the body; every call, streaming included, gets an `x-koinos-grounding` response header carrying the same thing:
+
+```json
+"koinos": {
+  "grounding": { "status": "ok", "pages_read": 2 },
+  "citations": [
+    { "n": 1, "title": "Hours — Acme", "url": "https://help.acme.com/hours" },
+    { "n": 2, "title": "Weather", "url": "https://news.example/weather" }
+  ]
+}
+```
+
+`status` is honest about what happened: `ok`, `no_results`, or `search_unavailable`. If the web is unreachable your bot still answers — ungrounded, saying so — rather than failing with a 502.
+
+### What grounding does and does not do
+
+**It runs on your machine only.** Combining `koinos.ground` with `"model": "koinos-network"` is refused, permanently. A network request executes on a **volunteer operator's** computer; fetching caller-chosen URLs there would make their machine an open proxy for your users — pointed at their home network, with the traffic logged against their IP, returning results nobody can verify. Use a local model for grounded answers.
+
+**It respects the privacy switch.** In Local-Only, grounding is refused before anything is fetched, like every other feature that would leave the machine.
+
+**It only reaches public addresses.** Every fetch is checked: no `localhost`, no `192.168.x`, no `169.254.169.254`, no internal hostnames. It cannot be turned inward at your own network.
+
+**It has no tools.** The loop is search → read → answer, and nothing else — no file access, no commands, no memory. Web pages are untrusted text, and a page that says "ignore your instructions" is being read by something that has nothing to act with. That is the real containment; the prompt framing on top of it is a second layer, not the only one.
+
+**It searches once, and the model never writes the query** — your user's question is the query, used exactly once. Letting a page we just read shape the *next* search would be a way for text on that page to smuggle your conversation into an outbound request. Multi-round research is a separate, human-supervised feature in the app.
+
+**One thing to know before you turn on `web`.** With `sources`, you decide what may be fetched and your users cannot change it. With `web: true`, your users' questions steer what your machine reads from the public internet. That is what open-web grounding means everywhere, not a quirk here — it is capped, off by default, and feeds a loop that can only produce text. If your bot only needs your own material, `sources` alone is the tighter setting.
+
+**It never pushes past your model's context.** The retrieved material is budgeted against the context your model actually has, so grounding can't be the reason a prompt stops fitting.
+
+Send no `koinos` block and nothing above applies — the response is byte-for-byte what it was before.
+
 ## For developers: the control plane
 
 The localhost control plane (`/core/...`) drives everything the UI does — and the newest engine surfaces land there first:
