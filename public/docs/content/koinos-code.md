@@ -8,7 +8,13 @@ It ships inside the app. You point it at a project folder, give it a task in pla
 
 1. Make sure the Koinos AI app is running (Koinos Code talks to the app's local API).
 2. Open a terminal **in your project folder**.
-3. Run it with the Node.js that's on your machine:
+3. On **Windows with the app installed (v0.33.0+)**, just run it — the installer put `koinos-code` on your PATH (open a *new* terminal after installing):
+
+```
+koinos-code "add a --help flag to my script"
+```
+
+On Linux, or without the installer, run it with the Node.js on your machine:
 
 ```
 npx koinos-code "add a --help flag to my script"
