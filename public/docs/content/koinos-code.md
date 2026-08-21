@@ -84,6 +84,10 @@ Koinos Code is honest about its engine: a 1–4 GB local model handles small, co
 - Set your privacy mode to Local-First or Network and pass `--model koinos-network` — the same task runs on the network's larger models and settles in KAI.
 - Keep tasks small and specific. The agent reads before it writes, so "change the timeout in the fetch helper to 30s" beats "make networking better".
 
+## Prefer no terminal? It's in the app too (v0.32.0+)
+
+The same agent lives under **Developer Tools → Koinos Code** in the app: point it at a project folder, type the task, and approve each diff or command as a card instead of a `[y/N]` prompt. See the **Developer Tools** page in this sidebar.
+
 ## Troubleshooting
 
 - **"cannot reach the Koinos AI gateway"** — the app isn't running, or it's on a different port. Start the app, or pass `--url`.
