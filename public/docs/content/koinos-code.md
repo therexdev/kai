@@ -42,6 +42,32 @@ Two flags relax this for scripted use, one gate each:
 - `--yes` pre-approves **file edits** (commands still ask).
 - `--allow-commands` lets **commands** run without a prompt (for CI). There is deliberately no flag that silences both.
 
+## Project notes: KOINOS.md (v0.31.0+)
+
+Put a `KOINOS.md` file in your project root and its contents ride along with **every** task — house rules, build commands, "never touch the vendor folder", whatever the agent should always know. It's re-read each task, so edits apply immediately. Koinos Code tells you at startup when it found one:
+
+```
+context: KOINOS.md found — its notes ride along on every task
+```
+
+## Surgical edits (v0.31.0+)
+
+The agent now prefers a precise `edit_file` step — replace one exact piece of text — over rewriting whole files. You still see the same diff and the same `[y/N]` before anything is written; the diffs just get much smaller. If the text it targets isn't unique, the edit is refused and the agent is told to be more specific — nothing half-applies.
+
+## Hand a big thinking job to a team (v0.31.0+)
+
+For jobs that are more thinking than typing — "plan this refactor", "research the options", "review this design" — hand the task to the app's **AI Teams**:
+
+```
+koinos-code --team review "plan how to split app.js into modules"
+```
+
+or in the interactive session: `/team research what test framework fits this project?`
+
+Templates: **review** (draft → critique → revise; the default), **research** (searches and reads the web), **analyst** (computes by running sandboxed code — asks you first, since it executes code). The team's conversation streams live as `[stage]` lines, then its answer.
+
+One honest boundary: the team works in the **app's** workspace, not your project folder. It thinks — plans, findings, reviews; the normal agent loop is what edits your files.
+
 ## Useful options
 
 - `--dir <path>` — work on a different folder than the current one.
@@ -49,6 +75,7 @@ Two flags relax this for scripted use, one gate each:
 - `--url <base>` — a different gateway (default `http://127.0.0.1:41100`).
 - `--key <secret>` — your API key, if you created keys in the app.
 - `--max-steps <n>` — tool-step budget per task (default 25).
+- `--team <template>` — hand the task to an AI Team (`research`, `analyst`, `review`).
 
 ## What to expect from small models
 
