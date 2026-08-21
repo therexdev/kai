@@ -28,7 +28,7 @@ Toggle the **🌐** button in the composer (needs Local-First or Network privacy
 
 ## Compare models
 
-The **Compare** view in the sidebar sends one prompt to two models side by side — the honest way to feel the difference between Fast and Smart, or local versus network, before you commit to one.
+The **Compare** view in the sidebar sends one prompt to two models side by side — the honest way to feel the difference between Fast and Smart, or local versus network, before you commit to one. Answers arrive blind (you vote before the models are revealed), and preset chips (v0.30.1+) give you ready-made probes — logic, code, instruction following, summarizing, creative — so a fair comparison is one click away.
 
 ![Compare — one prompt, two models, side by side](img/compare.png)
 
