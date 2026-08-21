@@ -100,4 +100,4 @@ The localhost control plane (`/core/...`) drives everything the UI does — and 
 
 At the bottom of the Local API view there is a **Developer tools** switch. It ships **off**; flip it and a **Developer Tools** section appears in the sidebar — its own page with four parts: build full multi-agent teams (named agents that converse, use tools, and can pause to ask you), watch them run in a live playground, define simple pipeline teams, and benchmark your model on a fixed objective suite.
 
-The whole area is documented on its own page: **Developer Tools** in this sidebar. The switch reveals capability, not permission — anything involving `run_code` still asks you before code executes, and every tool call obeys the same privacy rules as the rest of the app.
+The whole area is documented on its own page: **Developer Tools** in this sidebar. **Koinos Code** has its own switch right below it, and its own page. The switch reveals capability, not permission — anything involving `run_code` still asks you before code executes, and every tool call obeys the same privacy rules as the rest of the app.

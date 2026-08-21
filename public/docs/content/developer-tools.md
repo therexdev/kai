@@ -7,7 +7,7 @@
 1. Open **Local API** and flip the **Developer tools** switch at the bottom.
 2. **Developer Tools** appears in the sidebar. Click it.
 
-You should see: a page with five sections along the top — **Multi-agent**, **Playground**, **Pipelines**, **Koinos Code**, **Benchmark**.
+You should see: a page with four sections along the top — **Multi-agent**, **Playground**, **Pipelines**, **Benchmark**. (Koinos Code used to be a fifth tab here; since v0.35.0 it is its own sidebar item with its own switch.)
 
 ![Developer Tools — the Multi-agent builder](img/api-dev.png)
 
@@ -41,17 +41,11 @@ You should see: the conversation building live, then a final line like `ended: "
 
 The original custom-team format: one pipeline of typed stages (plan → work → write → critique → revise) with a small JSON spec. Budgets cap at 4 sub-tasks, 4 actions per worker, 24 model calls. Good for jobs that don't need a conversation — research-and-summarize, compute-and-explain.
 
-## Koinos Code — the coding agent, in the app (v0.32.0+)
+## Koinos Code moved (v0.35.0+)
 
-![Koinos Code in the app — point it at a project folder](img/devtools-code.png)
+Koinos Code used to live here as a tab. It is now **its own item in the sidebar**, with projects, sessions and GitHub, behind its own switch in **Settings → Koinos Code**.
 
-The same coding agent that ships as the [terminal CLI](#koinos-code), pointed at one of **your** folders — no terminal needed:
-
-1. Type the project folder's absolute path and a task, click **Run**.
-2. The agent reads freely inside that folder; its steps stream live.
-3. Every file change appears as a **card with its diff**, every command as a card with the exact line — and nothing happens until you press **Apply edit** / **Run command** on that card. Deny leaves the disk untouched and the agent is told honestly. A card nobody answers times out as a deny after five minutes.
-
-There is deliberately no "approve everything" switch in the app: every card is answered by you. If the folder has a `KOINOS.md`, its notes guide the agent here exactly as in the terminal.
+If you turned Developer tools on to get Koinos Code, you keep it — the new switch starts on for you. Everything about it is on its own page: **Koinos Code** in this sidebar.
 
 ## Benchmark — score your model
 
