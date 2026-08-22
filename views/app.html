@@ -70,6 +70,18 @@ a{color:var(--violet)}
 .composer-note{padding:0 7% 10px;min-height:1.2em}
 .dots::after{content:"";animation:dots 1.2s steps(4,end) infinite}
 @keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+/* Docs: the same two-column frame as chat, with the editor where the thread
+   would be. The model's answer is a separate panel with explicit buttons —
+   it never writes into the document by itself. */
+.doc-head{display:flex;align-items:center;gap:10px;padding:12px 7% 8px;border-bottom:1px solid var(--border)}
+.doc-head input{flex:1;min-width:0;background:none;border:0;color:var(--text);font:inherit;font-size:1.15em;font-weight:600;padding:4px 0}
+.doc-head input:focus{outline:0;border-bottom:1px solid var(--violet)}
+.doc-body{flex:1;min-height:0;resize:none;background:none;border:0;color:var(--text);font:inherit;line-height:1.7;padding:18px 7%}
+.doc-body:focus{outline:0}
+.doc-answer{border-top:1px solid var(--border);background:var(--raised);padding:12px 7% 16px;max-height:38vh;overflow-y:auto}
+.doc-answer-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.doc-answer .body{white-space:pre-wrap;overflow-wrap:anywhere}
+.btn.small.ghost{background:none;border:1px solid var(--border);color:var(--text);font-weight:500}
 </style>
 </head>
 <body>
@@ -120,10 +132,31 @@ a{color:var(--violet)}
       </div>
     </section>
 
-    <section id="view-docs" class="view" hidden>
-      <h1>Docs</h1>
-      <p class="lede">Write with the model beside you.</p>
-      <div class="card"><p class="hint">Not built yet.</p></div>
+    <section id="view-docs" class="view chat" hidden>
+      <div class="chat-list" id="doc-list"></div>
+      <div class="chat-main">
+        <div class="doc-head">
+          <input id="doc-title" placeholder="Untitled" />
+          <span class="hint" id="doc-status"></span>
+          <button class="btn small ghost" id="doc-delete" type="button">Delete</button>
+        </div>
+        <textarea id="doc-body" class="doc-body" placeholder="Start writing. Select a passage and ask below, or ask about the whole thing."></textarea>
+        <form class="composer" id="doc-ai-form">
+          <textarea id="doc-ai-input" rows="1" placeholder="Ask about this document — “tighten this”, “what am I missing?”"></textarea>
+          <button class="btn" id="doc-ai-send" type="submit">Ask</button>
+        </form>
+        <p class="hint composer-note" id="doc-note"></p>
+        <div class="doc-answer" id="doc-answer" hidden>
+          <div class="doc-answer-head">
+            <span class="who">Suggestion</span>
+            <span style="flex:1"></span>
+            <button class="btn small" id="doc-insert" type="button">Insert at cursor</button>
+            <button class="btn small ghost" id="doc-replace" type="button">Replace selection</button>
+            <button class="btn small ghost" id="doc-dismiss" type="button">Dismiss</button>
+          </div>
+          <div class="body" id="doc-answer-body"></div>
+        </div>
+      </div>
     </section>
 
     <section id="view-tasks" class="view" hidden>

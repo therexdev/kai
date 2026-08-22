@@ -802,49 +802,47 @@ app.delete("/app/api/chats/:id", (req, res) => {
  */
 const APP_MAX_TOKENS = Number(process.env.KAI_APP_MAX_TOKENS || 1024);
 
-app.post("/app/api/chats/:id/message", async (req, res) => {
-  const a = appApi(req, res);
-  if (!a) return;
-  const text = String(req.body?.content || "").trim();
-  if (!text) return res.status(400).json({ ok: false, error: "say something first" });
-  // Refuse loudly rather than storing a silently truncated version of what
-  // someone wrote — the store slices at this length, and a message that
-  // quietly loses its last third is worse than one that was refused.
-  if (text.length > APP_MAX_CONTENT) {
-    return res.status(413).json({ ok: false, error: `that message is too long (max ${APP_MAX_CONTENT.toLocaleString()} characters)` });
-  }
+/**
+ * Resolve which grant this account is about to spend through.
+ * The client may name one; the service re-checks every liveness rule against
+ * THIS account and throws if the answer is anything but a clean yes.
+ */
+function pickGrant(account, wantedId) {
+  const live = (accounts.service.grants(account) || []).filter((g) => g.live);
+  const pick = wantedId
+    ? live.find((g) => g.id === String(wantedId))
+    : live.sort((x, y) => y.remainingUsd - x.remainingUsd)[0];
+  if (!pick) throw Object.assign(new Error("no live spending grant — authorise one from the Koinos AI app"), { status: 402 });
+  return accounts.service.spendableGrant(account.id, pick.id);
+}
 
-  let grant;
-  try {
-    // The client names the grant it believes it is spending; the service
-    // re-checks every liveness rule against THIS account and throws if the
-    // answer is anything but a clean yes.
-    const live = (accounts.service.grants(a) || []).filter((g) => g.live);
-    const wanted = String(req.body?.grantId || "");
-    const pick = wanted ? live.find((g) => g.id === wanted) : live.sort((x, y) => y.remainingUsd - x.remainingUsd)[0];
-    if (!pick) throw Object.assign(new Error("no live spending grant — authorise one from the Koinos AI app"), { status: 402 });
-    grant = accounts.service.spendableGrant(a.id, pick.id);
-  } catch (e) { return appBoom(res, e); }
-
-  let history;
-  try {
-    appdata.ownedChat(a.id, req.params.id);
-    history = appdata.messages(a.id, req.params.id);
-  } catch (e) { return appBoom(res, e); }
-
-  // Persist the question BEFORE asking it. If the network never answers,
-  // what you typed is still there — losing the prompt is the one failure
-  // people never forgive.
-  try {
-    appdata.addMessage(a.id, req.params.id, { role: "user", content: text });
-    appdata.autoTitle(a.id, req.params.id, text);
-  } catch (e) { return appBoom(res, e); }
-
+/**
+ * Ask the network, streaming the answer straight through to the browser.
+ *
+ * Every paid thing the web app does goes through here — chat today, docs
+ * beside it — so there is ONE place that reads the session cookie and hands
+ * the token onward, and one place to audit. `onAnswer` is called once with
+ * the completed reply, or never if the network did not produce one.
+ *
+ * The scheduler is invoked through a synthetic request rather than a
+ * loopback HTTP call. `handle()` reads only req.url, req.method,
+ * req.headers, the body stream, and req.socket?.remoteAddress — so a
+ * Readable carrying the JSON is a faithful request, and the REAL response
+ * object goes straight through, which is what makes streaming work end to
+ * end with no proxying of my own.
+ */
+async function askNetwork(req, res, { grant, messages, model, onAnswer }) {
+  /*
+   * The browser never sees its own session token — the cookie is HttpOnly
+   * and must stay that way, since that token can now authorize spending. So
+   * this reads the cookie server-side and hands the token to the scheduler
+   * IN THIS PROCESS. Nothing is minted, forged or widened: the same token
+   * the browser already holds, passed along the one hop it cannot make.
+   */
   const token = auth.parseCookies(req.headers.cookie)["kai_session"];
-  const messages = [...history.map((m) => ({ role: m.role, content: m.content })), { role: "user", content: text }];
   const payload = JSON.stringify({
     messages,
-    model: typeof req.body?.model === "string" && req.body.model ? req.body.model : "auto",
+    model: typeof model === "string" && model ? model : "auto",
     stream: true,
     max_tokens: APP_MAX_TOKENS,
     sessionToken: token,
@@ -867,9 +865,9 @@ app.post("/app/api/chats/:id/message", async (req, res) => {
   const write = res.write.bind(res);
   res.write = (chunk, ...rest) => {
     try {
-      const s = Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk);
-      if (s.includes('"done":true')) {
-        for (const line of s.split("\n")) {
+      const str = Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk);
+      if (str.includes('"done":true')) {
+        for (const line of str.split("\n")) {
           if (!line.startsWith("data: ")) continue;
           const f = JSON.parse(line.slice(6));
           if (f && f.done) saved = f;
@@ -880,13 +878,7 @@ app.post("/app/api/chats/:id/message", async (req, res) => {
   };
   res.on("close", () => {
     if (!saved || !String(saved.output || "").trim()) return;
-    try {
-      appdata.addMessage(a.id, req.params.id, {
-        role: "assistant",
-        content: String(saved.output),
-        servedModel: saved.servedModel || null,
-      });
-    } catch (e) { console.error("[webapp] could not store a reply:", e.message); }
+    try { onAnswer(saved); } catch (e) { console.error("[webapp] could not store a reply:", e.message); }
   });
 
   try {
@@ -895,6 +887,162 @@ app.post("/app/api/chats/:id/message", async (req, res) => {
     if (!res.headersSent) return res.status(500).json({ ok: false, error: String(e.message) });
     try { res.end(); } catch { /* already gone */ }
   }
+}
+
+app.post("/app/api/chats/:id/message", async (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  const text = String(req.body?.content || "").trim();
+  if (!text) return res.status(400).json({ ok: false, error: "say something first" });
+  // Refuse loudly rather than storing a silently truncated version of what
+  // someone wrote — the store slices at this length, and a message that
+  // quietly loses its last third is worse than one that was refused.
+  if (text.length > APP_MAX_CONTENT) {
+    return res.status(413).json({ ok: false, error: `that message is too long (max ${APP_MAX_CONTENT.toLocaleString()} characters)` });
+  }
+
+  let grant;
+  let history;
+  try {
+    grant = pickGrant(a, req.body?.grantId);
+    appdata.ownedChat(a.id, req.params.id);
+    history = appdata.messages(a.id, req.params.id);
+  } catch (e) { return appBoom(res, e); }
+
+  // Persist the question BEFORE asking it. If the network never answers,
+  // what you typed is still there — losing the prompt is the one failure
+  // people never forgive.
+  try {
+    appdata.addMessage(a.id, req.params.id, { role: "user", content: text });
+    appdata.autoTitle(a.id, req.params.id, text);
+  } catch (e) { return appBoom(res, e); }
+
+  await askNetwork(req, res, {
+    grant,
+    model: req.body?.model,
+    messages: [...history.map((m) => ({ role: m.role, content: m.content })), { role: "user", content: text }],
+    onAnswer: (f) => appdata.addMessage(a.id, req.params.id, {
+      role: "assistant",
+      content: String(f.output),
+      servedModel: f.servedModel || null,
+    }),
+  });
+});
+
+/* ------------------------------------------------------------------ docs
+ *
+ * A document is one body of text you keep editing, so its API is smaller
+ * than chat's: list, open, save, delete — and one AI call that answers ABOUT
+ * the document rather than appending to a conversation.
+ *
+ * The AI call streams like chat does, through the same askNetwork bridge, so
+ * there stays exactly one place that reads the session cookie. What it does
+ * NOT do is write to the document. The model proposes; the person decides.
+ * A model that edits your file the moment it finishes generating is a model
+ * that can silently destroy an hour of work, and no undo stack makes that a
+ * good trade.
+ */
+
+app.get("/app/api/docs", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  res.json({ ok: true, docs: appdata.docs(a.id) });
+});
+
+app.post("/app/api/docs", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  try {
+    res.json({ ok: true, doc: appdata.createDoc(a.id, req.body || {}) });
+  } catch (e) { appBoom(res, e); }
+});
+
+app.get("/app/api/docs/:id", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  try {
+    res.json({ ok: true, doc: appdata.doc(a.id, req.params.id) });
+  } catch (e) { appBoom(res, e); }
+});
+
+app.put("/app/api/docs/:id", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  try {
+    const doc = appdata.saveDoc(a.id, req.params.id, {
+      title: req.body?.title,
+      body: req.body?.body,
+    });
+    // The list is returned with every save so a rename reorders the sidebar
+    // without a second round-trip that could arrive out of order.
+    res.json({ ok: true, doc, docs: appdata.docs(a.id) });
+  } catch (e) { appBoom(res, e); }
+});
+
+app.delete("/app/api/docs/:id", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  try {
+    appdata.deleteDoc(a.id, req.params.id);
+    res.json({ ok: true, docs: appdata.docs(a.id) });
+  } catch (e) { appBoom(res, e); }
+});
+
+/*
+ * Ask the model about this document.
+ *
+ * The document is sent as CONTEXT, in a system turn, and the instruction as
+ * the user turn — so the model is answering a question about a text rather
+ * than continuing one, and an instruction that happens to look like prose
+ * cannot be mistaken for the document itself.
+ *
+ * Nothing is written back. The answer streams to the browser and stops there.
+ */
+app.post("/app/api/docs/:id/ai", async (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  const instruction = String(req.body?.instruction || "").trim();
+  if (!instruction) return res.status(400).json({ ok: false, error: "say what you want done" });
+  if (instruction.length > 4000) return res.status(413).json({ ok: false, error: "that instruction is too long" });
+
+  let grant;
+  let doc;
+  try {
+    grant = pickGrant(a, req.body?.grantId);
+    doc = appdata.doc(a.id, req.params.id);
+  } catch (e) { return appBoom(res, e); }
+
+  /*
+   * A selection, when there is one, is what the person is pointing at — so
+   * it is what gets sent, not the whole file. That is not only cheaper: a
+   * 200,000-character document would not fit the context anyway, and
+   * silently truncating it would make the model answer about a text nobody
+   * chose. Verified against the document rather than trusted, because a
+   * client could otherwise send any text at all and have it billed here.
+   */
+  const sel = String(req.body?.selection || "");
+  const usingSelection = sel.length > 0 && doc.body.includes(sel);
+  const context = (usingSelection ? sel : doc.body).slice(0, 12000);
+  const truncated = !usingSelection && doc.body.length > 12000;
+
+  await askNetwork(req, res, {
+    grant,
+    model: req.body?.model,
+    messages: [
+      {
+        role: "system",
+        content:
+          `You are helping edit a document titled "${doc.title}". ` +
+          (usingSelection ? "The user has SELECTED this passage:" : "Here is the document:") +
+          (truncated ? " (the beginning of it — it is longer than fits here)" : "") +
+          `\n\n---\n${context}\n---\n\n` +
+          "Answer the user's instruction about this text. Reply with the requested text only — no preamble, no explanation of what you did.",
+      },
+      { role: "user", content: instruction },
+    ],
+    // Deliberately empty: the answer is shown, never saved. See above.
+    onAnswer: () => {},
+  });
 });
 
 // Mainnet-readiness: rotating snapshots of the scheduler's ledgers (see
