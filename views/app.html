@@ -65,6 +65,7 @@ a{color:var(--violet)}
 .msg.err .body{color:var(--danger)}
 .empty{margin:auto;text-align:center;color:var(--dim);max-width:460px}
 .composer{display:flex;gap:9px;align-items:flex-end;padding:10px 7% 4px;border-top:1px solid var(--border)}
+.composer select{background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:10px 8px;font:inherit;font-size:.86em;max-width:190px}
 .composer textarea{flex:1;resize:none;max-height:200px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font:inherit}
 .composer textarea:focus{outline:1px solid var(--violet)}
 .composer-note{padding:0 7% 10px;min-height:1.2em}
@@ -151,6 +152,7 @@ a{color:var(--violet)}
       <div class="chat-main">
         <div class="thread" id="thread"></div>
         <form class="composer" id="composer">
+          <select id="composer-model" title="Which class of model answers, and what it costs"></select>
           <textarea id="composer-input" rows="1" placeholder="Ask anything — Enter to send, Shift+Enter for a new line"></textarea>
           <button class="btn" id="composer-send" type="submit">Send</button>
         </form>

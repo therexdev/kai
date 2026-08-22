@@ -30,7 +30,22 @@ const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-const usd = (n) => "$" + Number(n || 0).toFixed(Number(n) < 1 ? 4 : 2);
+/*
+ * Money, at whatever precision the number actually needs.
+ *
+ * A single answer can cost six millionths of a dollar. A fixed 4dp would
+ * print that as "$0.0000", which reads as free and is not — and on a network
+ * that bills per token, a price that rounds to nothing is the one number
+ * people would be right to distrust. Below a millionth there is genuinely
+ * nothing to show, so it says so rather than inventing a digit.
+ */
+function usd(n) {
+  const v = Number(n || 0);
+  if (v >= 1) return "$" + v.toFixed(2);
+  if (v >= 0.01) return "$" + v.toFixed(4);
+  if (v > 0 && v < 0.000001) return "<$0.000001";
+  return "$" + v.toFixed(6);
+}
 const short = (a) => (String(a).length > 14 ? String(a).slice(0, 6) + "…" + String(a).slice(-4) : String(a));
 
 /** Human gap, past or future, without a date library. */
@@ -121,7 +136,10 @@ function show(view) {
       : "You have no wallet linked to this account yet.";
   }
   if (view === "wallet") paintWallet();
-  if (view === "chat") loadChats().catch((e) => note(e.message, true));
+  if (view === "chat") {
+    loadChats().catch((e) => note(e.message, true));
+    loadNetwork().catch(() => {});
+  }
   if (view === "docs") loadDocs().catch((e) => docNote(e.message, true));
   if (view === "tasks") loadTasks().catch((e) => taskNote(e.message, true));
   // Leaving Docs must not leave an edit on a timer that fires into a view
@@ -247,8 +265,22 @@ async function loadThread() {
   paintThread();
 }
 
+/** What the answer just cost, in words, including when it cost nothing. */
+function priceLine(d) {
+  if (!d.servedModel) return "";
+  const c = typeof d.costUsd === "number" ? d.costUsd : null;
+  if (c === null) return `Answered by ${d.servedModel}.`;
+  if (c <= 0) return `Answered by ${d.servedModel} — covered by today's free allowance.`;
+  return `Answered by ${d.servedModel} — ${usd(c)}.`;
+}
+
 function msgHtml(m) {
-  const meta = m.servedModel ? `<div class="meta">answered by ${esc(m.servedModel)}</div>` : "";
+  const bits = [];
+  if (m.servedModel) bits.push(`answered by ${esc(m.servedModel)}`);
+  // Zero is a real answer here (the free allowance covered it) and must not
+  // be swallowed by a falsy check — that is how "free" becomes "unknown".
+  if (typeof m.costUsd === "number") bits.push(m.costUsd > 0 ? esc(usd(m.costUsd)) : "free allowance");
+  const meta = bits.length ? `<div class="meta">${bits.join(" · ")}</div>` : "";
   return `<div class="msg ${m.role === "user" ? "user" : "bot"}${m.error ? " err" : ""}">
     <div class="who">${m.role === "user" ? "You" : "Koinos AI"}</div>
     <div class="body">${esc(m.content)}</div>${meta}
@@ -294,7 +326,7 @@ async function send(text) {
     const res = await fetch(`/app/api/chats/${encodeURIComponent(chat.current)}/message`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ content: text, grantId: state.grant?.id }),
+      body: JSON.stringify({ content: text, model: network.choice, grantId: state.grant?.id }),
     });
     if (res.status === 401) { location.replace("/account?next=/app"); return; }
     /*
@@ -331,9 +363,14 @@ async function send(text) {
         if (typeof d.delta === "string") { answer += d.delta; draw(); }
         if (d.done) {
           answer = String(d.output ?? answer);
-          chat.messages.push({ role: "assistant", content: answer, servedModel: d.servedModel || null });
+          chat.messages.push({
+            role: "assistant",
+            content: answer,
+            servedModel: d.servedModel || null,
+            costUsd: typeof d.costUsd === "number" ? d.costUsd : null,
+          });
           paintThread();
-          if (d.servedModel) note(`Answered by ${d.servedModel}.`);
+          note(priceLine(d));
         }
       }
     }
@@ -366,6 +403,7 @@ function wireComposer() {
       $("composer").requestSubmit();
     }
   });
+  $("composer-model").addEventListener("change", (e) => { network.choice = e.target.value; });
   $("composer").addEventListener("submit", (e) => {
     e.preventDefault();
     const text = input.value.trim();
@@ -610,6 +648,37 @@ function wireDocs() {
   $("doc-insert").addEventListener("click", () => put("insert"));
   $("doc-replace").addEventListener("click", () => put("replace"));
   $("doc-dismiss").addEventListener("click", () => { hideAnswer(); docNote(""); });
+}
+
+/* ------------------------------------------------------- what is online */
+
+/*
+ * The network's classes, with their prices. Public data — no session needed —
+ * and it drives both the picker and what the composer admits about cost.
+ *
+ * "auto" is first and is the default because it means "the best class anyone
+ * is serving right now", which is the correct answer for almost everyone. The
+ * named classes exist for the person who wants a cheaper answer, and they can
+ * see the price before they choose rather than after the bill.
+ */
+const network = { models: [], choice: "auto" };
+
+async function loadNetwork() {
+  let list = [];
+  try {
+    const r = await fetch("/scheduler/network/models");
+    const j = await r.json();
+    list = j.models || [];
+  } catch { /* offline picker is still a picker */ }
+  network.models = list;
+  const sel = $("composer-model");
+  const prev = sel.value || network.choice;
+  sel.innerHTML =
+    `<option value="auto">Best available</option>` +
+    list.map((m) => `<option value="${esc(m.model)}">${esc(m.model)} — ${usd(m.outUsdPerM)}/M out</option>`).join("");
+  sel.value = list.some((m) => m.model === prev) || prev === "auto" ? prev : "auto";
+  network.choice = sel.value;
+  if (!list.length) note("Nobody is serving the network right now — an answer may take a moment or be refused.");
 }
 
 /* ---------------------------------------------------------------- memory */
