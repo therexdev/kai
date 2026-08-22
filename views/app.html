@@ -38,6 +38,12 @@ h1{font-size:1.5em;letter-spacing:-.01em;margin-bottom:6px}
 .card.spent{opacity:.6}
 .meter{height:6px;border-radius:3px;background:var(--input);overflow:hidden;margin:8px 0 10px}
 .meter i{display:block;height:100%;background:linear-gradient(90deg,var(--emerald),var(--violet))}
+.spend-row{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-top:1px solid var(--border);font-size:.9em}
+.spend-row:first-of-type{border-top:0}
+.spend-row .what{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spend-row .tag{font-size:.78em;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);flex-shrink:0}
+.spend-row .amt{font-variant-numeric:tabular-nums;flex-shrink:0}
+.spend-row .amt.free{color:var(--dim)}
 h2.section{font-size:.82em;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:20px 0 10px}
 a{color:var(--violet)}
 /* Chat is the one view that owns its own scrolling: the thread scrolls, the
@@ -260,6 +266,9 @@ a{color:var(--violet)}
       <h1>Wallet</h1>
       <p class="lede">What this site may spend, and what it has spent.</p>
       <div id="wallet-body"></div>
+
+      <h2 class="section">Where it went</h2>
+      <div id="spend-log"></div>
       <div class="card">
         <h2>Changing or ending this</h2>
         <p class="hint">Grants are created in the Koinos AI desktop app, which holds the wallet key, and revoked either there or on your <a href="/account">account page</a>. Revoking takes effect immediately.</p>
@@ -267,7 +276,7 @@ a{color:var(--violet)}
 
       <div class="card warn">
         <h2>Delete what is stored here</h2>
-        <p class="hint">Every chat, document, task and memory this site holds for you, gone. Your account, wallets and grants are untouched — those live elsewhere and ending them is a separate decision.</p>
+        <p class="hint">Every chat, document, task, memory and spend record this site holds for you, gone. Your account, wallets and grants are untouched — those live elsewhere and ending them is a separate decision. Each grant keeps its own lifetime spent total, which is a fact about a wallet rather than a record of what you did.</p>
         <p style="margin-top:12px"><button class="btn small ghost" id="purge" type="button">Delete my chats, docs, tasks and memories</button></p>
         <p class="hint" id="purge-note" style="margin-top:8px"></p>
       </div>

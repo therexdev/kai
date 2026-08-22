@@ -967,6 +967,13 @@ app.post("/app/api/chats/:id/message", async (req, res) => {
        * meaning what the panel says it means.
        */
       if (recalled.length) appdata.touchMemories(recalled.map((m) => m.id));
+      appdata.recordSpend(a.id, {
+        grantId: grant.grantId,
+        source: "chat",
+        label: appdata.chats(a.id).find((c) => c.id === req.params.id)?.title || null,
+        model: f.servedModel || null,
+        costMicro: f.costUsd == null ? 0 : Math.round(f.costUsd * 1e6),
+      });
     },
   });
 });
@@ -1082,9 +1089,33 @@ app.post("/app/api/docs/:id/ai", async (req, res) => {
       },
       { role: "user", content: instruction },
     ],
-    // Deliberately empty: the answer is shown, never saved. See above.
-    onAnswer: () => {},
+    /*
+     * The ANSWER is never saved — see above, the model proposes and the
+     * person decides. The CHARGE is, because it happened either way and a
+     * spend nobody can trace back to what caused it is the thing the ledger
+     * exists to prevent.
+     */
+    onAnswer: (f) => appdata.recordSpend(a.id, {
+      grantId: grant.grantId,
+      source: "docs",
+      label: doc.title,
+      model: f.servedModel || null,
+      costMicro: f.costUsd == null ? 0 : Math.round(f.costUsd * 1e6),
+    }),
   });
+});
+
+/*
+ * Where the money went.
+ *
+ * The grant says how much is left; only this says what spent the rest. It
+ * matters most for tasks, which are the one spend whose cause a person
+ * cannot reconstruct from memory because they were not there.
+ */
+app.get("/app/api/spend", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  res.json({ ok: true, ...appdata.spend(a.id, Number(req.query.limit) || 50) });
 });
 
 /*
@@ -1299,6 +1330,18 @@ async function runTask(task) {
     return fail(msg || `the network answered ${cap.statusCode}`, { pause: cap.statusCode === 402, status: cap.statusCode });
   }
   const output = parsed.choices?.[0]?.message?.content ?? "";
+  /*
+   * A task spends with nobody watching, which makes it the entry in this
+   * ledger that matters most: it is the only spend whose cause the person
+   * cannot reconstruct from memory.
+   */
+  appdata.recordSpend(task.accountId, {
+    grantId: grant.grantId,
+    source: "task",
+    label: task.title,
+    model: parsed.servedModel || null,
+    costMicro: parsed.costUsd == null ? 0 : Math.round(parsed.costUsd * 1e6),
+  });
   return { ok: true, task: appdata.recordRun(task.id, { ok: true, output }) };
 }
 

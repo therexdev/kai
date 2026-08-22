@@ -46,9 +46,13 @@ The shortest schedule is one hour. That is a limit for the wallet's sake, not th
 
 **Wallet** — what the site may spend, what it has spent, and what is left, including grants that have expired or been revoked.
 
+Underneath is **Where it went**: a line per request — which surface spent it, which model answered, when, and how much. Requests the free allowance covered appear at zero rather than not at all. This matters most for tasks: they run while you are not there, so the log is the only way that spend has an explanation. The most recent 500 requests are kept; each grant's own total above is the lifetime figure.
+
 ## Deleting what is stored
 
-The Wallet page has a button that removes every chat, document, task and memory this site holds for you. It is immediate and it cannot be undone.
+The Wallet page has a button that removes every chat, document, task, memory and spend record this site holds for you. It is immediate and it cannot be undone.
+
+The spend log goes with the rest, because it is a timestamped record of what you did here and a deletion that quietly kept it would not be one. Each grant's own lifetime spent total stays: that is a fact about a wallet rather than a record of your behaviour.
 
 It does **not** touch your account, your linked wallets or your spending grants. Those are identity and money rather than content — a separate decision, made in a separate place. Ending web access is the section below; unlinking a wallet is on your [account page](https://koinosai.com/account).
 
