@@ -1079,6 +1079,27 @@ app.post("/app/api/docs/:id/ai", async (req, res) => {
   });
 });
 
+/*
+ * Delete everything this account has here.
+ *
+ * The server now holds people's conversations, documents and the facts they
+ * asked it to remember. A product that keeps that has to offer a way to take
+ * it back, and the way has to be one action rather than a tour of four
+ * screens deleting items one at a time.
+ *
+ * It does NOT touch the account, its wallets or its grants. Those are
+ * identity and money — a different decision, made in a different place, and
+ * bundling them into one button is how somebody loses a wallet link they
+ * meant to keep. The response says exactly what went.
+ */
+app.delete("/app/api/data", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  try {
+    res.json({ ok: true, deleted: appdata.purgeAccount(a.id) });
+  } catch (e) { appBoom(res, e); }
+});
+
 /* ---------------------------------------------------------------- memory
  *
  * Short facts the assistant carries between conversations. Written by the

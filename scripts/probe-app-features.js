@@ -539,7 +539,31 @@ async function main() {
       "the question survives this refusal too");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n10) the browser is never handed its own session token");
+    console.log("\n10) deleting your data deletes your data — and nothing else");
+    r = await jsonReq(port, "GET", "/app/api/chats", { cookie: mine.cookie });
+    const beforeChats = r.json.chats.length;
+    check(beforeChats > 0, `there is something to delete (${beforeChats} chats)`);
+    check((await jsonReq(port, "DELETE", "/app/api/data", {})).status === 401, "signed out: refused");
+
+    r = await jsonReq(port, "DELETE", "/app/api/data", { cookie: mine.cookie });
+    check(r.status === 200, `the purge runs (got ${r.status})`);
+    check(r.json.deleted.chats === beforeChats, "…and reports what it removed");
+    check((await jsonReq(port, "GET", "/app/api/chats", { cookie: mine.cookie })).json.chats.length === 0, "chats are gone");
+    check((await jsonReq(port, "GET", "/app/api/docs", { cookie: mine.cookie })).json.docs.length === 0, "docs are gone");
+    check((await jsonReq(port, "GET", "/app/api/tasks", { cookie: mine.cookie })).json.tasks.length === 0, "tasks are gone");
+    check((await jsonReq(port, "GET", "/app/api/memory", { cookie: mine.cookie })).json.memories.length === 0, "memories are gone");
+    /*
+     * Identity and money are NOT content. Bundling them into the same button
+     * is how somebody loses a wallet link they meant to keep, so the purge
+     * must leave both standing — and be asserted to.
+     */
+    const after = await jsonReq(port, "GET", "/account/api", { cookie: mine.cookie });
+    check(after.status === 200, "the account still exists");
+    check(after.json.account.wallets.length === 4, `wallets untouched (${after.json.account.wallets.length})`);
+    check(after.json.account.grants.length === 4, `grants untouched (${after.json.account.grants.length})`);
+
+    /* ------------------------------------------------------------------ */
+    console.log("\n11) the browser is never handed its own session token");
     const shell = await jsonReq(port, "GET", "/app", { cookie: mine.cookie });
     check(shell.status === 200 && !shell.body.includes("sk_"), "no token in the shell");
     const clientJs = fs.readFileSync(path.join(ROOT, "views", "app.js"), "utf8");

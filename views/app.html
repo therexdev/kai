@@ -233,7 +233,14 @@ a{color:var(--violet)}
       <div id="wallet-body"></div>
       <div class="card">
         <h2>Changing or ending this</h2>
-        <p class="hint">Grants are created and revoked on your <a href="/account">account page</a>, where the wallet that owns them can sign. Revoking takes effect immediately.</p>
+        <p class="hint">Grants are created in the Koinos AI desktop app, which holds the wallet key, and revoked either there or on your <a href="/account">account page</a>. Revoking takes effect immediately.</p>
+      </div>
+
+      <div class="card warn">
+        <h2>Delete what is stored here</h2>
+        <p class="hint">Every chat, document, task and memory this site holds for you, gone. Your account, wallets and grants are untouched — those live elsewhere and ending them is a separate decision.</p>
+        <p style="margin-top:12px"><button class="btn small ghost" id="purge" type="button">Delete my chats, docs, tasks and memories</button></p>
+        <p class="hint" id="purge-note" style="margin-top:8px"></p>
       </div>
     </section>
   </main>
