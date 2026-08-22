@@ -61,6 +61,11 @@ a{color:var(--violet)}
  */
 .chat-main{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column}
 .new-chat{width:100%;text-align:left;margin-bottom:10px;padding:8px 10px;border:1px dashed var(--border);border-radius:8px;background:none;color:var(--dim);font:inherit;cursor:pointer}
+/* The collapse control is a PHONE control: at this width the rail is always
+   open and there is nothing to collapse. Without this it rendered as a raw
+   browser-default button above the list — it had no base rule at all, only a
+   phone one, so the desktop got the unstyled fallback. */
+.chat-switch{display:none}
 .new-chat:hover{border-color:var(--violet);color:var(--text)}
 .chat-row{display:flex;align-items:center;gap:6px;border-radius:8px}
 .chat-row:hover{background:var(--input)}
@@ -276,7 +281,7 @@ a{color:var(--violet)}
         </div>
         <textarea id="doc-body" class="doc-body" placeholder="Start writing. Select a passage and ask below, or ask about the whole thing."></textarea>
         <form class="composer" id="doc-ai-form">
-          <textarea id="doc-ai-input" rows="1" placeholder="Ask about this document — “tighten this”, “what am I missing?”"></textarea>
+          <textarea id="doc-ai-input" rows="1" placeholder="Ask about this document…"></textarea>
           <button class="btn" id="doc-ai-send" type="submit">Ask</button>
         </form>
         <p class="hint composer-note" id="doc-note"></p>
