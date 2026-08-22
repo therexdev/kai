@@ -95,6 +95,19 @@ a{color:var(--violet)}
 .task-card.paused{opacity:.7}
 .task-card.paused h2::after{content:" — paused";color:var(--danger);font-weight:400;font-size:.85em}
 .task-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+/* Memory sits beside the thread, collapsed by default. It is a thing you
+   set up occasionally and then forget — which is the point of it. */
+.memory-panel{width:250px;flex-shrink:0;border-left:1px solid var(--border);padding:12px 12px 16px;overflow-y:auto}
+.mem-toggle{width:100%;text-align:left;padding:7px 9px;border:0;border-radius:8px;background:var(--input);color:var(--text);font:inherit;font-weight:600;cursor:pointer;margin-bottom:10px}
+.mem-toggle::after{content:" ▾";color:var(--dim)}
+.mem-toggle.open::after{content:" ▴"}
+#mem-input{width:100%;resize:vertical;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font:inherit;font-size:.9em;margin:8px 0}
+.mem-item{display:flex;gap:6px;align-items:flex-start;font-size:.87em;padding:7px 0;border-bottom:1px solid var(--border)}
+.mem-item span{flex:1;overflow-wrap:anywhere}
+.mem-item .u{display:block;color:var(--dim);font-size:.85em;margin-top:2px}
+.mem-item button{border:0;background:none;color:var(--dim);cursor:pointer;padding:0 3px}
+.mem-item button:hover{color:var(--danger)}
+@media (max-width:900px){.memory-panel{display:none}}
 </style>
 </head>
 <body>
@@ -142,6 +155,17 @@ a{color:var(--violet)}
           <button class="btn" id="composer-send" type="submit">Send</button>
         </form>
         <p class="hint composer-note" id="chat-note"></p>
+      </div>
+      <div class="memory-panel" id="memory-panel">
+        <button class="mem-toggle" id="mem-toggle" type="button">Memory</button>
+        <div id="mem-body" hidden>
+          <p class="hint">Short facts carried into every chat where they are relevant — what you are working on, how you like answers written. You write them; nothing is inferred.</p>
+          <form id="mem-form">
+            <textarea id="mem-input" rows="2" placeholder="e.g. I run a Koinos node on a Raspberry Pi 5"></textarea>
+            <button class="btn small" type="submit">Remember this</button>
+          </form>
+          <div id="mem-list"></div>
+        </div>
       </div>
     </section>
 

@@ -1,7 +1,7 @@
 "use strict";
 
 /*
- * Probe: Chat, Docs and Tasks in the web app — task #79.
+ * Probe: Chat, Docs, Tasks and Memory in the web app — task #79.
  *
  * Boots the REAL server and drives a whole conversation through it, with a
  * FAKE WORKER on the other side actually answering. The point is the seam:
@@ -441,7 +441,60 @@ async function main() {
     check(paused.nextRunAt > Date.now(), "the clock moved forward even though the run failed");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n8) out of capacity is a refusal, not an overdraft");
+    console.log("\n8) memory is recalled by relevance, never wholesale");
+    r = await jsonReq(port, "POST", "/app/api/memory", { cookie: mine.cookie, body: { text: "I run a Koinos node on a Raspberry Pi 5." } });
+    check(r.status === 200 && r.json.memories.length === 1, "a memory can be saved");
+    await jsonReq(port, "POST", "/app/api/memory", { cookie: mine.cookie, body: { text: "My favourite colour is orange." } });
+    r = await jsonReq(port, "POST", "/app/api/memory", { cookie: mine.cookie, body: { text: "I run a Koinos node on a Raspberry Pi 5." } });
+    check(r.json.memories.length === 2, "saving the same thing twice is a no-op, not an error");
+    check((await jsonReq(port, "GET", "/app/api/memory", { cookie: other.cookie })).json.memories.length === 0,
+      "another account sees none of it");
+    check((await jsonReq(port, "DELETE", `/app/api/memory/${r.json.memories[0].id}`, { cookie: other.cookie })).status === 404,
+      "…and cannot delete one");
+
+    /*
+     * Recall runs in-process, so it can be asserted directly rather than
+     * inferred from what a model happened to say. This is the property that
+     * matters: a message about nodes must NOT drag in the colour memory.
+     */
+    const { AppData } = require(path.join(ROOT, "lib", "appdata"));
+    const store = new AppData({ stateDir });
+    const hits = store.recall(mine.id, "how do I check whether my node is earning?");
+    check(hits.length === 1, `only the relevant memory is recalled (got ${hits.length})`);
+    check(/Raspberry Pi/.test(hits[0]?.text || ""), "…and it is the right one");
+    check(store.recall(mine.id, "what is the weather").length === 0, "an unrelated message recalls nothing");
+    store.db.close();
+
+    // …and it really reaches a completed answer. A fourth wallet, same
+    // reason as the second and third: one free token per address per day.
+    const memAddr = Signer.fromSeed("probe app memory consumer").getAddress();
+    db.prepare("INSERT INTO wallets (address, account_id, linked_at) VALUES (?,?,?)").run(memAddr, mine.id, t);
+    db.prepare("INSERT INTO spend_grants (id, account_id, address, max_micro, spent_micro, created_at, expires_at) VALUES (?,?,?,?,?,?,?)")
+      .run("gr_mem", mine.id, memAddr, 5 * 1e6, 0, t, t + 86400e3);
+
+    const memChat = (await jsonReq(port, "POST", "/app/api/chats", { cookie: mine.cookie, body: {} })).json.chat.id;
+    m = await sse(port, `/app/api/chats/${memChat}/message`, mine.cookie,
+      { content: "Tell me about my node.", model: "koinos-fast", grantId: "gr_mem" });
+    check(m.status === 200, `a chat that touches memory runs (got ${m.status})`);
+    await new Promise((r2) => setTimeout(r2, 250));
+    r = await jsonReq(port, "GET", "/app/api/memory", { cookie: mine.cookie });
+    const used = r.json.memories.find((x) => /Raspberry Pi/.test(x.text));
+    check(used.uses === 1, `the recalled memory is marked used (uses=${used?.uses})`);
+    const unused = r.json.memories.find((x) => /orange/.test(x.text));
+    check(unused.uses === 0, "…and the irrelevant one was never sent");
+
+    // A use is counted when an ANSWER comes back, not when a memory is
+    // recalled — otherwise a refused request inflates the tally and the
+    // panel's "used 3×" stops meaning what it says.
+    const deadChat = (await jsonReq(port, "POST", "/app/api/chats", { cookie: mine.cookie, body: {} })).json.chat.id;
+    await sse(port, `/app/api/chats/${deadChat}/message`, mine.cookie,
+      { content: "Anything else about my node?", model: "koinos-smart", grantId: "gr_mem" });
+    r = await jsonReq(port, "GET", "/app/api/memory", { cookie: mine.cookie });
+    check(r.json.memories.find((x) => /Raspberry Pi/.test(x.text)).uses === 1,
+      "a refused request does not count as a use");
+
+    /* ------------------------------------------------------------------ */
+    console.log("\n9) out of capacity is a refusal, not an overdraft");
     /*
      * The grant says what the WEBSITE may spend. It does not conjure funds:
      * the wallet still has to have capacity in the scheduler's ledger — free
@@ -459,13 +512,13 @@ async function main() {
     check(m.status === 402, `refused with 402 when the wallet has nothing to draw on (got ${m.status})`);
     // Three jobs by now — chat, the docs ask, and the task run. This refusal
     // must add none: the point is that nothing is dispatched.
-    check(worker.served === 3, `and no worker was asked to do the work (served ${worker.served}, expected 3)`);
+    check(worker.served === 4, `and no worker was asked to do the work (served ${worker.served}, expected 4)`);
     r = await jsonReq(port, "GET", `/app/api/chats/${orphan}`, { cookie: mine.cookie });
     check(r.json.messages.length === 1 && r.json.messages[0].role === "user",
       "the question survives this refusal too");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n9) the browser is never handed its own session token");
+    console.log("\n10) the browser is never handed its own session token");
     const shell = await jsonReq(port, "GET", "/app", { cookie: mine.cookie });
     check(shell.status === 200 && !shell.body.includes("sk_"), "no token in the shell");
     const clientJs = fs.readFileSync(path.join(ROOT, "views", "app.js"), "utf8");

@@ -34,6 +34,10 @@ Open [koinosai.com/app](https://koinosai.com/app) in a browser where you are sig
 
 The model never edits the document by itself. That is deliberate: an assistant that rewrites your file the instant it finishes generating is one that can quietly destroy an hour of work. Insert and Replace go through the editor normally, so **Ctrl+Z** undoes them like anything else you typed.
 
+**Memory** — the panel beside Chat holds short facts you want carried between conversations: what you are working on, how you like answers written, your timezone. Write them yourself; nothing is inferred from what you say.
+
+They are recalled by relevance, not sent wholesale. A message about your node brings in the memory about your node and leaves the rest behind — which keeps the cost down and keeps answers focused. The panel shows how often each one has actually been used, so a memory that never earns its place is visible rather than silently ignored.
+
 **Tasks** — a prompt on a schedule: hourly, daily, weekly. These run on the server, so they run whether or not you have a window open. Each task names the grant it draws on when you create it, and pauses by itself the moment that grant is revoked, expires, or runs out — it will not quietly find another wallet to pay with. **Run now** takes exactly the same path a scheduled run takes, so it is a real rehearsal rather than a lookalike.
 
 The shortest schedule is one hour. That is a limit for the wallet's sake, not the server's: a five-minute task is a spend loop with a friendly name.
