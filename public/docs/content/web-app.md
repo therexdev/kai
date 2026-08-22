@@ -28,6 +28,8 @@ That signature names the wallet, the account, the cap and the expiry. Changing a
 
 Open [koinosai.com/app](https://koinosai.com/app) in a browser where you are signed in to your account. If you are not, it sends you to the sign-in page and brings you back.
 
+On a phone the layout folds: the navigation takes its own row so the amount you have left stays visible, the conversation list collapses to a single line showing which chat you are in (tap it to switch), and the composer stacks so the message box gets the width. **Enter inserts a newline on a phone** — use the Send button — while on a keyboard Enter sends and Shift+Enter breaks the line.
+
 **Chat** — ask, and the answer streams in as the model generates it. Conversations are kept on the server against your account, so the tab you left open on another machine has the same history. Each chat names itself from the first thing you said.
 
 The box beside the composer picks which class of model answers, with its price per million output tokens beside each name. **Best available** — the default — means whichever class someone is actually serving right now, priced highest first. Under every answer you get the class that produced it and what that answer cost, or "free allowance" when today's allowance covered it.

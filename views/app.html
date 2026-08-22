@@ -117,31 +117,71 @@ a{color:var(--violet)}
 /* ---------------------------------------------------------- narrow screens
  *
  * "Useful on a machine that cannot run models" includes a phone, so this has
- * to work at 380px. Three columns do not fit there and no amount of shrinking
- * makes them: the sidebar becomes a row of icons-with-labels across the top,
- * the conversation/document lists become a horizontal strip above the thread,
- * and the memory panel goes away entirely (it is a thing you set up once, and
- * setting it up on a laptop is fine).
+ * to work at 380px — and it is where the app was actually first used.
  */
 @media (max-width:900px){.memory-panel{display:none}}
 @media (max-width:760px){
-  #app{flex-direction:column}
-  aside{width:auto;flex-direction:row;align-items:center;gap:10px;padding:8px 10px;
-        border-right:0;border-bottom:1px solid var(--border);overflow-x:auto}
-  .brand{flex-shrink:0;font-size:.9em}
-  nav{flex-direction:row;gap:4px}
-  .nav-item{padding:6px 10px;font-size:.9em;white-space:nowrap}
-  /* The footer readout is the one thing that must survive: it is the balance.
-     It moves under the nav rather than disappearing with it. */
-  .foot{margin:0 0 0 auto;text-align:right;font-size:.72em;flex-shrink:0}
+  /*
+   * dvh, not %. A mobile browser's URL bar grows and shrinks, and 100% of a
+   * viewport that keeps changing size makes the whole PAGE scroll — the nav
+   * scrolls away and the composer wanders off the bottom. dvh tracks the bar.
+   */
+  html,body,#app{height:100dvh}
+  #app{flex-direction:column;min-height:0}
+
+  /*
+   * Two rows, not one scrolling line. The spend readout used to be pushed
+   * right with margin-left:auto inside a horizontally scrolling flex row,
+   * which does not put it "under the nav" as the old comment claimed — it
+   * shoves it off the right edge into the overflow, where the one number
+   * that must always be visible was invisible.
+   */
+  aside{width:auto;display:grid;grid-template-columns:minmax(0,1fr) auto;
+        align-items:center;gap:4px 10px;padding:8px 12px;
+        border-right:0;border-bottom:1px solid var(--border);overflow:visible}
+  .brand{font-size:.9em;padding:0}
+  .foot{margin:0;text-align:right;font-size:.72em;min-width:0}
   .foot p{display:none}
+  .foot #who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  nav{grid-column:1/-1;flex-direction:row;gap:4px;overflow-x:auto;scrollbar-width:none}
+  nav::-webkit-scrollbar{display:none}
+  .nav-item{padding:6px 10px;font-size:.9em;white-space:nowrap;flex:0 0 auto}
+
   .view{padding:20px 5%}
   .view.chat{flex-direction:column}
-  .chat-list{width:auto;max-height:33vh;border-right:0;border-bottom:1px solid var(--border)}
   .thread{padding:18px 5% 8px}
-  .composer,.composer-note,.doc-head,.doc-answer{padding-left:5%;padding-right:5%}
+  .composer-note,.doc-head,.doc-answer{padding-left:5%;padding-right:5%}
   .doc-body{padding:14px 5%}
   .gate{margin:6vh auto}
+
+  /*
+   * The conversation list COLLAPSES. Full height it ate a third of a phone
+   * screen before a single word of the answer — and the list is something you
+   * touch when switching chats, not while reading one. Collapsed it is one
+   * row: start a new chat, or tap the current title to pick another.
+   */
+  .chat-list{width:auto;max-height:none;border-right:0;border-bottom:1px solid var(--border);
+             display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 5%}
+  .chat-list.collapsed{overflow:visible}
+  .chat-list:not(.collapsed){max-height:45vh;overflow-y:auto}
+  .new-chat{width:auto;flex:0 0 auto;margin:0;padding:7px 11px}
+  .chat-switch{display:inline-flex;align-items:center;gap:6px;flex:1 1 120px;min-width:0;
+               padding:7px 11px;border:1px solid var(--border);border-radius:8px;
+               background:var(--input);color:var(--text);font:inherit;font-size:.88em;cursor:pointer}
+  .chat-switch span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+  .chat-list.collapsed .chat-row{display:none}
+  .chat-row{flex:1 1 100%}
+
+  /*
+   * The composer STACKS. At 380px a model picker, a message box and a Send
+   * button do not share a line: the box was crushed to about fifty pixels
+   * and its placeholder wrapped one character per line, which is what the
+   * first phone screenshot showed.
+   */
+  .composer{flex-wrap:wrap;gap:8px;padding:10px 5% 4px}
+  .composer select{max-width:none;flex:1 1 100%;order:1}
+  .composer textarea{flex:1 1 0;min-width:0;order:2}
+  .composer .btn{order:3;flex:0 0 auto}
 }
 </style>
 </head>
@@ -188,7 +228,7 @@ a{color:var(--violet)}
         <div class="thread" id="thread"></div>
         <form class="composer" id="composer">
           <select id="composer-model" title="Which class of model answers, and what it costs"></select>
-          <textarea id="composer-input" rows="1" placeholder="Ask anything — Enter to send, Shift+Enter for a new line"></textarea>
+          <textarea id="composer-input" rows="1" placeholder="Ask anything…"></textarea>
           <button class="btn" id="composer-send" type="submit">Send</button>
         </form>
         <p class="hint composer-note" id="chat-note"></p>

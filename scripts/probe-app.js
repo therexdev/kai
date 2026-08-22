@@ -204,12 +204,53 @@ async function main() {
     check(/desktop app/i.test(acctPage.body), "it says where a grant IS created");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n8) crawlers are told to stay out");
+    console.log("\n8) the phone layout, where this app was actually first used");
+    /*
+     * Textual, because these are stylesheet and event-handler facts rather
+     * than HTTP ones — but each pins a specific thing that WAS wrong on a
+     * real phone, so a silent regression is what these exist to catch.
+     */
+    const shellCss = fs.readFileSync(path.join(ROOT, "views", "app.html"), "utf8");
+    const clientJs = fs.readFileSync(path.join(ROOT, "views", "app.js"), "utf8");
+    const phone = shellCss.slice(shellCss.indexOf("@media (max-width:760px)"));
+    check(phone.length > 200, "there is a phone block at all");
+
+    // 100% of a viewport that resizes with the URL bar scrolls the whole PAGE,
+    // taking the nav with it.
+    check(/height:100dvh/.test(phone), "the phone layout is sized in dvh, not %");
+
+    // The balance was pushed off the right edge of a horizontally scrolling
+    // nav row. Nav on its own grid row is what puts it back on screen.
+    check(/nav\{grid-column:1\/-1/.test(phone.replace(/\s+/g, "")),
+      "the nav takes its own row so the spend readout is not scrolled off");
+
+    // A phone's Enter key is a newline and there is no Shift to hold, so
+    // Enter-to-send fired the message on the first paragraph break.
+    const enters = clientJs.match(/e\.key === "Enter"[^}]*?\)/g) || [];
+    check(enters.length >= 2, `both composers handle Enter (${enters.length})`);
+    check(enters.every((h) => h.includes("!narrow()")),
+      "…and neither sends on Enter on a phone");
+
+    // The long placeholder ran past the single visible row and was cut
+    // mid-word; it is set from JS so the phone gets a short one.
+    check(/placeholder = narrow\(\)/.test(clientJs), "the placeholder shortens on a phone");
+    // The markup ships the SHORT one so the first paint is right at any
+    // width; JS adds the keyboard hint on a wide screen.
+    check(/placeholder="Ask anything…"/.test(shellCss), "…and the markup ships the short one, so nothing flashes");
+
+    // The conversation list ate a third of the screen before a word of the
+    // answer. It collapses, and it must be able to open again.
+    check(/chat-list\.collapsed \.chat-row\{display:none\}/.test(phone.replace(/\s+/g, " ").replace(/ \{/g, "{").replace(/\{ /g, "{")),
+      "the conversation list collapses on a phone");
+    check(/classList\.toggle\("open"\)/.test(clientJs), "…and a control opens it again");
+
+    /* ------------------------------------------------------------------ */
+    console.log("\n9) crawlers are told to stay out");
     const robots = await raw(port, "/robots.txt");
     check(/^Disallow: \/app$/m.test(robots.body), "robots.txt disallows /app");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n9) server.js wiring, textually");
+    console.log("\n10) server.js wiring, textually");
     const src = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
     check(/VIEWS_DIR, "app\.html"/.test(src), "the shell is resolved out of VIEWS_DIR");
     check(!/PUBLIC_DIR, "app\.html"/.test(src), "and never out of PUBLIC_DIR");
