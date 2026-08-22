@@ -13,9 +13,16 @@ There are two ways in, and they are the same agent:
 
 Flip the **Koinos Code** switch in Settings and a **Koinos Code** entry appears in the sidebar.
 
+### Starting: pick a folder, or clone one
+
+Open **Koinos Code** and you get your projects and a **New chat** button. A new chat asks for a folder, two ways:
+
+- **Select a folder** — opens your computer's own folder picker. Choose one and you go straight into the conversation.
+- **Clone from GitHub** — give `owner/name` or a URL and a place to put it. It creates the folder, clones the repository, and opens it as a project. If you have connected an account it lists the repositories it can see, so you do not have to remember names.
+
 ### Projects
 
-Click **Add** and give the full path to a folder on this machine. That folder becomes a project, and the agent works inside it — never outside it.
+Each folder you pick becomes a project, and the agent works inside it — never outside it.
 
 - Add as many as you like and click between them.
 - **Rename** gives a project a friendlier name than its folder.
@@ -31,6 +38,37 @@ Click **New** for a fresh thread, or click an old session to read it back. Sessi
 ### Approving changes
 
 Unchanged, and it will stay unchanged: **every file change appears as a card with its diff, every command as a card with the exact line, and nothing happens until you press the button.** Deny leaves the disk untouched and the agent is told honestly. A card nobody answers times out as a deny after five minutes. There is deliberately no "approve everything" switch in the app.
+
+### Plan first (v0.38.0+)
+
+Tick **Plan first** under the message box and Koinos Code reads your project and writes a numbered plan *before* changing anything. Approve the plan and it does the work; discard it and nothing happened.
+
+It cannot make changes while planning — in that mode it simply has no tools that write files or run commands. This is the single best thing you can do for answer quality with a smaller local model: one that reads and thinks first goes wrong far less often than one improvising step by step.
+
+### Slash commands (v0.39.0+)
+
+Put a markdown file in `.koinos/commands/` inside your project and it becomes a command. `.koinos/commands/review.md` gives you `/review`; type `/` in the message box to see what a project has.
+
+```
+# Review a file
+Read $ARGUMENTS and list any bugs, unclear names, or missing error handling.
+```
+
+`$ARGUMENTS` is replaced by whatever you type after the command. If a template does not mention `$ARGUMENTS`, what you typed is added at the end, so it is never silently dropped.
+
+**A command is a prompt, not a program.** It changes what Koinos Code is *asked* — it cannot run anything or unlock anything by itself. Every file change and command it then proposes still comes to you as a card. That matters because these files travel inside repositories: opening someone else's project can never execute their instructions.
+
+### Tools (v0.38.0+)
+
+**Tools…** next to the message box lends this project tools from the rest of the app — MCP servers you have added, memory, and the built-ins.
+
+Off by default, and you pick per project. There is a limit of 8, deliberately: a small local model cannot hold thirty tool descriptions *and* your actual task in its context, so handing it everything makes it worse rather than better. Anything marked **asks first** still shows you a card before it runs, and in Local-Only mode tools that would leave your machine are not offered at all.
+
+### Helpers (v0.39.0+)
+
+For big jobs, Koinos Code can hand a self-contained piece of work to a helper that reports back one answer — useful when something needs a lot of reading that would otherwise crowd out the task.
+
+A helper is always *less* able than the agent that called it: its file changes still come to **you** as cards in the same conversation, it does not get the tools you lent the project, and it cannot spawn helpers of its own.
 
 ## GitHub (v0.36.0+)
 
@@ -53,7 +91,12 @@ Each of these happens because you clicked it. The agent proposes edits through i
 
 ## How this compares to Claude Code
 
-Honestly: the shape matches — its own place in the app, many projects, sessions that remember, an agent that edits and runs commands behind approval gates, a terminal CLI, and GitHub. What it does **not** have yet: subagents, hooks, custom slash commands, MCP tools inside the coding agent, plan mode, and background tasks.
+The shape matches, and as of v0.39.0 so does most of the substance: its own place in the app, many projects, sessions that remember, plan mode, MCP tools, slash commands, helpers, an agent that edits and runs commands behind approval gates, a terminal CLI, and GitHub.
+
+Two differences remain, both on purpose:
+
+- **Background tasks** — a run that keeps going after you close the window. Not built yet.
+- **Hooks** — commands that fire automatically at certain moments. **Deliberately not built.** A hooks file would live inside a repository, so cloning someone else's project could run their commands on your machine before you had read a line of it. If you want "always run the tests after an edit", write it as a note in `KOINOS.md` and Koinos Code will propose it as a command you approve.
 
 The other real difference is the model. Koinos Code runs on whatever your local gateway serves. That is the point — your machine, your model, no bill — but a small local model genuinely behaves differently from a large hosted one. Give it smaller, clearer tasks and the results are much better.
 
