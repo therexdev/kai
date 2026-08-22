@@ -612,6 +612,59 @@ function wireDocs() {
   $("doc-dismiss").addEventListener("click", () => { hideAnswer(); docNote(""); });
 }
 
+/* ---------------------------------------------------------------- memory */
+
+const memory = { list: [] };
+
+async function loadMemory() {
+  const { memories } = await api("/app/api/memory");
+  memory.list = memories;
+  paintMemory();
+}
+
+function paintMemory() {
+  const el = $("mem-list");
+  if (!memory.list.length) {
+    el.innerHTML = `<p class="hint" style="margin-top:10px">Nothing remembered yet.</p>`;
+    return;
+  }
+  el.innerHTML = memory.list.map((m) => `
+    <div class="mem-item" data-id="${esc(m.id)}">
+      <span>${esc(m.text)}<i class="u">${m.uses ? `used ${m.uses}×` : "not used yet"}</i></span>
+      <button title="Forget this">✕</button>
+    </div>`).join("");
+  for (const row of el.querySelectorAll(".mem-item")) {
+    row.querySelector("button").onclick = async () => {
+      try {
+        const { memories } = await api(`/app/api/memory/${encodeURIComponent(row.dataset.id)}`, undefined, "DELETE");
+        memory.list = memories;
+        paintMemory();
+      } catch (e) { note(e.message, true); }
+    };
+  }
+}
+
+function wireMemory() {
+  const body = $("mem-body");
+  const toggle = $("mem-toggle");
+  toggle.addEventListener("click", () => {
+    body.hidden = !body.hidden;
+    toggle.classList.toggle("open", !body.hidden);
+    if (!body.hidden) loadMemory().catch((e) => note(e.message, true));
+  });
+  $("mem-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = $("mem-input").value.trim();
+    if (!text) return;
+    try {
+      const { memories } = await api("/app/api/memory", { text });
+      memory.list = memories;
+      $("mem-input").value = "";
+      paintMemory();
+    } catch (e2) { note(e2.message, true); }
+  });
+}
+
 /* ----------------------------------------------------------------- tasks */
 
 const tasks = { list: [], busy: false };
@@ -748,6 +801,7 @@ function boot() {
   wireComposer();
   wireDocs();
   wireTasks();
+  wireMemory();
 
   load()
     .then(() => show(location.hash.slice(1) || "chat"))

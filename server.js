@@ -917,15 +917,48 @@ app.post("/app/api/chats/:id/message", async (req, res) => {
     appdata.autoTitle(a.id, req.params.id, text);
   } catch (e) { return appBoom(res, e); }
 
+  /*
+   * Memory rides in as a system turn, and only when the message actually
+   * touches it. Sending everything remembered on every message would cost
+   * real money per token and bury the question the person asked — and a
+   * model handed forty unrelated facts answers worse, not better.
+   *
+   * It is prepended, not appended: a fact stated after the conversation
+   * would read as the most recent thing said, which is not what it is.
+   */
+  const recalled = appdata.recall(a.id, text);
+  const preamble = recalled.length
+    ? [{
+        role: "system",
+        content:
+          "Things this person has asked you to remember about them:\n" +
+          recalled.map((m) => `- ${m.text}`).join("\n") +
+          "\n\nUse these only where they are relevant. Do not mention this list.",
+      }]
+    : [];
+
   await askNetwork(req, res, {
     grant,
     model: req.body?.model,
-    messages: [...history.map((m) => ({ role: m.role, content: m.content })), { role: "user", content: text }],
-    onAnswer: (f) => appdata.addMessage(a.id, req.params.id, {
-      role: "assistant",
-      content: String(f.output),
-      servedModel: f.servedModel || null,
-    }),
+    messages: [
+      ...preamble,
+      ...history.map((m) => ({ role: m.role, content: m.content })),
+      { role: "user", content: text },
+    ],
+    onAnswer: (f) => {
+      appdata.addMessage(a.id, req.params.id, {
+        role: "assistant",
+        content: String(f.output),
+        servedModel: f.servedModel || null,
+      });
+      /*
+       * Count the use only when an answer actually came back. Marking it at
+       * recall time would tally memories against requests the model never
+       * saw — a refused payment, nobody online — and "used 12×" would stop
+       * meaning what the panel says it means.
+       */
+      if (recalled.length) appdata.touchMemories(recalled.map((m) => m.id));
+    },
   });
 });
 
@@ -1043,6 +1076,35 @@ app.post("/app/api/docs/:id/ai", async (req, res) => {
     // Deliberately empty: the answer is shown, never saved. See above.
     onAnswer: () => {},
   });
+});
+
+/* ---------------------------------------------------------------- memory
+ *
+ * Short facts the assistant carries between conversations. Written by the
+ * person, deleted by the person, and injected into a chat only when the
+ * message actually touches them.
+ */
+
+app.get("/app/api/memory", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  res.json({ ok: true, memories: appdata.memories(a.id) });
+});
+
+app.post("/app/api/memory", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  try {
+    res.json({ ok: true, memories: appdata.addMemory(a.id, req.body?.text) });
+  } catch (e) { appBoom(res, e); }
+});
+
+app.delete("/app/api/memory/:id", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  try {
+    res.json({ ok: true, memories: appdata.deleteMemory(a.id, req.params.id) });
+  } catch (e) { appBoom(res, e); }
 });
 
 /* ----------------------------------------------------------------- tasks
