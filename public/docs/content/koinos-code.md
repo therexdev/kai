@@ -18,7 +18,7 @@ Flip the **Koinos Code** switch in Settings and a **Koinos Code** entry appears 
 Open **Koinos Code** and you get your projects and a **New chat** button. A new chat asks for a folder, two ways:
 
 - **Select a folder** — opens your computer's own folder picker. Choose one and you go straight into the conversation.
-- **Clone from GitHub** — give `owner/name` or a URL and a place to put it. It creates the folder, clones the repository, and opens it as a project. If you have connected an account it lists the repositories it can see, so you do not have to remember names.
+- **Clone from GitHub** — give `owner/name` or a URL, then click **Select a folder…** for where it should go. The same folder window as above, not a path you have to type. It creates the folder, clones the repository, and opens it as a project. If you have connected an account it lists the repositories it can see, so you do not have to remember names.
 
 ### Projects
 
@@ -58,6 +58,12 @@ Read $ARGUMENTS and list any bugs, unclear names, or missing error handling.
 
 **A command is a prompt, not a program.** It changes what Koinos Code is *asked* — it cannot run anything or unlock anything by itself. Every file change and command it then proposes still comes to you as a card. That matters because these files travel inside repositories: opening someone else's project can never execute their instructions.
 
+### Which model does the work (v0.40.0+)
+
+The **Model** box next to the message box says which model is doing the work, and lets you change it. Each project remembers its own choice, so a large repository can use a bigger model than a scratch folder. Leave it on **App default** and it follows whatever Chat is set to.
+
+Only models on **this machine** are offered, and that is deliberate — it is the one place Koinos Code does *not* copy Chat. The coding agent reads your project's files into every prompt it sends, so offering the Koinos Network here would put your private source on other people's computers as a side effect of picking a faster box. If you pin a model and later delete it, the run says so and falls back to the app's model rather than refusing to start.
+
 ### Tools (v0.38.0+)
 
 **Tools…** next to the message box lends this project tools from the rest of the app — MCP servers you have added, memory, and the built-ins.
@@ -91,7 +97,7 @@ Each of these happens because you clicked it. The agent proposes edits through i
 
 ## How this compares to Claude Code
 
-The shape matches, and as of v0.39.0 so does most of the substance: its own place in the app, many projects, sessions that remember, plan mode, MCP tools, slash commands, helpers, an agent that edits and runs commands behind approval gates, a terminal CLI, and GitHub.
+The shape matches, and as of v0.40.0 so does most of the substance: its own place in the app, many projects, sessions that remember, plan mode, MCP tools, slash commands, helpers, a per-project model, an agent that edits and runs commands behind approval gates, a terminal CLI, and GitHub.
 
 Two differences remain, both on purpose:
 
@@ -186,6 +192,10 @@ Koinos Code is honest about its engine: a 1–4 GB local model handles small, co
 - Set your privacy mode to Local-First or Network and pass `--model koinos-network` — the same task runs on the network's larger models and settles in KAI.
 - Keep tasks small and specific. The agent reads before it writes, so "change the timeout in the fetch helper to 30s" beats "make networking better".
 
+**A note on what small models get wrong, and what v0.40.0 does about it.** To use a tool the model has to write a small piece of JSON, and asking a 4B model to fit an entire HTML page inside one — escaping every quote and newline by hand — is asking for something it cannot reliably do. When it got that wrong the old behaviour was bad: the half-written instruction was printed at you as though it were the answer, no approval card ever appeared, and nothing was written. Worse, the model would then tell you the file existed.
+
+Now the instruction is repaired and carried out, so you get the approval card you were always supposed to get. And if the agent ever claims to have written a file when nothing reached your disk, the answer says so plainly. **Your approval is still the only thing that writes anything** — a repaired instruction shows you the same full diff as any other, so if the repair got it wrong, you see wrong content and say no.
+
 ## Prefer no terminal? It's in the app too (v0.32.0+)
 
 The same agent lives under **Developer Tools → Koinos Code** in the app: point it at a project folder, type the task, and approve each diff or command as a card instead of a `[y/N]` prompt. See the **Developer Tools** page in this sidebar.
@@ -195,3 +205,5 @@ The same agent lives under **Developer Tools → Koinos Code** in the app: point
 - **"cannot reach the Koinos AI gateway"** — the app isn't running, or it's on a different port. Start the app, or pass `--url`.
 - **"the gateway lists no models"** — download a model in the app's Models view first.
 - **Edits are refused with "no terminal to ask on"** — you piped the CLI or ran it from a script; pass `--yes` to pre-approve edits there.
+- **It answered with a block of JSON instead of doing anything** — fixed in v0.40.0. Update the app. If you still see it, the tool it reached for genuinely does not exist (for example an editing tool while **Plan first** is ticked), and it will now say so instead of printing the attempt.
+- **It said it created a file that isn't there** — also v0.40.0. The answer now tells you outright when nothing was written. A file only ever appears after you approve its card.
