@@ -32,6 +32,10 @@ const net = require("net");
 const os = require("os");
 const path = require("path");
 const { Signer } = require("koilib");
+// Hoisted: sections 7 and 8 both open the store directly to assert things
+// that only exist in-process — a claim race and a recall ranking. Requiring
+// it inside one of them put the other in its temporal dead zone.
+const { AppData } = require(path.join(__dirname, "..", "lib", "appdata"));
 
 let failures = 0;
 function check(cond, label) {
@@ -459,7 +463,47 @@ async function main() {
     const paused = r.json.tasks.find((x) => x.id === taskId);
     check(paused.enabled === false, "…and PAUSES the task rather than retrying forever");
     check(/paused/i.test(String(paused.lastError || "")), "with an error that says so");
-    check(paused.nextRunAt > Date.now(), "the clock moved forward even though the run failed");
+    check(paused.nextRunAt > Date.now(), "the clock is still forward of now");
+
+    /*
+     * THE DOUBLE-SPEND RACE. A run can take three minutes (the consume path
+     * waits that long for a provider) while the runner ticks every one, and
+     * setInterval does not wait for an async callback. Without an atomic
+     * claim, tick N+1 finds a task tick N is still executing, sees it as due,
+     * and charges for it twice — by accident, on the one feature that spends
+     * with nobody watching.
+     *
+     * Driven against the store directly, because that is where the guard
+     * lives: the UPDATE's WHERE re-checks the due time inside sqlite, so of
+     * two callers racing exactly one can win.
+     */
+    const store2 = new AppData({ stateDir });
+    const raceId = (await jsonReq(port, "POST", "/app/api/tasks", {
+      cookie: mine.cookie,
+      body: { title: "Race", prompt: "hi", everyMinutes: 60, grantId: "gr_docs" },
+    })).json.task.id;
+    // Make it due, the way the passage of an hour would.
+    store2.db.prepare("UPDATE tasks SET next_run_at = ? WHERE id = ?").run(Date.now() - 1000, raceId);
+    check(store2.dueTasks(Date.now()).some((x) => x.id === raceId), "the task is due");
+    const first = store2.claimTask(raceId);
+    const second = store2.claimTask(raceId);
+    check(first === true, "the first claim wins");
+    check(second === false, "…and the second does NOT — no double run, no double charge");
+    check(store2.task(mine.id, raceId).nextRunAt > Date.now(), "the claim moved the clock, before the work");
+    check(!store2.dueTasks(Date.now()).some((x) => x.id === raceId), "…so it is no longer due");
+    // A paused task cannot be claimed at all.
+    store2.db.prepare("UPDATE tasks SET next_run_at = ?, enabled = 0 WHERE id = ?").run(Date.now() - 1000, raceId);
+    check(store2.claimTask(raceId) === false, "a paused task cannot be claimed");
+    store2.db.close();
+
+    // A manual run leaves the SCHEDULE alone — running something by hand is
+    // not a statement about when it should next run by itself.
+    const beforeManual = (await jsonReq(port, "GET", "/app/api/tasks", { cookie: mine.cookie }))
+      .json.tasks.find((x) => x.id === taskId).nextRunAt;
+    await jsonReq(port, "POST", `/app/api/tasks/${taskId}/run`, { cookie: mine.cookie, body: {} });
+    const afterManual = (await jsonReq(port, "GET", "/app/api/tasks", { cookie: mine.cookie }))
+      .json.tasks.find((x) => x.id === taskId).nextRunAt;
+    check(afterManual === beforeManual, "a manual run does not move the schedule");
 
     /* ------------------------------------------------------------------ */
     console.log("\n8) memory is recalled by relevance, never wholesale");
@@ -478,7 +522,6 @@ async function main() {
      * inferred from what a model happened to say. This is the property that
      * matters: a message about nodes must NOT drag in the colour memory.
      */
-    const { AppData } = require(path.join(ROOT, "lib", "appdata"));
     const store = new AppData({ stateDir });
     const hits = store.recall(mine.id, "how do I check whether my node is earning?");
     check(hits.length === 1, `only the relevant memory is recalled (got ${hits.length})`);

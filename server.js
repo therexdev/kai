@@ -1305,16 +1305,33 @@ async function runTask(task) {
  */
 const TASK_TICK_MS = Number(process.env.KAI_TASK_TICK_MS || 60000);
 if (appdata && accounts) {
+  /*
+   * One tick at a time. setInterval does not wait for an async callback, and
+   * a tick that is still running a 180s job when the next fires would have two
+   * passes walking the same due list. The claim below makes a double RUN
+   * impossible; this just stops the pile-up that would make it likely.
+   */
+  let ticking = false;
   const tick = async () => {
-    let due = [];
-    try { due = appdata.dueTasks(Date.now(), 10); } catch { return; }
-    for (const t of due) {
-      try {
-        const r = await runTask(t);
-        if (!r.ok) console.log(`[tasks] ${t.id} failed: ${r.error}`);
-      } catch (e) {
-        console.error(`[tasks] ${t.id} threw:`, e.message);
+    if (ticking) return;
+    ticking = true;
+    try {
+      let due = [];
+      try { due = appdata.dueTasks(Date.now(), 10); } catch { return; }
+      for (const t of due) {
+        // Claim before running: the UPDATE's WHERE re-checks the due time, so
+        // of any two callers racing exactly one wins. A lost claim is not an
+        // error — it means someone else has it.
+        if (!appdata.claimTask(t.id)) continue;
+        try {
+          const r = await runTask(t);
+          if (!r.ok) console.log(`[tasks] ${t.id} failed: ${r.error}`);
+        } catch (e) {
+          console.error(`[tasks] ${t.id} threw:`, e.message);
+        }
       }
+    } finally {
+      ticking = false;
     }
   };
   const timer = setInterval(() => { tick().catch((e) => console.error("[tasks] tick:", e.message)); }, TASK_TICK_MS);
