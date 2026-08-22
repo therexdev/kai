@@ -568,20 +568,45 @@ async function loadDocs(select) {
   await openDoc(docs.current);
 }
 
+/*
+ * The same rail, and the same phone problem, as the conversation list: five
+ * documents ate the top third of the screen above the thing you came here to
+ * write in. It folds down to a single button naming the open document, for
+ * the same reason and by the same mechanism.
+ */
 function paintDocList() {
   const el = $("doc-list");
-  el.innerHTML = `<button class="new-chat" id="new-doc">+ New document</button>` +
+  const here = docs.list.find((d) => d.id === docs.current);
+  // Preserve the open/closed state across repaints — this repaints on every
+  // rename, and a list that reopened itself mid-title would be maddening.
+  const open = el.classList.contains("open");
+  el.className = `chat-list${narrow() && !open ? " collapsed" : ""}${open ? " open" : ""}`;
+  el.innerHTML =
+    `<button class="new-chat" id="new-doc">+ New document</button>` +
+    `<button class="chat-switch" id="doc-switch"><span>${esc(here ? here.title : "No documents yet")}</span>▾</button>` +
     docs.list.map((d) => `
       <div class="chat-row${d.id === docs.current ? " active" : ""}" data-id="${esc(d.id)}">
         <button class="pick" title="${esc(d.title)}">${esc(d.title)}</button>
       </div>`).join("");
   $("new-doc").onclick = newDoc;
+  $("doc-switch").onclick = () => {
+    el.classList.toggle("open");
+    el.classList.toggle("collapsed");
+  };
   for (const row of el.querySelectorAll(".chat-row")) {
     const did = row.dataset.id;
     // Switching documents flushes first: an autosave still on its timer
     // would otherwise land AFTER the next document loads and write this
     // one's text into that one.
-    row.querySelector(".pick").onclick = async () => { await flushDoc(); docs.current = did; paintDocList(); openDoc(did); };
+    row.querySelector(".pick").onclick = async () => {
+      await flushDoc();
+      docs.current = did;
+      // Picking one ends the switching: fold the list away so the editor
+      // gets the screen back.
+      el.classList.remove("open");
+      paintDocList();
+      openDoc(did);
+    };
   }
 }
 
@@ -743,6 +768,19 @@ function wireDocs() {
   });
 
   const input = $("doc-ai-input");
+  /*
+   * Same rule as the chat composer: the markup ships the short placeholder so
+   * the first paint is right at any width, and the examples are ADDED on a
+   * wide screen. The long one ran past the single visible row on a phone and
+   * was cut mid-word, which made it look like a bug rather than a hint.
+   */
+  const setDocHint = () => {
+    input.placeholder = narrow()
+      ? "Ask about this document…"
+      : "Ask about this document — \u201Ctighten this\u201D, \u201Cwhat am I missing?\u201D";
+  };
+  setDocHint();
+  window.addEventListener("resize", setDocHint);
   input.addEventListener("keydown", (e) => {
     // Same as the chat composer: a phone's Enter is a newline, not a send.
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !narrow()) {

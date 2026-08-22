@@ -261,6 +261,23 @@ async function main() {
       "the conversation list collapses on a phone");
     check(/classList\.toggle\("open"\)/.test(clientJs), "…and a control opens it again");
 
+    // The collapse control is phone-only and had NO base rule, so a desktop
+    // rendered the raw browser-default button above the rail. Shipped that
+    // way in the first phone pass and only caught it by rendering at 1280.
+    check(/\.chat-switch\{display:none\}/.test(shellCss.replace(/\s+/g, "")),
+      "the collapse control is hidden at desktop width");
+
+    // Docs is the same rail with the same problem: five documents ate the top
+    // third of the screen above the editor, with no way to fold them away.
+    check(/id="doc-switch"/.test(clientJs), "the document list collapses too");
+    check(/No documents yet/.test(clientJs), "…and says so when there is nothing to switch to");
+    // Same long-placeholder cut as the chat composer had.
+    check(/placeholder = narrow\(\)\s*\n?\s*\?\s*"Ask about this document…"/.test(clientJs)
+      || /narrow\(\)[\s\S]{0,40}"Ask about this document…"/.test(clientJs),
+      "the docs placeholder shortens on a phone");
+    check(/placeholder="Ask about this document…"/.test(shellCss),
+      "…and the markup ships the short one there too");
+
     /* ------------------------------------------------------------------ */
     console.log("\n9) the conversation scrolls, the page does not");
 
