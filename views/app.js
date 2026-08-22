@@ -121,6 +121,7 @@ function show(view) {
       : "You have no wallet linked to this account yet.";
   }
   if (view === "wallet") paintWallet();
+  if (view === "chat") loadChats().catch((e) => note(e.message, true));
   if (location.hash !== `#${view}`) history.replaceState(null, "", `#${view}`);
 }
 
@@ -165,6 +166,211 @@ function paintWallet() {
       : "");
 }
 
+/* ------------------------------------------------------------------ chat */
+
+const chat = { list: [], current: null, messages: [], busy: false };
+
+function note(text, bad) {
+  const el = $("chat-note");
+  el.textContent = text || "";
+  el.style.color = bad ? "var(--danger)" : "";
+}
+
+async function loadChats(select) {
+  const { chats } = await api("/app/api/chats");
+  chat.list = chats;
+  if (select) chat.current = select;
+  if (!chat.current || !chats.some((c) => c.id === chat.current)) chat.current = chats[0]?.id || null;
+  paintChatList();
+  await loadThread();
+}
+
+function paintChatList() {
+  const el = $("chat-list");
+  el.innerHTML = `<button class="new-chat" id="new-chat">+ New chat</button>` +
+    chat.list.map((c) => `
+      <div class="chat-row${c.id === chat.current ? " active" : ""}" data-id="${esc(c.id)}">
+        <button class="pick" title="${esc(c.title)}">${esc(c.title)}</button>
+        <button class="del" title="Delete this chat">✕</button>
+      </div>`).join("");
+  $("new-chat").onclick = newChat;
+  for (const row of el.querySelectorAll(".chat-row")) {
+    const cid = row.dataset.id;
+    row.querySelector(".pick").onclick = () => { chat.current = cid; paintChatList(); loadThread(); };
+    row.querySelector(".del").onclick = () => removeChat(cid);
+  }
+}
+
+async function newChat() {
+  if (chat.busy) return;
+  try {
+    const { chat: c } = await api("/app/api/chats", {});
+    await loadChats(c.id);
+    $("composer-input").focus();
+  } catch (e) { note(e.message, true); }
+}
+
+async function removeChat(cid) {
+  const c = chat.list.find((x) => x.id === cid);
+  // Deleting a conversation is not undoable and the button is one pixel from
+  // the one that opens it, so it asks — but only when there is something to
+  // lose. Confirming the deletion of an empty chat is just noise.
+  if (c && c.messages > 0 && !confirm(`Delete "${c.title}"? The messages in it go too.`)) return;
+  try {
+    const { chats } = await api(`/app/api/chats/${encodeURIComponent(cid)}`, undefined, "DELETE");
+    chat.list = chats;
+    if (chat.current === cid) chat.current = chats[0]?.id || null;
+    paintChatList();
+    await loadThread();
+  } catch (e) { note(e.message, true); }
+}
+
+async function loadThread() {
+  const t = $("thread");
+  if (!chat.current) {
+    chat.messages = [];
+    t.innerHTML = `<div class="empty"><p>Nothing here yet.</p><p class="hint" style="margin-top:8px">Every answer is generated on someone else's machine and paid for from your spending limit. Start a chat and ask something.</p></div>`;
+    return;
+  }
+  try {
+    const { messages } = await api(`/app/api/chats/${encodeURIComponent(chat.current)}`);
+    chat.messages = messages;
+  } catch (e) {
+    chat.messages = [];
+    note(e.message, true);
+  }
+  paintThread();
+}
+
+function msgHtml(m) {
+  const meta = m.servedModel ? `<div class="meta">answered by ${esc(m.servedModel)}</div>` : "";
+  return `<div class="msg ${m.role === "user" ? "user" : "bot"}${m.error ? " err" : ""}">
+    <div class="who">${m.role === "user" ? "You" : "Koinos AI"}</div>
+    <div class="body">${esc(m.content)}</div>${meta}
+  </div>`;
+}
+
+function paintThread(pending) {
+  const t = $("thread");
+  if (!chat.messages.length && !pending) {
+    t.innerHTML = `<div class="empty"><p>Ask anything.</p><p class="hint" style="margin-top:8px">Answers come from models running on the Koinos Network — real machines, paid per token from the limit you authorised.</p></div>`;
+    return;
+  }
+  t.innerHTML = chat.messages.map(msgHtml).join("") + (pending || "");
+  t.scrollTop = t.scrollHeight;
+}
+
+/**
+ * Send, and stream the answer in as it is generated.
+ *
+ * The reply is stored server-side the moment it completes, so what is drawn
+ * here is a live view of something already durable — a closed tab loses the
+ * animation, not the answer.
+ */
+async function send(text) {
+  if (chat.busy) return;
+  if (!chat.current) {
+    try {
+      const { chat: c } = await api("/app/api/chats", {});
+      await loadChats(c.id);
+    } catch (e) { return note(e.message, true); }
+  }
+  chat.busy = true;
+  $("composer-send").disabled = true;
+  note("");
+  chat.messages.push({ role: "user", content: text, servedModel: null });
+  let answer = "";
+  const draw = () => paintThread(
+    `<div class="msg bot"><div class="who">Koinos AI</div><div class="body">${esc(answer)}${answer ? "" : '<span class="dots"></span>'}</div></div>`
+  );
+  draw();
+
+  try {
+    const res = await fetch(`/app/api/chats/${encodeURIComponent(chat.current)}/message`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: text, grantId: state.grant?.id }),
+    });
+    if (res.status === 401) { location.replace("/account?next=/app"); return; }
+    /*
+     * The error path is NOT a stream. A refusal — no grant, cap reached,
+     * nobody online — comes back as JSON with a status, because a failure
+     * dressed up as an empty stream is how you get a spinner that never
+     * resolves and no explanation anywhere.
+     */
+    if (!res.ok || !/text\/event-stream/.test(res.headers.get("content-type") || "")) {
+      const j = await res.json().catch(() => ({}));
+      // Two error shapes reach here: this app's routes answer {error: "..."}
+      // and the scheduler answers OpenAI-style {error: {message, type}}.
+      // Both are real; read whichever arrived rather than guessing.
+      const msg = typeof j.error === "string" ? j.error : j.error?.message;
+      throw new Error(msg || `the network answered ${res.status}`);
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const frames = buf.split("\n\n");
+      buf = frames.pop() || "";
+      for (const f of frames) {
+        const line = f.split("\n").find((x) => x.startsWith("data: "));
+        if (!line) continue;
+        const payload = line.slice(6);
+        if (payload === "[DONE]") continue;
+        let d;
+        try { d = JSON.parse(payload); } catch { continue; }
+        if (d.error) throw new Error(typeof d.error === "string" ? d.error : d.error.message || "the network refused that");
+        if (typeof d.delta === "string") { answer += d.delta; draw(); }
+        if (d.done) {
+          answer = String(d.output ?? answer);
+          chat.messages.push({ role: "assistant", content: answer, servedModel: d.servedModel || null });
+          paintThread();
+          if (d.servedModel) note(`Answered by ${d.servedModel}.`);
+        }
+      }
+    }
+    if (!chat.messages.length || chat.messages[chat.messages.length - 1].role !== "assistant") {
+      throw new Error("the stream ended before an answer arrived");
+    }
+    // The reply cost money, so the number in the corner is now wrong.
+    load().catch(() => {});
+    loadChats(chat.current).catch(() => {});
+  } catch (e) {
+    chat.messages.push({ role: "assistant", content: e.message, servedModel: null, error: true });
+    paintThread();
+    note(e.message, true);
+  } finally {
+    chat.busy = false;
+    $("composer-send").disabled = false;
+    $("composer-input").focus();
+  }
+}
+
+function wireComposer() {
+  const input = $("composer-input");
+  const grow = () => { input.style.height = "auto"; input.style.height = Math.min(200, input.scrollHeight) + "px"; };
+  input.addEventListener("input", grow);
+  input.addEventListener("keydown", (e) => {
+    // Enter sends, Shift+Enter is a newline. IME composition must not send —
+    // pressing Enter to accept a candidate character is not pressing send.
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      $("composer").requestSubmit();
+    }
+  });
+  $("composer").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    grow();
+    send(text);
+  });
+}
+
 /* ------------------------------------------------------------------ boot */
 
 function boot() {
@@ -172,6 +378,7 @@ function boot() {
     btn.addEventListener("click", () => show(btn.dataset.view));
   }
   window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+  wireComposer();
 
   load()
     .then(() => show(location.hash.slice(1) || "chat"))

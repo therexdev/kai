@@ -23,6 +23,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const crypto = require("crypto");
+const { Readable } = require("stream");
 const express = require("express");
 const auth = require("./lib/auth");
 const store = require("./lib/store");
@@ -132,6 +133,14 @@ app.use("/scheduler", (req, res) => {
   });
 });
 
+/*
+ * The web app's own API carries prose — a pasted document, a long question —
+ * so it needs headroom the rest of the site does not. Registered BEFORE the
+ * 10kb parser so it wins for these paths; express.json skips a request whose
+ * body another parser already read, so the global one below is a no-op here
+ * rather than a second, stricter opinion.
+ */
+app.use("/app/api", express.json({ limit: "256kb" }));
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: false, limit: "10kb" }));
 
@@ -702,6 +711,190 @@ app.get("/app/app.js", (_req, res) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Cache-Control", "no-cache");
   return res.sendFile(APP_CLIENT);
+});
+
+/* ------------------------------------------------- the web app's own API
+ *
+ * Everything under /app/api is cookie-authed and account-scoped. It uses
+ * `accounts.requireAccount` rather than `accountOf`, because that one also
+ * refuses cross-site mutating requests — these are cookie-authed POSTs, and
+ * a hand-rolled gate without that check is one missing line away from being
+ * a CSRF hole.
+ */
+let appdata = null;
+let APP_MAX_CONTENT = 100000;
+try {
+  const { AppData, MAX_CONTENT } = require("./lib/appdata");
+  appdata = new AppData({ stateDir: STATE_ROOT });
+  APP_MAX_CONTENT = MAX_CONTENT;
+} catch (e) {
+  console.error("[webapp] storage unavailable — /app/api will answer 503:", e.message);
+}
+
+function appApi(req, res) {
+  if (!appdata) {
+    res.status(503).json({ ok: false, error: "The web app's storage is unavailable on this server." });
+    return null;
+  }
+  if (!accounts) {
+    res.status(503).json({ ok: false, error: "Accounts are not configured on this server." });
+    return null;
+  }
+  return accounts.requireAccount(req, res); // null once it has answered
+}
+const appBoom = (res, e) => res.status(e.status || 500).json({ ok: false, error: String(e.message) });
+
+app.get("/app/api/chats", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  res.json({ ok: true, chats: appdata.chats(a.id) });
+});
+
+app.post("/app/api/chats", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  try {
+    res.json({ ok: true, chat: appdata.createChat(a.id, req.body?.title) });
+  } catch (e) { appBoom(res, e); }
+});
+
+app.get("/app/api/chats/:id", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  try {
+    res.json({ ok: true, messages: appdata.messages(a.id, req.params.id) });
+  } catch (e) { appBoom(res, e); }
+});
+
+app.patch("/app/api/chats/:id", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  try {
+    appdata.renameChat(a.id, req.params.id, req.body?.title);
+    res.json({ ok: true, chats: appdata.chats(a.id) });
+  } catch (e) { appBoom(res, e); }
+});
+
+app.delete("/app/api/chats/:id", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  try {
+    appdata.deleteChat(a.id, req.params.id);
+    res.json({ ok: true, chats: appdata.chats(a.id) });
+  } catch (e) { appBoom(res, e); }
+});
+
+/*
+ * Send a message and stream the answer back.
+ *
+ * The browser never sees its own session token — the cookie is HttpOnly and
+ * must stay that way, since that token can now authorize spending. So this
+ * route reads the cookie server-side and hands the token to the scheduler
+ * IN THIS PROCESS. Nothing is minted, forged or widened: the same token the
+ * browser already holds, passed along the one hop it cannot make itself.
+ *
+ * The scheduler is invoked through a synthetic request rather than a
+ * loopback HTTP call. `handle()` reads only req.url, req.method,
+ * req.headers, the body stream, and req.socket?.remoteAddress — so a
+ * Readable carrying the JSON is a faithful request, and the REAL response
+ * object goes straight through, which is what makes streaming work end to
+ * end with no proxying of my own.
+ */
+const APP_MAX_TOKENS = Number(process.env.KAI_APP_MAX_TOKENS || 1024);
+
+app.post("/app/api/chats/:id/message", async (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  const text = String(req.body?.content || "").trim();
+  if (!text) return res.status(400).json({ ok: false, error: "say something first" });
+  // Refuse loudly rather than storing a silently truncated version of what
+  // someone wrote — the store slices at this length, and a message that
+  // quietly loses its last third is worse than one that was refused.
+  if (text.length > APP_MAX_CONTENT) {
+    return res.status(413).json({ ok: false, error: `that message is too long (max ${APP_MAX_CONTENT.toLocaleString()} characters)` });
+  }
+
+  let grant;
+  try {
+    // The client names the grant it believes it is spending; the service
+    // re-checks every liveness rule against THIS account and throws if the
+    // answer is anything but a clean yes.
+    const live = (accounts.service.grants(a) || []).filter((g) => g.live);
+    const wanted = String(req.body?.grantId || "");
+    const pick = wanted ? live.find((g) => g.id === wanted) : live.sort((x, y) => y.remainingUsd - x.remainingUsd)[0];
+    if (!pick) throw Object.assign(new Error("no live spending grant — authorise one from the Koinos AI app"), { status: 402 });
+    grant = accounts.service.spendableGrant(a.id, pick.id);
+  } catch (e) { return appBoom(res, e); }
+
+  let history;
+  try {
+    appdata.ownedChat(a.id, req.params.id);
+    history = appdata.messages(a.id, req.params.id);
+  } catch (e) { return appBoom(res, e); }
+
+  // Persist the question BEFORE asking it. If the network never answers,
+  // what you typed is still there — losing the prompt is the one failure
+  // people never forgive.
+  try {
+    appdata.addMessage(a.id, req.params.id, { role: "user", content: text });
+    appdata.autoTitle(a.id, req.params.id, text);
+  } catch (e) { return appBoom(res, e); }
+
+  const token = auth.parseCookies(req.headers.cookie)["kai_session"];
+  const messages = [...history.map((m) => ({ role: m.role, content: m.content })), { role: "user", content: text }];
+  const payload = JSON.stringify({
+    messages,
+    model: typeof req.body?.model === "string" && req.body.model ? req.body.model : "auto",
+    stream: true,
+    max_tokens: APP_MAX_TOKENS,
+    sessionToken: token,
+    grantId: grant.grantId,
+  });
+
+  const fake = Readable.from([Buffer.from(payload, "utf8")]);
+  fake.url = "/consume/chat/completions";
+  fake.method = "POST";
+  fake.headers = { "content-type": "application/json" };
+  fake.socket = req.socket;
+
+  /*
+   * Tee the stream to learn the answer. Only the final `done` frame is read
+   * — it carries the whole reply, so there is no need to reassemble deltas
+   * and no risk of storing a differently-chunked version of what the user
+   * actually saw.
+   */
+  let saved = null;
+  const write = res.write.bind(res);
+  res.write = (chunk, ...rest) => {
+    try {
+      const s = Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk);
+      if (s.includes('"done":true')) {
+        for (const line of s.split("\n")) {
+          if (!line.startsWith("data: ")) continue;
+          const f = JSON.parse(line.slice(6));
+          if (f && f.done) saved = f;
+        }
+      }
+    } catch { /* a frame we can't read is not a reason to break the stream */ }
+    return write(chunk, ...rest);
+  };
+  res.on("close", () => {
+    if (!saved || !String(saved.output || "").trim()) return;
+    try {
+      appdata.addMessage(a.id, req.params.id, {
+        role: "assistant",
+        content: String(saved.output),
+        servedModel: saved.servedModel || null,
+      });
+    } catch (e) { console.error("[webapp] could not store a reply:", e.message); }
+  });
+
+  try {
+    await scheduler.handle(fake, res);
+  } catch (e) {
+    if (!res.headersSent) return res.status(500).json({ ok: false, error: String(e.message) });
+    try { res.end(); } catch { /* already gone */ }
+  }
 });
 
 // Mainnet-readiness: rotating snapshots of the scheduler's ledgers (see
