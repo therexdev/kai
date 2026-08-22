@@ -123,6 +123,7 @@ function show(view) {
   if (view === "wallet") paintWallet();
   if (view === "chat") loadChats().catch((e) => note(e.message, true));
   if (view === "docs") loadDocs().catch((e) => docNote(e.message, true));
+  if (view === "tasks") loadTasks().catch((e) => taskNote(e.message, true));
   // Leaving Docs must not leave an edit on a timer that fires into a view
   // nobody is looking at — and might land after the document was switched.
   if (view !== "docs") flushDoc().catch(() => {});
@@ -611,6 +612,132 @@ function wireDocs() {
   $("doc-dismiss").addEventListener("click", () => { hideAnswer(); docNote(""); });
 }
 
+/* ----------------------------------------------------------------- tasks */
+
+const tasks = { list: [], busy: false };
+
+function taskNote(text, bad) {
+  const el = $("task-note");
+  el.textContent = text || "";
+  el.style.color = bad ? "var(--danger)" : "";
+}
+
+const EVERY_LABEL = { 60: "every hour", 360: "every 6 hours", 720: "every 12 hours", 1440: "every day", 10080: "every week" };
+const everyLabel = (m) => EVERY_LABEL[m] || `every ${m} minutes`;
+
+function when(ms, future) {
+  if (!ms) return "never";
+  const d = future ? ms - Date.now() : Date.now() - ms;
+  if (d < 0 && future) return "any moment";
+  return future ? `in ${span(d)}` : `${span(d)} ago`;
+}
+
+async function loadTasks() {
+  const { tasks: list } = await api("/app/api/tasks");
+  tasks.list = list;
+  paintTasks();
+}
+
+function taskCard(t) {
+  const last = t.lastRunAt
+    ? t.lastOk
+      ? `<div class="hint" style="margin-bottom:5px">Last run ${esc(when(t.lastRunAt))} · run ${t.runs}</div><div class="last">${esc(t.lastOutput || "(empty answer)")}</div>`
+      : `<div class="hint" style="margin-bottom:5px;color:var(--danger)">Last run ${esc(when(t.lastRunAt))} failed: ${esc(t.lastError || "")}</div>`
+    : `<p class="hint">Has not run yet.</p>`;
+  return `
+    <div class="card task-card${t.enabled ? "" : " paused"}" data-id="${esc(t.id)}">
+      <h2>${esc(t.title)}</h2>
+      <div class="when">${esc(everyLabel(t.everyMinutes))} · ${t.enabled ? `next ${esc(when(t.nextRunAt, true))}` : "not scheduled"}</div>
+      <div class="prompt">${esc(t.prompt)}</div>
+      ${last}
+      <div class="task-actions">
+        <button class="btn small" data-act="run">Run now</button>
+        <button class="btn small ghost" data-act="toggle">${t.enabled ? "Pause" : "Resume"}</button>
+        <button class="btn small ghost" data-act="delete">Delete</button>
+      </div>
+    </div>`;
+}
+
+function paintTasks() {
+  const el = $("task-list");
+  if (!tasks.list.length) {
+    el.innerHTML = `<div class="card"><p class="hint">No tasks yet. A good first one: “Summarise what changed on the Koinos Network today.”</p></div>`;
+    return;
+  }
+  el.innerHTML = tasks.list.map(taskCard).join("");
+  for (const card of el.querySelectorAll(".task-card")) {
+    const id = card.dataset.id;
+    const t = tasks.list.find((x) => x.id === id);
+    card.querySelector('[data-act="run"]').onclick = () => runTaskNow(id, card);
+    card.querySelector('[data-act="toggle"]').onclick = () => patchTask(id, { enabled: !t.enabled });
+    card.querySelector('[data-act="delete"]').onclick = async () => {
+      if (!confirm(`Delete "${t.title}"? It stops running immediately.`)) return;
+      try {
+        const r = await api(`/app/api/tasks/${encodeURIComponent(id)}`, undefined, "DELETE");
+        tasks.list = r.tasks;
+        paintTasks();
+      } catch (e) { taskNote(e.message, true); }
+    };
+  }
+}
+
+async function patchTask(id, patch) {
+  try {
+    const r = await api(`/app/api/tasks/${encodeURIComponent(id)}`, patch, "PATCH");
+    tasks.list = r.tasks;
+    paintTasks();
+    taskNote("");
+  } catch (e) { taskNote(e.message, true); }
+}
+
+async function runTaskNow(id, card) {
+  if (tasks.busy) return;
+  tasks.busy = true;
+  const btn = card.querySelector('[data-act="run"]');
+  btn.disabled = true;
+  btn.textContent = "Running…";
+  try {
+    // Run-now takes the same code path the schedule takes, so this is a real
+    // rehearsal rather than a lookalike. It can take a while — a big class
+    // legitimately generates for minutes.
+    await api(`/app/api/tasks/${encodeURIComponent(id)}/run`, {});
+    taskNote("");
+  } catch (e) {
+    taskNote(e.message, true);
+  } finally {
+    tasks.busy = false;
+    await loadTasks().catch(() => {});
+    load().catch(() => {}); // it cost money; refresh what is left
+  }
+}
+
+function wireTasks() {
+  $("task-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const prompt = $("task-prompt").value.trim();
+    if (!prompt) return taskNote("A task needs a prompt.", true);
+    const everyMinutes = Number($("task-every").value);
+    const btn = $("task-create");
+    btn.disabled = true;
+    try {
+      await api("/app/api/tasks", {
+        title: $("task-title").value.trim(),
+        prompt,
+        everyMinutes,
+        grantId: state.grant?.id,
+      });
+      $("task-title").value = "";
+      $("task-prompt").value = "";
+      taskNote("Created. It will run " + everyLabel(everyMinutes) + " from now.");
+      await loadTasks();
+    } catch (e2) {
+      taskNote(e2.message, true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
 /* ------------------------------------------------------------------ boot */
 
 function boot() {
@@ -620,6 +747,7 @@ function boot() {
   window.addEventListener("hashchange", () => show(location.hash.slice(1)));
   wireComposer();
   wireDocs();
+  wireTasks();
 
   load()
     .then(() => show(location.hash.slice(1) || "chat"))

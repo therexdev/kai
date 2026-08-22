@@ -1045,6 +1045,198 @@ app.post("/app/api/docs/:id/ai", async (req, res) => {
   });
 });
 
+/* ----------------------------------------------------------------- tasks
+ *
+ * Prompts that run on a schedule — the one feature here that spends money
+ * with nobody watching. Everything about it is shaped by that.
+ */
+
+app.get("/app/api/tasks", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  res.json({ ok: true, tasks: appdata.tasks(a.id) });
+});
+
+app.post("/app/api/tasks", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  try {
+    // Resolve the grant HERE, at creation, so a task can never be created
+    // against a grant that is already dead or belongs to someone else.
+    const grant = pickGrant(a, req.body?.grantId);
+    res.json({ ok: true, task: appdata.createTask(a.id, { ...(req.body || {}), grantId: grant.grantId }) });
+  } catch (e) { appBoom(res, e); }
+});
+
+app.patch("/app/api/tasks/:id", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  try {
+    res.json({ ok: true, task: appdata.updateTask(a.id, req.params.id, req.body || {}), tasks: appdata.tasks(a.id) });
+  } catch (e) { appBoom(res, e); }
+});
+
+app.delete("/app/api/tasks/:id", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  try {
+    appdata.deleteTask(a.id, req.params.id);
+    res.json({ ok: true, tasks: appdata.tasks(a.id) });
+  } catch (e) { appBoom(res, e); }
+});
+
+/** Run one now, on demand. Same path the scheduler takes — so "Run now"
+ *  proves the scheduled run will work, rather than testing a second code
+ *  path that happens to look similar. */
+app.post("/app/api/tasks/:id/run", async (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  let task;
+  try { task = appdata.task(a.id, req.params.id); } catch (e) { return appBoom(res, e); }
+  const outcome = await runTask({ ...task, accountId: a.id });
+  if (!outcome.ok) return res.status(outcome.status || 502).json({ ok: false, error: outcome.error, task: outcome.task });
+  res.json({ ok: true, task: outcome.task });
+});
+
+/**
+ * A response object that captures instead of transmitting.
+ *
+ * The scheduler answers by writing to a real http response. A scheduled task
+ * has no browser on the other end, so it gets this: the same interface, with
+ * the body kept in memory. Reusing `scheduler.handle` this way means the
+ * scheduled path and the interactive path are the SAME path — a divergence
+ * between them would be a class of bug that only ever shows up at 3am with
+ * nobody watching, which is precisely when tasks run.
+ */
+class CapturingResponse {
+  constructor() {
+    this.statusCode = 200;
+    this.headers = {};
+    this.chunks = [];
+    this.destroyed = false;
+    this.writableEnded = false;
+    this.writableFinished = false;
+    this.headersSent = false;
+    this._closers = [];
+    this.done = new Promise((resolve) => { this._resolve = resolve; });
+  }
+  setHeader(k, v) { this.headers[String(k).toLowerCase()] = v; }
+  getHeader(k) { return this.headers[String(k).toLowerCase()]; }
+  writeHead(status, headers) {
+    this.statusCode = status;
+    for (const [k, v] of Object.entries(headers || {})) this.setHeader(k, v);
+    this.headersSent = true;
+    return this;
+  }
+  write(chunk) { this.chunks.push(Buffer.from(chunk)); return true; }
+  end(chunk) {
+    if (chunk) this.write(chunk);
+    this.writableEnded = true;
+    this.writableFinished = true;
+    for (const fn of this._closers) { try { fn(); } catch { /* best-effort */ } }
+    this._resolve();
+    return this;
+  }
+  on(event, fn) { if (event === "close" || event === "finish") this._closers.push(fn); return this; }
+  once(event, fn) { return this.on(event, fn); }
+  removeListener() { return this; }
+  get body() { return Buffer.concat(this.chunks).toString("utf8"); }
+}
+
+/**
+ * Run one task. Returns {ok, task, error, status} and never throws.
+ *
+ * Failures are recorded on the task rather than logged into the void: the
+ * person who scheduled it is not here, and "it silently stopped working"
+ * is the worst possible outcome for something they trusted to run alone.
+ */
+async function runTask(task) {
+  const fail = (error, { pause = false, status = 502 } = {}) => ({
+    ok: false,
+    error,
+    status,
+    task: appdata.recordRun(task.id, { ok: false, error, pause }),
+  });
+
+  /*
+   * The grant the task NAMED, re-checked every single run. Not "whichever
+   * grant is live now" — a task that migrates to another wallet's grant
+   * because its own expired would be spending money nobody authorised for
+   * it. When the named grant stops being live the task PAUSES rather than
+   * failing hourly forever.
+   */
+  let grant;
+  try {
+    grant = accounts.service.spendableGrant(task.accountId, task.grantId);
+  } catch (e) {
+    return fail(`paused: ${e.message}`, { pause: true, status: 402 });
+  }
+
+  const cap = new CapturingResponse();
+  const payload = JSON.stringify({
+    messages: [{ role: "user", content: task.prompt }],
+    model: task.model && task.model !== "auto" ? task.model : "auto",
+    stream: false,
+    max_tokens: APP_MAX_TOKENS,
+    grantId: grant.grantId,
+  });
+  const fake = Readable.from([Buffer.from(payload, "utf8")]);
+  fake.url = "/consume/chat/completions";
+  fake.method = "POST";
+  fake.headers = { "content-type": "application/json" };
+  /*
+   * There is no session here — nobody is signed in at 4am, that is the whole
+   * point of a task. So the account is asserted on the request OBJECT, which
+   * a request arriving over a socket can never carry: headers land on
+   * req.headers and the body is parsed separately, so neither can set a
+   * property here. See the grant branch in lib/scheduler.js.
+   */
+  fake.trustedAccountId = task.accountId;
+
+  try {
+    await scheduler.handle(fake, cap);
+  } catch (e) {
+    return fail(String(e.message));
+  }
+  let parsed = {};
+  try { parsed = JSON.parse(cap.body); } catch { /* non-JSON is its own failure */ }
+  if (cap.statusCode !== 200) {
+    const msg = typeof parsed.error === "string" ? parsed.error : parsed.error?.message;
+    // A payment refusal is not a transient failure — pause rather than
+    // retrying on a wallet that has nothing to give.
+    return fail(msg || `the network answered ${cap.statusCode}`, { pause: cap.statusCode === 402, status: cap.statusCode });
+  }
+  const output = parsed.choices?.[0]?.message?.content ?? "";
+  return { ok: true, task: appdata.recordRun(task.id, { ok: true, output }) };
+}
+
+/*
+ * The runner. One tick a minute, a handful of tasks per tick, run in
+ * sequence rather than all at once — a hundred due tasks firing together
+ * would be indistinguishable from an attack on the network's dispatch.
+ *
+ * unref'd so it never holds the process open by itself, and wrapped whole,
+ * because an unhandled rejection in here would take down the website that
+ * everything else depends on.
+ */
+const TASK_TICK_MS = Number(process.env.KAI_TASK_TICK_MS || 60000);
+if (appdata && accounts) {
+  const tick = async () => {
+    let due = [];
+    try { due = appdata.dueTasks(Date.now(), 10); } catch { return; }
+    for (const t of due) {
+      try {
+        const r = await runTask(t);
+        if (!r.ok) console.log(`[tasks] ${t.id} failed: ${r.error}`);
+      } catch (e) {
+        console.error(`[tasks] ${t.id} threw:`, e.message);
+      }
+    }
+  };
+  const timer = setInterval(() => { tick().catch((e) => console.error("[tasks] tick:", e.message)); }, TASK_TICK_MS);
+  timer.unref?.();
+}
+
 // Mainnet-readiness: rotating snapshots of the scheduler's ledgers (see
 // lib/state-backup.js) plus an offsite pull. The bundle holds worker
 // tokens and balances, so it is gated: an admin session, or the operator

@@ -1,7 +1,7 @@
 "use strict";
 
 /*
- * Probe: Chat and Docs in the web app — task #79.
+ * Probe: Chat, Docs and Tasks in the web app — task #79.
  *
  * Boots the REAL server and drives a whole conversation through it, with a
  * FAKE WORKER on the other side actually answering. The point is the seam:
@@ -364,7 +364,84 @@ async function main() {
     check(gChat.spentUsd < 0.00001, "…and the OTHER grant was not touched");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n7) out of capacity is a refusal, not an overdraft");
+    /* ------------------------------------------------------------------ */
+    console.log("\n7) tasks: spending while nobody is watching");
+    /*
+     * A third wallet, for the same reason as the second: the free allowance
+     * is per address and this probe runs with one token a day.
+     */
+    const taskAddr = Signer.fromSeed("probe app tasks consumer").getAddress();
+    db.prepare("INSERT INTO wallets (address, account_id, linked_at) VALUES (?,?,?)").run(taskAddr, mine.id, t);
+    db.prepare("INSERT INTO spend_grants (id, account_id, address, max_micro, spent_micro, created_at, expires_at) VALUES (?,?,?,?,?,?,?)")
+      .run("gr_task", mine.id, taskAddr, 5 * 1e6, 0, t, t + 86400e3);
+
+    // A schedule tighter than an hour is a spend loop with a friendly name.
+    r = await jsonReq(port, "POST", "/app/api/tasks", {
+      cookie: mine.cookie,
+      body: { title: "Too often", prompt: "hi", everyMinutes: 5, grantId: "gr_task" },
+    });
+    check(r.status === 400, `a five-minute schedule is refused (got ${r.status})`);
+
+    r = await jsonReq(port, "POST", "/app/api/tasks", {
+      cookie: mine.cookie,
+      body: { title: "Daily digest", prompt: "Summarise the network.", everyMinutes: 1440, grantId: "gr_task", model: "koinos-fast" },
+    });
+    check(r.status === 200 && r.json?.task?.id, `a task can be created (got ${r.status}: ${r.body.slice(0, 120)})`);
+    const taskId = r.json.task.id;
+    check(r.json.task.grantId === "gr_task", "it names the grant it draws on, not 'whichever is live'");
+    check(r.json.task.enabled === true && r.json.task.nextRunAt > Date.now(), "scheduled forward, not due immediately");
+
+    check((await jsonReq(port, "GET", "/app/api/tasks", { cookie: other.cookie })).json.tasks.length === 0,
+      "another account cannot see it");
+    check((await jsonReq(port, "POST", `/app/api/tasks/${taskId}/run`, { cookie: other.cookie, body: {} })).status === 404,
+      "…nor run it");
+    check((await jsonReq(port, "DELETE", `/app/api/tasks/${taskId}`, { cookie: other.cookie })).status === 404,
+      "…nor delete it");
+
+    // Run now takes the SAME path the schedule takes — no session involved,
+    // the account asserted on the request object in-process.
+    r = await jsonReq(port, "POST", `/app/api/tasks/${taskId}/run`, { cookie: mine.cookie, body: {} });
+    check(r.status === 200, `run now succeeds with no session in the request (got ${r.status}: ${r.body.slice(0, 160)})`);
+    check(String(r.json?.task?.lastOutput || "").includes("Koinos Network answered"), "and stores what came back");
+    check(r.json?.task?.lastOk === true && r.json?.task?.runs === 1, "the run is recorded");
+    check(worker.served === 3, "a worker really did the work");
+
+    const meTask = await jsonReq(port, "GET", "/account/api", { cookie: mine.cookie });
+    check(meTask.json.account.grants.find((g) => g.id === "gr_task").spentUsd > 0, "the task's own grant paid for it");
+
+    /*
+     * THE ONE THAT MATTERS MOST HERE. The task runner asserts its account on
+     * the request OBJECT (req.trustedAccountId), which a request arriving
+     * over a socket cannot carry — headers land on req.headers and the body
+     * is parsed separately. Prove it: ask the scheduler directly, over real
+     * HTTP, claiming the account every way a caller could.
+     */
+    const forge = (extra) =>
+      jsonReq(port, "POST", "/scheduler/consume/chat/completions", {
+        body: { messages: [{ role: "user", content: "hi" }], max_tokens: 32, grantId: "gr_task", ...extra },
+      });
+    for (const [label, extra] of [
+      ["a body field", { trustedAccountId: mine.id }],
+      ["an accountId field", { accountId: mine.id }],
+      ["no session at all", {}],
+      ["a made-up session", { sessionToken: "sk_not_a_real_token" }],
+    ]) {
+      const f = await forge(extra);
+      check(f.status === 401, `${label} cannot spend someone's grant over HTTP (got ${f.status})`);
+    }
+
+    // A dead grant pauses the task rather than failing it hourly forever.
+    db.prepare("UPDATE spend_grants SET revoked_at = ? WHERE id = ?").run(Date.now(), "gr_task");
+    r = await jsonReq(port, "POST", `/app/api/tasks/${taskId}/run`, { cookie: mine.cookie, body: {} });
+    check(r.status === 402, `a revoked grant refuses the run (got ${r.status})`);
+    r = await jsonReq(port, "GET", "/app/api/tasks", { cookie: mine.cookie });
+    const paused = r.json.tasks.find((x) => x.id === taskId);
+    check(paused.enabled === false, "…and PAUSES the task rather than retrying forever");
+    check(/paused/i.test(String(paused.lastError || "")), "with an error that says so");
+    check(paused.nextRunAt > Date.now(), "the clock moved forward even though the run failed");
+
+    /* ------------------------------------------------------------------ */
+    console.log("\n8) out of capacity is a refusal, not an overdraft");
     /*
      * The grant says what the WEBSITE may spend. It does not conjure funds:
      * the wallet still has to have capacity in the scheduler's ledger — free
@@ -380,13 +457,15 @@ async function main() {
     m = await sse(port, `/app/api/chats/${orphan}/message`, mine.cookie,
       { content: "and again?", model: "koinos-fast", grantId: "gr_chat" });
     check(m.status === 402, `refused with 402 when the wallet has nothing to draw on (got ${m.status})`);
-    check(worker.served === 2, `and no worker was asked to do the work (served ${worker.served}, expected 2)`);
+    // Three jobs by now — chat, the docs ask, and the task run. This refusal
+    // must add none: the point is that nothing is dispatched.
+    check(worker.served === 3, `and no worker was asked to do the work (served ${worker.served}, expected 3)`);
     r = await jsonReq(port, "GET", `/app/api/chats/${orphan}`, { cookie: mine.cookie });
     check(r.json.messages.length === 1 && r.json.messages[0].role === "user",
       "the question survives this refusal too");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n8) the browser is never handed its own session token");
+    console.log("\n9) the browser is never handed its own session token");
     const shell = await jsonReq(port, "GET", "/app", { cookie: mine.cookie });
     check(shell.status === 200 && !shell.body.includes("sk_"), "no token in the shell");
     const clientJs = fs.readFileSync(path.join(ROOT, "views", "app.js"), "utf8");

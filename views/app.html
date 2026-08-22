@@ -82,6 +82,19 @@ a{color:var(--violet)}
 .doc-answer-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .doc-answer .body{white-space:pre-wrap;overflow-wrap:anywhere}
 .btn.small.ghost{background:none;border:1px solid var(--border);color:var(--text);font-weight:500}
+/* Tasks: a form and a list of cards. No two-column frame — a schedule is
+   something you set and then mostly read. */
+.task-row{display:flex;gap:9px;align-items:center;margin-bottom:9px;flex-wrap:wrap}
+.task-row input,#task-prompt{background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font:inherit}
+.task-row input{flex:1;min-width:180px}
+#task-prompt{width:100%;resize:vertical;margin-bottom:9px}
+.task-row select{background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font:inherit}
+.task-card .when{font-size:.85em;color:var(--dim);margin-bottom:8px}
+.task-card .prompt{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.92em;border-left:2px solid var(--border);padding-left:11px;margin-bottom:10px}
+.task-card .last{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.9em;background:var(--input);border-radius:8px;padding:10px 12px;max-height:220px;overflow-y:auto}
+.task-card.paused{opacity:.7}
+.task-card.paused h2::after{content:" — paused";color:var(--danger);font-weight:400;font-size:.85em}
+.task-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 </style>
 </head>
 <body>
@@ -161,8 +174,31 @@ a{color:var(--violet)}
 
     <section id="view-tasks" class="view" hidden>
       <h1>Tasks</h1>
-      <p class="lede">Prompts that run on a schedule — and here, unlike the desktop app, they run whether or not you have a window open.</p>
-      <div class="card"><p class="hint">Not built yet. Tasks spend money while nobody is watching, so this ships after the spend cap is proven in use.</p></div>
+      <p class="lede">Prompts that run on a schedule — and unlike the desktop app, these run whether or not you have a window open.</p>
+
+      <div class="card">
+        <h2>New task</h2>
+        <p class="hint" style="margin-bottom:10px">This spends from your grant while nobody is watching. It draws on the grant that is live when you create it, and pauses by itself if that grant is revoked, expires, or runs out.</p>
+        <form id="task-form">
+          <div class="task-row">
+            <input id="task-title" placeholder="What to call it" />
+            <select id="task-every">
+              <option value="60">every hour</option>
+              <option value="360">every 6 hours</option>
+              <option value="720">every 12 hours</option>
+              <option value="1440" selected>every day</option>
+              <option value="10080">every week</option>
+            </select>
+          </div>
+          <textarea id="task-prompt" rows="3" placeholder="The prompt to run, exactly as you would type it in a chat"></textarea>
+          <div class="task-row">
+            <button class="btn" id="task-create" type="submit">Create task</button>
+            <span class="hint" id="task-note"></span>
+          </div>
+        </form>
+      </div>
+
+      <div id="task-list"></div>
     </section>
 
     <section id="view-wallet" class="view" hidden>
