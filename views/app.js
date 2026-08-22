@@ -221,7 +221,17 @@ async function paintSpend() {
     return;
   }
   if (!data.events.length) {
-    el.innerHTML = '<p class="hint">Nothing spent yet.</p>';
+    /*
+     * "Nothing spent yet" is only true if nothing was spent. A grant created
+     * before this ledger existed carries a spent total with no itemised
+     * history behind it, and the card directly above says so — telling the
+     * same reader on the same screen that nothing was spent reads as a bug in
+     * the accounting, which is the one thing a spend page must never do.
+     */
+    const spentBefore = (state.account?.grants || []).some((g) => g.spentUsd > 0);
+    el.innerHTML = spentBefore
+      ? '<p class="hint">No itemised history — this grant was spending before the log existed. The totals above are still complete.</p>'
+      : '<p class="hint">Nothing spent yet.</p>';
     return;
   }
   const capped = data.count >= data.retained;

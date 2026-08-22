@@ -278,6 +278,13 @@ async function main() {
     check(/placeholder="Ask about this document…"/.test(shellCss),
       "…and the markup ships the short one there too");
 
+    // A spend page that contradicts itself is worse than one with a gap in
+    // it. A grant that was spending before the ledger existed has a non-zero
+    // total on the card and no rows beneath it — "Nothing spent yet" under
+    // "Spent $0.0012" reads as broken accounting.
+    check(/spentUsd > 0/.test(clientJs) && /No itemised history/.test(clientJs),
+      "an empty ledger under a non-zero total says why, instead of denying the spend");
+
     /* ------------------------------------------------------------------ */
     console.log("\n9) a wider window is never a worse one");
 
