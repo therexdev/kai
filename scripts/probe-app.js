@@ -185,12 +185,31 @@ async function main() {
     db.close();
 
     /* ------------------------------------------------------------------ */
-    console.log("\n7) crawlers are told to stay out");
+    console.log("\n7) the account page can END web access, and cannot create it");
+    /*
+     * The asymmetry is the design: creating a grant needs the wallet's
+     * signature, which only the machine holding the key can produce. Ending
+     * one needs no key — just the session. So this page must offer revoke and
+     * must NOT pretend to offer create, or someone will click a button that
+     * cannot work and conclude the feature is broken.
+     */
+    const acctPage = await raw(port, "/account", cookie);
+    check(acctPage.status === 200, "the account page serves");
+    check(/Web access/.test(acctPage.body), "it has a web-access section");
+    check(/Signed-in browsers/.test(acctPage.body), "…and a signed-in-browsers section");
+    check(/\/account\/grants\//.test(acctPage.body), "it calls the grant revoke route");
+    check(/\/account\/sessions/.test(acctPage.body), "…and the session routes");
+    check(!/\/account\/grants["'`]\s*,\s*\{/.test(acctPage.body),
+      "and never POSTs a grant — this page has nothing to sign with");
+    check(/desktop app/i.test(acctPage.body), "it says where a grant IS created");
+
+    /* ------------------------------------------------------------------ */
+    console.log("\n8) crawlers are told to stay out");
     const robots = await raw(port, "/robots.txt");
     check(/^Disallow: \/app$/m.test(robots.body), "robots.txt disallows /app");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n8) server.js wiring, textually");
+    console.log("\n9) server.js wiring, textually");
     const src = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
     check(/VIEWS_DIR, "app\.html"/.test(src), "the shell is resolved out of VIEWS_DIR");
     check(!/PUBLIC_DIR, "app\.html"/.test(src), "and never out of PUBLIC_DIR");
