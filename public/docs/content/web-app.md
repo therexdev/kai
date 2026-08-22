@@ -34,6 +34,10 @@ Open [koinosai.com/app](https://koinosai.com/app) in a browser where you are sig
 
 The model never edits the document by itself. That is deliberate: an assistant that rewrites your file the instant it finishes generating is one that can quietly destroy an hour of work. Insert and Replace go through the editor normally, so **Ctrl+Z** undoes them like anything else you typed.
 
+**Tasks** — a prompt on a schedule: hourly, daily, weekly. These run on the server, so they run whether or not you have a window open. Each task names the grant it draws on when you create it, and pauses by itself the moment that grant is revoked, expires, or runs out — it will not quietly find another wallet to pay with. **Run now** takes exactly the same path a scheduled run takes, so it is a real rehearsal rather than a lookalike.
+
+The shortest schedule is one hour. That is a limit for the wallet's sake, not the server's: a five-minute task is a spend loop with a friendly name.
+
 **Wallet** — what the site may spend, what it has spent, and what is left, including grants that have expired or been revoked.
 
 ## Ending web access
@@ -65,4 +69,6 @@ Signing out **everywhere** (from your account page) also revokes spending grants
 
 ## What is not here yet
 
-Compare, Tools, Agent mode, Teams, voice, images and local models are **desktop only**. They depend on either your own hardware or the app's local tool layer, neither of which a browser has. Tasks — prompts that run on a schedule — are coming to the web, where they will run whether or not you have a window open.
+Compare, Tools, Agent mode, Teams, voice, images and local models are **desktop only**. They depend on either your own hardware or the app's local tool layer, neither of which a browser has.
+
+Web tasks cannot use tools or the web search the desktop ones can, for the same reason — a scheduled prompt gets the model and nothing else, for now.
