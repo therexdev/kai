@@ -16,7 +16,8 @@
  *      genuine WebAuthn ceremonies (CBOR attestation, authenticatorData,
  *      DER signatures) through lib/webauthn.js — registration, login,
  *      tamper rejection, wrong-origin rejection
- *   6. degraded modes: no SMTP -> 503 with the env name; no Google -> 503
+ *   6. degraded modes: no SMTP -> 503 with the env name; no Google -> 503,
+ *      and /auth/methods reporting which doors are open WITHOUT leaking how
  *   7. cookie CSRF posture: cross-origin mutating request -> 403
  *
  * Old code (no lib/accounts.js, nothing mounted): everything here fails —
@@ -277,7 +278,43 @@ async function main() {
   check(br.status === 503 && (await br.json()).error.includes("SMTP_HOST"), "no SMTP -> 503 naming the env var to set");
   br = await fetch(`${bareOrigin}/auth/google`, { redirect: "manual" });
   check(br.status === 503, "no Google config -> 503");
+
+  /*
+   * /auth/methods — the answer to "what do I need to do to get account
+   * creation working?", served by the thing that actually knows. A 503 on
+   * click is a bad way to learn a method is switched off.
+   */
+  br = await fetch(`${bareOrigin}/auth/methods`);
+  let cap = await br.json();
+  check(br.status === 200 && cap.ok === true, "/auth/methods answers without a session");
+  check(cap.signin.passkey === true && cap.signin.email === false && cap.signin.google === false,
+        "an unconfigured server reports exactly which doors are open");
+  check(cap.signup.passkey === false,
+        "a passkey is never listed as a way to CREATE an account — it needs one to attach to");
+  check(cap.canCreateAccount === false, "no email and no Google means nobody can sign up, and it says so");
+  check(cap.missing.includes("SMTP_HOST") && cap.missing.includes("GOOGLE_CLIENT_ID"),
+        "the gap is reported as env NAMES to set");
+  // Env NAMES are the point of `missing` (GOOGLE_CLIENT_SECRET is a name, not
+  // a secret). What must never appear is a VALUE: a host, an address, a key.
+  check(!/@|https?:|\d{1,3}(\.\d{1,3}){3}/.test(JSON.stringify(cap).replace(/"[A-Z_]+"/g, '""')),
+        "no host, address or URL is leaked by the capability report");
   bareSrv.close();
+
+  // Configured the other way: email on, Google on -> signup is possible.
+  const bothOn = createAccounts({
+    stateDir: tmp(), sendMail: async () => {}, siteOrigin: origin,
+    google: { clientId: "test-client-id", clientSecret: "test-secret" }, onEvent: () => {},
+  });
+  const bothOnApp = express();
+  bothOnApp.use(express.json());
+  bothOnApp.use(bothOn.router);
+  const bothOnSrv = await listen(bothOnApp);
+  cap = await (await fetch(`http://127.0.0.1:${bothOnSrv.address().port}/auth/methods`)).json();
+  check(cap.signup.email === true && cap.signup.google === true && cap.canCreateAccount === true,
+        "with SMTP and Google configured, both signup doors report open");
+  check(cap.missing.length === 0, "nothing missing when both are configured");
+  check(!JSON.stringify(cap).includes("test-client-id"), "the client id is never echoed back");
+  bothOnSrv.close();
 
   // Cookie-authenticated mutation from a foreign origin must be refused.
   const cookieHeader = { cookie: `kai_session=${encodeURIComponent(token)}`, origin: "https://evil.example" };

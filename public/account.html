@@ -58,21 +58,33 @@ code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--li
 
   <!-- ------------------------------------------------ signed OUT -------- -->
   <div id="signedOut" class="hide">
-    <div class="card">
+    <!-- Shown only when NO method can create an account, so nobody hunts for a
+         signup button that cannot exist. -->
+    <div class="card hide" id="noSignup">
+      <h2>New accounts are closed right now</h2>
+      <p class="muted" id="noSignupWhy"></p>
+    </div>
+    <div class="card" id="cardPasskey">
       <h2>Sign in with a passkey</h2>
       <p class="muted">Your device's fingerprint, face unlock, or PIN. Nothing to remember.</p>
       <button class="btn primary" id="pkLogin">Use a passkey</button>
+      <!-- Said on the signed-out screen because it is the thing people expect
+           to be untrue: a passkey signs you back IN, it cannot start an
+           account. The key has to attach to an account that already exists. -->
+      <p class="muted" style="margin-top:10px">Already have an account? A passkey signs you in. It cannot create one — sign in below first, then add a passkey.</p>
       <p class="msg" id="pkMsg"></p>
     </div>
-    <div class="card">
+    <div class="card hide" id="cardEmail">
       <h2>Sign in with email</h2>
+      <p class="muted">New here? This creates your account.</p>
       <div class="row"><input id="email" type="email" placeholder="you@example.com" autocomplete="email" /></div>
       <div class="row hide" id="codeRow"><input id="code" inputmode="numeric" placeholder="6-digit code" autocomplete="one-time-code" /></div>
       <button class="btn" id="emailBtn">Send code</button>
       <p class="msg" id="emailMsg"></p>
     </div>
-    <div class="card">
+    <div class="card hide" id="cardGoogle">
       <h2>Sign in with Google</h2>
+      <p class="muted">New here? This creates your account.</p>
       <a class="btn" href="/auth/google">Continue with Google</a>
       <p class="muted" style="margin-top:10px">Only your email address is requested.</p>
     </div>
@@ -134,12 +146,40 @@ const say = (id, text, ok) => { const el = $(id); el.textContent = text || ""; e
 
 let account = null;
 
+/*
+ * Show only the doors that are actually open. The server decides — a method
+ * whose credentials are not configured is not a button that 503s on click,
+ * it is a button that is not there.
+ */
+async function applyMethods() {
+  let m;
+  try {
+    const r = await fetch("/auth/methods");
+    m = await r.json();
+    if (!r.ok || m.ok === false) throw new Error();
+  } catch {
+    // Cannot ask: show everything rather than lock someone out of a working
+    // sign-in because one request failed.
+    m = { signin: { email: true, google: true, passkey: true }, canCreateAccount: true, missing: [] };
+  }
+  $("cardEmail").classList.toggle("hide", !m.signin.email);
+  $("cardGoogle").classList.toggle("hide", !m.signin.google);
+  $("cardPasskey").classList.toggle("hide", !m.signin.passkey);
+  $("noSignup").classList.toggle("hide", m.canCreateAccount !== false);
+  if (m.canCreateAccount === false) {
+    $("noSignupWhy").textContent =
+      "A passkey signs you back in but cannot create an account, and neither email nor Google sign-in is " +
+      "switched on yet. The site operator enables one of those; nothing is wrong with your device.";
+  }
+}
+
 async function refresh() {
   try {
     account = (await j("/auth/session")).account;
   } catch {
     account = null;
   }
+  if (!account) await applyMethods();
   const inEl = $("signedIn"), outEl = $("signedOut");
   inEl.classList.toggle("hide", !account);
   outEl.classList.toggle("hide", !!account);
