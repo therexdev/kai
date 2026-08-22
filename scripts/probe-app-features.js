@@ -627,7 +627,30 @@ async function main() {
       "the question survives this refusal too");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n10) deleting your data deletes your data — and nothing else");
+    console.log("\n10) where the money went");
+    /*
+     * The grant says how much is LEFT. Only the ledger says what spent the
+     * rest — and for a task, which ran while nobody was present, it is the
+     * only way that question has an answer at all.
+     */
+    r = await jsonReq(port, "GET", "/app/api/spend", { cookie: mine.cookie });
+    check(r.status === 200, "the ledger reads");
+    const ev = r.json.events;
+    check(ev.length >= 3, `every paid surface wrote a line (${ev.length})`);
+    for (const src of ["chat", "docs", "task"]) {
+      check(ev.some((x) => x.source === src), `…including ${src}`);
+    }
+    const taskEv = ev.find((x) => x.source === "task");
+    check(taskEv.label === "Daily digest", "a task's line names the task");
+    check(taskEv.model === "koinos-fast", "…and the class that answered");
+    check(taskEv.costUsd > 0, `…and what it cost ($${taskEv?.costUsd})`);
+    check(ev[0].createdAt >= ev[ev.length - 1].createdAt, "newest first");
+    check(r.json.totalUsd > 0 && r.json.count === ev.length, "the total adds up");
+    check((await jsonReq(port, "GET", "/app/api/spend", { cookie: other.cookie })).json.events.length === 0,
+      "another account sees none of it");
+
+    /* ------------------------------------------------------------------ */
+    console.log("\n11) deleting your data deletes your data — and nothing else");
     const beforePurge = (await jsonReq(port, "GET", "/account/api", { cookie: mine.cookie })).json.account;
     r = await jsonReq(port, "GET", "/app/api/chats", { cookie: mine.cookie });
     const beforeChats = r.json.chats.length;
@@ -642,6 +665,15 @@ async function main() {
     check((await jsonReq(port, "GET", "/app/api/tasks", { cookie: mine.cookie })).json.tasks.length === 0, "tasks are gone");
     check((await jsonReq(port, "GET", "/app/api/memory", { cookie: mine.cookie })).json.memories.length === 0, "memories are gone");
     /*
+     * The spend LOG goes too. It is a timestamped record of what this person
+     * did here — which chat, which document — and a "delete my data" that
+     * quietly keeps that is not a deletion. The grant's own spent total is a
+     * financial fact about a wallet rather than a record of behaviour, so it
+     * stays: asserted two lines below.
+     */
+    check((await jsonReq(port, "GET", "/app/api/spend", { cookie: mine.cookie })).json.events.length === 0,
+      "the spend log is gone with it");
+    /*
      * Identity and money are NOT content. Bundling them into the same button
      * is how somebody loses a wallet link they meant to keep, so the purge
      * must leave both standing — and be asserted to.
@@ -652,9 +684,11 @@ async function main() {
       `wallets untouched (${after.json.account.wallets.length})`);
     check(after.json.account.grants.length === beforePurge.grants.length,
       `grants untouched (${after.json.account.grants.length})`);
+    check(after.json.account.grants.some((g) => g.spentUsd > 0),
+      "…and a grant still remembers what it spent — that is a wallet fact, not behaviour");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n11) the browser is never handed its own session token");
+    console.log("\n12) the browser is never handed its own session token");
     const shell = await jsonReq(port, "GET", "/app", { cookie: mine.cookie });
     check(shell.status === 200 && !shell.body.includes("sk_"), "no token in the shell");
     const clientJs = fs.readFileSync(path.join(ROOT, "views", "app.js"), "utf8");

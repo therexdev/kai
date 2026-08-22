@@ -166,7 +166,7 @@ function show(view) {
       ? "Your wallet is linked — it just has no spending limit authorised yet."
       : "You have no wallet linked to this account yet.";
   }
-  if (view === "wallet") paintWallet();
+  if (view === "wallet") { paintWallet(); paintSpend().catch(() => {}); }
   if (view === "chat") {
     loadChats().catch((e) => note(e.message, true));
     loadNetwork().catch(() => {});
@@ -198,6 +198,41 @@ function grantCard(g, isCurrent) {
       <div class="meter"><i style="width:${pct.toFixed(1)}%"></i></div>
       <p class="hint">Spent ${esc(usd(g.spentUsd))} since ${esc(span(Date.now() - g.createdAt))} ago · ${esc(status)}</p>
     </div>`;
+}
+
+/*
+ * Where the money went.
+ *
+ * The cards above say how much is LEFT. Only this says what spent the rest,
+ * and it matters most for tasks — the one spend nobody was present for.
+ */
+async function paintSpend() {
+  const el = $("spend-log");
+  el.innerHTML = '<p class="hint">loading…</p>';
+  let data;
+  try {
+    data = await api("/app/api/spend");
+  } catch (e) {
+    el.innerHTML = `<p class="hint">${esc(e.message)}</p>`;
+    return;
+  }
+  if (!data.events.length) {
+    el.innerHTML = '<p class="hint">Nothing spent yet.</p>';
+    return;
+  }
+  const capped = data.count >= data.retained;
+  el.innerHTML =
+    `<div class="card">` +
+    data.events.map((e) => `
+      <div class="spend-row">
+        <span class="tag">${esc(e.source)}</span>
+        <span class="what">${esc(e.label || "—")}${e.model ? ` <span class="hint">· ${esc(e.model)}</span>` : ""}</span>
+        <span class="hint">${esc(when(e.createdAt))}</span>
+        <span class="amt${e.costUsd > 0 ? "" : " free"}">${e.costUsd > 0 ? esc(usd(e.costUsd)) : "free"}</span>
+      </div>`).join("") +
+    `<p class="hint" style="margin-top:12px">${esc(usd(data.totalUsd))} across ${data.count} request${data.count === 1 ? "" : "s"}` +
+    (capped ? `, the most recent ${data.retained} kept` : "") +
+    `. Each grant's own total above is the lifetime figure.</p></div>`;
 }
 
 function paintWallet() {
@@ -896,11 +931,13 @@ function wirePurge() {
     note.textContent = "Deleting…";
     try {
       const { deleted } = await api("/app/api/data", undefined, "DELETE");
+      const n = (v, one, many) => `${v} ${v === 1 ? one : many}`;
       note.textContent =
-        `Deleted ${deleted.chats} chat${deleted.chats === 1 ? "" : "s"}, ` +
-        `${deleted.docs} document${deleted.docs === 1 ? "" : "s"}, ` +
-        `${deleted.tasks} task${deleted.tasks === 1 ? "" : "s"} and ` +
-        `${deleted.memories} memor${deleted.memories === 1 ? "y" : "ies"}.`;
+        `Deleted ${n(deleted.chats, "chat", "chats")}, ` +
+        `${n(deleted.docs, "document", "documents")}, ` +
+        `${n(deleted.tasks, "task", "tasks")}, ` +
+        `${n(deleted.memories, "memory", "memories")} and ` +
+        `${n(deleted.spendEvents, "spend record", "spend records")}.`;
       // Everything on screen is now stale — reload the views that showed it.
       chat.current = null;
       docs.current = null;
