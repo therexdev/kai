@@ -131,8 +131,27 @@ code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--li
     </div>
 
     <div class="card">
-      <h2>Session</h2>
+      <h2>Web access</h2>
+      <p class="muted" style="margin-bottom:12px">
+        What <a href="/app">koinosai.com/app</a> may spend on your behalf. A grant is created in the
+        Koinos AI desktop app — that machine holds the wallet key, and this page has nothing to sign
+        with. Ending one here takes effect immediately.
+      </p>
+      <div id="grants"></div>
+    </div>
+
+    <div class="card">
+      <h2>Signed-in browsers</h2>
+      <p class="muted" style="margin-bottom:12px">
+        Every session that can act as you right now. A session can spend through a grant, so one left
+        on a machine you no longer use is worth ending.
+      </p>
+      <div id="sessions"></div>
+      <hr />
       <button class="btn" id="logout">Sign out on this browser</button>
+      <button class="btn" id="revokeAll" style="margin-left:8px">Sign out everywhere</button>
+      <p class="muted" style="margin-top:10px">Signing out everywhere also revokes spending grants — not just sessions.</p>
+      <p class="msg" id="sessMsg"></p>
     </div>
   </div>
 
@@ -240,6 +259,124 @@ async function refresh() {
     w.appendChild(d);
   }
   loadNodes();
+  paintGrants();
+  loadSessions();
+}
+
+/** A DURATION, where ago() takes a timestamp. Both exist because "expires in
+ *  6 days" and "last used 20 min ago" are different sentences. */
+function span(ms) {
+  const s = Math.max(0, Math.round(Math.abs(ms) / 1000));
+  if (s < 90) return `${s}s`;
+  if (s < 5400) return `${Math.round(s / 60)} min`;
+  if (s < 172800) return `${Math.round(s / 3600)} h`;
+  return `${Math.round(s / 86400)} days`;
+}
+
+/* ---- web access ----
+ * Read-only, plus a revoke button, and that asymmetry IS the design: creating
+ * a grant needs the wallet's signature, which only the machine holding the key
+ * can produce. Ending one needs no key at all — just the session. Anyone who
+ * can prove they are you may take permission away; only the wallet can give
+ * it. That is the right way round. */
+function grantRow(g) {
+  const state = g.revokedAt
+    ? "revoked"
+    : g.expiresAt <= Date.now()
+      ? "expired"
+      : g.remainingUsd <= 0
+        ? "used up"
+        : `expires in ${span(g.expiresAt - Date.now())}`;
+  const d = document.createElement("div");
+  d.className = "item";
+  d.innerHTML = '<div style="min-width:0"><div class="addr"></div><div class="muted" style="margin-top:3px"></div></div>';
+  d.querySelector(".addr").textContent = g.address;
+  d.querySelector(".muted").textContent =
+    `$${g.remainingUsd.toFixed(4)} left of $${g.maxUsd.toFixed(2)} · ${state}`;
+  if (g.live) {
+    const b = document.createElement("button");
+    b.className = "x";
+    b.title = "End web access for this wallet";
+    b.textContent = "✕";
+    b.onclick = async () => {
+      if (!confirm(`End web access for ${g.address}?\n\nkoinosai.com/app stops being able to spend immediately. Anything already spent stays spent.`)) return;
+      try {
+        await j(`/account/grants/${encodeURIComponent(g.id)}`, undefined, "DELETE");
+      } catch (e) {
+        alert(e.message);
+      }
+      refresh();
+    };
+    d.appendChild(b);
+  }
+  return d;
+}
+
+function paintGrants() {
+  const el = $("grants");
+  el.innerHTML = "";
+  const gs = account.grants || [];
+  if (!gs.length) {
+    el.innerHTML = '<p class="muted">Nothing authorised. The web app cannot spend anything on your behalf.</p>';
+    return;
+  }
+  for (const g of gs.filter((x) => x.live)) el.appendChild(grantRow(g));
+  const past = gs.filter((x) => !x.live);
+  if (past.length) {
+    const h = document.createElement("p");
+    h.className = "muted";
+    h.style.margin = "16px 0 0";
+    h.textContent = "No longer spendable";
+    el.appendChild(h);
+    for (const g of past) el.appendChild(grantRow(g));
+  }
+}
+
+/* ---- signed-in browsers ----
+ * Handles, never tokens. The server sends the first 12 hex of each session's
+ * hash: enough to tell two of your own sessions apart, useless to anyone who
+ * intercepts it. */
+async function loadSessions() {
+  const el = $("sessions");
+  el.textContent = "loading…";
+  el.className = "muted";
+  let list;
+  try {
+    list = (await j("/account/sessions")).sessions || [];
+  } catch (e) {
+    el.textContent = e.message;
+    return;
+  }
+  el.className = "";
+  el.innerHTML = "";
+  if (!list.length) {
+    el.innerHTML = '<p class="muted">No live sessions.</p>';
+    return;
+  }
+  for (const sn of list) {
+    const d = document.createElement("div");
+    d.className = "item";
+    d.innerHTML = '<div style="min-width:0"><div class="addr"></div><div class="muted" style="margin-top:3px"></div></div>';
+    d.querySelector(".addr").textContent = (sn.label || "session") + (sn.current ? " — this browser" : "");
+    d.querySelector(".muted").textContent =
+      `${sn.id} · last used ${ago(sn.lastUsedAt)} · expires in ${span(sn.expiresAt - Date.now())}`;
+    if (!sn.current) {
+      const b = document.createElement("button");
+      b.className = "x";
+      b.title = "End this session";
+      b.textContent = "✕";
+      b.onclick = async () => {
+        try {
+          await j(`/account/sessions/${encodeURIComponent(sn.id)}`, undefined, "DELETE");
+        } catch (e) {
+          alert(e.message);
+        }
+        loadSessions();
+      };
+      d.appendChild(b);
+    }
+    el.appendChild(d);
+  }
 }
 
 /* ---- what your machines are actually doing ----
@@ -383,6 +520,18 @@ $("linkBtn").onclick = async () => {
 };
 
 $("logout").onclick = async () => { await j("/auth/logout", {}); refresh(); };
+$("revokeAll").onclick = async () => {
+  // This ends the session running this page too, so it is a one-way door and
+  // says so before it opens.
+  if (!confirm("Sign out of every browser and revoke every spending grant?\n\nThis signs you out here as well, and koinosai.com/app stops being able to spend until you authorise it again from the desktop app.")) return;
+  try {
+    const r = await j("/account/sessions/revoke-all", {});
+    $("sessMsg").textContent = `Ended ${r.sessions} session${r.sessions === 1 ? "" : "s"} and revoked ${r.grants} grant${r.grants === 1 ? "" : "s"}.`;
+  } catch (e) {
+    $("sessMsg").textContent = e.message;
+  }
+  refresh();
+};
 
 refresh();
 </script>
