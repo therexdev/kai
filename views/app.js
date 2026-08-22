@@ -261,7 +261,27 @@ function paintWallet() {
 
 /* ------------------------------------------------------------------ chat */
 
-const chat = { list: [], current: null, messages: [], busy: false };
+const chat = {
+  list: [], current: null, messages: [], busy: false,
+  /*
+   * Stuck to the bottom, or not.
+   *
+   * The thread used to be yanked to the bottom on every repaint — and a
+   * repaint happens on every streamed delta — so scrolling up to re-read
+   * something while the model was still writing was impossible: it snapped
+   * back within milliseconds. This tracks whether the READER is at the
+   * bottom, and only follows the text when they are. Scroll back down and it
+   * picks the thread up again, because arriving at the bottom is how someone
+   * says "carry on".
+   */
+  stick: true,
+  painting: false,
+};
+
+/* Within a few dozen pixels of the end counts as "at the bottom" — nobody
+ * scrolls to the exact pixel, and a strict test makes following feel broken. */
+const STICK_SLACK = 64;
+const atBottom = (el) => el.scrollHeight - el.scrollTop - el.clientHeight <= STICK_SLACK;
 
 function note(text, bad) {
   const el = $("chat-note");
@@ -354,6 +374,7 @@ async function loadThread() {
   try {
     const { messages } = await api(`/app/api/chats/${encodeURIComponent(chat.current)}`);
     chat.messages = messages;
+    chat.stick = true; // opening a conversation lands at the end of it
   } catch (e) {
     chat.messages = [];
     note(e.message, true);
@@ -380,8 +401,17 @@ function paintThread(pending) {
     t.innerHTML = `<div class="empty"><p>Ask anything.</p><p class="hint" style="margin-top:8px">Answers come from models running on the Koinos Network — real machines, paid per token from the limit you authorised.</p></div>`;
     return;
   }
+  /*
+   * Replacing innerHTML resets scrollTop to 0, which fires a scroll event
+   * that would look exactly like the reader jumping to the top. The guard
+   * makes the listener ignore scrolls this function caused, so only a HUMAN
+   * scroll can unstick the view. Cleared on the next frame, by which time
+   * the mutation's own scroll events have been and gone.
+   */
+  chat.painting = true;
   t.innerHTML = chat.messages.map(msgHtml).join("") + (pending || "");
-  t.scrollTop = t.scrollHeight;
+  if (chat.stick) t.scrollTop = t.scrollHeight;
+  requestAnimationFrame(() => { chat.painting = false; });
 }
 
 /**
@@ -402,6 +432,7 @@ async function send(text) {
   chat.busy = true;
   $("composer-send").disabled = true;
   note("");
+  chat.stick = true; // sending is a commitment to watching the reply arrive
   chat.messages.push({ role: "user", content: text, servedModel: null });
   let answer = "";
   const draw = () => paintThread(
@@ -1000,6 +1031,14 @@ function boot() {
     btn.addEventListener("click", () => show(btn.dataset.view));
   }
   window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+  /*
+   * The only thing that unsticks the view is a person scrolling it. Arriving
+   * back at the bottom re-sticks it, so following the text again costs one
+   * gesture and no button.
+   */
+  $("thread").addEventListener("scroll", () => {
+    if (!chat.painting) chat.stick = atBottom($("thread"));
+  }, { passive: true });
   wireComposer();
   wireDocs();
   wireTasks();

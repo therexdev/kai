@@ -262,12 +262,46 @@ async function main() {
     check(/classList\.toggle\("open"\)/.test(clientJs), "…and a control opens it again");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n9) crawlers are told to stay out");
+    console.log("\n9) the conversation scrolls, the page does not");
+
+    // The whole document used to scroll: the composer rode off the bottom of
+    // the screen and you had to scroll back down to type. A flex item defaults
+    // to min-height:auto, so every ancestor of the thread grew to fit the full
+    // conversation instead of capping it. The scroller only exists if the
+    // chain above it is allowed to shrink.
+    const flat = shellCss.replace(/\s+/g, "");
+    for (const rule of ["\nmain{flex:1;min-width:0;min-height:0", ".chat-main{flex:1;min-width:0;min-height:0"]) {
+      check(flat.includes(rule.replace(/\s+/g, "")),
+        `${rule.trim().split("{")[0]} may shrink below its content`);
+    }
+    check(/\.thread\{[^}]*overflow-y:auto/.test(flat), "the thread itself is the scroller");
+    // Both of these sit below the thread; if either can be squeezed the
+    // composer stops being pinned and starts drifting.
+    check(/\.composer\{[^}]*flex:0 0 auto/.test(shellCss.replace(/\n/g, "")), "the composer keeps its height");
+    check(/\.composer-note\{[^}]*flex:0 0 auto/.test(shellCss.replace(/\n/g, "")), "…and so does the note under it");
+
+    // Following the answer as it streams is the default, but it is the
+    // READER's call. Scrolling up has to interrupt it, and scrolling back to
+    // the bottom has to resume it — a repaint that always jumped to the end
+    // made reading anything above the fold impossible mid-answer.
+    check(/chat\.stick/.test(clientJs), "the client tracks whether the reader is at the bottom");
+    check(/if \(chat\.stick\) t\.scrollTop = t\.scrollHeight/.test(clientJs),
+      "…and only follows the text when they are");
+    check(/addEventListener\("scroll"[\s\S]{0,200}chat\.stick = atBottom/.test(clientJs),
+      "scrolling away turns following off, scrolling back turns it on");
+    // innerHTML resets scrollTop to 0, which fires a scroll event that looks
+    // exactly like the reader jumping to the top. Without the guard the first
+    // repaint of a streaming answer would unstick it.
+    check(/chat\.painting = true/.test(clientJs) && /if \(!chat\.painting\)/.test(clientJs),
+      "…and a repaint is not mistaken for the reader scrolling");
+
+    /* ------------------------------------------------------------------ */
+    console.log("\n10) crawlers are told to stay out");
     const robots = await raw(port, "/robots.txt");
     check(/^Disallow: \/app$/m.test(robots.body), "robots.txt disallows /app");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n10) server.js wiring, textually");
+    console.log("\n11) server.js wiring, textually");
     const src = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
     check(/VIEWS_DIR, "app\.html"/.test(src), "the shell is resolved out of VIEWS_DIR");
     check(!/PUBLIC_DIR, "app\.html"/.test(src), "and never out of PUBLIC_DIR");
