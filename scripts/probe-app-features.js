@@ -283,6 +283,25 @@ async function main() {
     check(String(done?.output || "").includes("Koinos Network answered"), "carrying the whole answer");
     check(done?.servedModel === "koinos-fast", "and naming the class that served it");
     check(m.frames.some((f) => f.DONE), "the stream terminated properly");
+    /*
+     * The price of THIS answer, in the answer. Someone paying per token
+     * should see what they just bought at the moment they buy it — a total
+     * on another page is an invoice, not a price tag. Zero is a legitimate
+     * value (the free allowance covered it), so the assertion is on the TYPE,
+     * not on truthiness: a falsy check here would have let a missing field
+     * pass as "free".
+     */
+    check(typeof done?.costUsd === "number", `the final frame carries a price (got ${typeof done?.costUsd})`);
+    check(done.costUsd > 0 && done.costUsd < 0.01, `…and it is a sane one ($${done?.costUsd})`);
+    check(typeof done?.paidWith === "string" && done.paidWith, "…and says which pocket it came from");
+
+    // Availability and price in one public feed, so choosing a class is not
+    // a cross-reference exercise against /pricing.
+    const feed = await jsonReq(port, "GET", "/scheduler/network/models");
+    const fast = (feed.json?.models || []).find((x) => x.model === "koinos-fast");
+    check(Boolean(fast), "the public models feed lists what is being served");
+    check(fast?.providers >= 1, "…with how many providers hold it");
+    check(fast?.outUsdPerM === 0.4 && fast?.inUsdPerM === 0.1, `…and its price (in ${fast?.inUsdPerM}/M, out ${fast?.outUsdPerM}/M)`);
 
     /* ------------------------------------------------------------------ */
     console.log("\n4) what was said is what was stored");
@@ -295,6 +314,8 @@ async function main() {
     check(msgs[0]?.role === "user" && msgs[0]?.content === "What is this?", "the question, exactly as typed");
     check(msgs[1]?.role === "assistant" && String(msgs[1]?.content).includes("Koinos Network answered"), "and the answer");
     check(msgs[1]?.servedModel === "koinos-fast", "with the class that produced it");
+    check(typeof msgs[1]?.costUsd === "number" && msgs[1].costUsd > 0,
+      `and what it cost, kept with the message ($${msgs[1]?.costUsd})`);
 
     r = await jsonReq(port, "GET", "/app/api/chats", { cookie: mine.cookie });
     check(r.json.chats[0].title === "What is this?", "the chat named itself from the first thing said");

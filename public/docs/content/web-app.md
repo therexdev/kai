@@ -30,6 +30,8 @@ Open [koinosai.com/app](https://koinosai.com/app) in a browser where you are sig
 
 **Chat** — ask, and the answer streams in as the model generates it. Conversations are kept on the server against your account, so the tab you left open on another machine has the same history. Each chat names itself from the first thing you said.
 
+The box beside the composer picks which class of model answers, with its price per million output tokens beside each name. **Best available** — the default — means whichever class someone is actually serving right now, priced highest first. Under every answer you get the class that produced it and what that answer cost, or "free allowance" when today's allowance covered it.
+
 **Docs** — write, then select a passage and ask about it: *tighten this*, *what am I missing?*, *continue from here*. The answer appears in a panel below with three buttons — **Insert at cursor**, **Replace selection**, **Dismiss**.
 
 The model never edits the document by itself. That is deliberate: an assistant that rewrites your file the instant it finishes generating is one that can quietly destroy an hour of work. Insert and Replace go through the editor normally, so **Ctrl+Z** undoes them like anything else you typed.

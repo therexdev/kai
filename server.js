@@ -950,6 +950,7 @@ app.post("/app/api/chats/:id/message", async (req, res) => {
         role: "assistant",
         content: String(f.output),
         servedModel: f.servedModel || null,
+        costMicro: f.costUsd == null ? null : Math.round(f.costUsd * 1e6),
       });
       /*
        * Count the use only when an answer actually came back. Marking it at
