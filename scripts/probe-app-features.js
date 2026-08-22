@@ -309,8 +309,6 @@ async function main() {
 
     /* ------------------------------------------------------------------ */
     console.log("\n4) what was said is what was stored");
-    // The reply is written when the response closes, which is the same tick
-    // the client sees [DONE] — give the event loop a beat to run it.
     await new Promise((r2) => setTimeout(r2, 250));
     r = await jsonReq(port, "GET", `/app/api/chats/${chatId}`, { cookie: mine.cookie });
     const msgs = r.json.messages;
@@ -324,6 +322,45 @@ async function main() {
     r = await jsonReq(port, "GET", "/app/api/chats", { cookie: mine.cookie });
     check(r.json.chats[0].title === "What is this?", "the chat named itself from the first thing said");
     check(r.json.chats[0].messages === 2, "the list counts what is in it");
+
+    /*
+     * A tab shut mid-generation still keeps its answer. The socket closes
+     * BEFORE the reply arrives, so anything that saved at close time would
+     * find nothing — while the work was really done and the grant really
+     * charged. Abort a request the moment the first delta lands, then look
+     * for the answer afterwards.
+     */
+    // Its own wallet, like every other paid case here: the free allowance is
+    // one token per ADDRESS per day in this probe, and gr_chat spent its one
+    // on the successful send above.
+    const runAddr = Signer.fromSeed("probe app abandon consumer").getAddress();
+    db.prepare("INSERT INTO wallets (address, account_id, linked_at) VALUES (?,?,?)").run(runAddr, mine.id, t);
+    db.prepare("INSERT INTO spend_grants (id, account_id, address, max_micro, spent_micro, created_at, expires_at) VALUES (?,?,?,?,?,?,?)")
+      .run("gr_abandon", mine.id, runAddr, 5 * 1e6, 0, t, t + 86400e3);
+    const abandonChat = (await jsonReq(port, "POST", "/app/api/chats", { cookie: mine.cookie, body: {} })).json.chat.id;
+    await new Promise((resolve, reject) => {
+      const data = JSON.stringify({ content: "Ask and run away.", model: "koinos-fast", grantId: "gr_abandon" });
+      const rq = http.request(
+        {
+          host: "127.0.0.1", port, path: `/app/api/chats/${abandonChat}/message`, method: "POST",
+          headers: { cookie: mine.cookie, "content-type": "application/json", "content-length": Buffer.byteLength(data) },
+        },
+        (rs) => {
+          rs.once("data", () => { rq.destroy(); resolve(); });
+          rs.on("error", () => resolve());
+          rs.on("end", resolve);
+        }
+      );
+      rq.on("error", () => resolve());
+      rq.write(data);
+      rq.end();
+    });
+    await new Promise((r2) => setTimeout(r2, 1500));
+    r = await jsonReq(port, "GET", `/app/api/chats/${abandonChat}`, { cookie: mine.cookie });
+    const abandoned = r.json.messages;
+    check(abandoned.length === 2, `the abandoned chat kept both turns (got ${abandoned.length})`);
+    check(String(abandoned[1]?.content || "").includes("Koinos Network answered"),
+      "…including an answer nobody was still watching arrive");
 
     /* ------------------------------------------------------------------ */
     console.log("\n5) the grant paid for it");
@@ -425,11 +462,17 @@ async function main() {
 
     // Run now takes the SAME path the schedule takes — no session involved,
     // the account asserted on the request object in-process.
+    //
+    // Counted RELATIVE to now rather than against a literal. Absolute job
+    // counts made every added section a two-line edit somewhere else, which
+    // is how a probe stops getting extended.
+    const servedBeforeTask = worker.served;
     r = await jsonReq(port, "POST", `/app/api/tasks/${taskId}/run`, { cookie: mine.cookie, body: {} });
     check(r.status === 200, `run now succeeds with no session in the request (got ${r.status}: ${r.body.slice(0, 160)})`);
     check(String(r.json?.task?.lastOutput || "").includes("Koinos Network answered"), "and stores what came back");
     check(r.json?.task?.lastOk === true && r.json?.task?.runs === 1, "the run is recorded");
-    check(worker.served === 3, "a worker really did the work");
+    check(worker.served === servedBeforeTask + 1,
+      `a worker really did the work (${servedBeforeTask} -> ${worker.served})`);
 
     const meTask = await jsonReq(port, "GET", "/account/api", { cookie: mine.cookie });
     check(meTask.json.account.grants.find((g) => g.id === "gr_task").spentUsd > 0, "the task's own grant paid for it");
@@ -571,18 +614,21 @@ async function main() {
      */
     const r2 = await jsonReq(port, "POST", "/app/api/chats", { cookie: mine.cookie, body: {} });
     const orphan = r2.json.chat.id;
+    const servedBeforeRefusal = worker.served;
     m = await sse(port, `/app/api/chats/${orphan}/message`, mine.cookie,
       { content: "and again?", model: "koinos-fast", grantId: "gr_chat" });
     check(m.status === 402, `refused with 402 when the wallet has nothing to draw on (got ${m.status})`);
-    // Three jobs by now — chat, the docs ask, and the task run. This refusal
-    // must add none: the point is that nothing is dispatched.
-    check(worker.served === 4, `and no worker was asked to do the work (served ${worker.served}, expected 4)`);
+    // The point is that NOTHING is dispatched — so the count must not move,
+    // whatever it happens to be by now.
+    check(worker.served === servedBeforeRefusal,
+      `and no worker was asked to do the work (still ${worker.served})`);
     r = await jsonReq(port, "GET", `/app/api/chats/${orphan}`, { cookie: mine.cookie });
     check(r.json.messages.length === 1 && r.json.messages[0].role === "user",
       "the question survives this refusal too");
 
     /* ------------------------------------------------------------------ */
     console.log("\n10) deleting your data deletes your data — and nothing else");
+    const beforePurge = (await jsonReq(port, "GET", "/account/api", { cookie: mine.cookie })).json.account;
     r = await jsonReq(port, "GET", "/app/api/chats", { cookie: mine.cookie });
     const beforeChats = r.json.chats.length;
     check(beforeChats > 0, `there is something to delete (${beforeChats} chats)`);
@@ -602,8 +648,10 @@ async function main() {
      */
     const after = await jsonReq(port, "GET", "/account/api", { cookie: mine.cookie });
     check(after.status === 200, "the account still exists");
-    check(after.json.account.wallets.length === 4, `wallets untouched (${after.json.account.wallets.length})`);
-    check(after.json.account.grants.length === 4, `grants untouched (${after.json.account.grants.length})`);
+    check(after.json.account.wallets.length === beforePurge.wallets.length,
+      `wallets untouched (${after.json.account.wallets.length})`);
+    check(after.json.account.grants.length === beforePurge.grants.length,
+      `grants untouched (${after.json.account.grants.length})`);
 
     /* ------------------------------------------------------------------ */
     console.log("\n11) the browser is never handed its own session token");

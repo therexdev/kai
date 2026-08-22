@@ -860,26 +860,34 @@ async function askNetwork(req, res, { grant, messages, model, onAnswer }) {
    * — it carries the whole reply, so there is no need to reassemble deltas
    * and no risk of storing a differently-chunked version of what the user
    * actually saw.
+   *
+   * Stored the MOMENT the frame exists, not when the response closes. Those
+   * look equivalent and are not: if someone shuts the tab mid-generation, the
+   * socket closes FIRST and the answer arrives after, so a close-time save
+   * would find nothing. The work was really done on somebody's machine and
+   * the grant was really charged for it — losing the result on top of that is
+   * the one outcome with no defence.
    */
-  let saved = null;
+  let delivered = false;
   const write = res.write.bind(res);
   res.write = (chunk, ...rest) => {
     try {
       const str = Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk);
-      if (str.includes('"done":true')) {
+      if (!delivered && str.includes('"done":true')) {
         for (const line of str.split("\n")) {
           if (!line.startsWith("data: ")) continue;
           const f = JSON.parse(line.slice(6));
-          if (f && f.done) saved = f;
+          if (f && f.done && String(f.output || "").trim()) {
+            delivered = true;
+            // Inside the write path on purpose. A throw here must not break
+            // the stream the person is still reading.
+            try { onAnswer(f); } catch (e) { console.error("[webapp] could not store a reply:", e.message); }
+          }
         }
       }
     } catch { /* a frame we can't read is not a reason to break the stream */ }
     return write(chunk, ...rest);
   };
-  res.on("close", () => {
-    if (!saved || !String(saved.output || "").trim()) return;
-    try { onAnswer(saved); } catch (e) { console.error("[webapp] could not store a reply:", e.message); }
-  });
 
   try {
     await scheduler.handle(fake, res);
