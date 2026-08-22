@@ -136,16 +136,28 @@ a{color:var(--violet)}
    * shoves it off the right edge into the overflow, where the one number
    * that must always be visible was invisible.
    */
+  /*
+   * Two rows: the brand, then the nav with the balance on the SAME line.
+   *
+   * The email used to sit up here beside the brand, which pushed the balance
+   * onto a third row of its own — three rows of chrome above a chat, on the
+   * screen with the least of it. The email answers "which account am I?", a
+   * question you ask once and then never again; the balance answers "can I
+   * afford to send this?", which is live. Only one of those earns permanent
+   * space on a phone. The email is still on the account page and in the
+   * sidebar on a wide screen.
+   */
   aside{width:auto;display:grid;grid-template-columns:minmax(0,1fr) auto;
-        align-items:center;gap:4px 10px;padding:8px 12px;
+        align-items:center;gap:2px 10px;padding:8px 12px;
         border-right:0;border-bottom:1px solid var(--border);overflow:visible}
-  .brand{font-size:.9em;padding:0}
-  .foot{margin:0;text-align:right;font-size:.72em;min-width:0}
-  .foot p{display:none}
-  .foot #who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  nav{grid-column:1/-1;flex-direction:row;gap:4px;overflow-x:auto;scrollbar-width:none}
+  .brand{grid-column:1/-1;font-size:.9em;padding:0}
+  .foot{grid-column:2;grid-row:2;margin:0;text-align:right;font-size:.72em;flex-shrink:0}
+  .foot p,.foot #who{display:none}
+  nav{grid-column:1;grid-row:2;flex-direction:row;gap:2px;overflow-x:auto;scrollbar-width:none}
   nav::-webkit-scrollbar{display:none}
-  .nav-item{padding:6px 10px;font-size:.9em;white-space:nowrap;flex:0 0 auto}
+  /* Tighter than the desktop rows: four items and a balance share one line,
+     and the nav is the half that can afford to give. */
+  .nav-item{padding:6px 8px;font-size:.86em;white-space:nowrap;flex:0 0 auto}
 
   .view{padding:20px 5%}
   .view.chat{flex-direction:column}
