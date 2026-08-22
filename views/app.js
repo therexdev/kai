@@ -80,6 +80,37 @@ async function api(path, body, method) {
   return data;
 }
 
+/**
+ * Turn a refusal into a sentence that makes sense HERE.
+ *
+ * Two error shapes reach this app: its own routes answer {error: "..."} and
+ * the scheduler answers OpenAI-style {error: {message, type}}. Both are real,
+ * so read whichever arrived rather than guessing.
+ *
+ * The one that needed translating is `insufficient_quota`. The network's own
+ * words tell you to "add KAI in the Earn tab, or Start Earning" — correct
+ * advice, written for someone sitting in the desktop app, and useless to
+ * someone in a browser who may not have it open. It is also the single most
+ * likely refusal a new web user will meet, because a grant is permission and
+ * not funds. So the browser gets browser-shaped guidance, and the network's
+ * own sentence is kept after it rather than thrown away: it says which limit
+ * was hit, personal or network-wide, and that distinction is real.
+ */
+function netError(j, status) {
+  const raw = typeof j.error === "string" ? j.error : j.error?.message;
+  const type = typeof j.error === "object" ? j.error?.type : null;
+  if (type === "insufficient_quota") {
+    const e = new Error(
+      "This wallet has nothing left to draw on. A spending grant is permission, not funds — " +
+      "the wallet still needs KAI on the network. Add some from the Koinos AI desktop app " +
+      "(Earn), or run a node and earn it. " + (raw || "")
+    );
+    e.quota = true;
+    return e;
+  }
+  return new Error(raw || `the network answered ${status}`);
+}
+
 /** Pick the grant to spend through: live, and the one with the most room. */
 function liveGrant(grants) {
   return (grants || [])
@@ -336,12 +367,7 @@ async function send(text) {
      * resolves and no explanation anywhere.
      */
     if (!res.ok || !/text\/event-stream/.test(res.headers.get("content-type") || "")) {
-      const j = await res.json().catch(() => ({}));
-      // Two error shapes reach here: this app's routes answer {error: "..."}
-      // and the scheduler answers OpenAI-style {error: {message, type}}.
-      // Both are real; read whichever arrived rather than guessing.
-      const msg = typeof j.error === "string" ? j.error : j.error?.message;
-      throw new Error(msg || `the network answered ${res.status}`);
+      throw netError(await res.json().catch(() => ({})), res.status);
     }
     const reader = res.body.getReader();
     const dec = new TextDecoder();
@@ -547,9 +573,7 @@ async function askDoc(instruction) {
     });
     if (res.status === 401) { location.replace("/account?next=/app"); return; }
     if (!res.ok || !/text\/event-stream/.test(res.headers.get("content-type") || "")) {
-      const j = await res.json().catch(() => ({}));
-      const msg = typeof j.error === "string" ? j.error : j.error?.message;
-      throw new Error(msg || `the network answered ${res.status}`);
+      throw netError(await res.json().catch(() => ({})), res.status);
     }
     const reader = res.body.getReader();
     const dec = new TextDecoder();
@@ -860,6 +884,34 @@ function wireTasks() {
   });
 }
 
+/* --------------------------------------------------------- delete my data */
+
+function wirePurge() {
+  $("purge").addEventListener("click", async () => {
+    // Two confirmations, because this is not undoable and the button sits on
+    // a page people visit to read a balance.
+    if (!confirm("Delete every chat, document, task and memory stored here?\n\nThis cannot be undone. Your account, wallets and spending grants are not affected.")) return;
+    if (!confirm("Last check — this deletes all of it, permanently.")) return;
+    const note = $("purge-note");
+    note.textContent = "Deleting…";
+    try {
+      const { deleted } = await api("/app/api/data", undefined, "DELETE");
+      note.textContent =
+        `Deleted ${deleted.chats} chat${deleted.chats === 1 ? "" : "s"}, ` +
+        `${deleted.docs} document${deleted.docs === 1 ? "" : "s"}, ` +
+        `${deleted.tasks} task${deleted.tasks === 1 ? "" : "s"} and ` +
+        `${deleted.memories} memor${deleted.memories === 1 ? "y" : "ies"}.`;
+      // Everything on screen is now stale — reload the views that showed it.
+      chat.current = null;
+      docs.current = null;
+      chat.list = []; docs.list = []; tasks.list = []; memory.list = [];
+    } catch (e) {
+      note.textContent = e.message;
+      note.style.color = "var(--danger)";
+    }
+  });
+}
+
 /* ------------------------------------------------------------------ boot */
 
 function boot() {
@@ -871,6 +923,7 @@ function boot() {
   wireDocs();
   wireTasks();
   wireMemory();
+  wirePurge();
 
   load()
     .then(() => show(location.hash.slice(1) || "chat"))

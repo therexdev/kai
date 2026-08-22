@@ -46,6 +46,12 @@ The shortest schedule is one hour. That is a limit for the wallet's sake, not th
 
 **Wallet** — what the site may spend, what it has spent, and what is left, including grants that have expired or been revoked.
 
+## Deleting what is stored
+
+The Wallet page has a button that removes every chat, document, task and memory this site holds for you. It is immediate and it cannot be undone.
+
+It does **not** touch your account, your linked wallets or your spending grants. Those are identity and money rather than content — a separate decision, made in a separate place. Ending web access is the section below; unlinking a wallet is on your [account page](https://koinosai.com/account).
+
 ## Ending web access
 
 Two ways, both immediate:
@@ -67,7 +73,7 @@ Signing out **everywhere** (from your account page) also revokes spending grants
 
 **"Connect a wallet to begin"** — no live grant on this account. Authorise one from the desktop app (above). If you just did, reload the page.
 
-**"Insufficient balance"** — the grant is fine; the wallet has nothing to draw on. Add KAI in the app's Earn tab, or start earning.
+**"This wallet has nothing left to draw on"** — the grant is fine; the wallet has no KAI on the network. A grant is permission, not funds. Add some from the desktop app's Earn tab, or run a node and earn it. The network's own sentence follows that one and says which limit was hit: your wallet's, or the network-wide free allowance for the day.
 
 **"No providers are serving …"** — nobody is running that model class right now. Try again shortly, or pick a different class. The [network page](https://koinosai.com/network) shows what is online.
 
