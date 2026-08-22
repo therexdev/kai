@@ -219,10 +219,27 @@ async function main() {
     // taking the nav with it.
     check(/height:100dvh/.test(phone), "the phone layout is sized in dvh, not %");
 
-    // The balance was pushed off the right edge of a horizontally scrolling
-    // nav row. Nav on its own grid row is what puts it back on screen.
-    check(/nav\{grid-column:1\/-1/.test(phone.replace(/\s+/g, "")),
-      "the nav takes its own row so the spend readout is not scrolled off");
+    /*
+     * The balance is PLACED by the grid, not pushed by an auto margin. It
+     * used to be shoved right with margin-left:auto inside the horizontally
+     * scrolling nav row, which put it in the overflow rather than on screen.
+     * It now has its own cell beside the nav, and the nav is the half that
+     * scrolls if anything has to.
+     */
+    const tight = phone.replace(/\s+/g, "");
+    check(/\.foot\{grid-column:2;grid-row:2/.test(tight),
+      "the balance has its own grid cell beside the nav");
+    check(!/\.foot\{[^}]*margin:0 0 0 auto/.test(tight) && !/\.foot\{[^}]*margin-left:auto/.test(tight),
+      "…and is not pushed there by an auto margin, which is how it got lost");
+    check(/nav\{grid-column:1;grid-row:2/.test(tight), "the nav shares that row rather than owning one");
+
+    // The email answers a question you ask once; the balance answers one that
+    // is live. Only the second earns permanent space on a phone.
+    // Whitespace-stripped, `.foot p,.foot #who` keeps its inner space because
+    // the descendant combinator IS a space — matching on the id alone is both
+    // simpler and the thing actually being asserted.
+    check(/#who\{display:none\}/.test(tight.replace(/,\s*/g, ",")) || /#who[^{]*\{display:none\}/.test(phone.replace(/\n/g, "")),
+      "the email is not in the phone header");
 
     // A phone's Enter key is a newline and there is no Shift to hold, so
     // Enter-to-send fired the message on the first paragraph break.
