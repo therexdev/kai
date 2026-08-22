@@ -187,9 +187,19 @@ async function main() {
   r = await call("/auth/email/verify", { body: { email: "owner@example.com", code: "000000" } });
   check(r.status === 401 || code === "000000", "wrong code is refused");
   r = await call("/auth/email/verify", { body: { email: "owner@example.com", code } });
-  check(r.status === 200 && r.data.token?.startsWith("sk_"), "right code signs in and issues a token");
+  check(r.status === 200 && r.data.account?.email === "owner@example.com", "right code signs in");
   check(String(r.headers.get("set-cookie")).includes("kai_session="), "and sets the session cookie");
-  const token = r.data.token;
+  /*
+   * The token must NOT be in the response body. It used to be, which put a
+   * 30-day credential where page JavaScript could read it — and a session can
+   * now authorise SPENDING through a grant, so that is a financial credential.
+   * The cookie is httpOnly; the body carries nothing.
+   */
+  check(r.data.token === undefined, "the session token is NOT handed to page JavaScript");
+  // Read it from the cookie, the way a browser would. The probe then uses it
+  // as a Bearer to exercise the same lane the desktop app uses.
+  const token = /kai_session=([^;]+)/.exec(String(r.headers.get("set-cookie")))?.[1];
+  check(token?.startsWith("sk_"), "…and the cookie carries a real session token");
   const accountId = r.data.account.id;
   r = await call("/auth/email/verify", { body: { email: "owner@example.com", code } });
   check(r.status === 401, "a code is single-use");
@@ -412,7 +422,150 @@ async function main() {
     sched.server?.close();
   }
 
-  console.log("\n9) server.js actually mounts all of this");
+  /*
+   * SPEND GRANTS — the seam the web app spends through.
+   *
+   * The distinction under test: LINKING proves you own a wallet once;
+   * GRANTING says a site may draw on it, capped and dated. Conflating them
+   * would invent consent nobody gave, so the two proofs must not be
+   * interchangeable in either direction.
+   */
+  console.log("\n9) spend grants — capped, dated, revocable, and NOT a link proof");
+  {
+    const gToken = full.service._issueSession(accountId, "probe (grants)");
+    const gb = { authorization: `Bearer ${gToken}` };
+    const sign = async (msg) =>
+      Buffer.from(await wallet.signHash(crypto.createHash("sha256").update(msg).digest())).toString("base64");
+    const grant = async (over = {}) => {
+      const body = {
+        address,
+        maxMicro: 5 * 1e6,
+        expiresAt: Date.now() + 7 * 24 * 3600 * 1000,
+        ts: Date.now(),
+        ...over,
+      };
+      if (!("signature" in over)) {
+        body.signature = await sign(`spend|${body.address}|${accountId}|${Math.floor(body.maxMicro)}|${Math.floor(body.expiresAt)}|${body.ts}`);
+      }
+      return call("/account/grants", { body, headers: gb });
+    };
+
+    // A grant needs a linked wallet first — spending authority cannot precede
+    // proof of ownership.
+    r = await call(`/account/wallets/${address}`, { method: "DELETE", headers: gb });
+    let g = await grant();
+    check(g.status === 409, "granting on an unlinked wallet is refused");
+    {
+      const ts3 = Date.now();
+      const sig3 = Buffer.from(await wallet.signHash(crypto.createHash("sha256").update(`link|${address}|${accountId}|${ts3}`).digest())).toString("base64");
+      await call("/account/wallets", { body: { address, ts: ts3, signature: sig3 }, headers: gb });
+    }
+
+    g = await grant();
+    check(g.status === 200 && g.data.grant?.live === true, "a signed grant is created and live");
+    const grantId = g.data.grant?.id;
+    check(g.data.grant?.maxUsd === 5 && g.data.grant?.remainingUsd === 5, "the cap is recorded in dollars, unspent");
+
+    // A LINK proof must never be accepted as a SPEND proof. The verb in the
+    // signed message is what separates them.
+    const linkTs = Date.now();
+    const linkSig = await sign(`link|${address}|${accountId}|${linkTs}`);
+    g = await grant({ ts: linkTs, signature: linkSig });
+    check(g.status === 400, "a LINK signature is refused as a spend grant");
+
+    // Terms are pinned by the signature: raising the cap after signing fails.
+    const ts4 = Date.now();
+    const sig4 = await sign(`spend|${address}|${accountId}|${5 * 1e6}|${Date.now() + 86400000}|${ts4}`);
+    g = await grant({ maxMicro: 500 * 1e6, ts: ts4, signature: sig4 });
+    check(g.status === 400, "a signature for one cap cannot authorise a bigger one");
+
+    g = await grant({ maxMicro: 0 });
+    check(g.status === 400, "a zero cap is refused");
+    g = await grant({ maxMicro: 5000 * 1e6 });
+    check(g.status === 400, "an absurd cap is refused");
+    g = await grant({ expiresAt: Date.now() - 1000 });
+    check(g.status === 400, "an expiry in the past is refused");
+
+    // Resolution + charging, the path money actually takes.
+    const live = full.service.spendableGrant(accountId, grantId);
+    check(live.address === address && live.remainingMicro === 5 * 1e6, "a live grant resolves to its address and remaining cap");
+    full.service.chargeGrant(grantId, 2 * 1e6);
+    check(full.service.spendableGrant(accountId, grantId).remainingMicro === 3 * 1e6, "spend is booked against the cap");
+    let capped = false;
+    try { full.service.chargeGrant(grantId, 10 * 1e6); } catch { capped = true; }
+    check(capped, "a charge past the cap is REFUSED, not silently allowed");
+    check(full.service.spendableGrant(accountId, grantId).remainingMicro === 3 * 1e6, "…and the refusal booked nothing");
+
+    // Another account cannot resolve someone else's grant.
+    const other = full.service._newAccount({ email: `other-${Date.now()}@example.com` });
+    let leaked = false;
+    try { full.service.spendableGrant(other.id, grantId); leaked = true; } catch { /* expected */ }
+    check(!leaked, "a grant cannot be resolved by a different account");
+
+    // Revocation, and the fact that unlinking kills spending authority.
+    r = await call(`/account/grants/${grantId}`, { method: "DELETE", headers: gb });
+    check(r.status === 200, "a grant can be revoked");
+    let dead = false;
+    try { full.service.spendableGrant(accountId, grantId); } catch { dead = true; }
+    check(dead, "a revoked grant no longer resolves");
+
+    g = await grant();
+    const g2 = g.data.grant?.id;
+    r = await call(`/account/wallets/${address}`, { method: "DELETE", headers: gb });
+    let killedByUnlink = false;
+    try { full.service.spendableGrant(accountId, g2); } catch { killedByUnlink = true; }
+    check(killedByUnlink, "unlinking a wallet revokes its spending grant");
+  }
+
+  /*
+   * SESSION CONTROL. Before this there was no way to see what was signed in
+   * as you, and no way to end it — on a system where a session can now spend.
+   * "I think someone has my account" had no answer.
+   */
+  console.log("\n10) sessions can be seen and ended");
+  {
+    const t1 = full.service._issueSession(accountId, "probe (one)");
+    const t2 = full.service._issueSession(accountId, "probe (two)");
+    const h1 = { authorization: `Bearer ${t1}` };
+
+    r = await call("/account/sessions", { headers: h1 });
+    check(r.status === 200 && r.data.sessions.length >= 2, "a signed-in caller can list their live sessions");
+    const mine = r.data.sessions.find((x) => x.current);
+    check(Boolean(mine), "the session making the request is marked current");
+    check(
+      r.data.sessions.every((x) => /^[0-9a-f]{12}$/.test(x.id)) &&
+        !JSON.stringify(r.data.sessions).includes(t1) &&
+        !JSON.stringify(r.data.sessions).includes(t2),
+      "the list carries handles, never the tokens themselves"
+    );
+    check(r.data.sessions.some((x) => x.label === "probe (two)"), "each session is labelled well enough to recognise");
+
+    const other = r.data.sessions.find((x) => !x.current);
+    r = await call(`/account/sessions/${other.id}`, { method: "DELETE", headers: h1 });
+    check(r.status === 200, "one session can be ended by its handle");
+    check(full.service.sessionAccount(t2) === null || full.service.sessionAccount(t1) === null, "…and that token stops working");
+
+    // Sign out everywhere must also kill spending authority — a stolen
+    // session whose grant survives is still a live drain.
+    const ts5 = Date.now();
+    const sig5 = Buffer.from(await wallet.signHash(crypto.createHash("sha256").update(`link|${address}|${accountId}|${ts5}`).digest())).toString("base64");
+    await call("/account/wallets", { body: { address, ts: ts5, signature: sig5 }, headers: h1 });
+    const gExp = Date.now() + 3600000;
+    const gTs = Date.now();
+    const gSig = Buffer.from(await wallet.signHash(crypto.createHash("sha256").update(`spend|${address}|${accountId}|${1000000}|${gExp}|${gTs}`).digest())).toString("base64");
+    const gr = await call("/account/grants", { body: { address, maxMicro: 1000000, expiresAt: gExp, ts: gTs, signature: gSig }, headers: h1 });
+    check(gr.status === 200, "a grant exists before signing out everywhere");
+
+    r = await call("/account/sessions/revoke-all", { body: {}, headers: h1 });
+    check(r.status === 200 && r.data.sessions >= 1, "sign out everywhere ends every session");
+    check(r.data.grants >= 1, "…AND revokes spending grants, not just sessions");
+    check(full.service.sessionAccount(t1) === null, "the calling session is gone too");
+    let stillSpendable = false;
+    try { full.service.spendableGrant(accountId, gr.data.grant.id); stillSpendable = true; } catch { /* expected */ }
+    check(!stillSpendable, "the grant cannot spend after signing out everywhere");
+  }
+
+  console.log("\n11) server.js actually mounts all of this");
   const serverSrc = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
   check(serverSrc.includes("createAccounts"), "server.js constructs the accounts service");
   check(serverSrc.includes("account.html"), "server.js serves the /account + /link page");

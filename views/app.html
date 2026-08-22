@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Koinos AI</title>
+<style>
+:root{--bg:#07090c;--raised:#0d1117;--input:#10161d;--border:#1c2430;--text:#e8edf4;--dim:#8b98a9;--violet:#8b5cf6;--emerald:#34d399;--danger:#f87171;--radius:10px}
+*{box-sizing:border-box;margin:0}
+html,body,#app{height:100%}
+body{background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{display:flex}
+aside{width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:14px;padding:14px;border-right:1px solid var(--border);background:var(--raised)}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 6px;font-weight:700}
+.mark{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,var(--violet) 55%,var(--emerald))}
+nav{display:flex;flex-direction:column;gap:2px}
+.nav-item{text-align:left;padding:7px 12px;border:0;border-radius:8px;background:none;color:var(--dim);font:inherit;cursor:pointer}
+.nav-item:hover{background:var(--input);color:var(--text)}
+.nav-item.active{background:var(--input);color:var(--text);font-weight:600}
+.foot{margin-top:auto;font-size:.78em;color:var(--dim)}
+main{flex:1;min-width:0;display:flex;flex-direction:column}
+.view{flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto;padding:34px 8%}
+[hidden]{display:none!important}
+h1{font-size:1.5em;letter-spacing:-.01em;margin-bottom:6px}
+.lede{color:var(--dim);margin-bottom:18px}
+.card{background:var(--raised);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:14px}
+.card h2{font-size:1.05em;margin-bottom:8px}
+.hint{font-size:.88em;color:var(--dim)}
+.btn{border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:600;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--violet),#6d3ef0)}
+.btn.small{padding:6px 12px;font-size:.88em}
+.btn.ghost{background:none;border:1px solid var(--border);color:var(--text)}
+.gate{max-width:520px;margin:12vh auto;text-align:center}
+.bal{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
+.bal b{font-size:1.6em}
+.warn{border-color:var(--danger)}
+.warn h2{color:var(--danger)}
+.card.spent{opacity:.6}
+.meter{height:6px;border-radius:3px;background:var(--input);overflow:hidden;margin:8px 0 10px}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--emerald),var(--violet))}
+h2.section{font-size:.82em;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:20px 0 10px}
+a{color:var(--violet)}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <div class="brand"><span class="mark"></span>Koinos&nbsp;AI</div>
+    <nav id="nav">
+      <button class="nav-item active" data-view="chat">Chat</button>
+      <button class="nav-item" data-view="docs">Docs</button>
+      <button class="nav-item" data-view="tasks">Tasks</button>
+      <button class="nav-item" data-view="wallet">Wallet</button>
+    </nav>
+    <div class="foot">
+      <div id="who"></div>
+      <div id="spend"></div>
+      <p style="margin-top:8px">Runs on the Koinos Network.<br />Every answer costs KAI.</p>
+    </div>
+  </aside>
+  <main>
+    <!-- No spending grant yet: nothing else is reachable, because nothing
+         else can work. Better one honest door than four dead ends. -->
+    <section id="view-gate" class="view" hidden>
+      <div class="gate">
+        <h1>Connect a wallet to begin</h1>
+        <p class="lede">This app runs on the Koinos Network — every answer is generated on someone else's machine and paid for in KAI. To use it, authorise a spending limit from a wallet you control.</p>
+        <div class="card" style="text-align:left">
+          <h2>How this works</h2>
+          <p class="hint">You sign <b>once</b> to set a cap and an expiry. Nothing here ever holds your key, and this site can never spend more than the cap you set. You can revoke it at any moment from your account page.</p>
+        </div>
+        <p id="gate-msg" class="hint"></p>
+        <p style="margin-top:14px"><a class="btn" href="/account">Set this up on your account page</a></p>
+      </div>
+    </section>
+
+    <section id="view-chat" class="view" hidden>
+      <h1>Chat</h1>
+      <p class="lede">Answers come from models on the Koinos Network.</p>
+      <div class="card"><p class="hint">Not built yet — the spending boundary landed first, deliberately. This is next.</p></div>
+    </section>
+
+    <section id="view-docs" class="view" hidden>
+      <h1>Docs</h1>
+      <p class="lede">Write with the model beside you.</p>
+      <div class="card"><p class="hint">Not built yet.</p></div>
+    </section>
+
+    <section id="view-tasks" class="view" hidden>
+      <h1>Tasks</h1>
+      <p class="lede">Prompts that run on a schedule — and here, unlike the desktop app, they run whether or not you have a window open.</p>
+      <div class="card"><p class="hint">Not built yet. Tasks spend money while nobody is watching, so this ships after the spend cap is proven in use.</p></div>
+    </section>
+
+    <section id="view-wallet" class="view" hidden>
+      <h1>Wallet</h1>
+      <p class="lede">What this site may spend, and what it has spent.</p>
+      <div id="wallet-body"></div>
+      <div class="card">
+        <h2>Changing or ending this</h2>
+        <p class="hint">Grants are created and revoked on your <a href="/account">account page</a>, where the wallet that owns them can sign. Revoking takes effect immediately.</p>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="/app/app.js"></script>
+</body>
+</html>

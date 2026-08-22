@@ -265,6 +265,15 @@ try {
     onEvent: (e) => console.log(`[accounts] ${e.type}`, e.account ?? e.address ?? e.id ?? ""),
   });
   app.use(accounts.router);
+  /*
+   * Hand the scheduler the account service so a session + spend grant can
+   * resolve, in this process, to the address its ledger already keys on.
+   * Assigned AFTER construction rather than passed in, because the scheduler
+   * is built earlier in this file and reordering that to satisfy one optional
+   * dependency would be the tail wagging the dog. The scheduler treats a
+   * missing service as "no session lane" and says so.
+   */
+  scheduler.accounts = accounts.service;
   console.log(
     `[accounts] enabled — passkeys on, email ${mailer ? "on" : "OFF (set SMTP_HOST)"}, ` +
       `google ${process.env.GOOGLE_CLIENT_ID ? "on" : "OFF (set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET)"}`
@@ -615,6 +624,84 @@ app.get("/account/api/nodes", (req, res) => {
     };
   });
   res.json({ ok: true, nodes });
+});
+
+/* ------------------------------------------------------- the web app (/app)
+ *
+ * The browser build of Koinos AI. It lives in views/, NOT public/, and that
+ * is the whole security design in one sentence: `express.static(PUBLIC_DIR)`
+ * near the bottom of this file serves that entire tree to anyone, so a gated
+ * page cannot exist inside it. Putting the shell here means exactly one route
+ * can hand it out, and that route asks who you are first.
+ *
+ * The gate is `accounts.requireAccount` — the same function the account API
+ * uses, imported rather than re-derived, because a second hand-rolled copy of
+ * a session check is a second place for it to drift wrong. It answers JSON
+ * 401 for API callers; a browser asking for a page deserves a door instead,
+ * so this route redirects to /account, which is where signing in happens.
+ *
+ * Nothing here is a substitute for the real boundary. The page can render
+ * whatever it likes; it still cannot spend a satoshi without a signed grant
+ * the scheduler re-checks on every request (lib/accounts.js spendableGrant).
+ * The gate is for coherence, not for containment.
+ */
+const APP_SHELL = path.join(VIEWS_DIR, "app.html");
+const APP_CLIENT = path.join(VIEWS_DIR, "app.js");
+
+// Locked down harder than the marketing site: the shell has no inline script
+// (its logic is app.js, loaded same-origin), so script-src can be strict with
+// no 'unsafe-inline' escape hatch. Styles stay inline-permitted — one <style>
+// block in a single-file shell is not the attack surface scripts are.
+const APP_CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "connect-src 'self'",
+  "font-src 'self'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+
+function appHeaders(res) {
+  res.setHeader("Content-Security-Policy", APP_CSP);
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "same-origin");
+  res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  // Never let a signed-in shell sit in a shared cache, or in the back/forward
+  // cache of a browser someone has since signed out of.
+  res.setHeader("Cache-Control", "no-store, private");
+}
+
+app.get("/app", (req, res) => {
+  if (!accounts) {
+    return res.status(503).type("text/plain").send("Accounts are not configured on this server.");
+  }
+  // A browser gets a place to go, not a JSON error it cannot read. That is
+  // why this asks `accountOf` (resolve, don't answer) instead of the JSON
+  // gate. `?next` is a literal this server wrote, never anything from the
+  // request, so there is no open-redirect to be had here.
+  if (!accounts.accountOf(req)) return res.redirect("/account?next=/app");
+  appHeaders(res);
+  return res.sendFile(APP_SHELL);
+});
+
+/*
+ * The client script is served ungated ON PURPOSE. It holds no secrets — it is
+ * the same code every visitor would receive — and gating it buys nothing while
+ * costing a real failure mode: a page left open past its session would fetch
+ * a 401 or an HTML redirect where a script belongs and fail silently, leaving
+ * a blank app with no explanation. Served from views/ so it is still exactly
+ * one route, with the content type set rather than sniffed.
+ */
+app.get("/app/app.js", (_req, res) => {
+  res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "no-cache");
+  return res.sendFile(APP_CLIENT);
 });
 
 // Mainnet-readiness: rotating snapshots of the scheduler's ledgers (see
