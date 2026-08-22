@@ -206,6 +206,17 @@ async function refresh() {
   if (linking) $("linkCode").value = linking;
   $("title").textContent = location.pathname === "/link" ? "Approve a device" : "Account";
   if (!account) return;
+  /*
+   * Arrived here from a gated page? Go back to it now that we can get in.
+   * Only a same-origin PATH is honoured — "//evil.example" is a protocol-
+   * relative URL, not a path, so the second-character check is the whole
+   * open-redirect defence and it has to stay.
+   */
+  const next = new URLSearchParams(location.search).get("next");
+  if (next && next.startsWith("/") && !next.startsWith("//")) {
+    location.replace(next);
+    return;
+  }
   $("who").textContent = account.email || account.id;
   const m = [];
   if (account.email) m.push("email");
