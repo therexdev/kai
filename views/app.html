@@ -132,7 +132,15 @@ a{color:var(--violet)}
  * "Useful on a machine that cannot run models" includes a phone, so this has
  * to work at 380px — and it is where the app was actually first used.
  */
-@media (max-width:900px){.memory-panel{display:none}}
+/*
+ * The memory rail costs 250px on top of the two rails already there (210 +
+ * 210), so it used to appear at exactly the width with no room for it:
+ * measured, the conversation went from 479px at 899 to 231px at 901 and did
+ * not recover until about 1170. Widening your window made the chat narrower.
+ * It now waits until there is genuinely space — at 1180 the conversation gets
+ * 510px, more than it ever had with the rail hidden.
+ */
+@media (max-width:1180px){.memory-panel{display:none}}
 @media (max-width:760px){
   /*
    * dvh, not %. A mobile browser's URL bar grows and shrinks, and 100% of a
