@@ -26,6 +26,10 @@ const state = {
 };
 
 const $ = (id) => document.getElementById(id);
+
+/* Phone-shaped, by the same breakpoint the stylesheet uses. Several places
+ * need to behave differently there, not just look different. */
+const narrow = () => window.matchMedia("(max-width: 760px)").matches;
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -274,18 +278,44 @@ async function loadChats(select) {
   await loadThread();
 }
 
+/*
+ * On a phone the list starts COLLAPSED. Full height it ate a third of the
+ * screen before a single word of the answer, and the list is something you
+ * touch when SWITCHING chats, not while reading one. The switch button shows
+ * where you are; tapping it opens the list. On a wide screen the rail is
+ * always open and the button never renders.
+ */
 function paintChatList() {
   const el = $("chat-list");
-  el.innerHTML = `<button class="new-chat" id="new-chat">+ New chat</button>` +
+  const here = chat.list.find((c) => c.id === chat.current);
+  // Preserve the open/closed state across repaints — a repaint happens on
+  // every send, and a list that reopened itself each time would be worse
+  // than one that never collapsed.
+  const open = el.classList.contains("open");
+  el.className = `chat-list${narrow() && !open ? " collapsed" : ""}${open ? " open" : ""}`;
+  el.innerHTML =
+    `<button class="new-chat" id="new-chat">+ New chat</button>` +
+    `<button class="chat-switch" id="chat-switch"><span>${esc(here ? here.title : "No chats yet")}</span>▾</button>` +
     chat.list.map((c) => `
       <div class="chat-row${c.id === chat.current ? " active" : ""}" data-id="${esc(c.id)}">
         <button class="pick" title="${esc(c.title)}">${esc(c.title)}</button>
         <button class="del" title="Delete this chat">✕</button>
       </div>`).join("");
   $("new-chat").onclick = newChat;
+  $("chat-switch").onclick = () => {
+    el.classList.toggle("open");
+    el.classList.toggle("collapsed");
+  };
   for (const row of el.querySelectorAll(".chat-row")) {
     const cid = row.dataset.id;
-    row.querySelector(".pick").onclick = () => { chat.current = cid; paintChatList(); loadThread(); };
+    row.querySelector(".pick").onclick = () => {
+      chat.current = cid;
+      // Picking one is the end of switching: fold the list away again so the
+      // answer gets the screen.
+      el.classList.remove("open");
+      paintChatList();
+      loadThread();
+    };
     row.querySelector(".del").onclick = () => removeChat(cid);
   }
 }
@@ -329,15 +359,6 @@ async function loadThread() {
     note(e.message, true);
   }
   paintThread();
-}
-
-/** What the answer just cost, in words, including when it cost nothing. */
-function priceLine(d) {
-  if (!d.servedModel) return "";
-  const c = typeof d.costUsd === "number" ? d.costUsd : null;
-  if (c === null) return `Answered by ${d.servedModel}.`;
-  if (c <= 0) return `Answered by ${d.servedModel} — covered by today's free allowance.`;
-  return `Answered by ${d.servedModel} — ${usd(c)}.`;
 }
 
 function msgHtml(m) {
@@ -431,7 +452,10 @@ async function send(text) {
             costUsd: typeof d.costUsd === "number" ? d.costUsd : null,
           });
           paintThread();
-          note(priceLine(d));
+          // The message's own meta line already carries the model and the
+          // price. Repeating it here said the same thing twice and, on a
+          // phone, cost a line of screen to do it.
+          note("");
         }
       }
     }
@@ -454,12 +478,31 @@ async function send(text) {
 
 function wireComposer() {
   const input = $("composer-input");
+  /*
+   * The keyboard hint is ADDED on a wide screen, not removed on a narrow one.
+   * The markup ships the short version so the first paint is right at any
+   * width — the long one flashed and was cut mid-word on a phone before this
+   * ran. On a phone the advice is also just wrong: there is no Shift+Enter.
+   */
+  const setHint = () => {
+    input.placeholder = narrow() ? "Ask anything…" : "Ask anything — Enter to send, Shift+Enter for a new line";
+  };
+  setHint();
+  window.addEventListener("resize", setHint);
+
   const grow = () => { input.style.height = "auto"; input.style.height = Math.min(200, input.scrollHeight) + "px"; };
   input.addEventListener("input", grow);
   input.addEventListener("keydown", (e) => {
-    // Enter sends, Shift+Enter is a newline. IME composition must not send —
-    // pressing Enter to accept a candidate character is not pressing send.
-    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+    /*
+     * Enter sends, Shift+Enter is a newline — ON A KEYBOARD. A phone's Enter
+     * key is a newline key and there is no Shift to hold, so sending on it
+     * fires the message the first time someone wants a paragraph break. The
+     * Send button is right there and is the only sensible way to send.
+     *
+     * IME composition must never send either: pressing Enter to accept a
+     * candidate character is not pressing send.
+     */
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !narrow()) {
       e.preventDefault();
       $("composer").requestSubmit();
     }
@@ -670,7 +713,8 @@ function wireDocs() {
 
   const input = $("doc-ai-input");
   input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+    // Same as the chat composer: a phone's Enter is a newline, not a send.
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !narrow()) {
       e.preventDefault();
       $("doc-ai-form").requestSubmit();
     }
