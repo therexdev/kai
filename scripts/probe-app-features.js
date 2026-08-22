@@ -1,7 +1,7 @@
 "use strict";
 
 /*
- * Probe: Chat in the web app — task #79.
+ * Probe: Chat and Docs in the web app — task #79.
  *
  * Boots the REAL server and drives a whole conversation through it, with a
  * FAKE WORKER on the other side actually answering. The point is the seam:
@@ -309,7 +309,62 @@ async function main() {
     check(grant.remainingUsd === grant.maxUsd - grant.spentUsd, "remaining is what is left, arithmetically");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n6) out of capacity is a refusal, not an overdraft");
+    /* ------------------------------------------------------------------ */
+    console.log("\n6) docs: the model reads the document and writes nothing");
+    /*
+     * A SECOND wallet, with its own grant. Not for variety — the free daily
+     * allowance is counted per ADDRESS, and this probe runs with one token a
+     * day so that section 5 can see a real charge. Reusing wallet A here
+     * would be refused for lack of capacity before the docs path was
+     * exercised at all. A second address also means the grant must be picked
+     * BY ID, which is worth pinning on its own.
+     */
+    const docAddr = Signer.fromSeed("probe app docs consumer").getAddress();
+    db.prepare("INSERT INTO wallets (address, account_id, linked_at) VALUES (?,?,?)").run(docAddr, mine.id, t);
+    db.prepare("INSERT INTO spend_grants (id, account_id, address, max_micro, spent_micro, created_at, expires_at) VALUES (?,?,?,?,?,?,?)")
+      .run("gr_docs", mine.id, docAddr, 5 * 1e6, 0, t, t + 86400e3);
+
+    r = await jsonReq(port, "POST", "/app/api/docs", { cookie: mine.cookie, body: {} });
+    check(r.status === 200 && r.json?.doc?.id, "a signed-in caller can start a document");
+    const docId = r.json.doc.id;
+
+    check((await jsonReq(port, "GET", `/app/api/docs/${docId}`, { cookie: other.cookie })).status === 404,
+      "another account cannot open it");
+    check((await jsonReq(port, "PUT", `/app/api/docs/${docId}`, { cookie: other.cookie, body: { body: "theirs now" } })).status === 404,
+      "…nor write to it");
+    check((await jsonReq(port, "DELETE", `/app/api/docs/${docId}`, { cookie: other.cookie })).status === 404,
+      "…nor delete it");
+
+    const BODY = "The network routes a job to whichever machine can serve the class.";
+    r = await jsonReq(port, "PUT", `/app/api/docs/${docId}`, { cookie: mine.cookie, body: { title: "Routing", body: BODY } });
+    check(r.status === 200 && r.json.doc.body === BODY, "a save round-trips the whole body");
+    check(r.json.doc.title === "Routing", "and the title");
+
+    // A title-only save must not blank the body — the COALESCE in saveDoc is
+    // the whole reason this cannot happen, so it gets an assertion.
+    r = await jsonReq(port, "PUT", `/app/api/docs/${docId}`, { cookie: mine.cookie, body: { title: "Routing, revised" } });
+    check(r.json.doc.body === BODY, "a rename leaves the body alone");
+    check(r.json.doc.title === "Routing, revised", "…and does rename it");
+
+    const ai = await sse(port, `/app/api/docs/${docId}/ai`, mine.cookie,
+      { instruction: "Summarise this.", grantId: "gr_docs", model: "koinos-fast" });
+    check(ai.status === 200, `the ask streams (got ${ai.status}: ${String(ai.raw).slice(0, 140)})`);
+    const aiDone = ai.frames.find((f) => f.done);
+    check(String(aiDone?.output || "").includes("Koinos Network answered"), "an answer came back");
+
+    await new Promise((r2) => setTimeout(r2, 250));
+    r = await jsonReq(port, "GET", `/app/api/docs/${docId}`, { cookie: mine.cookie });
+    check(r.json.doc.body === BODY,
+      "THE DOCUMENT IS UNCHANGED — the model proposes, the person decides");
+
+    const meDocs = await jsonReq(port, "GET", "/account/api", { cookie: mine.cookie });
+    const gDocs = meDocs.json.account.grants.find((g) => g.id === "gr_docs");
+    check(gDocs.spentUsd > 0, `the named grant paid for it (spent $${gDocs?.spentUsd})`);
+    const gChat = meDocs.json.account.grants.find((g) => g.id === "gr_chat");
+    check(gChat.spentUsd < 0.00001, "…and the OTHER grant was not touched");
+
+    /* ------------------------------------------------------------------ */
+    console.log("\n7) out of capacity is a refusal, not an overdraft");
     /*
      * The grant says what the WEBSITE may spend. It does not conjure funds:
      * the wallet still has to have capacity in the scheduler's ledger — free
@@ -322,15 +377,16 @@ async function main() {
      */
     const r2 = await jsonReq(port, "POST", "/app/api/chats", { cookie: mine.cookie, body: {} });
     const orphan = r2.json.chat.id;
-    m = await sse(port, `/app/api/chats/${orphan}/message`, mine.cookie, { content: "and again?", model: "koinos-fast" });
+    m = await sse(port, `/app/api/chats/${orphan}/message`, mine.cookie,
+      { content: "and again?", model: "koinos-fast", grantId: "gr_chat" });
     check(m.status === 402, `refused with 402 when the wallet has nothing to draw on (got ${m.status})`);
-    check(worker.served === 1, "and no worker was ever asked to do the work");
+    check(worker.served === 2, `and no worker was asked to do the work (served ${worker.served}, expected 2)`);
     r = await jsonReq(port, "GET", `/app/api/chats/${orphan}`, { cookie: mine.cookie });
     check(r.json.messages.length === 1 && r.json.messages[0].role === "user",
       "the question survives this refusal too");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n7) the browser is never handed its own session token");
+    console.log("\n8) the browser is never handed its own session token");
     const shell = await jsonReq(port, "GET", "/app", { cookie: mine.cookie });
     check(shell.status === 200 && !shell.body.includes("sk_"), "no token in the shell");
     const clientJs = fs.readFileSync(path.join(ROOT, "views", "app.js"), "utf8");

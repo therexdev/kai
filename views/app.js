@@ -122,6 +122,10 @@ function show(view) {
   }
   if (view === "wallet") paintWallet();
   if (view === "chat") loadChats().catch((e) => note(e.message, true));
+  if (view === "docs") loadDocs().catch((e) => docNote(e.message, true));
+  // Leaving Docs must not leave an edit on a timer that fires into a view
+  // nobody is looking at — and might land after the document was switched.
+  if (view !== "docs") flushDoc().catch(() => {});
   if (location.hash !== `#${view}`) history.replaceState(null, "", `#${view}`);
 }
 
@@ -371,6 +375,242 @@ function wireComposer() {
   });
 }
 
+/* ------------------------------------------------------------------ docs */
+
+const docs = { list: [], current: null, body: "", title: "", busy: false, saveTimer: null, dirty: false };
+
+function docNote(text, bad) {
+  const el = $("doc-note");
+  el.textContent = text || "";
+  el.style.color = bad ? "var(--danger)" : "";
+}
+
+async function loadDocs(select) {
+  const { docs: list } = await api("/app/api/docs");
+  docs.list = list;
+  if (select) docs.current = select;
+  if (!docs.current || !list.some((d) => d.id === docs.current)) docs.current = list[0]?.id || null;
+  paintDocList();
+  await openDoc(docs.current);
+}
+
+function paintDocList() {
+  const el = $("doc-list");
+  el.innerHTML = `<button class="new-chat" id="new-doc">+ New document</button>` +
+    docs.list.map((d) => `
+      <div class="chat-row${d.id === docs.current ? " active" : ""}" data-id="${esc(d.id)}">
+        <button class="pick" title="${esc(d.title)}">${esc(d.title)}</button>
+      </div>`).join("");
+  $("new-doc").onclick = newDoc;
+  for (const row of el.querySelectorAll(".chat-row")) {
+    const did = row.dataset.id;
+    // Switching documents flushes first: an autosave still on its timer
+    // would otherwise land AFTER the next document loads and write this
+    // one's text into that one.
+    row.querySelector(".pick").onclick = async () => { await flushDoc(); docs.current = did; paintDocList(); openDoc(did); };
+  }
+}
+
+async function newDoc() {
+  try {
+    await flushDoc();
+    const { doc } = await api("/app/api/docs", {});
+    await loadDocs(doc.id);
+    $("doc-title").focus();
+  } catch (e) { docNote(e.message, true); }
+}
+
+async function openDoc(did) {
+  hideAnswer();
+  if (!did) {
+    docs.current = null;
+    $("doc-title").value = "";
+    $("doc-body").value = "";
+    $("doc-status").textContent = "";
+    return;
+  }
+  try {
+    const { doc } = await api(`/app/api/docs/${encodeURIComponent(did)}`);
+    docs.current = doc.id;
+    docs.title = doc.title === "Untitled" ? "" : doc.title;
+    docs.body = doc.body;
+    docs.dirty = false;
+    $("doc-title").value = docs.title;
+    $("doc-body").value = docs.body;
+    $("doc-status").textContent = "Saved";
+    docNote("");
+  } catch (e) { docNote(e.message, true); }
+}
+
+/** Write now, rather than whenever the timer was going to fire. */
+async function flushDoc() {
+  if (docs.saveTimer) { clearTimeout(docs.saveTimer); docs.saveTimer = null; }
+  if (!docs.dirty || !docs.current) return;
+  await saveDoc();
+}
+
+async function saveDoc() {
+  if (!docs.current) return;
+  const id = docs.current;
+  const title = $("doc-title").value;
+  const body = $("doc-body").value;
+  $("doc-status").textContent = "Saving…";
+  try {
+    const r = await api(`/app/api/docs/${encodeURIComponent(id)}`, { title, body }, "PUT");
+    docs.list = r.docs;
+    docs.dirty = false;
+    // Only repaint the list if this document's NAME changed — repainting on
+    // every keystroke's save would steal focus from the field being typed in.
+    const shown = $("doc-list").querySelector(`.chat-row[data-id="${id}"] .pick`);
+    if (shown && shown.textContent !== r.doc.title) paintDocList();
+    $("doc-status").textContent = "Saved";
+  } catch (e) {
+    $("doc-status").textContent = "";
+    docNote(e.message, true);
+  }
+}
+
+function touchDoc() {
+  docs.dirty = true;
+  $("doc-status").textContent = "Unsaved";
+  if (docs.saveTimer) clearTimeout(docs.saveTimer);
+  docs.saveTimer = setTimeout(() => { docs.saveTimer = null; saveDoc(); }, 900);
+}
+
+function hideAnswer() {
+  $("doc-answer").hidden = true;
+  $("doc-answer-body").textContent = "";
+}
+
+/** What is selected in the editor right now, or "" if nothing is. */
+function docSelection() {
+  const el = $("doc-body");
+  return el.value.slice(el.selectionStart, el.selectionEnd);
+}
+
+async function askDoc(instruction) {
+  if (docs.busy || !docs.current) return;
+  await flushDoc();
+  const selection = docSelection();
+  docs.busy = true;
+  $("doc-ai-send").disabled = true;
+  docNote(selection ? "Asking about the selected passage…" : "Asking about the whole document…");
+  $("doc-answer").hidden = false;
+  const out = $("doc-answer-body");
+  out.innerHTML = '<span class="dots"></span>';
+  let answer = "";
+
+  try {
+    const res = await fetch(`/app/api/docs/${encodeURIComponent(docs.current)}/ai`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ instruction, selection, grantId: state.grant?.id }),
+    });
+    if (res.status === 401) { location.replace("/account?next=/app"); return; }
+    if (!res.ok || !/text\/event-stream/.test(res.headers.get("content-type") || "")) {
+      const j = await res.json().catch(() => ({}));
+      const msg = typeof j.error === "string" ? j.error : j.error?.message;
+      throw new Error(msg || `the network answered ${res.status}`);
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const frames = buf.split("\n\n");
+      buf = frames.pop() || "";
+      for (const f of frames) {
+        const line = f.split("\n").find((x) => x.startsWith("data: "));
+        if (!line) continue;
+        const payload = line.slice(6);
+        if (payload === "[DONE]") continue;
+        let d;
+        try { d = JSON.parse(payload); } catch { continue; }
+        if (d.error) throw new Error(typeof d.error === "string" ? d.error : d.error.message || "the network refused that");
+        if (typeof d.delta === "string") { answer += d.delta; out.textContent = answer; }
+        if (d.done) {
+          answer = String(d.output ?? answer);
+          out.textContent = answer;
+          docNote(d.servedModel ? `Answered by ${d.servedModel}. Nothing has been changed in your document.` : "");
+        }
+      }
+    }
+    if (!answer.trim()) throw new Error("the stream ended before an answer arrived");
+    load().catch(() => {});
+  } catch (e) {
+    out.textContent = "";
+    hideAnswer();
+    docNote(e.message, true);
+  } finally {
+    docs.busy = false;
+    $("doc-ai-send").disabled = false;
+  }
+}
+
+function wireDocs() {
+  $("doc-title").addEventListener("input", touchDoc);
+  $("doc-body").addEventListener("input", touchDoc);
+  // A closing tab should not take the last paragraph with it.
+  window.addEventListener("beforeunload", () => { if (docs.dirty && docs.current) saveDoc(); });
+
+  $("doc-delete").addEventListener("click", async () => {
+    if (!docs.current) return;
+    const d = docs.list.find((x) => x.id === docs.current);
+    if (!confirm(`Delete "${d?.title || "this document"}"? This cannot be undone.`)) return;
+    if (docs.saveTimer) { clearTimeout(docs.saveTimer); docs.saveTimer = null; }
+    docs.dirty = false; // do not resurrect it with a queued autosave
+    try {
+      const { docs: list } = await api(`/app/api/docs/${encodeURIComponent(docs.current)}`, undefined, "DELETE");
+      docs.list = list;
+      docs.current = list[0]?.id || null;
+      paintDocList();
+      await openDoc(docs.current);
+    } catch (e) { docNote(e.message, true); }
+  });
+
+  const input = $("doc-ai-input");
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      $("doc-ai-form").requestSubmit();
+    }
+  });
+  $("doc-ai-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    askDoc(text);
+  });
+
+  /*
+   * The three things you can do with a suggestion, all explicit. Insert and
+   * Replace both go through the editor's own selection, so the browser's
+   * undo stack still has the previous text in it — a model's paragraph
+   * should be as undoable as one you typed.
+   */
+  const put = (mode) => {
+    const el = $("doc-body");
+    const text = $("doc-answer-body").textContent;
+    if (!text) return;
+    const start = el.selectionStart;
+    const end = mode === "replace" ? el.selectionEnd : start;
+    el.focus();
+    el.setSelectionRange(start, end);
+    if (!document.execCommand || !document.execCommand("insertText", false, text)) {
+      el.setRangeText(text, start, end, "end");
+    }
+    touchDoc();
+    hideAnswer();
+    docNote("Inserted. Ctrl+Z undoes it.");
+  };
+  $("doc-insert").addEventListener("click", () => put("insert"));
+  $("doc-replace").addEventListener("click", () => put("replace"));
+  $("doc-dismiss").addEventListener("click", () => { hideAnswer(); docNote(""); });
+}
+
 /* ------------------------------------------------------------------ boot */
 
 function boot() {
@@ -379,6 +619,7 @@ function boot() {
   }
   window.addEventListener("hashchange", () => show(location.hash.slice(1)));
   wireComposer();
+  wireDocs();
 
   load()
     .then(() => show(location.hash.slice(1) || "chat"))
