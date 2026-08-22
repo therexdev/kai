@@ -265,6 +265,15 @@ try {
     onEvent: (e) => console.log(`[accounts] ${e.type}`, e.account ?? e.address ?? e.id ?? ""),
   });
   app.use(accounts.router);
+  /*
+   * Hand the scheduler the account service so a session + spend grant can
+   * resolve, in this process, to the address its ledger already keys on.
+   * Assigned AFTER construction rather than passed in, because the scheduler
+   * is built earlier in this file and reordering that to satisfy one optional
+   * dependency would be the tail wagging the dog. The scheduler treats a
+   * missing service as "no session lane" and says so.
+   */
+  scheduler.accounts = accounts.service;
   console.log(
     `[accounts] enabled — passkeys on, email ${mailer ? "on" : "OFF (set SMTP_HOST)"}, ` +
       `google ${process.env.GOOGLE_CLIENT_ID ? "on" : "OFF (set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET)"}`
