@@ -532,6 +532,91 @@ app.get("/admin/api/network", requireAuth, (_req, res) => {
   res.json({ ok: true, ...scheduler.statsPublic({ detail: true }) });
 });
 
+/*
+ * YOUR nodes — the account page's answer to "what is my machine actually
+ * doing on the network?"
+ *
+ * Owner, after linking a wallet: "It would be good if you can see your models
+ * and other node details." Until now a linked wallet was an address and a
+ * timestamp, and everything the network measured about that machine was
+ * visible only in the desktop app on the machine itself — useless the moment
+ * you are away from it, which is exactly when you want to check.
+ *
+ * ZERO new plumbing, because the join is free: the accounts DB and the
+ * Scheduler are the same process (see `new Scheduler` and `accounts.router`
+ * above), and the address a wallet links with is byte-identical to the one
+ * its worker registers with — the desktop signs the link proof with the same
+ * wallet the worker uses. So a plain === joins an account row to a worker row.
+ *
+ * The join runs SERVER-SIDE against untruncated rows and is filtered to the
+ * caller's own wallets. That is deliberate: the public /network/status
+ * truncates provider addresses on purpose, and the cheap client-side version
+ * of this would have had to match on that truncated form — which can collide
+ * across two addresses. Showing you your OWN full address on your OWN account
+ * page does not breach that policy; shipping the full worker list to a browser
+ * would.
+ */
+app.get("/account/api/nodes", (req, res) => {
+  const account = accounts?.requireAccount?.(req, res);
+  if (!account) return; // requireAccount already answered 401/403
+  let live = [];
+  try {
+    live = scheduler.statsPublic({ detail: true }).workers || [];
+  } catch {
+    live = [];
+  }
+  const wallets = accounts.service.accountView(account).wallets || [];
+  const nodes = wallets.map((w) => {
+    const on = live.find((x) => x.address === w.address) || null;
+    if (on) {
+      const cap = on.capabilities || {};
+      return {
+        address: w.address,
+        linkedAt: w.linkedAt,
+        online: true,
+        busy: on.busy === true,
+        lastSeenSecs: on.lastSeenSecs ?? null,
+        models: on.models || [],
+        ramGb: on.ram ?? null,
+        // The booleans DO reach the server; the GPU's name and VRAM never do
+        // (the client sends capabilities + rounded RAM and nothing else), so
+        // this says whether the machine is accelerated, never which card.
+        accelerated: cap.cudaEligible === true || cap.vulkanEligible === true,
+        jobsThisEpoch: on.jobsThisEpoch ?? 0,
+        perf: on.perf || null,
+        reputation: on.reputation || null,
+      };
+    }
+    /*
+     * Offline is a real answer, and statsPublic cannot give it — its detail
+     * block maps over LIVE workers only, and the `recentOffline` list drops
+     * anything older than an hour and truncates the address. The roster
+     * itself is persisted and survives restarts, so read it directly: "last
+     * seen three days ago" is the single most useful thing to tell someone
+     * whose node stopped earning.
+     */
+    let known = null;
+    try {
+      for (const x of scheduler.workers.values()) if (x.address === w.address) known = x;
+    } catch { /* roster unavailable — fall through to never-seen */ }
+    return {
+      address: w.address,
+      linkedAt: w.linkedAt,
+      online: false,
+      lastSeenAt: known?.lastSeen ?? null,
+      models: known?.models || [],
+      ramGb: Number(known?.capabilities?.ramGb) || null,
+      accelerated: known ? known.capabilities?.cudaEligible === true || known.capabilities?.vulkanEligible === true : null,
+      // Reputation is computed from an address, so it answers even for a
+      // machine that is currently off — age and trust do not evaporate
+      // because someone closed their laptop.
+      reputation: known ? (() => { try { return scheduler._reputation(w.address, Date.now(), known); } catch { return null; } })() : null,
+      neverSeen: !known,
+    };
+  });
+  res.json({ ok: true, nodes });
+});
+
 // Mainnet-readiness: rotating snapshots of the scheduler's ledgers (see
 // lib/state-backup.js) plus an offsite pull. The bundle holds worker
 // tokens and balances, so it is gated: an admin session, or the operator
