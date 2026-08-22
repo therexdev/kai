@@ -49,6 +49,21 @@ input:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
 .hide{display:none}
 hr{border:0;border-top:1px solid var(--line);margin:16px 0}
 code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-size:12.5px}
+  .wallet-item { display: block; }
+  .wallet-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .node-detail { margin-top: 8px; font-size: 0.92em; }
+  .node-state { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+  .node-dot { width: 8px; height: 8px; border-radius: 50%; background: #8b98a9; flex-shrink: 0; }
+  .node-dot.ok { background: #34d399; }
+  .node-dot.busy { background: #38bdf8; }
+  .node-dot.off { background: #f87171; }
+  .node-models { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .node-models .chip {
+    font-size: 0.82em; padding: 2px 8px; border-radius: 999px;
+    border: 1px solid #1c2430; background: #10161d; color: #8b98a9;
+  }
+  .node-grid { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 0.9em; }
+  .node-grid .k { color: #8b98a9; }
 </style>
 </head>
 <body>
@@ -110,7 +125,7 @@ code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--li
     </div>
 
     <div class="card">
-      <h2>Linked wallets</h2>
+      <h2>Your nodes</h2>
       <div id="wallets"></div>
       <p class="muted" style="margin-top:12px">Link a wallet from the Koinos AI app: Earn tab → Account → “Link this wallet”. The app signs the proof with the wallet's own key — the key never leaves your machine.</p>
     </div>
@@ -142,6 +157,10 @@ const j = async (url, body, method) => {
 };
 const b64uToBuf = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
 const bufToB64u = (b) => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+/* Everything below builds innerHTML from server data. The values happen to be
+ * addresses and model classes the scheduler already filters, but "happens to
+ * be safe" is not a policy — escape at the boundary. */
+const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const say = (id, text, ok) => { const el = $(id); el.textContent = text || ""; el.className = "msg " + (ok ? "ok" : "err"); };
 
 let account = null;
@@ -198,15 +217,93 @@ async function refresh() {
   if (!account.wallets.length) w.innerHTML = '<p class="muted">No wallets linked yet.</p>';
   for (const it of account.wallets) {
     const d = document.createElement("div");
-    d.className = "item";
-    d.innerHTML = `<span class="addr"></span><button class="x" title="Unlink">✕</button>`;
+    d.className = "item wallet-item";
+    d.innerHTML = `<div class="wallet-head"><span class="addr"></span><button class="x" title="Unlink">✕</button></div><div class="node-detail muted">checking the network…</div>`;
     d.querySelector(".addr").textContent = it.address;
     d.querySelector(".x").onclick = async () => {
       if (!confirm(`Unlink ${it.address}?`)) return;
       await j(`/account/wallets/${it.address}`, undefined, "DELETE").catch((e) => alert(e.message));
       refresh();
     };
+    d.dataset.addr = it.address;
     w.appendChild(d);
+  }
+  loadNodes();
+}
+
+/* ---- what your machines are actually doing ----
+ * A linked wallet used to be an address and a delete button. Everything the
+ * network had measured about that machine lived only in the desktop app ON
+ * that machine — useless exactly when you want it, which is when you are
+ * somewhere else. The server already knew all of this; it just never said. */
+const pct = (v) => (v == null ? null : Math.round(Number(v) * 100) + "%");
+const num = (v, dp = 1) => (v == null || !isFinite(Number(v)) ? null : Number(v).toFixed(dp));
+
+function ago(ms) {
+  if (!ms) return "never";
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (s < 90) return `${s}s ago`;
+  if (s < 5400) return `${Math.round(s / 60)} min ago`;
+  if (s < 172800) return `${Math.round(s / 3600)} h ago`;
+  return `${Math.round(s / 86400)} days ago`;
+}
+
+function nodeHtml(n) {
+  const bits = [];
+  if (n.neverSeen) {
+    return '<span class="muted">This wallet has never connected a node. Run Koinos AI and switch on Earning to put it to work.</span>';
+  }
+  const dot = n.online ? (n.busy ? "busy" : "ok") : "off";
+  const state = n.online ? (n.busy ? "Working now" : "Online, waiting for jobs") : `Offline — last seen ${ago(n.lastSeenAt)}`;
+  bits.push(`<div class="node-state"><span class="node-dot ${dot}"></span>${esc(state)}</div>`);
+
+  // Models first: it is the thing that was actually asked for, and the thing
+  // that decides whether this machine can earn at all.
+  bits.push(
+    (n.models || []).length
+      ? `<div class="node-models">${n.models.map((m) => `<span class="chip">${esc(m)}</span>`).join("")}</div>`
+      : '<div class="muted">Offering no models to the network. The app\'s Earn tab says which of your downloaded models fit this machine, and why.</div>'
+  );
+
+  const rows = [];
+  if (n.ramGb) rows.push(["Memory", `${n.ramGb} GB${n.accelerated ? " · GPU accelerated" : ""}`]);
+  else if (n.accelerated) rows.push(["Hardware", "GPU accelerated"]);
+  const p = n.perf || {};
+  // srvTokPerSec is what the NETWORK clocked, not what the machine claimed —
+  // the honest number, so it leads and says so.
+  if (num(p.srvTokPerSec)) rows.push(["Speed (measured)", `${num(p.srvTokPerSec)} tok/s`]);
+  else if (num(p.tokPerSec)) rows.push(["Speed (self-reported)", `${num(p.tokPerSec)} tok/s`]);
+  if (pct(p.sr)) rows.push(["Reliability", pct(p.sr)]);
+  if (p.ok != null || p.to != null || p.bad != null) {
+    rows.push(["Jobs", `${p.ok || 0} delivered · ${p.to || 0} timed out · ${p.bad || 0} failed audit`]);
+  }
+  if (n.jobsThisEpoch != null && n.online) rows.push(["This epoch", `${n.jobsThisEpoch} job${n.jobsThisEpoch === 1 ? "" : "s"}`]);
+  const r = n.reputation || {};
+  if (r.ageDays != null) rows.push(["On the network", `${num(r.ageDays, 2)} days`]);
+  if (r.r != null) rows.push(["Trust", num(r.r, 3)]);
+  if (rows.length) {
+    bits.push(`<div class="node-grid">${rows.map(([k, v]) => `<span class="k">${esc(k)}</span><span>${esc(v)}</span>`).join("")}</div>`);
+  }
+  return bits.join("");
+}
+
+async function loadNodes() {
+  let nodes;
+  try {
+    nodes = (await j("/account/api/nodes")).nodes || [];
+  } catch {
+    // The wallet list is still correct and usable; only the enrichment failed.
+    for (const el of document.querySelectorAll(".node-detail")) {
+      el.textContent = "Could not reach the network just now.";
+    }
+    return;
+  }
+  for (const el of document.querySelectorAll(".wallet-item")) {
+    const n = nodes.find((x) => x.address === el.dataset.addr);
+    const slot = el.querySelector(".node-detail");
+    if (!slot) continue;
+    slot.classList.remove("muted");
+    slot.innerHTML = n ? nodeHtml(n) : '<span class="muted">No node data.</span>';
   }
 }
 
