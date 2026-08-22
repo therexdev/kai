@@ -279,7 +279,37 @@ async function main() {
       "…and the markup ships the short one there too");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n9) the conversation scrolls, the page does not");
+    console.log("\n9) a wider window is never a worse one");
+
+    /*
+     * The memory rail used to appear at max-width:900, on top of the two
+     * rails already there — so dragging a window from 899 to 901 took the
+     * conversation from 479px to 231px and it did not recover until ~1170.
+     * Widening the window made the chat worse.
+     *
+     * Rather than pin the number, assert the arithmetic that produced it, so
+     * this still holds if any of the three widths is ever changed: the rail
+     * may only appear once what is left over is wider than the conversation
+     * was just before it appeared.
+     */
+    const px = (re) => { const m = shellCss.match(re); return m ? Number(m[1]) : null; };
+    const asideW = px(/aside\{width:(\d+)px/);
+    const railW = px(/\n\.chat-list\{width:(\d+)px/);
+    const memW = px(/\.memory-panel\{width:(\d+)px/);
+    const memAt = px(/@media \(max-width:(\d+)px\)\{\.memory-panel\{display:none\}\}/);
+    check([asideW, railW, memW, memAt].every((n) => typeof n === "number"),
+      `the three rail widths and the breakpoint are all readable (${asideW}/${railW}/${memW} @ ${memAt})`);
+    if (asideW && railW && memW && memAt) {
+      const withRail = memAt + 1 - asideW - railW - memW;   // conversation the moment it appears
+      const without = memAt - asideW - railW;               // conversation one pixel earlier
+      const before900 = 900 - asideW - railW;               // what it used to get at the old breakpoint
+      check(withRail >= before900,
+        `the memory rail waits until the conversation can afford it — ${withRail}px, vs ${before900}px at the old 900 breakpoint`);
+      check(without > withRail, `…and it is genuinely a trade (${without}px without it)`);
+    }
+
+    /* ------------------------------------------------------------------ */
+    console.log("\n10) the conversation scrolls, the page does not");
 
     // The whole document used to scroll: the composer rode off the bottom of
     // the screen and you had to scroll back down to type. A flex item defaults
@@ -313,12 +343,12 @@ async function main() {
       "…and a repaint is not mistaken for the reader scrolling");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n10) crawlers are told to stay out");
+    console.log("\n11) crawlers are told to stay out");
     const robots = await raw(port, "/robots.txt");
     check(/^Disallow: \/app$/m.test(robots.body), "robots.txt disallows /app");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n11) server.js wiring, textually");
+    console.log("\n12) server.js wiring, textually");
     const src = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
     check(/VIEWS_DIR, "app\.html"/.test(src), "the shell is resolved out of VIEWS_DIR");
     check(!/PUBLIC_DIR, "app\.html"/.test(src), "and never out of PUBLIC_DIR");
