@@ -49,12 +49,18 @@ function price(v) {
   return "$" + Number(v).toLocaleString(undefined, { minimumFractionDigits: 6, maximumFractionDigits: 6 });
 }
 
-/** KOIN satoshis (8-dec, arriving as strings) to a readable KOIN amount. */
-function koin(sats) {
-  if (sats == null) return "—";
+/**
+ * KOIN satoshis (8-dec, arriving as strings) to a readable amount.
+ *
+ * Returns NULL, not a dash, when there is nothing to show — `rows()` drops
+ * empty pairs, and a row reading "KOIN —" is worse than no row: it looks like
+ * a balance of zero rather than a figure this machine never sent.
+ */
+function koin(sats, unit = "KOIN") {
+  if (sats == null) return null;
   const n = Number(sats) / 1e8;
-  if (!isFinite(n)) return "—";
-  return n.toLocaleString(undefined, { maximumFractionDigits: 2 }) + " KOIN";
+  if (!isFinite(n)) return null;
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 }) + " " + unit;
 }
 
 function ago(iso) {
@@ -108,52 +114,97 @@ function aiCard(n) {
 }
 
 /* ---- Koinos: what this machine holds and produces ---- */
+
+/*
+ * The value tiles, or an honest sentence instead of them.
+ *
+ * The first version drew all four unconditionally. On a machine that had not
+ * sent the figures that rendered as four boxes containing a dash and an
+ * apology — on a phone, four full screens of nothing, and the reader still had
+ * no idea WHY. Tiles now appear only where there is a number, and the reason
+ * for their absence is stated once, in words.
+ */
+function valueTiles(k) {
+  const measured = k.basis === "measured";
+  const hasPrice = k.usdPerKoin != null || k.nodeValueUsd != null;
+  const tiles = [];
+  let note = "";
+
+  if (hasPrice) {
+    tiles.push(tile("Node value", usd(k.nodeValueUsd),
+      k.usdPerKoin != null ? `KOIN + VHP at ${price(k.usdPerKoin)}` : "at the last price seen"));
+  }
+  if (measured) {
+    const sub = `from ${k.daysTracked} day${k.daysTracked === 1 ? "" : "s"} measured`;
+    tiles.push(tile("Est. daily", usd(k.dailyUsd), sub));
+    tiles.push(tile("Est. weekly", usd(k.weeklyUsd), sub));
+    tiles.push(tile("Est. yearly", usd(k.yearlyUsd), sub));
+  } else if (hasPrice) {
+    // One line beats three tiles that all say the same thing.
+    note = "Earnings estimates need a day or so of measured block rewards before they mean anything — they will appear here once this node has some history.";
+  } else if (k.appVersion == null) {
+    /*
+     * The version is the whole diagnosis. Before it existed the app sent the
+     * block share alone, so empty value tiles and a node whose RPC was simply
+     * unreachable looked identical from here.
+     */
+    note = "This machine is reporting from an older version of the desktop app, which sent the block share and nothing else. Update it and the value and earnings figures will appear here.";
+  } else {
+    note = "This machine could not read its balances or a price for this reading — the figures should return on the next one.";
+  }
+  return { tiles: tiles.join(""), note };
+}
+
 function koinosCard(n) {
   const k = n.producer || {};
-  const measured = k.basis === "measured";
-  // "not enough history yet" is a different statement from "$0.00 a day", and
-  // the difference is the whole question for someone deciding whether to keep
-  // a machine running.
-  const earnSub = measured
-    ? `from ${k.daysTracked} day${k.daysTracked === 1 ? "" : "s"} measured`
-    : "not enough history yet";
-
-  const tiles = [
-    tile("Node value", usd(k.nodeValueUsd), k.usdPerKoin != null ? `KOIN + VHP at ${price(k.usdPerKoin)}` : "waiting for a price"),
-    tile("Est. daily", usd(measured ? k.dailyUsd : null), earnSub),
-    tile("Est. weekly", usd(measured ? k.weeklyUsd : null), earnSub),
-    tile("Est. yearly", usd(measured ? k.yearlyUsd : null), earnSub),
-  ].join("");
+  const { tiles, note } = valueTiles(k);
 
   const share = k.sharePct != null
     ? `${Number(k.sharePct).toFixed(5)}%${k.oneInBlocks != null ? ` (1 in ${Math.round(k.oneInBlocks).toLocaleString()})` : ""}`
     : null;
 
   /*
-   * Its own header. Reusing the AI worker's would caption a block producer
-   * "Online, waiting for jobs", which is a true sentence about a different
-   * machine role and a confusing one here — this node is not waiting, it is
-   * entered in a lottery every three seconds.
+   * Two VHP figures, and they do not always agree: the node's own log says
+   * what it is producing with, the chain says what the wallet holds. Showing
+   * only one of them would hide a real disagreement — and showing the WALLET
+   * figure next to a share derived from the LOG figure, which is what the
+   * first version did, quietly published an inconsistent card.
+   *
+   * So: the producing figure leads, because it is the one the share is built
+   * from, and the wallet balance appears beside it only when it differs
+   * enough to matter. No explanation is offered for the gap, because there is
+   * more than one thing it could mean and guessing would be worse than
+   * showing the person both numbers.
    */
-  const producing = k.producingVhp != null && k.producingVhp > 0;
+  const walletVhp = k.vhpSats != null && isFinite(Number(k.vhpSats)) ? Number(k.vhpSats) / 1e8 : null;
+  const prodVhp = k.producingVhp != null && isFinite(k.producingVhp) ? Number(k.producingVhp) : null;
+  const bothKnown = walletVhp != null && prodVhp != null && prodVhp > 0;
+  const mismatch = bothKnown && Math.abs(walletVhp - prodVhp) / prodVhp > 0.01;
+
+  const producing = prodVhp != null && prodVhp > 0;
   const phead =
     `<div class="node-state"><span class="node-dot ${producing ? "ok" : "off"}"></span>` +
     `${producing ? "Producing blocks" : "Not producing"}</div>` +
     `<div class="addr">${esc(n.address)}</div>`;
 
-  return `<div class="card">${phead}<div class="tiles">${tiles}</div>${rows([
+  return `<div class="card">${phead}${tiles ? `<div class="tiles">${tiles}</div>` : ""}${rows([
     ["KOIN", koin(k.koinSats)],
-    ["VHP (producing)", k.vhpSats != null ? koin(k.vhpSats).replace(" KOIN", " VHP") : k.producingVhp != null ? `${num(k.producingVhp, 2)} VHP` : null],
+    ["VHP producing", prodVhp != null
+      ? `${prodVhp.toLocaleString(undefined, { maximumFractionDigits: 2 })} VHP`
+      : koin(k.vhpSats, "VHP")],
+    ["VHP in wallet", mismatch ? koin(k.vhpSats, "VHP") : null],
     ["Network total", k.networkVhp != null ? `${Math.round(k.networkVhp).toLocaleString()} VHP` : null],
     ["Your share", share],
     ["Expected rate", k.blocksPerDay != null
       ? `${num(k.blocksPerDay, 2)} blocks/day${k.hoursPerBlock != null ? ` — about one every ${num(k.hoursPerBlock, 1)} h` : ""}`
       : null],
   ])}
-  <p class="muted" style="margin-top:10px;font-size:12px">Expected rate is an average — block production is a lottery, so quiet stretches of several hours are normal at a small share.${
+  ${mismatch ? `<p class="note warn">The node reports producing with ${esc(prodVhp.toLocaleString(undefined, { maximumFractionDigits: 2 }))} VHP while the wallet holds ${esc(koin(k.vhpSats, "VHP"))}. The share and rate above use the node's own figure.</p>` : ""}
+  ${note ? `<p class="note">${esc(note)}</p>` : ""}
+  <p class="note">Expected rate is an average — block production is a lottery, so quiet stretches of several hours are normal at a small share.${
     k.priceStale ? " The price used here could not be refreshed recently." : ""
   }</p>
-  ${k.reportedAt ? `<p class="stamp">Reported by the machine ${esc(ago(k.reportedAt) || "just now")}.</p>` : ""}
+  ${k.reportedAt ? `<p class="stamp">Reported by the machine ${esc(ago(k.reportedAt) || "just now")}${k.appVersion ? ` · app ${esc(k.appVersion)}` : ""}.</p>` : ""}
   </div>`;
 }
 
