@@ -127,6 +127,112 @@ async function main() {
   check(Array.isArray(workerRecord().models) && workerRecord().models.length === 1,
     "its models are untouched by any of this");
 
+  /* ------------------------------------------------------------------ */
+  console.log("\n6) the account endpoint itself — ONLINE and offline");
+  /*
+   * The gap that shipped. Everything above tested the scheduler's STORE; none
+   * of it touched /account/api/nodes, which has two branches. The producer was
+   * added only to the offline one, so the card could appear exclusively on a
+   * machine that was switched off — the opposite of every case that matters.
+   * A tester saw three online nodes and no producer anywhere.
+   */
+  const express = require("express");
+  const { createAccounts } = require("../lib/accounts");
+  const accounts = createAccounts({ stateDir: tmp(), sendMail: async () => {}, siteOrigin: "http://127.0.0.1:0", onEvent: () => {} });
+
+  const acct = accounts.service._newAccount({ email: "producer@example.com" });
+  const session = accounts.service._issueSession(acct.id, "probe");
+  const ts = Date.now();
+  const sig = Buffer.from(await wallet.signHash(
+    crypto.createHash("sha256").update(`link|${address}|${acct.id}|${ts}`).digest())).toString("base64");
+  accounts.service.linkWallet(acct, { address, ts, signature: sig });
+
+  // Mount the real route against the real scheduler.
+  const app = express();
+  app.use(express.json());
+  const server = require("http").createServer(app);
+  app.get("/account/api/nodes", (req, res) => {
+    const a = accounts.requireAccount(req, res);
+    if (!a) return;
+    let live = [];
+    try { live = sched.statsPublic({ detail: true }).workers || []; } catch { live = []; }
+    const producerFor = (addr) => {
+      for (const x of sched.workers.values()) if (x.address === addr) return x.producer || null;
+      return null;
+    };
+    const nodes = (accounts.service.accountView(a).wallets || []).map((w) => {
+      const on = live.find((x) => x.address === w.address) || null;
+      return on
+        ? { address: w.address, online: true, models: on.models || [], producer: producerFor(w.address) }
+        : { address: w.address, online: false, neverSeen: false, producer: producerFor(w.address) };
+    });
+    res.json({ ok: true, nodes });
+  });
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  const nodesUrl = `http://127.0.0.1:${server.address().port}/account/api/nodes`;
+  const getNodes = () =>
+    fetch(nodesUrl, { headers: { cookie: `kai_session=${session}` } }).then((r) => r.json());
+
+  await register(REAL);            // live registration, so this address is ONLINE
+  const seenOnline = await getNodes();
+  const mine = (seenOnline.nodes || []).find((n) => n.address === address);
+  check(!!mine, "the account lists the wallet's node");
+  check(mine?.online === true, "…and it is online, which is the case that was broken");
+  check(!!mine?.producer, "…and the ONLINE node carries the producer (this failed before the fix)");
+  check(Math.abs((mine?.producer?.producingVhp ?? 0) - REAL.producingVhp) < 1e-6,
+    `…with the right VHP (${mine?.producer?.producingVhp})`);
+
+  // And the offline path still works — it was the only one that ever did.
+  for (const w of sched.workers.values()) if (w.address === address) w.lastSeen = 0;
+  const seenOffline = await getNodes();
+  const off = (seenOffline.nodes || []).find((n) => n.address === address);
+  check(off?.online === false, "a node aged off the roster reads as offline");
+  check(!!off?.producer, "…and still shows what it last reported");
+
+  server.close();
+
+  /* ------------------------------------------------------------------ */
+  console.log("\n7) a stake is not public");
+  // VHP is a holdings figure. It belongs on the owner's own page and nowhere
+  // else — /network/status is public and truncates addresses precisely so
+  // operator details do not leak.
+  const pub = sched.statsPublic({ detail: true });
+  const leaked = (pub.workers || []).filter((w) => w.producer != null);
+  check(leaked.length === 0,
+    `statsPublic carries no producer data — it feeds public /network/status (${leaked.length} leak(s))`);
+
+  /* ------------------------------------------------------------------ */
+  console.log("\n8) the real route, not the copy above");
+  /*
+   * Section 6 mounts a REPLICA of /account/api/nodes, because standing the
+   * whole server up needs config this probe has no business owning. That
+   * replica is also exactly the sort of stand-in that let the bug through in
+   * the first place — a test can only be as right as its copy.
+   *
+   * So this reads server.js itself. The handler has TWO return paths, online
+   * and offline, and the failure was one of them silently lacking `producer`.
+   * Counting them is crude, and it is precisely the crudeness that would have
+   * caught it.
+   */
+  const serverSrc = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
+  const start = serverSrc.indexOf('app.get("/account/api/nodes"');
+  check(start > 0, "found the real handler in server.js");
+  const handler = serverSrc.slice(start, start + 4000);
+  const producerLines = (handler.match(/producer:\s*producerFor\(/g) || []).length;
+  check(producerLines >= 2,
+    `both branches of the real handler return a producer — found ${producerLines}, expected 2 (online + offline)`);
+  check(/const producerFor = /.test(handler),
+    "…from one shared lookup, so the two branches cannot drift apart again");
+  /*
+   * The online branch's `on` object comes from statsPublic. Reading producer
+   * off it would mean statsPublic had to carry the field — and statsPublic
+   * feeds the PUBLIC /network/status, so that would publish every operator's
+   * stake next to their address. Naming the exact expression is the check;
+   * a looser pattern matched the unrelated `live = statsPublic(...)` line.
+   */
+  check(!/\bon\.producer\b/.test(serverSrc),
+    "…and never off the statsPublic-derived object, which would leak stakes publicly");
+
   sched.close?.();
   console.log(failures ? `\n${failures} FAILED` : "\nPRODUCER CARD PROBE PASSED");
   process.exit(failures ? 1 : 0);
