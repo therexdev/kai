@@ -87,8 +87,14 @@ async function main() {
    * failure this guards against, because the value is unverified.
    */
   const src = fs.readFileSync(path.join(__dirname, "..", "lib", "scheduler.js"), "utf8");
-  const mentions = (src.match(/\w+\.producer\b/g) || []);
-  const reads = mentions.filter((m) => m !== "b.producer");
+  /*
+   * WRITES are fine — registration and the refresh endpoint both store it.
+   * What must never appear is a READ of the stored value, because nothing
+   * verifies it. So: ignore `b.producer` (the request body) and anything
+   * immediately assigned to, and flag whatever is left.
+   */
+  const mentions = (src.match(/\w+\.producer\b\s*=?/g) || []).map((m) => m.trim());
+  const reads = mentions.filter((m) => !m.endsWith("=") && m !== "b.producer");
   check(reads.length === 0,
     `scheduler never reads the stored value back — found ${JSON.stringify(reads)}, expected none`);
 
@@ -232,6 +238,61 @@ async function main() {
    */
   check(!/\bon\.producer\b/.test(serverSrc),
     "…and never off the statsPublic-derived object, which would leak stakes publicly");
+
+  /* ------------------------------------------------------------------ */
+  console.log("\n9) refreshing the snapshot without re-registering");
+  /*
+   * Reported as "the account page isn't updating", and it wasn't: the snapshot
+   * used to ride ONLY on registration, and a healthy worker with a live long
+   * poll may not re-register for hours. So the machine now refreshes it on its
+   * own cadence through this endpoint — small, token-authenticated, and
+   * crucially NOT a re-registration, because registering mints a new token and
+   * kills the in-flight poll.
+   */
+  const reg2 = await register(REAL);
+  const tok = reg2.body.token;
+  check(!!tok, "registration returns the token the refresh authenticates with");
+
+  const moved = { ...REAL, producingVhp: 700.5, nodeValueUsd: 12.34, dailyUsd: 0.31, basis: "measured", daysTracked: 22 };
+  const up = await post(`/worker/producer?token=${encodeURIComponent(tok)}`, { producer: moved });
+  check(up.status === 200 && up.body.ok, `refresh accepted (${up.status})`);
+  const after = workerRecord().producer;
+  check(Math.abs(after.producingVhp - 700.5) < 1e-6, "the new reading replaced the old one");
+  check(Math.abs(after.nodeValueUsd - 12.34) < 1e-6, "…including the dollar figures the dashboard shows");
+  check(after.basis === "measured" && after.daysTracked === 22, "…and how much history they rest on");
+
+  // The token still works afterwards: a refresh must not disturb earning.
+  const stillMine = sched.workers.get(tok);
+  check(!!stillMine, "the worker's token still resolves — no re-registration happened");
+
+  const forged = await post("/worker/producer?token=not-a-real-token", { producer: moved });
+  check(forged.status === 401, `a stranger cannot write to someone's row (${forged.status})`);
+
+  /* ------------------------------------------------------------------ */
+  console.log("\n10) the dashboard page is wired and gated");
+  const dashSrc = fs.readFileSync(path.join(__dirname, "..", "public", "dashboard.js"), "utf8");
+  const serverSrc2 = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
+  const acctSrc = fs.readFileSync(path.join(__dirname, "..", "public", "account.html"), "utf8");
+
+  check(/app\.get\("\/dashboard"/.test(serverSrc2), "/dashboard is a route");
+  check(/redirect\("\/account\?next=\/dashboard"\)/.test(serverSrc2),
+    "…gated: a signed-out browser gets a door, not a 401");
+  check(/no-store/.test(serverSrc2.slice(serverSrc2.indexOf('app.get("/account/api/nodes"'), serverSrc2.indexOf('app.get("/account/api/nodes"') + 900)),
+    "…and the node data is no-store, so a cache cannot serve last hour's numbers");
+
+  // The two links the owner asked for, in both directions.
+  check(/href="\/app"/.test(fs.readFileSync(path.join(__dirname, "..", "public", "dashboard.html"), "utf8")),
+    "the dashboard links to chat");
+  check(/href="\/account"/.test(fs.readFileSync(path.join(__dirname, "..", "public", "dashboard.html"), "utf8")),
+    "…and to the account page");
+  check(/href="\/dashboard"/.test(acctSrc), "and the account page links to the dashboard");
+
+  // The split: AI detail must no longer be rendered by the account page.
+  check(!/srvTokPerSec/.test(acctSrc),
+    "the account page no longer renders node performance — that moved to the dashboard");
+  check(/srvTokPerSec/.test(dashSrc), "…and the dashboard does render it");
+  check(/basis === "measured"/.test(dashSrc),
+    "the dashboard distinguishes a measured rate from no history, rather than printing $0.00");
 
   sched.close?.();
   console.log(failures ? `\n${failures} FAILED` : "\nPRODUCER CARD PROBE PASSED");
