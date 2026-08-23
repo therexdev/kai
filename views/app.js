@@ -176,6 +176,7 @@ function show(view) {
   if (view === "chat") {
     loadChats().catch((e) => note(e.message, true));
     loadNetwork().catch(() => {});
+    loadMyNode().catch(() => {});
   }
   if (view === "docs") loadDocs().catch((e) => docNote(e.message, true));
   if (view === "tasks") loadTasks().catch((e) => taskNote(e.message, true));
@@ -446,9 +447,20 @@ async function loadThread() {
 function msgHtml(m) {
   const bits = [];
   if (m.servedModel) bits.push(`answered by ${esc(m.servedModel)}`);
-  // Zero is a real answer here (the free allowance covered it) and must not
-  // be swallowed by a falsy check — that is how "free" becomes "unknown".
-  if (typeof m.costUsd === "number") bits.push(m.costUsd > 0 ? esc(usd(m.costUsd)) : "free allowance");
+  /*
+   * Zero is a real answer here and must not be swallowed by a falsy check —
+   * that is how "free" becomes "unknown". It also has TWO meanings now, and
+   * they are worth telling apart: the free daily allowance absorbed it, or
+   * your own machine answered and there was nothing to bill in the first
+   * place. `paidWith` is what the scheduler actually did, so it decides.
+   */
+  if (typeof m.costUsd === "number") {
+    bits.push(
+      m.costUsd > 0 ? esc(usd(m.costUsd))
+      : /own machine/i.test(String(m.paidWith || "")) ? "your own machine · no charge"
+      : "free allowance",
+    );
+  }
   const meta = bits.length ? `<div class="meta">${bits.join(" · ")}</div>` : "";
   return `<div class="msg ${m.role === "user" ? "user" : "bot"}${m.error ? " err" : ""}">
     <div class="who">${m.role === "user" ? "You" : "Koinos AI"}</div>
@@ -505,7 +517,10 @@ async function send(text) {
     const res = await fetch(`/app/api/chats/${encodeURIComponent(chat.current)}/message`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ content: text, model: network.choice, grantId: state.grant?.id }),
+      body: JSON.stringify({
+        content: text, model: network.choice, grantId: state.grant?.id,
+        ...(network.useMine ? { selfHost: true } : {}),
+      }),
     });
     if (res.status === 401) { location.replace("/account?next=/app"); return; }
     /*
@@ -542,6 +557,7 @@ async function send(text) {
             content: answer,
             servedModel: d.servedModel || null,
             costUsd: typeof d.costUsd === "number" ? d.costUsd : null,
+            paidWith: d.paidWith || null,
           });
           paintThread();
           // The message's own meta line already carries the model and the
@@ -599,7 +615,15 @@ function wireComposer() {
       $("composer").requestSubmit();
     }
   });
-  $("composer-model").addEventListener("change", (e) => { network.choice = e.target.value; });
+  $("composer-model").addEventListener("change", (e) => {
+    network.choice = e.target.value;
+    paintRunOn(); // a different class may be one your machine does not hold
+  });
+  $("run-mine").addEventListener("change", (e) => {
+    network.useMine = e.target.checked;
+    $("run-on").classList.toggle("on", network.useMine);
+    note(network.useMine ? "Answers will run on your own machine — no charge." : "");
+  });
   $("composer").addEventListener("submit", (e) => {
     e.preventDefault();
     const text = input.value.trim();
@@ -894,7 +918,58 @@ function wireDocs() {
  * named classes exist for the person who wants a cheaper answer, and they can
  * see the price before they choose rather than after the bill.
  */
-const network = { models: [], choice: "auto" };
+const network = {
+  models: [], choice: "auto",
+  /*
+   * Your own machine, if it happens to be serving. `mine.models` is what it
+   * has ready — a node that is online but has not downloaded the class you
+   * picked cannot answer, and offering it anyway would produce a refusal
+   * instead of an answer.
+   */
+  mine: { online: false, models: [] },
+  useMine: false,
+};
+
+/** Refresh who is available, then re-decide whether to offer the toggle. */
+async function loadMyNode() {
+  try {
+    const r = await api("/app/api/my-node");
+    network.mine = { online: !!r.online, models: r.models || [] };
+  } catch {
+    network.mine = { online: false, models: [] };
+  }
+  paintRunOn();
+}
+
+/*
+ * The toggle appears only when it would WORK: a live node of your own that
+ * has the chosen class ready. "Best available" counts if the node has
+ * anything at all, since the scheduler is free to pick what it holds.
+ */
+function paintRunOn() {
+  const box = $("run-on");
+  const cb = $("run-mine");
+  if (!box || !cb) return;
+  const canServe =
+    network.mine.online &&
+    (network.choice === "auto"
+      ? network.mine.models.length > 0
+      : network.mine.models.includes(network.choice));
+  box.hidden = !canServe;
+  if (!canServe && network.useMine) {
+    // The machine went away, or the chosen class moved out of its reach.
+    // Fall back to the network rather than sending a request that is about
+    // to be refused — but say so, because "free" quietly becoming "paid" is
+    // exactly the surprise this feature exists to avoid.
+    network.useMine = false;
+    cb.checked = false;
+    note("Your machine can't serve that model — switching back to the network.");
+  }
+  box.classList.toggle("on", network.useMine);
+  box.title = canServe
+    ? "Answer on your own machine. Costs nothing and never touches your spending limit."
+    : "";
+}
 
 async function loadNetwork() {
   let list = [];
@@ -911,6 +986,7 @@ async function loadNetwork() {
     list.map((m) => `<option value="${esc(m.model)}">${esc(m.model)} — ${usd(m.outUsdPerM)}/M out</option>`).join("");
   sel.value = list.some((m) => m.model === prev) || prev === "auto" ? prev : "auto";
   network.choice = sel.value;
+  paintRunOn();
   if (!list.length) note("Nobody is serving the network right now — an answer may take a moment or be refused.");
 }
 
@@ -1162,9 +1238,17 @@ function boot() {
    * whenever the tab comes back to the foreground, so the number in the
    * corner is one someone can act on.
    */
-  setInterval(() => { if (!document.hidden) load().catch(() => {}); }, 45000);
+  setInterval(() => {
+    if (document.hidden) return;
+    load().catch(() => {});
+    // A node comes and goes — the laptop closes, Start Earning is switched
+    // off. The offer has to follow it, or people tick a box for a machine
+    // that left.
+    if (state.view === "chat") loadMyNode().catch(() => {});
+  }, 45000);
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) load().catch(() => {});
+    if (!document.hidden && state.view === "chat") loadMyNode().catch(() => {});
   });
 }
 

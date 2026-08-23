@@ -90,6 +90,13 @@ a{color:var(--violet)}
 .msg .meta{font-size:.76em;color:var(--dim);margin-top:5px}
 .msg.err .body{color:var(--danger)}
 .empty{margin:auto;text-align:center;color:var(--dim);max-width:460px}
+/* The self-host toggle. Sits with the composer controls, and disappears
+   entirely when the machine that would serve is not there. */
+.run-on{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;padding:8px 10px;border:1px solid var(--border);
+  border-radius:8px;background:var(--input);color:var(--dim);font-size:.86em;cursor:pointer;white-space:nowrap}
+.run-on:hover{color:var(--text);border-color:var(--violet)}
+.run-on input{accent-color:var(--violet);cursor:pointer}
+.run-on.on{color:var(--text);border-color:var(--violet)}
 .composer{display:flex;gap:9px;align-items:flex-end;padding:10px 7% 4px;border-top:1px solid var(--border);flex:0 0 auto}
 .composer select{background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:10px 8px;font:inherit;font-size:.86em;max-width:190px}
 .composer textarea{flex:1;resize:none;max-height:200px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font:inherit}
@@ -223,6 +230,7 @@ a{color:var(--violet)}
    */
   .composer{flex-wrap:wrap;gap:8px;padding:10px 5% 4px}
   .composer select{max-width:none;flex:1 1 100%;order:1}
+  .run-on{order:1;flex:1 1 100%;justify-content:center}
   .composer textarea{flex:1 1 0;min-width:0;order:2}
   .composer .btn{order:3;flex:0 0 auto}
 }
@@ -275,6 +283,13 @@ a{color:var(--violet)}
         <div class="thread" id="thread"></div>
         <form class="composer" id="composer">
           <select id="composer-model" title="Which class of model answers, and what it costs"></select>
+          <!-- Only rendered when the account's own node is live AND can serve
+               the chosen model. An option that is offered and then refused is
+               worse than one that was never shown. -->
+          <label class="run-on" id="run-on" hidden>
+            <input type="checkbox" id="run-mine" />
+            <span>My machine <span class="hint">· free</span></span>
+          </label>
           <textarea id="composer-input" rows="1" placeholder="Ask anything…"></textarea>
           <button class="btn" id="composer-send" type="submit">Send</button>
         </form>

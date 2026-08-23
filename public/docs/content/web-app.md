@@ -90,3 +90,13 @@ Signing out **everywhere** (from your account page) also revokes spending grants
 Compare, Tools, Agent mode, Teams, voice, images and local models are **desktop only**. They depend on either your own hardware or the app's local tool layer, neither of which a browser has.
 
 Web tasks cannot use tools or the web search the desktop ones can, for the same reason — a scheduled prompt gets the model and nothing else, for now.
+
+## Using your own machine
+
+If you run the Koinos AI desktop app with **Start Earning** switched on, and it is signed in to this same account, the chat composer offers **My machine · free**.
+
+Tick it and your questions are answered by your own hardware. It costs nothing and never touches your spending limit — your machine, your electricity, your question, so there is nothing to bill. Answers served that way are labelled *your own machine · no charge* so you can tell them from ones the free daily allowance covered.
+
+The option only appears when it would actually work: your machine has to be online *and* have the model class you picked already downloaded. Choose a class it does not hold and the option withdraws itself rather than letting you pick something that would be refused. If your machine goes offline mid-session the app tells you it is switching back to the network, because free quietly becoming paid is exactly the surprise worth avoiding.
+
+**On privacy, plainly:** this is about the bill, not about secrecy. Your prompt still travels through the Koinos scheduler to reach your machine — less private than the desktop app, which never sends anything anywhere. Work you serve yourself earns nothing and does not count toward your node's reputation or rewards, deliberately: otherwise anyone could send themselves jobs to farm the network.

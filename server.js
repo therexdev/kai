@@ -831,7 +831,7 @@ function pickGrant(account, wantedId) {
  * object goes straight through, which is what makes streaming work end to
  * end with no proxying of my own.
  */
-async function askNetwork(req, res, { grant, messages, model, onAnswer }) {
+async function askNetwork(req, res, { grant, messages, model, selfHost, onAnswer }) {
   /*
    * The browser never sees its own session token — the cookie is HttpOnly
    * and must stay that way, since that token can now authorize spending. So
@@ -847,6 +847,10 @@ async function askNetwork(req, res, { grant, messages, model, onAnswer }) {
     max_tokens: APP_MAX_TOKENS,
     sessionToken: token,
     grantId: grant.grantId,
+    // "Run this on my own machine." The scheduler decides whether that is
+    // possible — it knows which workers are live and what they can serve —
+    // and REFUSES rather than silently falling back to the paid network.
+    ...(selfHost ? { selfHost: true } : {}),
   });
 
   const fake = Readable.from([Buffer.from(payload, "utf8")]);
@@ -948,6 +952,7 @@ app.post("/app/api/chats/:id/message", async (req, res) => {
   await askNetwork(req, res, {
     grant,
     model: req.body?.model,
+    selfHost: !!req.body?.selfHost,
     messages: [
       ...preamble,
       ...history.map((m) => ({ role: m.role, content: m.content })),
@@ -959,6 +964,8 @@ app.post("/app/api/chats/:id/message", async (req, res) => {
         content: String(f.output),
         servedModel: f.servedModel || null,
         costMicro: f.costUsd == null ? null : Math.round(f.costUsd * 1e6),
+        // Zero cost means two different things; only this says which.
+        paidWith: f.paidWith || null,
       });
       /*
        * Count the use only when an answer actually came back. Marking it at
@@ -1077,6 +1084,7 @@ app.post("/app/api/docs/:id/ai", async (req, res) => {
   await askNetwork(req, res, {
     grant,
     model: req.body?.model,
+    selfHost: !!req.body?.selfHost,
     messages: [
       {
         role: "system",
@@ -1112,6 +1120,30 @@ app.post("/app/api/docs/:id/ai", async (req, res) => {
  * matters most for tasks, which are the one spend whose cause a person
  * cannot reconstruct from memory because they were not there.
  */
+/*
+ * Is the person's own machine available to answer?
+ *
+ * The web app only offers "run this on my machine" when the answer is yes and
+ * that machine can actually serve the model — an option that is offered and
+ * then refused is worse than one that was never shown. Every wallet on the
+ * account is checked, since the node may run under any of them.
+ */
+app.get("/app/api/my-node", (req, res) => {
+  const a = appApi(req, res);
+  if (!a) return;
+  const view = accounts.service.accountById(a.id);
+  const wallets = (accounts.service.accountView(view)?.wallets || []).map((w) => w.address);
+  let online = false;
+  const models = new Set();
+  for (const address of wallets) {
+    const n = scheduler.nodeFor(address);
+    if (!n.online) continue;
+    online = true;
+    for (const m of n.models) models.add(m);
+  }
+  res.json({ ok: true, online, models: [...models], wallets: wallets.length });
+});
+
 app.get("/app/api/spend", (req, res) => {
   const a = appApi(req, res);
   if (!a) return;

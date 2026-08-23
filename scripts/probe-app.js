@@ -322,7 +322,31 @@ async function main() {
       "…and the controls are always visible on a phone, where there is no hover");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n11) a wider window is never a worse one");
+    console.log("\n11) your own machine can answer, for free");
+
+    // The offer only exists when it would WORK — a live node of your own that
+    // holds the chosen class. Offered-then-refused is worse than never shown.
+    check(/id="run-on"/.test(shellCss) && /hidden/.test(shellCss.slice(shellCss.indexOf('id="run-on"'), shellCss.indexOf('id="run-on"') + 200)),
+      "the toggle ships hidden and is revealed only when it applies");
+    check(/function paintRunOn/.test(clientJs), "…by a check that runs on every model change");
+    check(/mine\.models\.includes\(network\.choice\)/.test(clientJs),
+      "…which requires the machine to hold the class actually chosen");
+    check(/selfHost: true/.test(clientJs), "ticking it reaches the wire");
+    check(/switching back to the network/i.test(clientJs),
+      "and if the machine leaves mid-session it says so, rather than quietly billing");
+
+    // Zero has two meanings and they must not be confused on screen.
+    check(/own machine · no charge/.test(clientJs), "a self-served answer is labelled as such");
+    check(/free allowance/.test(clientJs), "…and the free daily allowance keeps its own label");
+    const appdataSrc = fs.readFileSync(path.join(ROOT, "lib", "appdata.js"), "utf8");
+    check(/paid_with/.test(appdataSrc), "…and which one it was survives a reload");
+
+    const srvSrc = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
+    check(/app\/api\/my-node/.test(srvSrc), "the app can ask whether its own machine is up");
+    check(/selfHost: !!req\.body\?\.selfHost/.test(srvSrc), "and the flag is passed on, not invented server-side");
+
+    /* ------------------------------------------------------------------ */
+    console.log("\n12) a wider window is never a worse one");
 
     /*
      * The memory rail used to appear at max-width:900, on top of the two
@@ -352,7 +376,7 @@ async function main() {
     }
 
     /* ------------------------------------------------------------------ */
-    console.log("\n12) the conversation scrolls, the page does not");
+    console.log("\n13) the conversation scrolls, the page does not");
 
     // The whole document used to scroll: the composer rode off the bottom of
     // the screen and you had to scroll back down to type. A flex item defaults
@@ -386,12 +410,12 @@ async function main() {
       "…and a repaint is not mistaken for the reader scrolling");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n13) crawlers are told to stay out");
+    console.log("\n14) crawlers are told to stay out");
     const robots = await raw(port, "/robots.txt");
     check(/^Disallow: \/app$/m.test(robots.body), "robots.txt disallows /app");
 
     /* ------------------------------------------------------------------ */
-    console.log("\n14) server.js wiring, textually");
+    console.log("\n15) server.js wiring, textually");
     const src = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
     check(/VIEWS_DIR, "app\.html"/.test(src), "the shell is resolved out of VIEWS_DIR");
     check(!/PUBLIC_DIR, "app\.html"/.test(src), "and never out of PUBLIC_DIR");
