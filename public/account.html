@@ -130,9 +130,10 @@ code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--li
     </div>
 
     <div class="card">
-      <h2>Your nodes</h2>
+      <h2>Linked wallets</h2>
       <div id="wallets"></div>
       <p class="muted" style="margin-top:12px">Link a wallet from the Koinos AI app: Earn tab → Account → “Link this wallet”. The app signs the proof with the wallet's own key — the key never leaves your machine.</p>
+      <p style="margin-top:14px"><a class="btn" href="/dashboard">View node details on your dashboard →</a></p>
     </div>
 
     <div class="card">
@@ -253,7 +254,7 @@ async function refresh() {
   for (const it of account.wallets) {
     const d = document.createElement("div");
     d.className = "item wallet-item";
-    d.innerHTML = `<div class="wallet-head"><span class="addr"></span><button class="x" title="Unlink">✕</button></div><div class="node-detail muted">checking the network…</div>`;
+    d.innerHTML = `<div class="wallet-head"><span class="addr"></span><button class="x" title="Unlink">✕</button></div>`;
     d.querySelector(".addr").textContent = it.address;
     d.querySelector(".x").onclick = async () => {
       if (!confirm(`Unlink ${it.address}?`)) return;
@@ -263,7 +264,6 @@ async function refresh() {
     d.dataset.addr = it.address;
     w.appendChild(d);
   }
-  loadNodes();
   paintGrants();
   loadSessions();
 }
@@ -401,95 +401,17 @@ function ago(ms) {
   return `${Math.round(s / 86400)} days ago`;
 }
 
-function nodeHtml(n) {
-  const bits = [];
-  if (n.neverSeen) {
-    return '<span class="muted">This wallet has never connected a node. Run Koinos AI and switch on Earning to put it to work.</span>';
-  }
-  const dot = n.online ? (n.busy ? "busy" : "ok") : "off";
-  const state = n.online ? (n.busy ? "Working now" : "Online, waiting for jobs") : `Offline — last seen ${ago(n.lastSeenAt)}`;
-  bits.push(`<div class="node-state"><span class="node-dot ${dot}"></span>${esc(state)}</div>`);
-
-  // Models first: it is the thing that was actually asked for, and the thing
-  // that decides whether this machine can earn at all.
-  bits.push(
-    (n.models || []).length
-      ? `<div class="node-models">${n.models.map((m) => `<span class="chip">${esc(m)}</span>`).join("")}</div>`
-      : '<div class="muted">Offering no models to the network. The app\'s Earn tab says which of your downloaded models fit this machine, and why.</div>'
-  );
-
-  const rows = [];
-  if (n.ramGb) rows.push(["Memory", `${n.ramGb} GB${n.accelerated ? " · GPU accelerated" : ""}`]);
-  else if (n.accelerated) rows.push(["Hardware", "GPU accelerated"]);
-  const p = n.perf || {};
-  // srvTokPerSec is what the NETWORK clocked, not what the machine claimed —
-  // the honest number, so it leads and says so.
-  if (num(p.srvTokPerSec)) rows.push(["Speed (measured)", `${num(p.srvTokPerSec)} tok/s`]);
-  else if (num(p.tokPerSec)) rows.push(["Speed (self-reported)", `${num(p.tokPerSec)} tok/s`]);
-  if (pct(p.sr)) rows.push(["Reliability", pct(p.sr)]);
-  if (p.ok != null || p.to != null || p.bad != null) {
-    rows.push(["Jobs", `${p.ok || 0} delivered · ${p.to || 0} timed out · ${p.bad || 0} failed audit`]);
-  }
-  if (n.jobsThisEpoch != null && n.online) rows.push(["This epoch", `${n.jobsThisEpoch} job${n.jobsThisEpoch === 1 ? "" : "s"}`]);
-  const r = n.reputation || {};
-  if (r.ageDays != null) rows.push(["On the network", `${num(r.ageDays, 2)} days`]);
-  if (r.r != null) rows.push(["Trust", num(r.r, 3)]);
-  if (rows.length) {
-    bits.push(`<div class="node-grid">${rows.map(([k, v]) => `<span class="k">${esc(k)}</span><span>${esc(v)}</span>`).join("")}</div>`);
-  }
-
-  /*
-   * The Koinos block producer, when this machine runs one.
-   *
-   * Two machines' worth of information share a card because they share a
-   * computer: the AI worker above earns by answering chat, this earns by
-   * producing blocks, and someone checking on their node from a phone wants
-   * both. What it deliberately does NOT show is money — the block reward is
-   * not a constant this can safely assume, and a confident dollar figure built
-   * on a guessed reward is worse than no figure at all.
-   */
-  const prod = n.producer;
-  if (prod && (prod.producingVhp != null || prod.networkVhp != null)) {
-    const prows = [];
-    if (prod.producingVhp != null) prows.push(["Producing with", `${num(prod.producingVhp, 2)} VHP`]);
-    if (prod.networkVhp != null) prows.push(["Network total", `${Math.round(prod.networkVhp).toLocaleString()} VHP`]);
-    if (prod.sharePct != null) {
-      const oneIn = prod.oneInBlocks != null ? ` (1 in ${Math.round(prod.oneInBlocks).toLocaleString()})` : "";
-      prows.push(["Your share", `${prod.sharePct.toFixed(5)}%${oneIn}`]);
-    }
-    if (prod.blocksPerDay != null) {
-      const every = prod.hoursPerBlock != null ? ` — about one every ${num(prod.hoursPerBlock, 1)} h` : "";
-      prows.push(["Expected rate", `${num(prod.blocksPerDay, 2)} blocks/day${every}`]);
-    }
-    bits.push('<div class="node-state node-prod-head"><span class="node-dot ok"></span>Koinos block producer</div>');
-    bits.push(`<div class="node-grid">${prows.map(([k, v]) => `<span class="k">${esc(k)}</span><span>${esc(v)}</span>`).join("")}</div>`);
-    // Expected, not promised. A small producer goes quiet for many hours as a
-    // matter of course, and this line is what stops that reading as a fault.
-    bits.push('<div class="muted node-prod-note">Expected rate is an average — block production is a lottery, so quiet stretches of several hours are normal at a small share.</div>');
-  }
-
-  return bits.join("");
-}
-
-async function loadNodes() {
-  let nodes;
-  try {
-    nodes = (await j("/account/api/nodes")).nodes || [];
-  } catch {
-    // The wallet list is still correct and usable; only the enrichment failed.
-    for (const el of document.querySelectorAll(".node-detail")) {
-      el.textContent = "Could not reach the network just now.";
-    }
-    return;
-  }
-  for (const el of document.querySelectorAll(".wallet-item")) {
-    const n = nodes.find((x) => x.address === el.dataset.addr);
-    const slot = el.querySelector(".node-detail");
-    if (!slot) continue;
-    slot.classList.remove("muted");
-    slot.innerHTML = n ? nodeHtml(n) : '<span class="muted">No node data.</span>';
-  }
-}
+/*
+ * nodeHtml() and loadNodes() used to live here, rendering models, measured
+ * speed, reliability, trust and (later) block-producer figures underneath each
+ * wallet. They moved to /dashboard.
+ *
+ * This page answers "who am I and what may act for me": sign-in methods,
+ * linked wallets, spending grants, live sessions. What the hardware is DOING
+ * is a different question with different numbers that want refreshing, and the
+ * two were crowding each other out. The wallet list stays — which wallets are
+ * linked is account data — and links across.
+ */
 
 /* ---- email code ---- */
 $("emailBtn").onclick = async () => {

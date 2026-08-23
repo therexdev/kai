@@ -297,6 +297,21 @@ try {
 // /link deep-link is what the desktop app shows next to its code.
 app.get(["/account", "/link"], (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "account.html")));
 
+/*
+ * The dashboard — what your machines are doing.
+ *
+ * Split off the account page, which had grown to answer two unrelated
+ * questions at once: who you are (sign-in, wallets, grants, sessions) and what
+ * your hardware is doing (models, speed, VHP, block rate). Gated the way /app
+ * is, with a redirect rather than a 401, because a browser asking for a page
+ * deserves a door.
+ */
+app.get("/dashboard", (req, res) => {
+  if (!accounts?.accountOf?.(req)) return res.redirect("/account?next=/dashboard");
+  res.setHeader("Cache-Control", "no-store");
+  return res.sendFile(path.join(PUBLIC_DIR, "dashboard.html"));
+});
+
 /* ----------------------------------------- tester docs (docs.koinosai.com) */
 // The docs SITE lives in public/docs — no build step, markdown rendered
 // client-side by the same safe renderer the app uses for chat. Served two
@@ -577,6 +592,9 @@ app.get("/admin/api/network", requireAuth, (_req, res) => {
 app.get("/account/api/nodes", (req, res) => {
   const account = accounts?.requireAccount?.(req, res);
   if (!account) return; // requireAccount already answered 401/403
+  // Live machine state. A cached copy of this is worse than no copy — it is
+  // how a page ends up confidently showing numbers from an hour ago.
+  res.setHeader("Cache-Control", "no-store, max-age=0");
   let live = [];
   try {
     live = scheduler.statsPublic({ detail: true }).workers || [];
