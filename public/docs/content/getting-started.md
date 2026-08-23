@@ -41,6 +41,15 @@ Then open **http://localhost:41100** in any browser — the complete app runs th
 
 ![The Models view — the catalog with size and memory requirements per model](img/models.png)
 
+### Removing a model you no longer want
+
+Every model card you have installed carries a **×**. What it does depends on where the model came from, and the two are deliberately not the same:
+
+- **A model you downloaded from the catalog** is removed from your disk. You are told how much space it frees and asked to confirm first, and you can download it again from this screen whenever you like. A part-finished download can be cleared the same way — useful if you cancelled one and want the space back.
+- **A model you imported from your own files** only leaves the list. **Your .gguf file is never deleted** — it is yours, it stays exactly where you put it, and you can import it again later.
+
+The model currently loaded has no × — switch to a different model first, then remove it. That is deliberate: pulling the weights out from under a running model is a good way to produce a confusing crash instead of a clean removal.
+
 ## Step 3 — Chat
 
 Click **Chat** in the sidebar and type. Everything runs on your machine — nothing leaves it unless you switch it on yourself.
