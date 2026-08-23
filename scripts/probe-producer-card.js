@@ -45,6 +45,14 @@ const REAL = {
   at: "2026-08-23T06:40:09Z",
 };
 
+
+// The scheduler bounds every number it will render. Rather than reach into the
+// module, push a value through the real path and read back what survived.
+async function _shortfall(register, workerRecord, REAL, v) {
+  await register({ ...REAL, stakeBehind: true, stakeShortfallPct: v });
+  return workerRecord().producer.stakeShortfallPct;
+}
+
 async function main() {
   const { Scheduler } = require("../lib/scheduler");
   const sched = new Scheduler({ dataDir: tmp(), onEvent: () => {} });
@@ -349,6 +357,33 @@ async function main() {
     "producing VHP and wallet VHP are shown separately when they disagree");
   check(dashSrc.indexOf('["VHP producing"') < dashSrc.indexOf('["VHP in wallet"'),
     "…producing leads, because it is the figure the share is derived from");
+
+  /* ------------------------------------------------------------------ */
+  console.log("\n13) stake sitting out of the lottery is named, not just displayed");
+  /*
+   * A real machine, 2026-08-23: the chain said the wallet held 41,123.92 VHP
+   * and the block producer said it was producing with 16,955.37 — 41% of the
+   * stake, same address, same computer, every screen internally consistent.
+   * In proof-of-burn the producer derives from its own VHP figure when its
+   * proof becomes valid, so understating it loses real blocks. The verdict is
+   * made on the machine (only it has both numbers at the same instant) and
+   * carried here; the page must not quietly drop it.
+   */
+  await register({ ...REAL, vhpSats: "4112392378763", stakeBehind: true, stakeShortfallPct: 58.77 });
+  const behind = workerRecord().producer;
+  check(behind.stakeBehind === true, "the shortfall verdict survives the trip");
+  check(Math.abs(behind.stakeShortfallPct - 58.77) < 1e-6, "…with the size of it");
+
+  await register({ ...REAL, vhpSats: "65946173948" });
+  check(workerRecord().producer.stakeBehind === false,
+    "a node that is not behind does not inherit somebody else's alarm");
+  check((await _shortfall(register, workerRecord, REAL, 101)) === null,
+    "an impossible shortfall is dropped, not printed");
+
+  check(/stakeBehind/.test(dashSrc), "the dashboard reads the verdict");
+  check(/sitting out of the block lottery/.test(dashSrc),
+    "…and says what it costs, in words, rather than leaving two numbers side by side");
+  check(/Restart the Koinos node/.test(dashSrc), "…and what to do about it");
 
   sched.close?.();
   console.log(failures ? `\n${failures} FAILED` : "\nPRODUCER CARD PROBE PASSED");

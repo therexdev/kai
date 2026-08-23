@@ -199,7 +199,19 @@ function koinosCard(n) {
       ? `${num(k.blocksPerDay, 2)} blocks/day${k.hoursPerBlock != null ? ` — about one every ${num(k.hoursPerBlock, 1)} h` : ""}`
       : null],
   ])}
-  ${mismatch ? `<p class="note warn">The node reports producing with ${esc(prodVhp.toLocaleString(undefined, { maximumFractionDigits: 2 }))} VHP while the wallet holds ${esc(koin(k.vhpSats, "VHP"))}. The share and rate above use the node's own figure.</p>` : ""}
+  ${mismatch ? `<p class="note warn">${
+    /*
+     * When the machine itself has judged this a real shortfall, say what to do
+     * about it. It is not a display quirk: in proof-of-burn the producer works
+     * out from its own VHP figure when its proof becomes valid, so a node that
+     * understates its stake submits late and loses races it should have won.
+     * Stake sitting out of the lottery is the most expensive thing this page
+     * can fail to mention.
+     */
+    k.stakeBehind
+      ? `This node is producing with ${esc(prodVhp.toLocaleString(undefined, { maximumFractionDigits: 2 }))} VHP but the wallet holds ${esc(koin(k.vhpSats, "VHP"))} — ${esc(Number(k.stakeShortfallPct ?? 0).toFixed(0))}% of your stake is sitting out of the block lottery, and the share and rate above are understated to match. Restart the Koinos node so the producer re-reads your stake.`
+      : `The node reports producing with ${esc(prodVhp.toLocaleString(undefined, { maximumFractionDigits: 2 }))} VHP while the wallet holds ${esc(koin(k.vhpSats, "VHP"))}. The share and rate above use the node's own figure.`
+  }</p>` : ""}
   ${note ? `<p class="note">${esc(note)}</p>` : ""}
   <p class="note">Expected rate is an average — block production is a lottery, so quiet stretches of several hours are normal at a small share.${
     k.priceStale ? " The price used here could not be refreshed recently." : ""
