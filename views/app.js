@@ -163,7 +163,9 @@ function show(view) {
   $("view-gate").hidden = !gated;
   if (!gated) $(`view-${view}`).hidden = false;
   for (const btn of document.querySelectorAll(".nav-item")) {
-    btn.classList.toggle("active", btn.dataset.view === view);
+    // Entries without a data-view (the Account link) are never "active" here,
+    // because you are not on them — clicking one leaves this page entirely.
+    btn.classList.toggle("active", !!btn.dataset.view && btn.dataset.view === view);
   }
   if (gated) {
     $("gate-msg").textContent = state.account?.wallets?.length
@@ -315,6 +317,53 @@ async function loadChats(select) {
  * where you are; tapping it opens the list. On a wide screen the rail is
  * always open and the button never renders.
  */
+/*
+ * Rename in place.
+ *
+ * The title becomes a text field where it sits, rather than opening a dialog:
+ * the thing being renamed stays visible next to what you are typing, and on a
+ * phone it avoids a modal over a list that is already collapsed. Enter keeps
+ * it, Escape abandons it, and clicking away keeps it too — that last one
+ * because having typed a new name and then tapped elsewhere, losing it is
+ * never what was meant.
+ *
+ * The auto-title only ever fills an EMPTY title (appdata.autoTitle returns
+ * early once one exists), so a name chosen here is not overwritten later.
+ */
+function beginRename(row, cid) {
+  const current = chat.list.find((c) => c.id === cid);
+  if (!current || row.querySelector(".rename-input")) return;
+  const pick = row.querySelector(".pick");
+  const input = document.createElement("input");
+  input.className = "rename-input";
+  input.value = current.title || "";
+  input.maxLength = 120;
+  pick.replaceWith(input);
+  input.focus();
+  input.select();
+
+  let settled = false;
+  const finish = async (keep) => {
+    if (settled) return;
+    settled = true;
+    const next = input.value.trim();
+    if (!keep || !next || next === current.title) return paintChatList();
+    try {
+      const { chats } = await api(`/app/api/chats/${encodeURIComponent(cid)}`, { title: next }, "PATCH");
+      chat.list = chats;
+    } catch (e) {
+      note(e.message, true);
+    }
+    paintChatList();
+  };
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); finish(true); }
+    if (e.key === "Escape") { e.preventDefault(); finish(false); }
+  });
+  input.addEventListener("blur", () => finish(true));
+}
+
 function paintChatList() {
   const el = $("chat-list");
   const here = chat.list.find((c) => c.id === chat.current);
@@ -329,6 +378,7 @@ function paintChatList() {
     chat.list.map((c) => `
       <div class="chat-row${c.id === chat.current ? " active" : ""}" data-id="${esc(c.id)}">
         <button class="pick" title="${esc(c.title)}">${esc(c.title)}</button>
+        <button class="ren" title="Rename this chat">✎</button>
         <button class="del" title="Delete this chat">✕</button>
       </div>`).join("");
   $("new-chat").onclick = newChat;
@@ -346,6 +396,7 @@ function paintChatList() {
       paintChatList();
       loadThread();
     };
+    row.querySelector(".ren").onclick = (e) => { e.stopPropagation(); beginRename(row, cid); };
     row.querySelector(".del").onclick = () => removeChat(cid);
   }
 }
@@ -1076,6 +1127,10 @@ function wirePurge() {
 
 function boot() {
   for (const btn of document.querySelectorAll(".nav-item")) {
+    // The Account entry is a real link OUT of this page, not a view — it has
+    // no data-view, and calling show() with undefined would blank the screen
+    // for the instant before the browser navigates.
+    if (!btn.dataset.view) continue;
     btn.addEventListener("click", () => show(btn.dataset.view));
   }
   window.addEventListener("hashchange", () => show(location.hash.slice(1)));
