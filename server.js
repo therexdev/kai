@@ -584,6 +584,23 @@ app.get("/account/api/nodes", (req, res) => {
     live = [];
   }
   const wallets = accounts.service.accountView(account).wallets || [];
+
+  /*
+   * The Koinos block-producer snapshot, read straight off the worker roster.
+   *
+   * Deliberately NOT taken from statsPublic({detail:true}) even though that is
+   * where the rest of the online branch comes from: that same projection feeds
+   * the PUBLIC /network/status, so putting VHP there would publish every
+   * operator's stake size next to their (truncated) address. This is the
+   * account's own wallets only, on a route that already proved who is asking.
+   */
+  const producerFor = (address) => {
+    try {
+      for (const x of scheduler.workers.values()) if (x.address === address) return x.producer || null;
+    } catch { /* roster unavailable */ }
+    return null;
+  };
+
   const nodes = wallets.map((w) => {
     const on = live.find((x) => x.address === w.address) || null;
     if (on) {
@@ -603,6 +620,10 @@ app.get("/account/api/nodes", (req, res) => {
         jobsThisEpoch: on.jobsThisEpoch ?? 0,
         perf: on.perf || null,
         reputation: on.reputation || null,
+        // The ONLINE branch — which is the normal case, and the one the first
+        // cut of this feature missed entirely, so the card could only ever
+        // have appeared on a machine that was switched off.
+        producer: producerFor(w.address),
       };
     }
     /*
@@ -632,7 +653,7 @@ app.get("/account/api/nodes", (req, res) => {
       // The Koinos block producer on the same machine, when it runs one. The
       // app reports it alongside its worker registration; it is display-only
       // and never feeds routing or payouts.
-      producer: known?.producer || null,
+      producer: producerFor(w.address),
       neverSeen: !known,
     };
   });
