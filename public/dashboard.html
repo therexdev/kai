@@ -6,7 +6,6 @@
 <title>Koinos AI — Dashboard</title>
 <meta name="robots" content="noindex" />
 <style>
-
 :root{
   --ink:#0A0A0C; --panel:#111117; --panel-2:#15151c;
   --line:#22222b; --line-2:#2f2f3a;
@@ -20,78 +19,54 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
-.wrap{width:min(560px,calc(100% - 40px));margin:0 auto;padding:48px 0 80px}
-.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--signal);font-weight:600}
-h1{font-size:clamp(26px,4vw,34px);margin:.35em 0 .4em}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px;margin:18px 0}
-.card h2{font-size:15px;margin:0 0 12px;color:var(--soft)}
-.mono{font-family:var(--mono)}
+.wrap{width:min(760px,calc(100% - 32px));margin:0 auto;padding:40px 0 72px}
+.brand{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--signal);font-weight:600;margin:0}
+h1{font-size:clamp(26px,4vw,34px);margin:.3em 0 .35em}
 .muted{color:var(--muted);font-size:13.5px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin:14px 0}
 .btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:13px;font-weight:600;
-  padding:12px 16px;border-radius:11px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);
+  padding:11px 15px;border-radius:11px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);
   cursor:pointer;transition:border-color .15s}
 .btn:hover{border-color:#463f5a}
-.btn.primary{background:var(--signal-dim);border-color:var(--signal-dim);color:#04110d}
-.btn.primary:hover{background:var(--signal);color:#04110d}
-.btn:disabled{opacity:.5;cursor:default}
-input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line-2);background:var(--ink);
-  color:var(--text);font-family:var(--mono);font-size:14px}
-input:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
-.row{display:flex;gap:10px;margin:10px 0}
-.row input{flex:1}
-.msg{font-size:13.5px;margin:10px 0 0;min-height:1.3em}
-.msg.err{color:var(--danger)}
-.msg.ok{color:var(--signal)}
-.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
-.item:first-of-type{border-top:0}
-.item .addr{font-family:var(--mono);font-size:13px;word-break:break-all}
-.x{background:none;border:0;color:var(--faint);cursor:pointer;font-size:16px;padding:4px 8px}
-.x:hover{color:var(--danger)}
-.hide{display:none}
-hr{border:0;border-top:1px solid var(--line);margin:16px 0}
-code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-size:12.5px}
-  .wallet-item { display: block; }
-  .wallet-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .node-detail { margin-top: 8px; font-size: 0.92em; }
-  .node-state { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
-  .node-dot { width: 8px; height: 8px; border-radius: 50%; background: #8b98a9; flex-shrink: 0; }
-  .node-dot.ok { background: #34d399; }
-  .node-dot.busy { background: #38bdf8; }
-  .node-dot.off { background: #f87171; }
-  .node-models { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-  .node-prod-head { margin-top: 14px; }
-  .node-prod-note { margin-top: 6px; }
-  .node-models .chip {
-    font-size: 0.82em; padding: 2px 8px; border-radius: 999px;
-    border: 1px solid #1c2430; background: #10161d; color: #8b98a9;
-  }
-  .node-grid { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 0.9em; }
-  .node-grid .k { color: #8b98a9; }
+.nav{display:flex;gap:10px;flex-wrap:wrap;margin:-4px 0 18px}
+.sect{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:30px 0 8px}
+.addr{font-family:var(--mono);font-size:12px;color:var(--muted);word-break:break-all;margin-bottom:8px}
 
-</head>
-<body>
-<div class="wrap">
-  <div class="eyebrow">Koinos AI</div>
-  <h1 id="title">Account</h1>
-  <!-- The way back. Arriving here from the app and having no route back to it
+.node-state{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.node-dot{width:8px;height:8px;border-radius:50%;background:#8b98a9;flex-shrink:0}
+.node-dot.ok{background:#34d399}
+.node-dot.busy{background:#38bdf8}
+.node-dot.off{background:#f87171}
+.node-models{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.node-models .chip{font-size:.82em;padding:2px 8px;border-radius:999px;border:1px solid #1c2430;background:#10161d;color:#8b98a9}
+.node-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font-size:.9em}
+.node-grid .k{color:#8b98a9}
 
-  /* ---- dashboard-only ---- */
-  .wrap{width:min(760px,calc(100% - 40px))}
-  .nav{display:flex;gap:10px;flex-wrap:wrap;margin:-6px 0 18px}
-  .sect{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:30px 0 8px}
-  .addr{font-family:var(--mono);font-size:12px;color:var(--muted);word-break:break-all;margin-bottom:8px}
-  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:14px 0 4px}
-  .tile{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
-  .tile .t-label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
-  .tile .t-value{font-size:19px;font-weight:650;margin:3px 0 1px}
-  .tile .t-sub{font-size:11px;color:var(--muted)}
-  .stamp{font-size:11px;color:var(--faint);margin-top:10px}
-  .empty{color:var(--muted);font-size:14px}
+/*
+ * Tiles wrap to whatever fits. The floor is deliberately low: at 140px a
+ * phone gets ONE tile per row, which turned four figures into four full
+ * screens of scrolling. Two-up is the minimum that still reads as a summary.
+ */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:9px;margin:14px 0 4px}
+.tile{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.tile .t-label{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.tile .t-value{font-size:18px;font-weight:650;margin:3px 0 1px}
+.tile .t-sub{font-size:11px;color:var(--muted);line-height:1.35}
+.note{font-size:12.5px;color:var(--muted);margin:12px 0 0}
+.note.warn{color:var(--value)}
+.stamp{font-size:11px;color:var(--faint);margin-top:10px}
+.empty{color:var(--muted);font-size:14px}
+
+@media (max-width:420px){
+  .wrap{width:calc(100% - 24px);padding:28px 0 56px}
+  .card{padding:15px}
+  .tiles{gap:8px}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <p class="brand">KOINOS AI</p>
+  <p class="brand">Koinos AI</p>
   <h1>Dashboard</h1>
   <p class="nav">
     <a class="btn" href="/app">Chat</a>

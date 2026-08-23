@@ -294,6 +294,62 @@ async function main() {
   check(/basis === "measured"/.test(dashSrc),
     "the dashboard distinguishes a measured rate from no history, rather than printing $0.00");
 
+  /* ------------------------------------------------------------------ */
+  console.log("\n11) the dashboard page itself is well formed");
+  /*
+   * This exists because it was not. The first dashboard.html carried a block
+   * of the account page's MARKUP inside its <style> element — a copy/paste
+   * that the browser silently absorbed as an unparseable selector, taking the
+   * page's own width rule down with it. Nothing looked broken enough to
+   * notice; the page was simply 200px narrower than written, forever.
+   */
+  const dashHtml = fs.readFileSync(path.join(__dirname, "..", "public", "dashboard.html"), "utf8");
+  const once = (tag) => (dashHtml.match(new RegExp(tag.replace("/", "\\/"), "g")) || []).length === 1;
+  check(["<html", "</html>", "<head>", "</head>", "<body>", "</body>", "<style>", "</style>"].every(once),
+    "one of each structural tag — no second document spliced into the first");
+  const styleBody = dashHtml.slice(dashHtml.indexOf("<style>") + 7, dashHtml.indexOf("</style>"));
+  check(!/<[a-zA-Z!/]/.test(styleBody), "the <style> element contains CSS and nothing else");
+  // Every class the script paints must exist in the stylesheet, or it renders unstyled.
+  const painted = [...dashSrc.matchAll(/class="([a-z0-9 -]+)"/g)].flatMap((m) => m[1].split(" ")).filter(Boolean);
+  const missing = [...new Set(painted)].filter((c) => !new RegExp("\\." + c + "[^a-z0-9-]").test(dashHtml));
+  check(missing.length === 0, `every class the dashboard paints is styled${missing.length ? ` (missing: ${missing.join(", ")})` : ""}`);
+  check(/\.brand[^a-z-]/.test(dashHtml), "…the page's own eyebrow included");
+
+  /* ------------------------------------------------------------------ */
+  console.log("\n12) a card with no figures explains itself instead of showing blanks");
+  /*
+   * The owner's phone showed four tiles, each containing a dash and an
+   * apology, filling the screen and saying nothing about WHY. An absent
+   * number has two very different causes — an app too old to send it, or a
+   * chain RPC that would not answer — and the version is what separates them.
+   */
+  await register({ ...REAL, appVersion: "0.48.0" });
+  check(workerRecord().producer.appVersion === "0.48.0", "the reported app version is kept");
+  await register({ ...REAL, appVersion: '<img src=x onerror="alert(1)">' });
+  check(workerRecord().producer.appVersion === null,
+    "…but only if it looks like a version — a page renders this string");
+  await register({ ...REAL, appVersion: "0.48.0" + "0".repeat(400) });
+  check(workerRecord().producer.appVersion === null, "…and it cannot be used to smuggle in a wall of text");
+  await register(REAL);
+  check(workerRecord().producer.appVersion === null,
+    "…and an app that never sends one reads as unknown, not as a lie");
+
+  // The rendering rules, read off the source: tiles are conditional now.
+  check(/if \(hasPrice\) \{/.test(dashSrc) && /tiles\.push\(tile\("Node value"/.test(dashSrc),
+    "the value tile is drawn only when there is a price to draw it from");
+  check(/k\.appVersion == null/.test(dashSrc) && /older version of the desktop app/.test(dashSrc),
+    "…and an old app is named as the reason, rather than four empty boxes");
+  check(/tiles \? `<div class="tiles">/.test(dashSrc),
+    "…with the tile row omitted entirely when there are no tiles");
+  check(/minmax\(112px/.test(dashHtml),
+    "tiles fit two-up on a phone — at 140px the owner's screenshot showed one per row");
+
+  // The two VHP figures, which do not always agree.
+  check(/VHP in wallet/.test(dashSrc) && /mismatch/.test(dashSrc),
+    "producing VHP and wallet VHP are shown separately when they disagree");
+  check(dashSrc.indexOf('["VHP producing"') < dashSrc.indexOf('["VHP in wallet"'),
+    "…producing leads, because it is the figure the share is derived from");
+
   sched.close?.();
   console.log(failures ? `\n${failures} FAILED` : "\nPRODUCER CARD PROBE PASSED");
   process.exit(failures ? 1 : 0);
