@@ -629,6 +629,10 @@ app.get("/account/api/nodes", (req, res) => {
       // machine that is currently off — age and trust do not evaporate
       // because someone closed their laptop.
       reputation: known ? (() => { try { return scheduler._reputation(w.address, Date.now(), known); } catch { return null; } })() : null,
+      // The Koinos block producer on the same machine, when it runs one. The
+      // app reports it alongside its worker registration; it is display-only
+      // and never feeds routing or payouts.
+      producer: known?.producer || null,
       neverSeen: !known,
     };
   });

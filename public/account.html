@@ -58,6 +58,8 @@ code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--li
   .node-dot.busy { background: #38bdf8; }
   .node-dot.off { background: #f87171; }
   .node-models { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .node-prod-head { margin-top: 14px; }
+  .node-prod-note { margin-top: 6px; }
   .node-models .chip {
     font-size: 0.82em; padding: 2px 8px; border-radius: 999px;
     border: 1px solid #1c2430; background: #10161d; color: #8b98a9;
@@ -435,6 +437,37 @@ function nodeHtml(n) {
   if (rows.length) {
     bits.push(`<div class="node-grid">${rows.map(([k, v]) => `<span class="k">${esc(k)}</span><span>${esc(v)}</span>`).join("")}</div>`);
   }
+
+  /*
+   * The Koinos block producer, when this machine runs one.
+   *
+   * Two machines' worth of information share a card because they share a
+   * computer: the AI worker above earns by answering chat, this earns by
+   * producing blocks, and someone checking on their node from a phone wants
+   * both. What it deliberately does NOT show is money — the block reward is
+   * not a constant this can safely assume, and a confident dollar figure built
+   * on a guessed reward is worse than no figure at all.
+   */
+  const prod = n.producer;
+  if (prod && (prod.producingVhp != null || prod.networkVhp != null)) {
+    const prows = [];
+    if (prod.producingVhp != null) prows.push(["Producing with", `${num(prod.producingVhp, 2)} VHP`]);
+    if (prod.networkVhp != null) prows.push(["Network total", `${Math.round(prod.networkVhp).toLocaleString()} VHP`]);
+    if (prod.sharePct != null) {
+      const oneIn = prod.oneInBlocks != null ? ` (1 in ${Math.round(prod.oneInBlocks).toLocaleString()})` : "";
+      prows.push(["Your share", `${prod.sharePct.toFixed(5)}%${oneIn}`]);
+    }
+    if (prod.blocksPerDay != null) {
+      const every = prod.hoursPerBlock != null ? ` — about one every ${num(prod.hoursPerBlock, 1)} h` : "";
+      prows.push(["Expected rate", `${num(prod.blocksPerDay, 2)} blocks/day${every}`]);
+    }
+    bits.push('<div class="node-state node-prod-head"><span class="node-dot ok"></span>Koinos block producer</div>');
+    bits.push(`<div class="node-grid">${prows.map(([k, v]) => `<span class="k">${esc(k)}</span><span>${esc(v)}</span>`).join("")}</div>`);
+    // Expected, not promised. A small producer goes quiet for many hours as a
+    // matter of course, and this line is what stops that reading as a fault.
+    bits.push('<div class="muted node-prod-note">Expected rate is an average — block production is a lottery, so quiet stretches of several hours are normal at a small share.</div>');
+  }
+
   return bits.join("");
 }
 
