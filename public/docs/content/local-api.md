@@ -96,6 +96,46 @@ The localhost control plane (`/core/...`) drives everything the UI does — and 
 - `GET /core/teams` — list the AI Team templates.
 - `POST /core/teams/run` — run a team; the whole trace streams back as server-sent events.
 
+Everything under `/core/` is unauthenticated by default — it is the app talking to
+itself over loopback. Set `KAI_CORE_TOKEN` and every `/core/*` call must then send
+`Authorization: Bearer <token>`; use that if you drive the app programmatically.
+
+### Memory
+
+A local notebook of facts, capped at 2000 entries and 500 characters each. Never
+leaves the machine.
+
+- `GET /core/memory` → `{ ok, memories: [...] }`, newest first.
+- `GET /core/memory?q=<text>&k=4` → the top `k` relevant entries instead of all of
+  them. Returns `[]` rather than noise when nothing genuinely matches.
+- `POST /core/memory` with `{ "text": "...", "source": "user" }` → `{ ok, memory }`.
+  Remembering the same text twice does **not** duplicate it: the existing entry has
+  its timestamp refreshed and is returned instead.
+- `DELETE /core/memory/<id>` → `{ ok: true }`, or 404 if there is no such entry.
+- `DELETE /core/memory/all` → **wipes every memory.** `all` is a reserved id, not a
+  memory called "all". Worth a confirmation step in anything you build on it.
+
+A memory is `{ id, text, ts, source? }` — `id` is a 12-character hex string and `ts`
+is epoch milliseconds.
+
+### Voice input
+
+Speech-to-text runs entirely locally through whisper; audio never leaves the machine,
+so this works the same in Local-Only mode.
+
+- `GET /core/voice` → `{ ok, available, engine, model, installable, downloadBytes, setup }`.
+  `available` is the one to branch on — it means both the engine and the model are
+  present. `downloadBytes` is the one-time cost of whatever is still missing, which is
+  what you would show in a confirm dialog.
+- `POST /core/voice/setup` → starts the download **in the background and returns the
+  current status immediately.** It does not wait, and a successful response does not
+  mean voice is ready. Poll `GET /core/voice` until `available` is true; a failure
+  lands in `setup` rather than in the response you already received.
+- `POST /core/transcribe` with the **raw WAV bytes as the request body** — not JSON,
+  not multipart. 16 kHz mono 16-bit, under 10 MB (~5 minutes). Returns
+  `{ ok, text, ms }`. Returns 503 when voice is not set up yet and 400 for audio it
+  cannot read, so those two cases are worth handling differently.
+
 ## Developer tools (v0.30.0+)
 
 At the bottom of the Local API view there is a **Developer tools** switch. It ships **off**; flip it and a **Developer Tools** section appears in the sidebar — its own page with four parts: build full multi-agent teams (named agents that converse, use tools, and can pause to ask you), watch them run in a live playground, define simple pipeline teams, and benchmark your model on a fixed objective suite.
