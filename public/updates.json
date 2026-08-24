@@ -1,0 +1,226 @@
+{
+  "_comment": "The source of truth for koinosai.com/updates and for the What's new link in the app's update popup. Newest first. Every kaiapp [release] MUST add an entry here in the same session it ships, or a tester gets a popup pointing at a version the page has never heard of. `kind` is one of: new, fix, change.",
+  "latest": "0.48.0",
+  "releases": [
+    {
+      "version": "0.48.0",
+      "date": "2026-08-24",
+      "title": "Every update tells you what is in it",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "This page. Every release, what changed in it, and why — at koinosai.com/updates."
+        },
+        {
+          "kind": "new",
+          "text": "The update popup now has a What's new button that opens the notes for the exact version being offered, so you can read what you are installing before you restart. Reading them does not count as declining the update — it stays queued."
+        },
+        {
+          "kind": "new",
+          "text": "Settings shows a What's new link next to the version you are running."
+        }
+      ]
+    },
+    {
+      "version": "0.47.2",
+      "date": "2026-08-23",
+      "title": "Your node tells you when its stake is sitting idle",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "The app now compares the VHP your block producer says it is using against the VHP your wallet actually holds. A field machine was producing with 41% of its stake — running, in sync, making blocks, and quietly leaving most of its VHP out of the lottery. Nothing on any screen said so, because every number was individually correct."
+        },
+        {
+          "kind": "new",
+          "text": "When the two disagree, the Earn tab and your dashboard both say so, say what it is costing, and tell you to restart the Koinos node so the producer re-reads your stake."
+        },
+        {
+          "kind": "change",
+          "text": "The check is one-directional and tolerates 2%: VHP is consumed as blocks are produced, so the log figure trails the balance slightly, and a false alarm telling you to restart a node is worse than silence."
+        }
+      ]
+    },
+    {
+      "version": "0.47.1",
+      "date": "2026-08-23",
+      "title": "The dashboard can tell an old app from a quiet chain",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "The app reports its own version with each node snapshot, so koinosai.com/dashboard can say whether a missing figure means the app is out of date or the chain simply did not answer this time. Two identical-looking blanks with opposite fixes."
+        },
+        {
+          "kind": "change",
+          "text": "The Earn tab's block-producer row now points at your dashboard, which is where those figures moved."
+        }
+      ]
+    },
+    {
+      "version": "0.47.0",
+      "date": "2026-08-23",
+      "title": "The whole node picture on the web, kept fresh",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "koinosai.com/dashboard — your machines in one place, with AI and Koinos split into their own sections. Node value, estimated daily, weekly and yearly earnings, KOIN, VHP, share of the network and expected block rate."
+        },
+        {
+          "kind": "new",
+          "text": "Links both ways: the account page points at the dashboard, and the dashboard has Chat and Account in its nav."
+        },
+        {
+          "kind": "fix",
+          "text": "Your machine now refreshes its node figures every 5 minutes instead of only when it reconnects, which could be hours. The account page was showing a genuinely stale copy."
+        },
+        {
+          "kind": "change",
+          "text": "The account page is an account page again — sign-in methods and linked wallets, with the node detail moved to the dashboard."
+        }
+      ]
+    },
+    {
+      "version": "0.46.2",
+      "date": "2026-08-23",
+      "title": "Say why the block-producer card is missing",
+      "changes": [
+        {
+          "kind": "fix",
+          "text": "An absent producer card had several possible causes and none were visible. The Earn tab now names the reason: node stopped, log unreadable, or Earning switched off — the report travels with the worker connection, so there is no report without it."
+        }
+      ]
+    },
+    {
+      "version": "0.46.1",
+      "date": "2026-08-23",
+      "title": "Fix the crash behind USDT node funding",
+      "changes": [
+        {
+          "kind": "fix",
+          "text": "Typing an amount into Fund node with USDT threw \"Cannot find module './lib/usdt-send'\". A lazy require pointed at the wrong path in packaged builds."
+        },
+        {
+          "kind": "new",
+          "text": "A test now scans every relative require in the packaged source, so a path that only breaks after packaging cannot ship again."
+        }
+      ]
+    },
+    {
+      "version": "0.46.0",
+      "date": "2026-08-23",
+      "title": "Your block producer, reported alongside the AI worker",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "The app reads its own block_producer log and reports your producing VHP, your share of the network, and how often you should expect a block. Small producers go quiet for hours perfectly normally, so the app puts a probability on the silence rather than implying a fault."
+        }
+      ]
+    },
+    {
+      "version": "0.45.1",
+      "date": "2026-08-23",
+      "title": "Show the market price, not a buy quote",
+      "changes": [
+        {
+          "kind": "fix",
+          "text": "KOIN was reading about 1.9% high. A quote taken from a pool includes the 1% fee and the price impact of the trade size — that is what you would pay, not what the market says. Both are now removed, which brings it within 0.06% of what other venues show."
+        }
+      ]
+    },
+    {
+      "version": "0.45.0",
+      "date": "2026-08-23",
+      "title": "Node value and estimated earnings in dollars",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "A Node value box on the Koinos dashboard, plus estimated daily, weekly and yearly earnings in USD, priced off the Uniswap vKOIN/USDT pool."
+        },
+        {
+          "kind": "change",
+          "text": "Earnings estimates say \"not enough history yet\" until there is measured history, rather than printing $0.00 at you."
+        }
+      ]
+    },
+    {
+      "version": "0.44.0",
+      "date": "2026-08-23",
+      "title": "A source install can tell you it is behind",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "Installed from a git checkout there is no update feed and no installer, so nothing ever mentioned a new version. The app now checks git, offers to fast-forward and restart itself, and when it cannot, says exactly why and prints the commands that finish the job."
+        }
+      ]
+    },
+    {
+      "version": "0.43.5",
+      "date": "2026-08-23",
+      "title": "The arm64 build the Raspberry Pi was waiting for",
+      "changes": [
+        {
+          "kind": "fix",
+          "text": "On arm64 the updater asks for latest-linux-arm64.yml. No arm64 build was publishing one, so every check quietly 404'd into an empty catch. There is now an arm64 AppImage, and failed checks are logged instead of discarded."
+        }
+      ]
+    },
+    {
+      "version": "0.43.4",
+      "date": "2026-08-23",
+      "title": "A task that is running looks like it is running",
+      "changes": [
+        {
+          "kind": "fix",
+          "text": "Pressing Run now appeared to do nothing. The feedback was being wiped by the list's own 5-second repaint before anyone could see it."
+        }
+      ]
+    },
+    {
+      "version": "0.43.3",
+      "date": "2026-08-23",
+      "title": "Scheduled tasks stop asking for a key they never needed",
+      "changes": [
+        {
+          "kind": "fix",
+          "text": "A scheduled task failed with \"Missing or invalid API key\" as soon as you created any API key of your own. Tasks were going out through the public API instead of the local path."
+        }
+      ]
+    },
+    {
+      "version": "0.43.2",
+      "date": "2026-08-23",
+      "title": "Removing a model no longer freezes the window",
+      "changes": [
+        {
+          "kind": "fix",
+          "text": "Uninstalling a large model froze the entire app — no typing, no clicking, dropdowns dead. The delete was synchronous and running on the thread that routes every keystroke and draws every menu. Deleting 4.7 GB stopped the window for as long as it took."
+        }
+      ]
+    },
+    {
+      "version": "0.43.1",
+      "date": "2026-08-23",
+      "title": "The remove buttons are visible again",
+      "changes": [
+        {
+          "kind": "fix",
+          "text": "The uninstall × on a model was invisible until hovered, and it was shoving the Use button into the middle of the row. The same invisible-until-hover bug was also hiding the delete control on scheduled tasks."
+        }
+      ]
+    },
+    {
+      "version": "0.43.0",
+      "date": "2026-08-22",
+      "title": "Choose where the node keeps its data, and remove models you are done with",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "Pick the Koinos node's data folder at setup or move it later, with a safe move that verifies before it deletes anything."
+        },
+        {
+          "kind": "new",
+          "text": "Uninstall installed models to free disk."
+        }
+      ]
+    }
+  ]
+}
