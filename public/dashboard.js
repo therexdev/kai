@@ -19,6 +19,51 @@
 
 const REFRESH_MS = 20000;
 
+/*
+ * Last known good value, per machine, per field.
+ *
+ * The snapshot a machine sends is gathered best-effort and written WHOLESALE:
+ * anything it failed to collect that cycle arrives as null and replaces what
+ * was there. So one chain RPC that times out blanks node value, KOIN, VHP and
+ * the earnings estimates, while the numbers read from the node's own log —
+ * producing VHP, network total, share, block rate — sail through untouched.
+ * Poll again twenty seconds later and they are all back.
+ *
+ * From the sofa that reads as the page malfunctioning: figures flashing to
+ * dashes and popping back. It is not wrong, exactly — the value really was
+ * unknown for that one reading — but "unknown for 20 seconds" is not worth
+ * showing, and showing it destroys confidence in every OTHER number on the
+ * page, including the ones that never wavered.
+ *
+ * So the page holds the last real value it saw and keeps rendering it. The
+ * honesty lives where it belongs: "Reported by the machine N ago" is on every
+ * card and it does not get carried forward, so a machine that genuinely stops
+ * reporting goes visibly stale instead of quietly looking fresh.
+ *
+ * This is deliberately in the PAGE and not the scheduler. Two probe rules make
+ * that the wrong place: the scheduler must never read a stored producer value
+ * back (it is unverified client input and must not feed any decision), and a
+ * node that stops producing must blank its card rather than leave a stale one.
+ * Both are right. Neither is in tension with a browser remembering what it
+ * drew a moment ago.
+ */
+const lastGood = new Map();
+
+/** Fill this reading's holes from the last reading that had them. */
+function carryForward(address, p) {
+  if (!p) return p;
+  const prev = lastGood.get(address) || {};
+  const merged = { ...p };
+  for (const k of Object.keys(p)) {
+    if (merged[k] == null && prev[k] != null) merged[k] = prev[k];
+  }
+  // Remember every field that came through with a real value this time.
+  const keep = { ...prev };
+  for (const [k, v] of Object.entries(p)) if (v != null) keep[k] = v;
+  lastGood.set(address, keep);
+  return merged;
+}
+
 const $ = (id) => document.getElementById(id);
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -220,6 +265,12 @@ function koinosCard(n) {
   </div>`;
 }
 
+/** Write markup only if it differs from what is already on screen. */
+function paint(id, html) {
+  const el = $(id);
+  if (el.innerHTML !== html) el.innerHTML = html;
+}
+
 async function load() {
   let nodes;
   try {
@@ -231,19 +282,39 @@ async function load() {
     return;
   }
 
+  for (const n of nodes) n.producer = carryForward(n.address, n.producer);
+
   const ai = nodes.filter((n) => !n.neverSeen);
   const koinos = nodes.filter((n) => n.producer && (n.producer.producingVhp != null || n.producer.nodeValueUsd != null));
 
-  $("ai").innerHTML = ai.length
+  const aiHtml = ai.length
     ? ai.map(aiCard).join("")
     : `<p class="empty">No machine has connected yet. Run Koinos AI and switch on Earning to put one to work.</p>`;
-
-  $("koinos").innerHTML = koinos.length
+  const koinosHtml = koinos.length
     ? koinos.map(koinosCard).join("")
     : `<p class="empty">No Koinos node is reporting. A machine shows up here once it is producing blocks AND Earning is on — the node's report travels with the app's connection to the network.</p>`;
+
+  /*
+   * Only touch the DOM when something actually changed. Replacing innerHTML
+   * every 20 seconds tears down and rebuilds every card even when the markup
+   * is identical, which on a phone is a visible repaint — and it drops any
+   * text the reader had selected mid-sentence.
+   */
+  paint("ai", aiHtml);
+  paint("koinos", koinosHtml);
 
   $("stamp").textContent = `Updated ${new Date().toLocaleTimeString()} · refreshes every ${REFRESH_MS / 1000}s`;
 }
 
-load();
-setInterval(load, REFRESH_MS);
+/*
+ * In a browser this starts the page. Under node it exports instead, so the
+ * carry-forward logic can be exercised by a probe — the alternative is
+ * trusting by eye that dashes stop flashing, which is exactly how the last
+ * dashboard bug shipped.
+ */
+if (typeof document !== "undefined") {
+  load();
+  setInterval(load, REFRESH_MS);
+} else if (typeof module !== "undefined") {
+  module.exports = { carryForward, lastGood };
+}

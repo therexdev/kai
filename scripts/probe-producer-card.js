@@ -385,6 +385,33 @@ async function main() {
     "…and says what it costs, in words, rather than leaving two numbers side by side");
   check(/Restart the Koinos node/.test(dashSrc), "…and what to do about it");
 
+  /* ---------------------------------------------------------------- */
+  console.log("\n14) one failed reading does not blank the page");
+  /*
+   * A snapshot is written WHOLESALE, and the machine gathers it best-effort —
+   * so a chain RPC that times out sends nulls for node value, holdings and the
+   * earnings estimates while the log-derived figures (producing VHP, share,
+   * block rate) come through fine. Twenty seconds later they are all back.
+   * Reported from the field as numbers "flashing and turning to lines".
+   *
+   * The server is the wrong place to fix that — §2 above forbids reading a
+   * stored producer value back, and §4 requires a stopped node to blank. So
+   * the PAGE holds the last real value it saw. These assertions are what stops
+   * that from silently regressing into either a stale number or a dash.
+   */
+  const { carryForward } = require("../public/dashboard.js");
+  const ADDR = "1H7QvaYveeG4oBM7krKSpEMXwREv1RFjvK";
+  carryForward(ADDR, { producingVhp: 40268.32, nodeValueUsd: 390.7, dailyUsd: 0.3 });
+  const holed = carryForward(ADDR, { producingVhp: 40270.1, nodeValueUsd: null, dailyUsd: null });
+  check(holed.nodeValueUsd === 390.7, "a value missing from THIS reading keeps the last one it had");
+  check(holed.producingVhp === 40270.1, "…while a value that did arrive is the fresh one, not the held one");
+  const back = carryForward(ADDR, { producingVhp: 40271, nodeValueUsd: 402.11, dailyUsd: null });
+  check(back.nodeValueUsd === 402.11, "a real value always beats the held one");
+  const other = carryForward("1EXvuuSomeOtherMachine", { producingVhp: 12, nodeValueUsd: null });
+  check(other.nodeValueUsd == null, "one machine never inherits another machine's figures");
+  check(!/reportedAt[^\n]*carry/i.test(dashSrc) && /Reported by the machine/.test(dashSrc),
+    "the reading's AGE is still shown, so a machine that stops reporting looks stale");
+
   sched.close?.();
   console.log(failures ? `\n${failures} FAILED` : "\nPRODUCER CARD PROBE PASSED");
   process.exit(failures ? 1 : 0);
