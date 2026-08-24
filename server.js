@@ -349,6 +349,23 @@ app.get("/testers", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "testers.h
 // Public live-network page: the app's Network tab, for the open web. Reads
 // only the public truncated-address status feed.
 app.get("/network", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "network.html")));
+
+/*
+ * Release notes. Public and unauthenticated on purpose: the app's update
+ * popup deep-links here (/updates#v0.47.2), and a person mid-update should
+ * never hit a sign-in wall to find out what they are installing.
+ *
+ * no-store on both the page and its data — a cached update list is a list
+ * that does not mention the release someone just clicked through to read.
+ */
+app.get("/updates", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.sendFile(path.join(PUBLIC_DIR, "updates.html"));
+});
+app.get("/updates.json", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.sendFile(path.join(PUBLIC_DIR, "updates.json"));
+});
 app.get("/api/health", (_req, res) =>
   res.json({
     ok: true,
