@@ -1,7 +1,34 @@
 {
   "_comment": "The source of truth for koinosai.com/updates and for the What's new link in the app's update popup. Newest first. Every kaiapp [release] MUST add an entry here in the same session it ships, or a tester gets a popup pointing at a version the page has never heard of. `kind` is one of: new, fix, change.",
-  "latest": "0.48.0",
+  "latest": "0.49.0",
   "releases": [
+    {
+      "version": "0.49.0",
+      "date": "2026-08-26",
+      "title": "Earning gets out of your way",
+      "changes": [
+        {
+          "kind": "fix",
+          "text": "A tester's PC froze when Earn ran alongside heavy GPU design work, and recovered the instant the app closed. Cause found: the AI engine kept the model's weights loaded in GPU memory the whole time earning was on, and when another program needed that memory, Windows ground to a halt shuffling it. Thanks for the precise report — \"closing the app fixes it\" was the clue that cracked it."
+        },
+        {
+          "kind": "new",
+          "text": "Earning now watches your GPU. When your other programs are really using it, earning pauses, releases all of its GPU memory immediately, and steps off the network roster. After about two minutes of quiet it comes back on its own. You never have to manage this."
+        },
+        {
+          "kind": "new",
+          "text": "The Earn screen says when this happens — an amber \"Paused — your computer is busy with other work\" instead of a worker that looks broken."
+        },
+        {
+          "kind": "change",
+          "text": "The AI engine now runs at below-normal priority, so when your work and earning both want the processor, your work wins."
+        },
+        {
+          "kind": "change",
+          "text": "The pause is automatic only on NVIDIA graphics cards for now (the ones the app uses for GPU serving). Dedicated earning rigs that never share the machine can switch it off with the earn.courtesy setting."
+        }
+      ]
+    },
     {
       "version": "0.48.0",
       "date": "2026-08-24",
