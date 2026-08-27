@@ -1,7 +1,30 @@
 {
   "_comment": "The source of truth for koinosai.com/updates and for the What's new link in the app's update popup. Newest first. Every kaiapp [release] MUST add an entry here in the same session it ships, or a tester gets a popup pointing at a version the page has never heard of. `kind` is one of: new, fix, change.",
-  "latest": "0.49.0",
+  "latest": "0.50.0",
   "releases": [
+    {
+      "version": "0.50.0",
+      "date": "2026-08-27",
+      "title": "Your API, from anywhere",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "Remote access: one switch in the Local API view gives your API a public address that works from anywhere — a phone, a server, another computer. No router setup, nothing to install: the app keeps an outbound connection to koinosai.com and answers through it. Your API key still decides who gets in, and the switch refuses to turn on until you have one, so your API is never left open."
+        },
+        {
+          "kind": "new",
+          "text": "The address is stable and private to your app — it stays the same across restarts, and nobody can claim it. Turn the switch off and it goes dead immediately. Only the API crosses; the app's tools and files never leave your machine."
+        },
+        {
+          "kind": "fix",
+          "text": "The Koinos Node dashboard sometimes flashed zeros — 0 mana, a $0.00 node value — and then recovered on its own. That was the public Koinos RPC having a slow moment, and the app treating \"couldn't read it\" as \"it's zero\". It now holds the last real numbers and marks them as catching up instead of scaring you with zeros."
+        },
+        {
+          "kind": "change",
+          "text": "Plain honesty about remote access: traffic to your public address passes through koinosai.com on its way to your computer. The switch's own description says the same."
+        }
+      ]
+    },
     {
       "version": "0.49.0",
       "date": "2026-08-26",
