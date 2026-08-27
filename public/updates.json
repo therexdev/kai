@@ -1,7 +1,18 @@
 {
   "_comment": "The source of truth for koinosai.com/updates and for the What's new link in the app's update popup. Newest first. Every kaiapp [release] MUST add an entry here in the same session it ships, or a tester gets a popup pointing at a version the page has never heard of. `kind` is one of: new, fix, change.",
-  "latest": "0.50.0",
+  "latest": "0.50.1",
   "releases": [
+    {
+      "version": "0.50.1",
+      "date": "2026-08-27",
+      "title": "The switch you couldn't see",
+      "changes": [
+        {
+          "kind": "fix",
+          "text": "The new Remote access switch in v0.50.0 was invisible — the button was there, its visual toggle wasn't. It now looks like every other switch in the app. Reported within the hour; thanks."
+        }
+      ]
+    },
     {
       "version": "0.50.0",
       "date": "2026-08-27",
