@@ -133,6 +133,26 @@ app.use("/scheduler", (req, res) => {
   });
 });
 
+// Device relay (remote access to the app's local API) — raw-mounted for the
+// same reason as the scheduler: it streams request bodies both ways. The
+// device long-polls /relay outbound; the public URL is /r/<id>/v1/... and
+// only the OpenAI-compatible surface crosses (lib/relay.js has the contract).
+const { Relay } = require("./lib/relay");
+const relay = new Relay({
+  publicBase: process.env.PUBLIC_ORIGIN || "https://koinosai.com",
+  onEvent: (e) => console.log(`[relay] ${e.type}`, e.tunnel ? `${e.tunnel.slice(0, 8)}… ${e.path}` : ""),
+});
+app.use("/relay", (req, res) => {
+  relay.handleDevice(req, res).catch((err) => {
+    try { res.status(500).json({ ok: false, error: String(err.message) }); } catch { /* gone */ }
+  });
+});
+app.use("/r", (req, res) => {
+  relay.handlePublic(req, res).catch((err) => {
+    try { res.status(500).json({ error: { message: String(err.message), type: "relay_error" } }); } catch { /* gone */ }
+  });
+});
+
 /*
  * The web app's own API carries prose — a pasted document, a long question —
  * so it needs headroom the rest of the site does not. Registered BEFORE the
@@ -375,6 +395,7 @@ app.get("/api/health", (_req, res) =>
     // plus the node runtime — both needed to operate the git-driven env
     // channel (deploy/app.env) from outside the box.
     store: { mode: scheduler.store?.mode || "json", ...(scheduler.store?.degraded ? { degraded: scheduler.store.degraded } : {}) },
+    relay: relay.status(),
     node: process.version,
   })
 );
