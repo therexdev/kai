@@ -1,6 +1,6 @@
 # Koinos Code — a coding agent, in the app and in your terminal
 
-**Koinos Code** is a coding agent in the mold of tools like Claude Code — except the model is **yours**: the local model running in your Koinos AI app, or the Koinos Network class when your privacy mode allows it. No cloud account, no per-token bill.
+**Koinos Code** is a coding agent in the mold of tools like Claude Code — except the model is **yours**: a model running on your own machine, in your Koinos AI app. No cloud account, no per-token bill, and — unlike Chat — no option to send the work to the Koinos Network, because the agent reads your project's files into every prompt. **Which model does the work**, below, says why.
 
 You point it at a project folder, give it a task in plain words, and it reads your files, proposes edits, and runs commands — with you approving every change.
 

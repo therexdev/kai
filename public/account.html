@@ -36,6 +36,10 @@ h1{font-size:clamp(26px,4vw,34px);margin:.35em 0 .4em}
 input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line-2);background:var(--ink);
   color:var(--text);font-family:var(--mono);font-size:14px}
 input:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
+/* A placeholder is not a label: it names the field only until you type in it,
+   and a screen reader reaching an input with nothing else announces "edit
+   text" (FIND-ACC-001). These stay put. */
+.lbl{display:block;font-size:12.5px;color:var(--muted);margin:0 0 5px}
 .row{display:flex;gap:10px;margin:10px 0}
 .row input{flex:1}
 .msg{font-size:13.5px;margin:10px 0 0;min-height:1.3em}
@@ -92,15 +96,19 @@ code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--li
            to be untrue: a passkey signs you back IN, it cannot start an
            account. The key has to attach to an account that already exists. -->
       <p class="muted" style="margin-top:10px">Already have an account? A passkey signs you in. It cannot create one — sign in below first, then add a passkey.</p>
-      <p class="msg" id="pkMsg"></p>
+      <p class="msg" role="status" aria-live="polite" id="pkMsg"></p>
     </div>
     <div class="card hide" id="cardEmail">
       <h2>Sign in with email</h2>
       <p class="muted">New here? This creates your account.</p>
+      <label class="lbl" for="email">Email address</label>
       <div class="row"><input id="email" type="email" placeholder="you@example.com" autocomplete="email" /></div>
-      <div class="row hide" id="codeRow"><input id="code" inputmode="numeric" placeholder="6-digit code" autocomplete="one-time-code" /></div>
+      <div class="hide" id="codeRow">
+        <label class="lbl" for="code">Six-digit code from that email</label>
+        <div class="row"><input id="code" inputmode="numeric" placeholder="6-digit code" autocomplete="one-time-code" /></div>
+      </div>
       <button class="btn" id="emailBtn">Send code</button>
-      <p class="msg" id="emailMsg"></p>
+      <p class="msg" role="status" aria-live="polite" id="emailMsg"></p>
     </div>
     <div class="card hide" id="cardGoogle">
       <h2>Sign in with Google</h2>
@@ -115,18 +123,19 @@ code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--li
     <div class="card" id="linkCard">
       <h2>Approve a device</h2>
       <p class="muted">Type the code the Koinos AI app is showing.</p>
+      <label class="lbl" for="linkCode">Device code shown in the app</label>
       <div class="row"><input id="linkCode" placeholder="XXXX-XXXX" autocapitalize="characters" spellcheck="false" /></div>
       <button class="btn primary" id="linkBtn">Approve device</button>
-      <p class="msg" id="linkMsg"></p>
+      <p class="msg" role="status" aria-live="polite" id="linkMsg"></p>
     </div>
 
     <div class="card">
       <h2>You</h2>
-      <p class="mono" id="who" style="font-size:14px;margin:0"></p>
+      <p class="mono" id="who" role="status" aria-live="polite" style="font-size:14px;margin:0"></p>
       <p class="muted" id="methods" style="margin:8px 0 0"></p>
       <hr />
       <button class="btn" id="pkAdd">Add a passkey to this account</button>
-      <p class="msg" id="pkAddMsg"></p>
+      <p class="msg" role="status" aria-live="polite" id="pkAddMsg"></p>
     </div>
 
     <div class="card">
@@ -157,7 +166,7 @@ code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--li
       <button class="btn" id="logout">Sign out on this browser</button>
       <button class="btn" id="revokeAll" style="margin-left:8px">Sign out everywhere</button>
       <p class="muted" style="margin-top:10px">Signing out everywhere also revokes spending grants — not just sessions.</p>
-      <p class="msg" id="sessMsg"></p>
+      <p class="msg" role="status" aria-live="polite" id="sessMsg"></p>
     </div>
   </div>
 

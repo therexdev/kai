@@ -366,6 +366,12 @@ app.get("/", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
 // Clean URL for the tester quickstart (the static middleware only serves it
 // as /testers.html).
 app.get("/testers", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "testers.html")));
+
+// A privacy notice has to be reachable from wherever data is collected, not
+// only by guessing the URL (FIND-PRV-001). /privacy is the canonical path;
+// the two spellings people actually type resolve to it rather than 404.
+app.get(["/privacy", "/privacy-policy", "/privacy.html"], (_req, res) =>
+  res.sendFile(path.join(PUBLIC_DIR, "privacy.html")));
 // Public live-network page: the app's Network tab, for the open web. Reads
 // only the public truncated-address status feed.
 app.get("/network", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "network.html")));
