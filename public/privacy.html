@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Koinos AI — Privacy</title>
+<meta name="description" content="What koinosai.com collects, why, how long it is kept, and how to have it deleted." />
+<style>
+:root{
+  --ink:#0A0A0C; --panel:#111117; --panel-2:#15151c;
+  --line:#22222b; --line-2:#2f2f3a;
+  --text:#F4F3F0; --soft:#d7d6d9; --muted:#a6a4b0; --faint:#7d7c89;
+  --signal:#33E6C0; --signal-dim:#1c8f7c;
+  --value:#F2B03D; --danger:#ff6b6b;
+  --r:14px;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+  --sans:"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{width:min(720px,calc(100% - 32px));margin:0 auto;padding:40px 0 80px}
+.brand{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--signal);font-weight:600;margin:0}
+h1{font-size:clamp(26px,4vw,34px);margin:.3em 0 .35em}
+.lede{color:var(--muted);font-size:14.5px;margin:0 0 20px}
+.nav{display:flex;gap:10px;flex-wrap:wrap;margin:-4px 0 20px}
+.btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:13px;font-weight:600;
+  padding:11px 15px;border-radius:11px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);
+  text-decoration:none;cursor:pointer;transition:border-color .15s}
+.btn:hover{border-color:#463f5a}
+
+.rel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin:14px 0;scroll-margin-top:20px}
+/* Arriving from the app's update popup, which deep-links to #v0.47.2. The
+   whole point of that link is "what did I just install" — so the version it
+   asked for has to be findable without reading every card. */
+.rel:target,.rel.hilite{border-color:var(--signal-dim);box-shadow:0 0 0 1px var(--signal-dim)}
+.rel-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.ver{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--signal);text-decoration:none}
+.ver:hover{text-decoration:underline}
+.date{font-family:var(--mono);font-size:12px;color:var(--faint)}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  padding:2px 7px;border-radius:999px;border:1px solid var(--signal-dim);color:var(--signal)}
+.rel h2{font-size:16.5px;margin:0 0 12px;color:var(--soft);font-weight:600}
+ul{list-style:none;padding:0;margin:0}
+li{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:14px;color:var(--soft)}
+li:first-child{border-top:0}
+.kind{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  padding:2px 7px;border-radius:5px;flex-shrink:0;margin-top:3px;height:fit-content;min-width:52px;text-align:center}
+.kind.new{background:rgba(51,230,192,.12);color:var(--signal);border:1px solid rgba(51,230,192,.3)}
+.kind.fix{background:rgba(242,176,61,.12);color:var(--value);border:1px solid rgba(242,176,61,.3)}
+.kind.change{background:rgba(166,164,176,.1);color:var(--muted);border:1px solid var(--line-2)}
+.empty{color:var(--muted);font-size:14px}
+.foot{font-size:12px;color:var(--faint);margin-top:26px}
+
+@media (max-width:480px){
+  .wrap{width:calc(100% - 24px);padding:28px 0 56px}
+  .rel{padding:15px}
+  li{flex-direction:column;gap:4px}
+  /* A flex child in a column stretches to the full width by default, which
+     turned a 52px tag into something that reads as a full-width button.
+     align-self shrinks it back to its own size. */
+  .kind{margin-top:0;align-self:flex-start;min-width:0}
+}
+</style>
+<style>
+  .wrap h2{font-size:19px;margin:34px 0 8px}
+  .wrap h3{font-size:15px;margin:22px 0 6px;color:var(--soft)}
+  .wrap p,.wrap li{color:var(--soft);font-size:14.5px}
+  .wrap li{margin:6px 0}
+  .keep{border:1px solid var(--line-2);background:var(--panel);border-radius:var(--r);padding:14px 16px;margin:16px 0}
+  .keep p:last-child{margin-bottom:0}
+  .stamp{font-family:var(--mono);font-size:12px;color:var(--faint)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="brand">Koinos AI</p>
+  <h1>Privacy</h1>
+  <p class="lede">What this website collects, why, how long it is kept, and how to get rid of it. Written to be read, not to be survived.</p>
+  <p class="nav">
+    <a class="btn" href="/">Home</a>
+    <a class="btn" href="/docs/">Docs</a>
+    <a class="btn" href="/account">Account</a>
+  </p>
+
+  <div class="keep">
+    <p><b>The short version.</b> There are no analytics, no trackers and no advertising pixels on this site — not "anonymised" ones, none. Nothing here is sold or shared with anyone. The desktop app is separate and stronger still: your chats, files and models stay on your own machine, and in Local-Only mode nothing it does reaches the internet at all.</p>
+  </div>
+
+  <h2>What this site stores</h2>
+
+  <h3>If you join the waitlist</h3>
+  <p>Your email address, which option you picked, and the time you sent it. It is stored on our own server and emailed to us so we see it. That is all the form collects.</p>
+
+  <h3>If you send feedback from the app</h3>
+  <p>Your message, the app version and platform, and — only if you type one — your email address. If you tick the box to include a diagnostic log, the tail of that log comes too; it is written by the app and may name files or models you were using, which is why it is a choice rather than automatic.</p>
+
+  <h3>If you make an account</h3>
+  <ul>
+    <li>Your email address, or the identifier Google gives us if you sign in with Google. We never receive your Google password.</li>
+    <li>Passkeys you register — public keys only. The private half never leaves your device.</li>
+    <li>Sign-in sessions, so you stay signed in.</li>
+    <li>Koinos wallet addresses you choose to link, and any spending grant you authorise. Addresses are public information on a public chain; we hold no private keys and cannot move your funds.</li>
+  </ul>
+
+  <h3>If you use the web app</h3>
+  <p>The chats, notes and tasks you create there, so they are waiting for you next time. Also a spending log — which surface spent, which model answered, when, and how much — because money that moves while you are not watching needs an explanation you can check. We keep the most recent 500 chats and 500 spending entries per account.</p>
+
+  <h3>Everyone</h3>
+  <p>Your IP address is seen by the server on each request and used to rate-limit abuse. It is not part of any profile and is not used to identify you.</p>
+
+  <h2>What we never do</h2>
+  <ul>
+    <li>Sell or rent your information. To anyone, for any purpose.</li>
+    <li>Run third-party analytics, trackers or ad pixels.</li>
+    <li>Read your local chats, files or models. The app keeps those on your machine; we could not read them if we wanted to.</li>
+    <li>Ask for your wallet password or private keys. Nothing here will ever need them, so treat anything that asks as an attack.</li>
+  </ul>
+
+  <h2>Who else sees anything</h2>
+  <p>Only the services that make the site work: our own server, the mail provider that delivers sign-in codes, and Google if you choose Google to sign in. When you use the Koinos Network for AI, the text of that request goes to whichever volunteer machine answers it — that is what the network is, it is why the app tells you when a request is about to leave your computer, and it is why Local-Only mode exists.</p>
+
+  <h2>How long it is kept, and how to delete it</h2>
+  <p>Account data stays until you delete it. You can remove chats, notes and tasks individually in the web app, unlink a wallet at any time, and end a spending grant from either side. To delete an account and everything attached to it, or to have a waitlist entry or a piece of feedback removed, write to the address below and say so — you do not need to explain why.</p>
+
+  <h2>Changes</h2>
+  <p>If this notice changes in a way that affects what is collected, the change will appear in the <a href="/updates">release notes</a> rather than being made quietly.</p>
+
+  <h2>Contact</h2>
+  <p>Questions, corrections, or a deletion request: <a href="mailto:privacy@koinosai.com">privacy@koinosai.com</a>.</p>
+
+  <p class="stamp">Koinos AI is alpha software run by a small team. This notice describes what the software actually does today, and it is kept accurate as the software changes.</p>
+</div>
+</body>
+</html>

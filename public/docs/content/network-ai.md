@@ -8,7 +8,7 @@ Network AI bills like any modern AI API — by input and output tokens, per mode
 
 ## The free tier
 
-Every wallet gets a daily free token allowance, refreshed each epoch day, with a network-wide daily ceiling behind it. When the free tier is exhausted the app says so plainly and pauses gracefully — it never silently starts billing.
+Every wallet gets a daily free token allowance, and there is a network-wide daily ceiling behind it. Both reset at 00:00 UTC — the same moment the app names when you reach a limit. (Epochs are a settlement cycle and run every fifteen minutes; they have nothing to do with when the allowance refreshes.) When the free tier is exhausted the app says so plainly and pauses gracefully — it never silently starts billing.
 
 ## Adding funds
 

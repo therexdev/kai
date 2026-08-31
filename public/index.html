@@ -357,6 +357,16 @@ footer{border-top:1px solid var(--line);padding:36px 0 52px}
   .paths{grid-template-columns:1fr} .eras{grid-template-columns:1fr}
   .wl-form{flex-direction:column} .readout .grid2{grid-template-columns:1fr}
   section{padding:60px 0}
+  /* The routing pipeline is five flex:1 nodes in a row. The grid above it
+     collapses at 940px but the track did not, so on a phone each node was
+     squeezed to about fifty pixels and its label clipped — the privacy
+     explanation being the part that got cut (FIND-UX-001). Stack it instead
+     of scrolling it: an explanation of where your data goes should not be
+     reachable only by swiping something that does not look scrollable. */
+  .rv-track{flex-direction:column;align-items:stretch;gap:6px}
+  .rv-node{flex:none;text-align:left;padding:12px 14px}
+  .rv-arrow{transform:rotate(90deg);align-self:center;line-height:1}
+  .route-viz{padding:18px}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto}.rise{opacity:1;transform:none}}
 
@@ -714,7 +724,7 @@ r = client.chat.completions.<span class="f">create</span>(
         <button class="btn btn-signal" type="submit">Request access <span class="arw">→</span></button>
       </form>
       <div class="wl-ok" id="wlOk">✓ You're on the list. We'll reach out as spots open.</div>
-      <div class="wl-note" id="wlNote">No spam. No token sale. A working product first — then price discovery.</div>
+      <div class="wl-note" id="wlNote">No spam. No token sale. A working product first — then price discovery. We keep your email, which option you picked and the time — nothing else: <a href="/privacy">privacy</a>.</div>
     </div>
   </div>
 </div></section>
@@ -735,7 +745,7 @@ r = client.chat.completions.<span class="f">create</span>(
 
 <footer><div class="wrap"><div class="foot">
   <div>© 2026 Koinos AI · Your hardware first. The network when you need it.</div>
-  <div class="foot-links"><a href="/testers">Tester quickstart</a><a href="/network">Live network</a><a href="https://github.com/therexdev/kaiapp" target="_blank" rel="noopener">GitHub</a><a href="/whitepaper.pdf" target="_blank" rel="noopener">White paper</a><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#roadmap">Roadmap</a><a href="#waitlist">Early access</a><a href="mailto:contact@koinosai.com">Contact</a></div>
+  <div class="foot-links"><a href="/testers">Tester quickstart</a><a href="/network">Live network</a><a href="https://github.com/therexdev/kaiapp" target="_blank" rel="noopener">GitHub</a><a href="/whitepaper.pdf" target="_blank" rel="noopener">White paper</a><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#roadmap">Roadmap</a><a href="#waitlist">Early access</a><a href="/privacy">Privacy</a><a href="mailto:contact@koinosai.com">Contact</a></div>
 </div></div></footer>
 
 <script>
