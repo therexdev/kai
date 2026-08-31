@@ -171,6 +171,103 @@ async function spin({ operatorSecret = null } = {}) {
     }
   });
 
+  /* ------------------------------------------------ FIND-NET-002 */
+
+  await test("a result is refused from a worker the job was not leased to", async () => {
+    const s = await spin({ operatorSecret: "op" });
+    try {
+      const { Signer } = require("koilib");
+      const thief = Signer.fromSeed("probe-thief");
+      const honest = Signer.fromSeed("probe-honest");
+
+      const reg = async (signer) => {
+        const r = await fetch(`${s.base}/worker/register`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ address: signer.getAddress(), models: ["koinos-fast"], capabilities: { ramGb: 16 } }),
+        });
+        return (await r.json()).token;
+      };
+      const honestToken = await reg(honest);
+      await reg(thief);
+
+      // Queue work and let the honest worker pick it up, so the job is leased.
+      await fetch(`${s.base}/operator/enqueue`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-operator-secret": "op" },
+        body: JSON.stringify({ type: "inference-eval", model: "koinos-fast", prompt: "2+2?" }),
+      });
+      const picked = await fetch(`${s.base}/worker/next-job?token=${honestToken}`, { signal: AbortSignal.timeout(20000) }).then((x) => x.json());
+      assert.ok(picked.job, "the honest worker should have been given the job");
+      const jobId = picked.job.id;
+
+      // The thief signs a PERFECTLY VALID receipt — for someone else's job.
+      const thiefToken = await reg(thief);
+      const output = "4";
+      const hash = require("node:crypto").createHash("sha256").update(`${jobId}|${output}`).digest();
+      const sig = Buffer.from(await thief.signHash(hash)).toString("base64");
+      const res = await fetch(`${s.base}/worker/result?token=${thiefToken}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jobId, output, signature: sig }),
+      });
+      assert.strictEqual(res.status, 409, `a foreign worker answered someone else's job (got ${res.status})`);
+      const j = await res.json();
+      assert.match(String(j.error), /leased to a different worker/);
+
+      // And the rightful worker can still answer it.
+      const ok = Buffer.from(await honest.signHash(hash)).toString("base64");
+      const good = await fetch(`${s.base}/worker/result?token=${honestToken}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jobId, output, signature: ok }),
+      });
+      assert.strictEqual(good.status, 200, "the assigned worker must still be able to submit");
+    } finally {
+      await s.stop();
+    }
+  });
+
+  /* ------------------------------------------------ FIND-SEC-001 */
+
+  await test("a signed consume request cannot be replayed", async () => {
+    const s = await spin();
+    try {
+      const { Signer } = require("koilib");
+      const user = Signer.fromSeed("probe-consumer");
+      const address = user.getAddress();
+      const messages = [{ role: "user", content: "hello" }];
+      const ts = Date.now();
+      const hash = require("node:crypto").createHash("sha256")
+        .update(`consume|${address}|${ts}|${JSON.stringify(messages)}`).digest();
+      const signature = Buffer.from(await user.signHash(hash)).toString("base64");
+
+      const send = (extra = {}) =>
+        fetch(`${s.base}/consume/chat/completions`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ address, ts, messages, signature, model: "koinos-fast", ...extra }),
+        });
+
+      // Nobody is serving, so the FIRST call gets past authentication and dies
+      // later (503/504). What matters is that it got past — and the second
+      // does not, whatever it asks for.
+      const first = await send();
+      assert.notStrictEqual(first.status, 401, `the first use should authenticate (got ${first.status})`);
+
+      const replay = await send();
+      assert.strictEqual(replay.status, 401, `the same signature was accepted twice (got ${replay.status})`);
+      assert.match(String((await replay.json()).error.message), /already been used/);
+
+      // Including the replay that swaps in a pricier class — the case the
+      // unsigned billable terms would otherwise have allowed.
+      const upsell = await send({ model: "deepseek-r1-32b" });
+      assert.strictEqual(upsell.status, 401, "a replay against a pricier class must be refused too");
+    } finally {
+      await s.stop();
+    }
+  });
+
   let failed = 0;
   for (const [status, name] of results) {
     if (status !== "ok") failed++;
