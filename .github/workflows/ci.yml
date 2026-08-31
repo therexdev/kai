@@ -1,0 +1,62 @@
+name: CI
+
+# The scheduler is the part of this system that holds other people's money,
+# routes their work and settles their earnings — and until now it had no CI at
+# all (FIND-QA-001). Twenty-seven probes existed and ran only when somebody
+# remembered to run them, which means the honest statement about any given
+# commit was "it passed on whichever machine last bothered".
+#
+# So: every probe, on every push and pull request. They are deliberately
+# self-contained — each spins a real Scheduler on a real socket and drives it
+# over HTTP, with no network, no secrets and no production dependency — which
+# is what makes gating on them safe rather than a new source of flakes.
+
+on:
+  push:
+    branches: ["claude/**", "main"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  probes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+
+      # Globbed rather than listed: a probe that has to be added to a list by
+      # hand is a probe that will one day not be, and "nobody runs it" is the
+      # finding this job exists to answer. A new scripts/probe-*.js is gated
+      # from the moment it lands.
+      - name: Run every probe
+        run: |
+          set -uo pipefail
+          failed=""
+          for f in scripts/probe-*.js; do
+            name="$(basename "$f" .js)"
+            printf '\n===== %s =====\n' "$name"
+            if timeout 300 node "$f"; then
+              echo "--- $name PASSED"
+            else
+              echo "--- $name FAILED"
+              failed="$failed $name"
+            fi
+          done
+          if [ -n "$failed" ]; then
+            echo
+            echo "FAILED PROBES:$failed"
+            exit 1
+          fi
+          echo
+          echo "all probes passed"
+
+      # A syntax error in server.js takes the whole site down on deploy, and no
+      # probe loads it — they exercise the libraries it mounts.
+      - name: The server itself parses
+        run: |
+          node --check server.js
+          for f in lib/*.js scripts/*.js; do node --check "$f"; done

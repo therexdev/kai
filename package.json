@@ -2,7 +2,7 @@
   "name": "kai",
   "version": "1.0.0",
   "private": true,
-  "description": "Koinos AI production website — Express landing page + waitlist API",
+  "description": "Koinos AI production website \u2014 Express landing page + waitlist API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -16,7 +16,7 @@
   "dependencies": {
     "express": "^4.21.2",
     "koilib": "^9.3.0",
-    "nodemailer": "^7.0.0"
+    "nodemailer": "^9.0.6"
   },
   "overrides": {
     "protobufjs": "7.4.0"

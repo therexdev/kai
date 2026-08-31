@@ -211,3 +211,43 @@ Download `waitlist.jsonl` periodically as a backup (admin → export, File Manag
 
 - `trust proxy` is enabled in `server.js` so the per-IP rate limit sees real client IPs behind Hostinger's proxy.
 - The waitlist store is a flat JSONL file by design: zero external services, safe on shared hosting. Dedupe by email at export time if needed.
+
+## Dependency exception: protobufjs pinned at 7.4.0
+
+`package.json` pins `overrides.protobufjs` to `7.4.0`. That version carries
+published advisories, and the pin is deliberate. Please do not "fix" it
+without reading this.
+
+**Why it cannot be bumped.** protobufjs 7.6.3 tightened extension resolution.
+Koinos's own `.proto` files use `extend google.protobuf.FieldOptions` for the
+`btype` annotations that mark a field as an address or a hash, and every
+protobufjs from 7.6.3 up refuses to resolve them:
+
+```
+unresolvable extensions: 'extend google.protobuf.FieldOptions' in .koinos
+```
+
+The advisories are fixed in versions *above* 7.6.2, so there is no version
+that both closes them and loads Koinos. This was measured, not assumed —
+7.4.0, 7.6.3, 7.6.5 and 7.6.6 were each installed and tested, and everything
+from 7.6.3 up fails on the `Contract` constructor.
+
+**Why it is tolerable meanwhile.** The advisories are about parsing hostile
+input: crafted `.proto` descriptors, malicious field names, unbounded
+recursion in JSON descriptor expansion. protobufjs is never handed any of
+that here. It parses exactly two things — the Koinos schemas that ship inside
+koilib, and protocol responses from a Koinos RPC endpoint. No user, worker or
+web caller supplies a descriptor.
+
+**How the risk is held.** `scripts/probe-chain-encoding.js` builds the Koinos
+descriptors and round-trips a transfer, so any protobufjs that cannot encode a
+transaction fails CI. It exists because the bump nearly shipped: it looked
+safe, stayed inside the same major, satisfied koilib's declared `^7.4.0`, and
+the entire probe suite went green — because not one probe resolved the
+descriptors. On-chain settlement would have thrown on the first encode, in
+production, with a green build behind it.
+
+**Exit condition.** Lift the pin when koilib ships schemas that resolve under a
+protobufjs above 7.6.2, or when it vendors its own descriptor build. The probe
+tells you the moment that is true: raise the override, run it, and if it passes
+the exception is over. Re-check at each dependency review.
