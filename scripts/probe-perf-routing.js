@@ -45,10 +45,16 @@ function check(cond, label) {
   }
 }
 
+/* Privileged routes now fail CLOSED when no operator secret is configured
+   (FIND-CFG-001) — they used to be open to anyone in exactly that case, which
+   is what these probes were unknowingly relying on. So the probe carries a
+   secret and presents it, the way a real operator does. */
+const OPERATOR_SECRET = "probe-operator-secret";
+
 async function j(method, p, body) {
   const res = await fetch(base() + p, {
     method,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "x-operator-secret": OPERATOR_SECRET },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   try {
@@ -93,7 +99,7 @@ async function submit(w, job, { completion = 50, tokPerSec = 10, output = "4" } 
 
 async function main() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "probe-route-"));
-  const sched = new Scheduler({ dataDir: dir, leaseMs: 150 });
+  const sched = new Scheduler({ operatorSecret: OPERATOR_SECRET, dataDir: dir, leaseMs: 150 });
   PORT = await sched.listen(0);
   const A = mkWorker(["koinos-fast"]); // will measure slow, stay honest
   const B = mkWorker(["koinos-fast", "qwen25-32b"]); // fast, then starts failing
@@ -323,7 +329,7 @@ async function main() {
   {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "probe-econ-"));
     // Pool = 10 KAI/epoch. Each eval is nominally 1 KAI.
-    const s2 = new Scheduler({ dataDir: dir, leaseMs: 150, bootstrapPoolSat: String(10n * 100000000n) });
+    const s2 = new Scheduler({ operatorSecret: OPERATOR_SECRET, dataDir: dir, leaseMs: 150, bootstrapPoolSat: String(10n * 100000000n) });
     PORT = await s2.listen(0);
     const W = [];
     for (let i = 0; i < 3; i++) { const w = mkWorker(["koinos-fast"]); await register(w); W.push(w); }
@@ -356,7 +362,7 @@ async function main() {
   {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "probe-free-"));
     // Global daily ceiling 100 tokens; per-account 80.
-    const s3 = new Scheduler({ dataDir: dir, leaseMs: 150, freeTokensPerDay: 80, freeTokensPerDayGlobal: 100, freeTokensPerIp: 0 });
+    const s3 = new Scheduler({ operatorSecret: OPERATOR_SECRET, dataDir: dir, leaseMs: 150, freeTokensPerDay: 80, freeTokensPerDayGlobal: 100, freeTokensPerIp: 0 });
     PORT = await s3.listen(0);
     const a1 = new Signer({ privateKey: crypto.randomBytes(32).toString("hex") }).getAddress();
     const a2 = new Signer({ privateKey: crypto.randomBytes(32).toString("hex") }).getAddress();
@@ -380,7 +386,7 @@ async function main() {
   console.log("probe 16: consumption is authorized only against non-shrinkable (paid) earnings");
   {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "probe-debt-"));
-    const s4 = new Scheduler({ dataDir: dir, leaseMs: 150, bootstrapPoolSat: String(15625n * 100000n) });
+    const s4 = new Scheduler({ operatorSecret: OPERATOR_SECRET, dataDir: dir, leaseMs: 150, bootstrapPoolSat: String(15625n * 100000n) });
     PORT = await s4.listen(0);
     const wc = mkWorker(["koinos-fast"]); // worker+consumer, same wallet ("cover usage with work")
     await register(wc);
@@ -402,7 +408,7 @@ async function main() {
   {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "probe-frac-"));
     let ok = true;
-    try { const s5 = new Scheduler({ dataDir: dir, bootstrapPoolSat: 15.625 * 1e8 }); await s5.listen(0); await s5.close(); }
+    try { const s5 = new Scheduler({ operatorSecret: OPERATOR_SECRET, dataDir: dir, bootstrapPoolSat: 15.625 * 1e8 }); await s5.listen(0); await s5.close(); }
     catch { ok = false; }
     check(ok, "constructor tolerates a fractional bootstrapPoolSat (rounded, no BigInt throw)");
   }

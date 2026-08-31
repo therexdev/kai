@@ -46,10 +46,16 @@ function check(cond, label) {
   }
 }
 
+/* Privileged routes now fail CLOSED when no operator secret is configured
+   (FIND-CFG-001) — they used to be open to anyone in exactly that case, which
+   is what these probes were unknowingly relying on. So the probe carries a
+   secret and presents it, the way a real operator does. */
+const OPERATOR_SECRET = "probe-operator-secret";
+
 async function j(method, p, body) {
   const res = await fetch(base() + p, {
     method,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "x-operator-secret": OPERATOR_SECRET },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   try {
@@ -74,7 +80,7 @@ async function main() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "probe-roster-"));
   // A short lease so a "busy" worker can be aged past the liveness window
   // inside a probe run without the reaper reclaiming its job first.
-  const sched = new Scheduler({ dataDir: dir, leaseMs: 60000 });
+  const sched = new Scheduler({ operatorSecret: OPERATOR_SECRET, dataDir: dir, leaseMs: 60000 });
   PORT = await sched.listen(0);
 
   const A = mkWorker(["koinos-fast"]);
