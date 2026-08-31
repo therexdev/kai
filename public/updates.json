@@ -1,7 +1,30 @@
 {
   "_comment": "The source of truth for koinosai.com/updates and for the What's new link in the app's update popup. Newest first. Every kaiapp [release] MUST add an entry here in the same session it ships, or a tester gets a popup pointing at a version the page has never heard of. `kind` is one of: new, fix, change.",
-  "latest": "0.51.0",
+  "latest": "0.52.0",
   "releases": [
+    {
+      "version": "0.52.0",
+      "date": "2026-08-31",
+      "title": "Your password guards where returns go",
+      "changes": [
+        {
+          "kind": "fix",
+          "text": "Arming automatic returns to another address now asks for your wallet password. The rule everywhere else in the app is that anything moving value to an address you do not control proves the password on that call — a one-off send obeyed it, arming a repeating one did not, even though it keeps moving value on its own for as long as it stays armed. Your wallet unlocks itself at start-up, so “unlocked” was never evidence that you were at the keyboard. Percentage, minimum, cap, interval, pausing and compounding back into your own VHP still ask for nothing, because none of them can move a satoshi anywhere your wallet does not already own."
+        },
+        {
+          "kind": "fix",
+          "text": "Your node now proves it owns the wallet it earns as. Registering with the network was taken on trust, so anyone who could reach the scheduler could register under someone else's address and collect their jobs and their place on the payout roster. Your node signs the claim with the same key it already signs every receipt with. Nothing changes for you: nodes on older builds keep working while everyone updates, and a machine that cannot sign still earns and tells you why rather than dropping off the network."
+        },
+        {
+          "kind": "new",
+          "text": "The three Koinos models now say what they actually are. Koinos Fast, Balanced and Smart described what they were for and nothing else, so there was no way to find out they run Qwen 2.5 1.5B, Llama 3.2 3B and Qwen 2.5 7B — which is the first thing worth knowing when you are deciding what to download, or comparing against a hosted API. Every other card in the catalog already named its model."
+        },
+        {
+          "kind": "fix",
+          "text": "Email dependencies updated to clear a batch of security advisories in the mail-parsing chain. No change to how mail works."
+        }
+      ]
+    },
     {
       "version": "0.51.0",
       "date": "2026-08-31",
