@@ -1,7 +1,34 @@
 {
   "_comment": "The source of truth for koinosai.com/updates and for the What's new link in the app's update popup. Newest first. Every kaiapp [release] MUST add an entry here in the same session it ships, or a tester gets a popup pointing at a version the page has never heard of. `kind` is one of: new, fix, change.",
-  "latest": "0.50.1",
+  "latest": "0.51.0",
   "releases": [
+    {
+      "version": "0.51.0",
+      "date": "2026-08-31",
+      "title": "The X button, and three holes a reviewer found",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "Closing the window no longer closes the app. Koinos AI tucks itself down by the clock and keeps running, so your node stays connected and keeps earning — click the tray icon to bring the window back, or right-click it and choose Quit to stop for real. The first time it happens the app tells you where it went and offers to go back to closing outright; Settings › Closing the window flips it either way."
+        },
+        {
+          "kind": "fix",
+          "text": "Your local API no longer answers other websites. It is open to programs on your machine on purpose, and until you created an API key that included a page in another browser tab — which could start a request you never saw, on your hardware and, off Local-Only, your KAI. Programs on this machine are unaffected."
+        },
+        {
+          "kind": "fix",
+          "text": "Koinos Code can no longer be walked out of a project folder by a symlink committed into a repository. It clones repositories, so this was reachable by asking it to work on one; the project boundary is now checked against the real filesystem rather than by comparing paths as text."
+        },
+        {
+          "kind": "fix",
+          "text": "Web pages the AI fetches are checked by where they actually lead, not how the address is spelled. A domain pointing at your own machine, or a public page redirecting to one, is refused — including at every redirect along the way."
+        },
+        {
+          "kind": "fix",
+          "text": "Qwen 2.5 14B no longer describes itself as the biggest model in the list. It stopped being that several releases ago."
+        }
+      ]
+    },
     {
       "version": "0.50.1",
       "date": "2026-08-27",
