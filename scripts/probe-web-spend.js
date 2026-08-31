@@ -75,9 +75,15 @@ async function main() {
   /* One live grant per wallet is the rule — a new grant REPLACES the old, so
    * "how much can this site spend?" always has one answer. Every grant below
    * is minted through here, and the caller must use the newest. */
+  /* Authorizations are single-use by the digest of their signed message
+     (FIND-FIN-002), and that message is pinned to a timestamp. Two mints with
+     identical terms inside the same millisecond ARE the same authorization by
+     that definition, so the probe steps its clock to make each one distinct —
+     which a person clicking Authorise does for free. */
+  let mintSeq = 0;
   const mint = async (maxMicro = CAP, ms = 3600000) => {
     const e = Date.now() + ms;
-    const t = Date.now();
+    const t = Date.now() + (mintSeq += 1);
     return accounts.service.grantSpend(acct, {
       address, maxMicro, expiresAt: e, ts: t,
       signature: await sign(`spend|${address}|${acct.id}|${Math.floor(maxMicro)}|${e}|${t}`),
@@ -159,6 +165,103 @@ async function main() {
     !/signHash|signMessage|signTransaction/.test(src.slice(src.indexOf("grantCharge"), src.indexOf("_syncDeposits"))),
     "the grant branch signs nothing — it resolves an address, it does not impersonate one"
   );
+
+  console.log("\n7) the cap is HELD, not merely compared against (FIND-FIN-001)");
+  {
+    /*
+     * The holds have to OVERLAP for this to mean anything, so give the class
+     * a live provider and then never answer the job: each accepted request
+     * parks inside the scheduler holding its reservation, which is exactly
+     * the shape of the real race. Before the fix all four sailed past the
+     * cost gate, because each one read the same untouched remaining balance.
+     */
+    await fetch(`${base}/worker/register`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ address: "1ProbeWorkerNeverAnswersXXXXXXXXXX", models: ["qwen25-32b"], capabilities: { ramGb: 32 } }),
+    });
+
+    const PER = 4000 * 4000000 / 1e6;         // 4000 tokens at the 32B out-rate
+    const g = await mint(2.5 * PER);           // room for two, nowhere near three
+    const spentOf = () => Number(accounts.service.db.prepare("SELECT spent_micro AS s FROM spend_grants WHERE id = ?").get(g.id).s);
+    const capOf = () => Number(accounts.service.db.prepare("SELECT max_micro AS m FROM spend_grants WHERE id = ?").get(g.id).m);
+
+    const settled = [];
+    for (let i = 0; i < 4; i++) {
+      consume({ messages: msgs, sessionToken: token, grantId: g.id, model: "qwen25-32b", max_tokens: 4000 })
+        .then((r) => settled.push(r))
+        .catch(() => {});
+    }
+    // The refusals come back immediately; the accepted ones are still parked.
+    await new Promise((r) => setTimeout(r, 500));
+
+    const refused = settled.filter((x) => x.status === 402).length;
+    check(refused >= 2, `concurrent requests past the cap are refused while the others hold (${refused} of 4 got 402)`);
+    check(!settled.some((x) => x.status === 500), "…and the refusals are honest 402s, not crashes");
+    check(
+      spentOf() > PER && spentOf() <= capOf(),
+      `two holds are outstanding at once and stay inside the cap (held=${spentOf()} cap=${capOf()})`,
+    );
+  }
+
+  console.log("\n8) a hold that never spends is given back");
+  {
+    // Nothing is serving, so every one of these dies at "no providers" or
+    // times out — either way not a token is generated. If the reservation
+    // were not released the grant would retire itself on failures alone.
+    const g = await mint(0.5 * 1e6);
+    const spentOf = () => Number(accounts.service.db.prepare("SELECT spent_micro AS s FROM spend_grants WHERE id = ?").get(g.id).s);
+    check(spentOf() === 0, "a fresh grant starts unspent");
+    for (let i = 0; i < 3; i++) {
+      await consume({ messages: msgs, sessionToken: token, grantId: g.id, model: "koinos-fast", max_tokens: 64 });
+    }
+    // The response has ended on every one of them, which is where the
+    // backstop settles the hold.
+    await new Promise((r) => setTimeout(r, 50));
+    check(spentOf() === 0, `three requests that generated nothing leave the grant unspent (spent=${spentOf()})`);
+  }
+
+  console.log("\n9) a grant authorization is single-use (FIND-FIN-002)");
+  {
+    // The exact bytes the app sent to authorize a grant. Re-sending them used
+    // to revoke the live grant and insert a fresh one with spent_micro back at
+    // zero — the cap handed back, indistinguishable from a real re-approval.
+    const t = Date.now();
+    const e = t + 24 * 3600 * 1000;
+    const cap = 2 * 1e6;
+    const payload = {
+      address, maxMicro: cap, expiresAt: e, ts: t,
+      signature: await sign(`spend|${address}|${acct.id}|${Math.floor(cap)}|${e}|${t}`),
+    };
+    const first = accounts.service.grantSpend(acct, payload);
+    check(Boolean(first.id), "the authorization is accepted once");
+
+    // Spend some of it so a successful replay would be visibly profitable.
+    accounts.service.chargeGrant(first.id, 1.5 * 1e6);
+    const spentAfter = Number(accounts.service.db.prepare("SELECT spent_micro AS s FROM spend_grants WHERE id = ?").get(first.id).s);
+    check(spentAfter === 1.5 * 1e6, "…and spending against it books normally");
+
+    let replayed = null;
+    try {
+      replayed = accounts.service.grantSpend(acct, payload);
+    } catch (err) {
+      check(/already been used/i.test(String(err.message)), `the replay is refused by name (${err.message})`);
+    }
+    check(replayed === null, "replaying the same authorization does NOT mint a second grant");
+
+    const live = accounts.service.grants(acct).filter((x) => !x.revokedAt && x.id === first.id);
+    check(live.length === 1, "the original grant is still the live one");
+    const stillSpent = Number(accounts.service.db.prepare("SELECT spent_micro AS s FROM spend_grants WHERE id = ?").get(first.id).s);
+    check(stillSpent === 1.5 * 1e6, `and its consumed total survived the replay (spent=${stillSpent})`);
+
+    // A genuine re-authorization — new timestamp, new signature — still works.
+    const t2 = t + 1000;
+    const fresh = accounts.service.grantSpend(acct, {
+      address, maxMicro: cap, expiresAt: e, ts: t2,
+      signature: await sign(`spend|${address}|${acct.id}|${Math.floor(cap)}|${e}|${t2}`),
+    });
+    check(fresh.id !== first.id, "a person re-approving from the app is unaffected");
+  }
 
   srv.close();
   sched.server?.close();
