@@ -1,7 +1,22 @@
 {
   "_comment": "The source of truth for koinosai.com/updates and for the What's new link in the app's update popup. Newest first. Every kaiapp [release] MUST add an entry here in the same session it ships, or a tester gets a popup pointing at a version the page has never heard of. `kind` is one of: new, fix, change.",
-  "latest": "0.53.0",
+  "latest": "0.53.1",
   "releases": [
+    {
+      "version": "0.53.1",
+      "date": "2026-09-04",
+      "title": "The data folder screen stops freezing the app",
+      "changes": [
+        {
+          "kind": "fix",
+          "text": "Opening the chain data folder screen, or choosing somewhere to move it to, could lock the whole window while the app added up what was there — with no spinner and no way to cancel, because the app genuinely could not draw anything until it finished. On a fully synced node that is tens of thousands of files, so it looked like a crash. The same freeze happened again at the checking step part-way through a move. All of that counting now happens in the background and the window stays responsive throughout."
+        },
+        {
+          "kind": "change",
+          "text": "Inspecting a move used to add up the whole folder twice over — once for the size shown to you and once for the is-there-room check — so the wait was double what it needed to be. It measures once now."
+        }
+      ]
+    },
     {
       "version": "0.53.0",
       "date": "2026-09-03",
