@@ -1,7 +1,26 @@
 {
   "_comment": "The source of truth for koinosai.com/updates and for the What's new link in the app's update popup. Newest first. Every kaiapp [release] MUST add an entry here in the same session it ships, or a tester gets a popup pointing at a version the page has never heard of. `kind` is one of: new, fix, change.",
-  "latest": "0.52.0",
+  "latest": "0.53.0",
   "releases": [
+    {
+      "version": "0.53.0",
+      "date": "2026-09-03",
+      "title": "Show someone your address instead of reading it out",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "Every address on the node's Wallet and Fund Node screens now has a “QR Code” button next to Copy. Copying an address only helps if the money is coming from this computer, and it usually isn't — it comes from a phone wallet or an exchange app, neither of which can reach this machine's clipboard. The only route left was reading 42 characters across the screen and typing them somewhere else, which is the one mistake on these screens that cannot be undone. Point a phone at the code instead. Works on the Koinos address you receive KOIN and VHP at, and on the Ethereum address for funding the node with ETH or USDT."
+        },
+        {
+          "kind": "new",
+          "text": "Each code carries its own warning about which chain it is for, and shows the address in text underneath so you can check what you just scanned without closing the window. The code is built from whatever address is printed beside the button that opened it, so it cannot show you a stale one — and if the wallet has not unlocked yet, no code appears at all rather than a scannable square that means nothing."
+        },
+        {
+          "kind": "fix",
+          "text": "The device pairing code on the account screen — the one you read off this app and type into koinosai.com/link — was rendering at ordinary body size with its characters run together, instead of large and spaced out as intended. A security rule in the app was silently discarding that formatting. It now looks the way it was meant to, which is the way that makes a code hard to misread."
+        }
+      ]
+    },
     {
       "version": "0.52.0",
       "date": "2026-08-31",
