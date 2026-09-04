@@ -1,7 +1,34 @@
 {
   "_comment": "The source of truth for koinosai.com/updates and for the What's new link in the app's update popup. Newest first. Every kaiapp [release] MUST add an entry here in the same session it ships, or a tester gets a popup pointing at a version the page has never heard of. `kind` is one of: new, fix, change.",
-  "latest": "0.53.1",
+  "latest": "0.54.0",
   "releases": [
+    {
+      "version": "0.54.0",
+      "date": "2026-09-04",
+      "title": "Koinos AI runs on the Mac",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "Koinos AI now has a macOS build, for both Apple Silicon and Intel Macs. On an Apple Silicon Mac the local AI engine runs on Metal, so the chip's GPU does the work rather than the CPU; Intel Macs run on the CPU, because the official engine has no Metal build for them. The setup screen names Metal instead of reporting no GPU. This started as a contribution from a community tester, who built, signed and smoke-tested an Apple Silicon version on an M4 before proposing it."
+        },
+        {
+          "kind": "new",
+          "text": "IMPORTANT for Mac testers: this first build is not signed with an Apple certificate yet, so macOS will refuse to open it on the first try. Right-click (or Control-click) Koinos AI in your Applications folder and choose Open, then confirm — you only have to do this once. For the same reason the Mac version cannot update itself in place: each new version is a fresh download from the releases page. Windows and Linux are unaffected."
+        },
+        {
+          "kind": "new",
+          "text": "Your Koinos node now shows up on your dashboard even with Earning switched off. Until now the only thing that ever told the website about a block producer was the earning worker, so turning Earning off made a perfectly healthy node vanish from the one page whose job is to tell you it is fine. Running a node and selling AI compute are separate choices, and the dashboard finally treats them that way. The account screen also now says WHY your node is or is not showing — a locked wallet, Local-only privacy mode, or no node running — instead of just leaving the card blank."
+        },
+        {
+          "kind": "change",
+          "text": "The managed Koinos node now publishes its JSON-RPC on port 8085 instead of 8080, on every platform. 8080 is one of the most commonly occupied ports on a developer's machine and the clash could stop the node after its other services had already started. If you have your own tools pointed at 127.0.0.1:8080, point them at 8085; restart the node once after updating so it picks up the new port."
+        },
+        {
+          "kind": "fix",
+          "text": "In Koinos Code, typing or pasting a project path while the folder browser was still loading could see your path replaced a moment later by the folder it had been fetching. Whichever you chose most recently now wins."
+        }
+      ]
+    },
     {
       "version": "0.53.1",
       "date": "2026-09-04",
