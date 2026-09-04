@@ -658,7 +658,11 @@ app.get("/account/api/nodes", (req, res) => {
    */
   const producerFor = (address) => {
     try {
-      for (const x of scheduler.workers.values()) if (x.address === address) return x.producer || null;
+      // One question, two possible sources: the worker row for a machine that
+      // also sells compute, or the producer-only map for one that does not
+      // (#84). The scheduler owns that precedence so this route cannot drift
+      // from it.
+      return scheduler.producerFor(address);
     } catch { /* roster unavailable */ }
     return null;
   };
