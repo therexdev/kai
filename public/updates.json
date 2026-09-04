@@ -1,7 +1,18 @@
 {
   "_comment": "The source of truth for koinosai.com/updates and for the What's new link in the app's update popup. Newest first. Every kaiapp [release] MUST add an entry here in the same session it ships, or a tester gets a popup pointing at a version the page has never heard of. `kind` is one of: new, fix, change.",
-  "latest": "0.54.0",
+  "latest": "0.54.1",
   "releases": [
+    {
+      "version": "0.54.1",
+      "date": "2026-09-04",
+      "title": "The Mac download is actually on the release page",
+      "changes": [
+        {
+          "kind": "fix",
+          "text": "v0.54.0 announced the macOS build but did not attach it: the step that uploads the Mac disk image was waiting for a git tag, and this project releases from a marked commit instead, so it skipped without failing anything. Every check was green and Mac testers had nothing to download. The Mac disk image is attached from this version on. Everything else in v0.54.0 is unchanged and already live — if you are on Windows or Linux there is nothing new for you here."
+        }
+      ]
+    },
     {
       "version": "0.54.0",
       "date": "2026-09-04",
