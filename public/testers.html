@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <title>Koinos AI — Tester Quickstart</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Install the Koinos AI alpha in minutes: download for Windows, get past SmartScreen, chat privately on your own hardware, and optionally earn testnet KAI for serving network jobs.">
+<meta name="description" content="Install the Koinos AI alpha in minutes: download for Windows, macOS or Linux, get past the first-launch warning, chat privately on your own hardware, and optionally earn testnet KAI for serving network jobs.">
 <meta property="og:title" content="Koinos AI — Tester Quickstart">
-<meta property="og:description" content="Install the Koinos AI alpha in minutes: download for Windows, chat privately on your own hardware, and optionally earn testnet KAI for serving network jobs.">
+<meta property="og:description" content="Install the Koinos AI alpha in minutes: download for Windows, macOS or Linux, chat privately on your own hardware, and optionally earn testnet KAI for serving network jobs.">
 <meta name="twitter:card" content="summary">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 L28 9 V23 L16 30 L4 23 V9 Z' fill='none' stroke='%2333E6C0' stroke-width='1.5'/%3E%3Cpath d='M12 10 V22 M12 16 L20 10 M12 16 L20 22' stroke='%23F2B03D' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
@@ -120,7 +120,7 @@ section{padding:46px 0;position:relative}
 .qstep p b{color:var(--soft)}
 .qstep p .warm{color:var(--value)}
 .qstep .callout{margin-top:10px;border-left:2px solid var(--value-dim);padding:8px 0 8px 14px;font-size:13.5px;color:var(--soft)}
-.qstep .callout .k{font-family:var(--mono);font-size:12px;color:var(--value);border:1px solid var(--value-dim);border-radius:6px;padding:1px 7px;white-space:nowrap}
+.k{font-family:var(--mono);font-size:12px;color:var(--value);border:1px solid var(--value-dim);border-radius:6px;padding:1px 7px;white-space:nowrap}
 
 /* ---- what to report ---- */
 .report-list{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:8px}
@@ -132,7 +132,7 @@ section{padding:46px 0;position:relative}
 .honest{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--panel)}
 .honest .cap{padding:18px 22px;border-bottom:1px solid var(--line)}
 .honest .cap:last-child{border-bottom:0}
-.honest .cap b{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:var(--value);text-transform:uppercase;display:flex;align-items:center;gap:9px}
+.honest .cap > b{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:var(--value);text-transform:uppercase;display:flex;align-items:center;gap:9px}
 .honest .cap b::before{content:"";width:6px;height:6px;background:var(--value);transform:rotate(45deg);flex:none;box-shadow:0 0 0 4px rgba(242,176,61,.12)}
 .honest .cap span{display:block;margin-top:8px;color:var(--soft);font-size:14.5px;line-height:1.5}
 
@@ -170,9 +170,11 @@ footer{border-top:1px solid var(--line);padding:36px 0 52px;margin-top:24px}
   <p class="lead">Thank you for testing the Koinos AI alpha. Ten minutes gets you from download to a private, local AI chat — and optionally earning testnet KAI for serving network jobs. Everything below is honest about what works and what's rough.</p>
   <div class="dl-row">
     <a class="btn btn-signal" href="https://github.com/therexdev/kaiapp/releases/latest" target="_blank" rel="noopener">Download for Windows — free <span class="arw">→</span></a>
+    <a class="btn btn-signal" href="https://github.com/therexdev/kaiapp/releases/latest" target="_blank" rel="noopener">Download for macOS — free <span class="arw">→</span></a>
     <a class="btn btn-ghost" href="https://github.com/therexdev/kaiapp/releases/latest" target="_blank" rel="noopener">Linux AppImage · experimental</a>
   </div>
-  <p class="dl-note">Both buttons go to the <b>latest GitHub release</b> — pick the <b>.exe</b> installer on Windows or the <b>.AppImage</b> on Linux.</p>
+  <p class="dl-note">Every button goes to the <b>latest GitHub release</b>. Pick the <b>.exe</b> installer on Windows, the <b>.AppImage</b> on Linux, and on a Mac the <b>.dmg</b> — <b>arm64</b> for Apple Silicon (M1 to M4), <b>x64</b> for an older Intel Mac. Not sure which you have? Apple menu → About This Mac: a "Chip" line means Apple Silicon, a "Processor" line means Intel. The <b>.zip</b> files are for the updater, not for installing by hand.</p>
+  <p class="dl-note" style="margin-top:8px">New on macOS — please read <b>step 2</b> before you double-click anything, and see <a class="body-link" href="#mac-notes">what is not finished yet on the Mac</a>.</p>
 </div></section>
 
 <!-- SYSTEM REQUIREMENTS -->
@@ -180,10 +182,10 @@ footer{border-top:1px solid var(--line);padding:36px 0 52px;margin-top:24px}
   <div class="panel">
     <span class="plabel">System requirements</span>
     <div class="req-grid">
-      <div class="req"><span>OS</span><b>Windows 10/11 x64 · Linux (AppImage, experimental)</b></div>
+      <div class="req"><span>OS</span><b>Windows 10/11 x64 · macOS 12+ (Apple Silicon or Intel) · Linux (AppImage, experimental)</b></div>
       <div class="req"><span>Disk</span><b>~2 GB free (app + engine + model)</b></div>
       <div class="req"><span>Memory</span><b>8 GB RAM recommended</b></div>
-      <div class="req"><span>GPU</span><b>NVIDIA optional — CPU works fine</b></div>
+      <div class="req"><span>GPU</span><b>NVIDIA optional · Apple Silicon uses Metal — CPU works fine</b></div>
     </div>
   </div>
 </div></section>
@@ -198,15 +200,17 @@ footer{border-top:1px solid var(--line);padding:36px 0 52px;margin-top:24px}
       <span class="n">1</span>
       <div>
         <h3>Download and run the installer</h3>
-        <p>Grab the Windows installer from the <a class="body-link" href="https://github.com/therexdev/kaiapp/releases/latest" target="_blank" rel="noopener">latest release</a> and run it. It installs per-user — no admin rights needed.</p>
+        <p>Grab your file from the <a class="body-link" href="https://github.com/therexdev/kaiapp/releases/latest" target="_blank" rel="noopener">latest release</a>. On <b>Windows</b>, run the <b>.exe</b> — it installs per-user, no admin rights needed. On a <b>Mac</b>, open the <b>.dmg</b> and drag Koinos AI into your Applications folder.</p>
       </div>
     </div>
     <div class="qstep">
       <span class="n">2</span>
       <div>
-        <h3>Get past the SmartScreen warning</h3>
-        <p>Windows SmartScreen will warn you that the app is unrecognized. That's expected: the alpha build is <b>not yet code-signed</b>, so Windows can't verify the publisher. It is not a virus detection — just an unknown-publisher notice.</p>
-        <div class="callout">Click <span class="k">More info</span> then <span class="k">Run anyway</span>. Code signing ships before beta, and this warning goes away.</div>
+        <h3>Get past the first-launch warning</h3>
+        <p>The alpha builds are <b>not yet code-signed</b>, so neither Windows nor macOS can verify the publisher. It is not a virus detection — just an unknown-publisher notice. Signing ships before beta, and both warnings go away.</p>
+        <div class="callout"><b>Windows.</b> SmartScreen says the app is unrecognized. Click <span class="k">More info</span> then <span class="k">Run anyway</span>.</div>
+        <div class="callout"><b>macOS.</b> Do not double-click the app the first time — macOS will refuse it. Instead <b>right-click</b> (or Control-click) <b>Koinos AI</b> in your Applications folder, choose <span class="k">Open</span>, then confirm. You only do this once.</div>
+        <div class="callout">On <b>macOS 15 and later</b> the right-click trick may not be offered at all — the app just gets blocked. If that happens, open <span class="k">System Settings</span> → <span class="k">Privacy &amp; Security</span>, scroll to the bottom, and click <span class="k">Open Anyway</span> next to the Koinos AI message.</div>
       </div>
     </div>
     <div class="qstep">
@@ -262,13 +266,29 @@ footer{border-top:1px solid var(--line);padding:36px 0 52px;margin-top:24px}
 
 <div class="wrap"><div class="divider"></div></div>
 
+<!-- MAC NOTES -->
+<section id="mac-notes"><div class="wrap">
+  <span class="eyebrow">Mac testers · read this first</span>
+  <h2 style="margin:12px 0 10px">The Mac build is brand new. Here is exactly where it stands.</h2>
+  <p class="lead">macOS support arrived from a community tester, who built, signed and smoke-tested an Apple Silicon version on an M4 before offering it to us. It is real and it runs — and these four things are not finished. If you hit one, you have not found a bug.</p>
+  <ul class="report-list">
+    <li><span><b>Apple Silicon is the tested path.</b> On an M1–M4 Mac the local AI engine runs on Metal, so the GPU does the work.</span></li>
+    <li><span><b>Intel Macs are built but not yet proven on real hardware.</b> The Intel package is assembled and structurally checked in CI, and nobody has run it on an actual Intel Mac. It runs on the CPU either way — the AI engine has no Metal build for Intel. Tell us how it goes.</span></li>
+    <li><span><b>One extra step on first launch.</b> Some Macs need a <span class="k">Cmd</span>+<span class="k">R</span> refresh right after you approve the first keychain prompt, because approving it restarts part of the app underneath. Known, and being fixed.</span></li>
+    <li><span><b>Voice input is not available on macOS yet.</b> Everything else — chat, Koinos Code, Earn, running a node — is there.</span></li>
+  </ul>
+</div></section>
+
+<div class="wrap"><div class="divider"></div></div>
+
 <!-- HONESTY BLOCK -->
 <section><div class="wrap">
   <span class="eyebrow" style="color:var(--value)">The honest fine print</span>
   <div class="honest" style="margin-top:16px">
     <div class="cap"><b>Alpha software</b><span>Expect rough edges, missing features, and the occasional crash. That's exactly what this phase is for.</span></div>
     <div class="cap"><b>Testnet tokens only</b><span>KAI earned during alpha lives on Koinos testnet and has <b>no monetary value</b>. Mainnet economics come later.</span></div>
-    <div class="cap"><b>Unsigned installer</b><span>The installer is not yet code-signed, which is why SmartScreen warns. Signing ships before beta.</span></div>
+    <div class="cap"><b>Unsigned installer</b><span>The builds are not yet code-signed, which is why SmartScreen warns on Windows and macOS blocks the first launch. Signing ships before beta.</span></div>
+    <div class="cap"><b>The Mac build cannot update itself</b><span>macOS refuses to replace an unsigned app in place, so Koinos AI on a Mac will <b>never prompt you to update</b>. Each new version is a fresh download from the releases page — check back rather than waiting for a prompt. Windows and Linux update themselves normally.</span></div>
     <div class="cap"><b>Model answers can be wrong</b><span>Local models are small and can be confidently incorrect. Don't rely on answers for anything important without checking.</span></div>
   </div>
 </div></section>
