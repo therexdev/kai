@@ -1,0 +1,19 @@
+{
+  "id": "/app",
+  "name": "Koinos AI",
+  "short_name": "Koinos AI",
+  "description": "Chat, docs and tasks on the Koinos AI network — your hardware first, the network when you need it.",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "theme_color": "#07090c",
+  "background_color": "#07090c",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/app-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

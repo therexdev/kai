@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#07090c" />
+<!-- Without this the browser asks for /favicon.ico, which this site does not
+     have, and the offline page's own load ends in a 404. -->
+<link rel="icon" href="/app-icon-192.png" type="image/png" sizes="192x192" />
+<title>Koinos AI — offline</title>
+<style>
+:root{--bg:#07090c;--raised:#0d1117;--border:#1c2430;--text:#e8edf4;--dim:#8b98a9;--violet:#8b5cf6}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  display:grid;place-items:center;padding:24px}
+.card{max-width:30rem;text-align:center}
+.mark{width:52px;height:52px;border-radius:16px;margin:0 auto 20px;
+  background:linear-gradient(135deg,#38bdf8,var(--violet) 55%,#34d399)}
+h1{font-size:1.35em;letter-spacing:-.01em;margin-bottom:10px}
+p{color:var(--dim);margin-bottom:14px}
+button{border:0;border-radius:8px;padding:10px 18px;font:inherit;font-weight:600;color:#fff;cursor:pointer;
+  background:linear-gradient(135deg,var(--violet),#6d3ef0)}
+.why{margin-top:22px;padding-top:18px;border-top:1px solid var(--border);font-size:.9em;color:var(--dim);text-align:left}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="mark"></div>
+  <h1>You're offline</h1>
+  <p>Koinos AI can't reach the network right now.</p>
+  <button onclick="location.reload()">Try again</button>
+  <!--
+    Say why rather than leaving a dead end. This app is a thin client: chats,
+    documents and your spending balance all live on the server, so there is
+    no honest offline mode to fall back into. Pretending otherwise — showing
+    the shell and letting every action fail one by one — would waste more of
+    someone's time than this page does.
+  -->
+  <p class="why">Everything here — your chats, documents and remaining balance — lives on the Koinos AI network, so there's nothing to show until the connection is back. Nothing you'd written is lost.</p>
+</div>
+</body>
+</html>

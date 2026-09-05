@@ -804,6 +804,65 @@ app.get("/app/app.js", (_req, res) => {
   return res.sendFile(APP_CLIENT);
 });
 
+/* ------------------------------------------------------ installable (PWA)
+ *
+ * Three ungated files that turn /app into something you can add to a
+ * homescreen and open without browser chrome. All three are UNGATED for the
+ * same reason app.js is: they hold no secrets, and a manifest or worker that
+ * 401s or redirects to HTML would fail in a way no user could diagnose.
+ *
+ * The manifest specifically CANNOT be gated. Browsers fetch it without
+ * credentials unless the link carries crossorigin="use-credentials", so behind
+ * the session gate it would come back as the sign-in page and the install
+ * prompt would simply never appear — with nothing in the console to say why.
+ */
+const APP_MANIFEST = path.join(VIEWS_DIR, "app.webmanifest");
+const APP_SW = path.join(VIEWS_DIR, "app-sw.js");
+const APP_OFFLINE = path.join(VIEWS_DIR, "app-offline.html");
+
+app.get("/app/manifest.webmanifest", (_req, res) => {
+  res.setHeader("Content-Type", "application/manifest+json; charset=utf-8");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  return res.sendFile(APP_MANIFEST);
+});
+
+/*
+ * Served from /app/ so its scope is /app/ — a worker can only control paths at
+ * or below its own URL, and this one has no business anywhere else on the
+ * site. (The MANIFEST's scope is "/" so that signing in at /account stays
+ * inside the installed window; that is a separate mechanism from this one.)
+ */
+app.get("/app/sw.js", (_req, res) => {
+  res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  // A worker that cannot be replaced is an application that cannot be fixed.
+  res.setHeader("Cache-Control", "no-cache");
+  /*
+   * Widen the scope from "/app/" to "/app".
+   *
+   * By default a worker may only control paths BELOW its own URL, so
+   * /app/sw.js gets the scope "/app/" — which does not include "/app" itself.
+   * And "/app" is the start_url: the exact page launched from the homescreen
+   * would have been the one page the worker never controlled. Caught by
+   * driving a real browser offline and watching it show Chromium's own error
+   * page instead of ours; nothing in the static structure hints at it.
+   *
+   * This header is what permits the broader claim, and the register() call in
+   * app.js must ask for it explicitly — the header alone does not widen
+   * anything.
+   */
+  res.setHeader("Service-Worker-Allowed", "/app");
+  return res.sendFile(APP_SW);
+});
+
+app.get("/app/offline.html", (_req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  return res.sendFile(APP_OFFLINE);
+});
+
 /* ------------------------------------------------- the web app's own API
  *
  * Everything under /app/api is cookie-authed and account-scoped. It uses
