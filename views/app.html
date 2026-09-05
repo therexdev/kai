@@ -5,6 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex, nofollow" />
 <title>Koinos AI</title>
+
+<!-- Installable: add to a homescreen, open without browser chrome.
+     theme-color paints the system bars to match the app's own background, so
+     a standalone window does not sit in a light strip it never asked for. -->
+<link rel="manifest" href="/app/manifest.webmanifest" />
+<meta name="theme-color" content="#07090c" />
+<link rel="icon" href="/app-icon-192.png" type="image/png" sizes="192x192" />
+
+<!-- iOS reads none of the manifest for the homescreen icon and only some of
+     it for display mode, so these are not duplication — they are the only
+     instructions Safari takes.
+     Status bar is `black`, NOT `black-translucent`. Translucent would let the
+     page run underneath the status bar, which looks better only if the layout
+     also pads for env(safe-area-inset-top) — and without that the top of the
+     sidebar sits under the clock and the notch. This app's background is
+     #07090c, so a solid black bar is visually identical anyway and cannot
+     break a layout I have no iPhone here to check. -->
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+<meta name="apple-mobile-web-app-title" content="Koinos AI" />
 <style>
 :root{--bg:#07090c;--raised:#0d1117;--input:#10161d;--border:#1c2430;--text:#e8edf4;--dim:#8b98a9;--violet:#8b5cf6;--emerald:#34d399;--danger:#f87171;--radius:10px}
 *{box-sizing:border-box;margin:0}

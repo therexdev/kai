@@ -1254,3 +1254,23 @@ function boot() {
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
 else boot();
+
+/*
+ * Register the service worker, so the app can be installed to a homescreen
+ * and opened without browser chrome.
+ *
+ * After `load`, never before: registration competes with the app's first
+ * paint and its first API calls for the same connection, and nothing here is
+ * needed to render anything. It is also entirely optional — a failure is
+ * swallowed on purpose. Private windows, enterprise policy and a handful of
+ * browsers all refuse workers, and none of that should turn a working app
+ * into a broken one over a feature whose whole benefit is a nicer icon.
+ */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    // scope "/app", not the default "/app/": the default excludes /app itself,
+    // which is the page the homescreen icon opens. Requires the server to send
+    // Service-Worker-Allowed: /app, which it does.
+    navigator.serviceWorker.register("/app/sw.js", { scope: "/app" }).catch(() => {});
+  });
+}
