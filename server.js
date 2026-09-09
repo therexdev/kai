@@ -161,6 +161,7 @@ app.use("/r", (req, res) => {
  * rather than a second, stricter opinion.
  */
 app.use("/app/api", express.json({ limit: "256kb" }));
+app.use("/connections/api", express.json({ limit: "24kb" }));
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: false, limit: "10kb" }));
 
@@ -523,6 +524,12 @@ function requireAuth(req, res, next) {
   }
   return next();
 }
+
+// Private, account-scoped integration service. The project key never reaches
+// desktop clients or scheduler workers. Disabled until an operator enables it.
+require("./lib/connections").mountConnections({ app, accounts, requireAdmin: requireAuth,
+  stateDir: STATE_ROOT, secret: process.env.SESSION_SECRET,
+  siteOrigin: process.env.KAI_SITE_ORIGIN || "https://koinosai.com" });
 
 app.get("/admin", (req, res) => {
   if (!ADMIN_ENABLED) {
