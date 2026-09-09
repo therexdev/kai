@@ -101,7 +101,13 @@ async function main() {
    * verifies it. So: ignore `b.producer` (the request body) and anything
    * immediately assigned to, and flag whatever is left.
    */
-  const mentions = (src.match(/\w+\.producer\b\s*=?/g) || []).map((m) => m.trim());
+  // Producer-only reporting added an owner-display accessor. Exclude exactly
+  // that accessor while still rejecting stored reads in routing/payout code,
+  // and forbid the scheduler from calling the accessor internally.
+  check((src.match(/\bproducerFor\s*\(/g) || []).length === 1,
+    "producerFor is only an external display accessor, never called by scheduler decisions");
+  const decisionSource = src.replace(/^  producerFor\([^\n]*\) \{[\s\S]*?^  \}/m, "");
+  const mentions = (decisionSource.match(/\w+\.producer\b\s*=?/g) || []).map((m) => m.trim());
   const reads = mentions.filter((m) => !m.endsWith("=") && m !== "b.producer");
   check(reads.length === 0,
     `scheduler never reads the stored value back — found ${JSON.stringify(reads)}, expected none`);
@@ -231,7 +237,9 @@ async function main() {
   const serverSrc = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
   const start = serverSrc.indexOf('app.get("/account/api/nodes"');
   check(start > 0, "found the real handler in server.js");
-  const handler = serverSrc.slice(start, start + 4000);
+  const end = serverSrc.indexOf("\n});", start);
+  check(end > start, "found the end of the real account handler");
+  const handler = serverSrc.slice(start, end);
   const producerLines = (handler.match(/producer:\s*producerFor\(/g) || []).length;
   check(producerLines >= 2,
     `both branches of the real handler return a producer — found ${producerLines}, expected 2 (online + offline)`);
