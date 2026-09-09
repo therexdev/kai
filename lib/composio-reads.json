@@ -1,0 +1,55 @@
+{
+  "github": {
+    "version": "20260902_00",
+    "tools": [
+      "GITHUB_LIST_REPOSITORY_ISSUES",
+      "GITHUB_LIST_REPOSITORIES_FOR_THE_AUTHENTICATED_USER",
+      "GITHUB_LIST_PULL_REQUESTS"
+    ],
+    "source": "https://docs.composio.dev/toolkits/github",
+    "reviewed": "2026-09-09"
+  },
+  "gmail": {
+    "version": "20260903_00",
+    "tools": [
+      "GMAIL_FETCH_EMAILS",
+      "GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID"
+    ],
+    "source": "https://docs.composio.dev/toolkits/gmail",
+    "reviewed": "2026-09-09"
+  },
+  "googlecalendar": {
+    "version": "20260902_00",
+    "tools": [
+      "GOOGLECALENDAR_EVENTS_LIST"
+    ],
+    "source": "https://docs.composio.dev/toolkits/googlecalendar",
+    "reviewed": "2026-09-09"
+  },
+  "googledrive": {
+    "version": "20260902_00",
+    "tools": [
+      "GOOGLEDRIVE_FIND_FILE"
+    ],
+    "source": "https://docs.composio.dev/toolkits/googledrive",
+    "reviewed": "2026-09-09"
+  },
+  "notion": {
+    "version": "20260819_00",
+    "tools": [
+      "NOTION_FETCH_BLOCK_CONTENTS",
+      "NOTION_SEARCH_NOTION_PAGE"
+    ],
+    "source": "https://docs.composio.dev/toolkits/notion",
+    "reviewed": "2026-09-09"
+  },
+  "slack": {
+    "version": "20260826_00",
+    "tools": [
+      "SLACK_FETCH_CONVERSATION_HISTORY",
+      "SLACK_SEARCH_MESSAGES"
+    ],
+    "source": "https://docs.composio.dev/toolkits/slack",
+    "reviewed": "2026-09-09"
+  }
+}

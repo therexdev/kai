@@ -21,7 +21,7 @@ If deployed under a different canonical website origin, set `KAI_SITE_ORIGIN` to
 - Every account action checks ownership at Composio. Account lists are filtered again on the server. Raw OAuth/API credential state is discarded; only account display metadata reaches the desktop.
 - Provider requests go only to Composio's documented v3.1 API, with bounded responses, timeouts, no redirects, and per-account rate limits. Tool execution checks the selected account's toolkit and input schema, and passes an explicit version.
 - Composio stores/manages provider credentials. In managed mode, the KAI server also handles selected tool inputs and returned data in transit. It does not add them to a server Brain or persist action results. Composio/project logging and retention settings are controlled in Composio.
-- The desktop stores action grants and Brain sources locally. It requires review for writes and actions lacking explicit read-only metadata. Local-Only blocks all connection traffic. Private Brain data and keys never enter the compute-worker API.
+- The desktop stores action grants and Brain sources locally. It requires review for writes and actions lacking verified read-only behavior. Local-Only blocks all connection traffic. Private Brain data and keys never enter the compute-worker API.
 
 ## Rotation and disconnection
 
@@ -31,7 +31,7 @@ Managed and personal accounts are separate. Changing modes does not remove previ
 
 ## Verification and service costs
 
-Run `node scripts/probe-connections.js`. It exercises real HTTP routes with synthetic upstream responses: admin/session checks, encrypted persistence, disabled mode, user isolation, exact ownership checks, credential stripping, project rotation, and server wiring. CI discovers it with the other `probe-*.js` checks. The shared `lib/composio-client.js` matches `kaiapp/core/lib/composio-client.js`; update both when the contract changes.
+Run `node scripts/probe-connections.js`. It exercises real HTTP routes with synthetic upstream responses: admin/session checks, encrypted persistence, disabled mode, user isolation, exact ownership checks, credential stripping, project rotation, and server wiring. CI discovers it with the other `probe-*.js` checks. The shared `lib/composio-client.js` and `lib/composio-reads.json` match their `kaiapp/core/lib/` counterparts; update both repos when the contract changes. The read manifest records exact reviewed toolkit versions and documentation URLs. It never classifies arbitrary actions by their names.
 
 No production Composio key was provided for this implementation. A real provider authorization must be checked after enabling the service. Catalog availability, supported authentication schemes, API quotas, scopes, and charges depend on the selected Composio project and each provider. There is no automatic subscription or billing setup in KAI.
 
