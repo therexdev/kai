@@ -161,6 +161,8 @@ app.use("/r", (req, res) => {
  * rather than a second, stricter opinion.
  */
 app.use("/app/api", express.json({ limit: "256kb" }));
+app.use("/connections/webhook", express.raw({ type: "application/json", limit: "40kb" }));
+app.use("/connections/events", express.json({ limit: "24kb" }));
 app.use("/connections/api", express.json({ limit: "24kb" }));
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: false, limit: "10kb" }));

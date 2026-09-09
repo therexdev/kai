@@ -36,3 +36,23 @@ Run `node scripts/probe-connections.js`. It exercises real HTTP routes with synt
 No production Composio key was provided for this implementation. A real provider authorization must be checked after enabling the service. Catalog availability, supported authentication schemes, API quotas, scopes, and charges depend on the selected Composio project and each provider. There is no automatic subscription or billing setup in KAI.
 
 API references: [project authentication](https://docs.composio.dev/reference/authenticating-to-composio), [catalog](https://docs.composio.dev/reference/api-reference/toolkits/getToolkits), [hosted sign-in](https://docs.composio.dev/reference/api-reference/connected-accounts/postConnectedAccountsLink), [tool execution](https://docs.composio.dev/reference/api-reference/tools).
+
+## Live workflow events
+
+The workflow canvas release adds Composio triggers and a signed event relay. Deploy the current `claude/kai-production-website-fqx4pf` server branch, install its locked dependencies with `npm ci`, and restart the existing service. Preserve `SESSION_SECRET`, `KAI_STATE_DIR`, `COMPOSIO_API_KEY` and the current service configuration. **No additional Composio API key or new environment variable is required.** The configured `KAI_SITE_ORIGIN` must be the real public HTTPS account-server origin.
+
+In KAI desktop, sign in, connect an app, enable its Brain/workflow read grant, then choose **Workflow Trigger → When an app event arrives**. Load the app's event types, enter any required settings, save and enable the valid workflow. The server automatically registers its webhook when the selected Composio project has no subscription. It obtains and encrypts the signing secret; an administrator does not need to paste it into `.env`.
+
+Both KAI-managed and personal-key modes use this delivery path. Personal API keys stay on the desktop. The desktop registers a project-bound channel and passes only its webhook signing secret to the authenticated relay. Managed mode keeps the shared API key on the server. Signing secrets and received event payloads are encrypted with the persistent session secret in `connection-events.json` under the state directory; preserve that file and secret in server backups. This store is intended for one server process using the existing persistent state volume, not independent horizontally scaled replicas.
+
+- `POST /connections/webhook/:channel`: public provider ingress, raw JSON, Composio V3 HMAC-SHA256 verification with five-minute timestamp tolerance, replay receipts and bounded body size.
+- `POST /connections/events/register`: authenticated personal project registration; no API key input.
+- `POST /connections/events/managedSetup`: authenticated managed-project registration using the configured server key.
+- `POST /connections/events/poll`: authenticated owner-only event delivery and acknowledgement.
+- Account-scoped trigger discovery/upsert/removal use the existing `/connections/api` authorization and project-generation checks.
+
+The relay accepts only Composio trigger messages. It maps managed `kai:<account-id>` identities to the authenticated KAI owner and checks personal desktop identities against their registered channel. Polling cannot select another user's queue. Events are retained for 24 hours, up to 100 unconsumed items per owner/channel; an exhausted queue returns a retryable error. Desktop clients check about every 30 seconds while open and durably deduplicate run creation. A pending workflow waits for review before later events can run.
+
+Composio currently permits one webhook subscription per project. KAI does not replace a destination used by another product. If setup reports an existing destination, choose an **App changes** watch or a dedicated Composio project. Workflow disable stops KAI dispatch but preserves shared provider subscriptions; remove unused subscriptions in the Composio dashboard. App-change watches do not need this relay and work with the existing connection service.
+
+After deployment, test with a non-sensitive event in your own connected account, confirm the event appears in Workflows run history, and review any resulting write. A configured API key alone does not prove this end-to-end event delivery. Automated coverage uses synthetic events through real HTTP routes: `node scripts/probe-connection-events.js` and `node scripts/probe-connections.js`.
