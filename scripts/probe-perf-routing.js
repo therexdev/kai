@@ -70,7 +70,11 @@ function mkWorker(models) {
 }
 
 async function register(w) {
-  const r = await j("POST", "/worker/register", { address: w.address, models: w.models, capabilities: { ramGb: 64 } });
+  const r = await j("POST", "/worker/register", {
+    address: w.address,
+    models: w.models,
+    capabilities: { ramGb: 64, ...(w.preferredModel ? { preferredModel: w.preferredModel } : {}) },
+  });
   if (!r.ok) throw new Error("registration failed");
   w.token = r.token;
 }
@@ -103,8 +107,13 @@ async function main() {
   PORT = await sched.listen(0);
   const A = mkWorker(["koinos-fast"]); // will measure slow, stay honest
   const B = mkWorker(["koinos-fast", "qwen25-32b"]); // fast, then starts failing
+  B.preferredModel = "qwen25-32b";
   await register(A);
   await register(B);
+  check(
+    [...sched.workers.values()].find((w) => w.address === B.address)?.capabilities?.preferredModel === "qwen25-32b",
+    "registration accepts a preferred model only after model-list validation"
+  );
 
   // Rate both workers with one targeted eval each. Wall time is equal, so
   // the SERVER-measured speed differs purely by completion tokens: A ~25
@@ -201,6 +210,24 @@ async function main() {
   check(
     seen.length >= 20 && seen.some((s) => !legacyPrompts.has(s.prompt)),
     "seeds include generated challenge prompts beyond the legacy pool"
+  );
+
+  console.log("probe 6b: automatic probes honor a desktop's resident-model hint");
+  const affinity = new Scheduler({ operatorSecret: OPERATOR_SECRET, dataDir: fs.mkdtempSync(path.join(os.tmpdir(), "probe-affinity-")) });
+  affinity.workers.set("wt_affinity", {
+    address: "1AffinityWorker",
+    models: ["koinos-fast", "qwen25-32b"],
+    capabilities: { ramGb: 64, preferredModel: "qwen25-32b" },
+    lastSeen: Date.now(),
+    seedsThisEpoch: 0,
+    mystThisEpoch: 0,
+  });
+  const affinitySeed = seedOnce(affinity);
+  affinity.queue.splice(0);
+  const affinityMystery = seedMysteryOnce(affinity);
+  check(
+    affinitySeed?.model === "qwen25-32b" && affinityMystery?.model === "qwen25-32b",
+    "seed and mystery probes stay on the preferred resident model"
   );
 
   console.log("probe 7: a worker actively streaming chunks keeps its lease (no false timeout)");
