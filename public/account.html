@@ -6,75 +6,25 @@
 <title>Koinos AI — Account</title>
 <meta name="robots" content="noindex" />
 <style>
-:root{
-  --ink:#0A0A0C; --panel:#111117; --panel-2:#15151c;
-  --line:#22222b; --line-2:#2f2f3a;
-  --text:#F4F3F0; --soft:#d7d6d9; --muted:#a6a4b0; --faint:#7d7c89;
-  --signal:#33E6C0; --signal-dim:#1c8f7c;
-  --value:#F2B03D; --danger:#ff6b6b;
-  --r:14px;
-  --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
-  --sans:"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
-a{color:inherit;text-decoration:none}
-.wrap{width:min(560px,calc(100% - 40px));margin:0 auto;padding:48px 0 80px}
-.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--signal);font-weight:600}
-h1{font-size:clamp(26px,4vw,34px);margin:.35em 0 .4em}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px;margin:18px 0}
-.card h2{font-size:15px;margin:0 0 12px;color:var(--soft)}
-.mono{font-family:var(--mono)}
-.muted{color:var(--muted);font-size:13.5px}
-.btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:13px;font-weight:600;
-  padding:12px 16px;border-radius:11px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);
-  cursor:pointer;transition:border-color .15s}
-.btn:hover{border-color:#463f5a}
-.btn.primary{background:var(--signal-dim);border-color:var(--signal-dim);color:#04110d}
-.btn.primary:hover{background:var(--signal);color:#04110d}
-.btn:disabled{opacity:.5;cursor:default}
-input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line-2);background:var(--ink);
-  color:var(--text);font-family:var(--mono);font-size:14px}
-input:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
-/* A placeholder is not a label: it names the field only until you type in it,
-   and a screen reader reaching an input with nothing else announces "edit
-   text" (FIND-ACC-001). These stay put. */
-.lbl{display:block;font-size:12.5px;color:var(--muted);margin:0 0 5px}
-.row{display:flex;gap:10px;margin:10px 0}
-.row input{flex:1}
-.msg{font-size:13.5px;margin:10px 0 0;min-height:1.3em}
-.msg.err{color:var(--danger)}
-.msg.ok{color:var(--signal)}
-.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
-.item:first-of-type{border-top:0}
-.item .addr{font-family:var(--mono);font-size:13px;word-break:break-all}
-.x{background:none;border:0;color:var(--faint);cursor:pointer;font-size:16px;padding:4px 8px}
-.x:hover{color:var(--danger)}
-.hide{display:none}
-hr{border:0;border-top:1px solid var(--line);margin:16px 0}
-code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-size:12.5px}
-  .wallet-item { display: block; }
-  .wallet-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .node-detail { margin-top: 8px; font-size: 0.92em; }
-  .node-state { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
-  .node-dot { width: 8px; height: 8px; border-radius: 50%; background: #8b98a9; flex-shrink: 0; }
-  .node-dot.ok { background: #34d399; }
-  .node-dot.busy { background: #38bdf8; }
-  .node-dot.off { background: #f87171; }
-  .node-models { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-  .node-prod-head { margin-top: 14px; }
-  .node-prod-note { margin-top: 6px; }
-  .node-models .chip {
-    font-size: 0.82em; padding: 2px 8px; border-radius: 999px;
-    border: 1px solid #1c2430; background: #10161d; color: #8b98a9;
-  }
-  .node-grid { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 0.9em; }
-  .node-grid .k { color: #8b98a9; }
+:root{color-scheme:light;--ink:#f5f8ff;--ink-2:#edf3ff;--panel:#fff;--panel-2:#edf3ff;--line:#dce5f2;--line-2:#c9d7ec;--text:#14284e;--soft:#344e74;--muted:#5e718e;--faint:#6b7f9c;--signal:#155eef;--signal-dim:#155eef;--value:#315ba2;--value-dim:#bfd3f4;--danger:#b52842;--max:1180px;--r:18px;--mono:ui-monospace,SFMono-Regular,Consolas,monospace;--sans:Inter,system-ui,-apple-system,'Segoe UI',sans-serif}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:100px}body{margin:0;background:var(--ink);color:var(--text);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}body::before,body::after{display:none}a{color:inherit;text-decoration:none}a:hover{color:var(--signal)}button,input,select,textarea{font:inherit}button{cursor:pointer}img{max-width:100%;height:auto}h1,h2,h3,p{margin:0}h1,h2,h3{line-height:1.2;letter-spacing:-.035em}h1{font-size:clamp(2rem,4.3vw,3.1rem);font-weight:650}h2{font-size:1.5rem}h3{font-size:1.1rem}.wrap{width:min(var(--max),calc(100% - 56px));margin-inline:auto}.mono,.addr{font-family:var(--mono)}.tnum{font-variant-numeric:tabular-nums}.lead{font-size:1rem;color:var(--muted);max-width:65ch;line-height:1.75}.muted,.hint{color:var(--muted);font-size:.9375rem}.eyebrow,.plabel{font:650 .8rem/1.5 var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--signal)}:focus-visible{outline:3px solid #79a9ff;outline-offset:3px}::selection{background:#d9e8ff;color:var(--text)}.hide,[hidden]{display:none!important}.body-link{color:var(--signal);text-decoration:underline;text-underline-offset:3px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:46px;padding:11px 18px;border:1px solid var(--line-2);border-radius:11px;background:white;color:var(--text);font:600 .9rem/1.4 var(--sans);cursor:pointer;text-align:center;transition:background .15s,border-color .15s}.btn:hover{background:#edf4ff;border-color:#a7c6f8}.btn-signal,.btn.primary{background:var(--signal);border-color:var(--signal);color:white;box-shadow:0 5px 16px #155eef15}.btn-signal:hover,.btn.primary:hover{background:#064bc9;color:white}.btn-ghost{background:transparent}.btn:disabled{opacity:.5;cursor:default}.icon{display:inline-block;width:21px;height:21px;flex:none;vertical-align:middle}.inline-heading{display:flex;align-items:center;gap:10px}.inline-heading .icon{color:var(--signal)}
+.kai-site-header{position:sticky;top:0;z-index:30;background:#f8fafff2;backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}.kai-header-inner{max-width:1240px;margin:auto;min-height:78px;padding:12px 28px;display:flex;align-items:center;justify-content:space-between;gap:24px}.kai-brand{display:inline-flex;align-items:center;gap:10px;white-space:nowrap;font-size:1.25rem;font-weight:750;letter-spacing:-.045em;color:var(--text)}.kai-brand img{display:block;width:35px;height:35px}.kai-brand em{font-style:normal;color:var(--signal)}.kai-site-links{display:flex;gap:22px;align-items:center;font-size:.875rem;font-weight:560}.kai-site-links a[aria-current=page]{color:var(--signal)}.kai-site-menu{display:none;position:relative}.kai-site-menu summary{padding:9px 12px;border:1px solid var(--line);border-radius:9px;cursor:pointer;font-size:.875rem;font-weight:600;list-style:none}.kai-site-menu summary::-webkit-details-marker{display:none}.kai-site-menu nav{position:absolute;top:48px;right:0;width:210px;padding:12px;background:white;border:1px solid var(--line);border-radius:13px;box-shadow:0 15px 30px #14284e15}.kai-site-menu nav a{display:block;padding:9px 12px}.kai-site-footer{border-top:1px solid var(--line);margin-top:48px;padding:26px 0 34px}.kai-footer-inner{max-width:1180px;width:calc(100% - 56px);margin:auto;display:flex;align-items:center;justify-content:space-between;gap:24px}.kai-site-footer nav{display:flex;flex-wrap:wrap;gap:12px 22px;font-size:.875rem;color:var(--muted)}.kai-copyright{font-size:.8125rem;color:var(--faint)}
+.kai-page-heading{display:flex;justify-content:space-between;align-items:center;gap:40px;padding:44px 0 24px}.kai-page-heading>div{max-width:780px}.kai-page-heading h1{margin:10px 0 16px}.kai-page-heading img{width:112px;height:156px;object-fit:contain;flex:none}.kai-page-heading .eyebrow{margin:0}.live-flag{display:inline-flex;align-items:center;gap:8px;font-size:.8125rem;font-weight:600;color:var(--signal)}.live-flag .pulse{width:7px;height:7px;border-radius:50%;background:var(--signal)}
+.card,.panel,.tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}.card,.panel{padding:24px}.card h2{margin-bottom:12px}.note,.stamp,.dl-note{color:var(--faint);font-size:.8125rem;line-height:1.6}.empty{padding:30px;color:var(--muted);background:white;border:1px solid var(--line);border-radius:var(--r);font-size:.9375rem}.err{color:var(--danger)}.sec-label,.sect{font-size:1.15rem;font-weight:650;color:var(--text);letter-spacing:-.02em;margin-bottom:14px}.chip{display:inline-block;padding:3px 9px;margin:3px 4px 0 0;border:1px solid var(--line);border-radius:7px;background:var(--panel-2);font-size:.8125rem;color:var(--soft)}
+@media(max-width:960px){.kai-site-links{gap:14px}.kai-header-inner{gap:15px}.kai-site-header .btn{display:none}}
+@media(max-width:720px){.wrap{width:calc(100% - 36px)}.kai-header-inner{min-height:68px;padding:10px 18px}.kai-site-links{display:none}.kai-site-menu{display:block}.kai-brand{font-size:1.15rem}.kai-brand img{width:31px;height:31px}.kai-page-heading{gap:20px;padding-top:30px}.kai-page-heading img{width:80px;height:115px}.kai-page-heading h1{font-size:2rem}.kai-footer-inner{width:calc(100% - 36px);flex-direction:column;align-items:flex-start}.kai-site-footer{margin-top:36px}.card,.panel{padding:20px}}
+@media(max-width:450px){.kai-page-heading{align-items:flex-start;gap:12px}.kai-page-heading img{width:62px;height:94px}.kai-page-heading h1{font-size:1.8rem}.kai-page-heading .lead{font-size:.9375rem}.kai-page-heading{padding-bottom:16px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important}}
+
+.kai-account-layout{display:grid;grid-template-columns:320px minmax(0,670px);gap:70px;width:min(1100px,calc(100% - 56px));margin:44px auto 64px;align-items:start}.kai-account-intro{position:sticky;top:120px;padding-top:16px}.kai-account-intro h2{font-size:2rem;margin:16px 0;line-height:1.2;max-width:270px}.kai-account-intro p:not(.eyebrow){color:var(--muted);max-width:275px}.kai-account-intro img{display:block;width:205px;height:285px;object-fit:contain;margin:26px auto 0}.kai-account-main{min-width:0}.kai-account-main h1{font-size:2rem;margin-bottom:22px}.kai-account-main .card{margin:16px 0}.card h2{font-size:1.2rem;color:var(--text)}.card .muted{margin-bottom:16px}.card .btn{margin-top:2px}.lbl{display:block;font-size:.875rem;font-weight:550;color:var(--soft);margin:16px 0 6px}input{width:100%;min-width:0;padding:12px 14px;border:1px solid var(--line-2);border-radius:10px;background:#f8fbff;color:var(--text);font-size:1rem}.row{display:flex;gap:10px;margin:10px 0}.row input{flex:1}.msg{font-size:.875rem;min-height:1.3em;margin:12px 0 0}.msg.ok{color:#147855}.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 0;border-top:1px solid var(--line)}.item:first-of-type{border-top:0}.item .addr{font-size:.875rem;overflow-wrap:anywhere}.x{background:none;border:0;color:var(--muted);font-size:1rem;padding:8px}.x:hover{color:var(--danger)}hr{border:0;border-top:1px solid var(--line);margin:18px 0}code{font: .875rem var(--mono);background:var(--panel-2);padding:3px 6px;border-radius:5px;overflow-wrap:anywhere}.wallet-item{display:block}.wallet-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.node-detail{margin-top:12px;font-size:.9375rem}.node-state{display:flex;align-items:center;gap:8px;margin-bottom:8px}.node-dot{width:7px;height:7px;border-radius:50%;background:#8293ac}.node-dot.ok{background:#147855}.node-dot.busy{background:#155eef}.node-dot.off{background:#b52842}.node-models{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}.node-grid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 16px;font-size:.875rem}.node-grid .k{color:var(--muted)}.node-grid>*{overflow-wrap:anywhere}.node-prod-head{margin-top:16px}.node-prod-note{margin-top:8px}#revokeAll{margin-left:0!important}.kai-account-main>.muted:last-child{display:none}
+@media(max-width:950px){.kai-account-layout{grid-template-columns:230px minmax(0,1fr);gap:32px}.kai-account-intro h2{font-size:1.7rem}.kai-account-intro img{width:180px;height:255px}}@media(max-width:720px){.kai-account-layout{display:block;width:calc(100% - 36px);margin-top:26px}.kai-account-intro{position:static;display:flex;align-items:center;gap:24px;padding:0 0 24px}.kai-account-intro .eyebrow{display:none}.kai-account-intro h2{font-size:1.25rem;margin:0 0 8px;max-width:none}.kai-account-intro p:not(.eyebrow){max-width:none;font-size:.875rem}.kai-account-intro img{width:72px;height:100px;margin:0}.kai-account-main h1{font-size:1.8rem}.item{flex-wrap:wrap}.card .btn{margin-bottom:6px}}
+
 </style>
+<link rel="icon" href="/redesign/brand-mark.svg" type="image/svg+xml"><meta name="theme-color" content="#f5f8ff">
 </head>
-<body>
-<div class="wrap">
-  <div class="eyebrow">Koinos AI</div>
+<body><header class="kai-site-header"><div class="kai-header-inner"><a class="kai-brand" href="/"><img src="/redesign/brand-mark.svg" alt=""><span>Koinos<em>AI</em></span></a><nav class="kai-site-links" aria-label="Main"><a href="/">Home</a><a href="/network">Network</a><a href="/testers">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account" aria-current="page">Account</a></nav><a class="btn btn-signal" href="/app#chat">Open KAI ↗</a><details class="kai-site-menu"><summary>Menu</summary><nav aria-label="Mobile"><a href="/">Home</a><a href="/network">Network</a><a href="/testers">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account" aria-current="page">Account</a><a href="/app#chat">Open KAI</a></nav></details></div></header>
+<main class="kai-account-layout"><aside class="kai-account-intro"><div><p class="eyebrow">Your KAI account</p><h2>KAI, wherever you are.</h2><p>Manage your devices, wallets, and access from one familiar place.</p></div><img src="/redesign/kai-companion.svg" alt="KAI, your AI companion"></aside><div class="kai-account-main">
   <h1 id="title">Account</h1>
   <!-- The way back. Arriving here from the app and having no route back to it
        is a dead end, and the app is where people actually spend their time. -->
@@ -171,7 +121,7 @@ code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--li
   </div>
 
   <p class="muted" style="margin-top:26px"><a href="/">← koinosai.com</a></p>
-</div>
+</div></main><footer class="kai-site-footer"><div class="kai-footer-inner"><p class="kai-copyright">© 2026 Koinos AI · Think. Build. Grow.</p><nav aria-label="Footer"><a href="/docs/">Docs</a><a href="/updates">Updates</a><a href="/privacy">Privacy</a><a href="https://github.com/therexdev/kaiapp">GitHub</a><a href="mailto:contact@koinosai.com">Contact</a></nav></div></footer>
 
 <script>
 "use strict";

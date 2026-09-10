@@ -430,7 +430,7 @@ async function loadThread() {
   const t = $("thread");
   if (!chat.current) {
     chat.messages = [];
-    t.innerHTML = `<div class="empty"><p>Nothing here yet.</p><p class="hint" style="margin-top:8px">Every answer is generated on someone else's machine and paid for from your spending limit. Start a chat and ask something.</p></div>`;
+    t.innerHTML = `<div class="kai-welcome"><div><h1>Hi, I’m <span>KAI.</span></h1><p>Ask a question, work through an idea, or make a little progress on your next project.</p></div><img src="/redesign/kai-companion.svg" alt="KAI"><p class="hint">Powered by the decentralized Koinos AI network. You choose a model and control your spending limit. Browser conversations are saved to your account.</p></div>`;
     return;
   }
   try {
@@ -471,7 +471,7 @@ function msgHtml(m) {
 function paintThread(pending) {
   const t = $("thread");
   if (!chat.messages.length && !pending) {
-    t.innerHTML = `<div class="empty"><p>Ask anything.</p><p class="hint" style="margin-top:8px">Answers come from models running on the Koinos Network — real machines, paid per token from the limit you authorised.</p></div>`;
+    t.innerHTML = `<div class="kai-welcome"><div><h1>Hi, I’m <span>KAI.</span></h1><p>Ask a question, work through an idea, or make a little progress on your next project.</p></div><img src="/redesign/kai-companion.svg" alt="KAI"><p class="hint">Powered by the decentralized Koinos AI network. You choose a model and control your spending limit. Browser conversations are saved to your account.</p></div>`;
     return;
   }
   /*

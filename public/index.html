@@ -1,875 +1,424 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Koinos AI</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Local-first, decentralized AI you own. Alpha available now: run private AI on your hardware, earn testnet KAI from idle compute, and self-host an OpenAI-compatible API that overflows into the network.">
-<meta property="og:title" content="Koinos AI — alpha available now">
-<meta property="og:description" content="Local-first, decentralized AI you own. Download the alpha: chat privately on your own hardware for free, and earn KAI on Koinos testnet for verified AI work.">
-<meta name="twitter:card" content="summary">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 L28 9 V23 L16 30 L4 23 V9 Z' fill='none' stroke='%2333E6C0' stroke-width='1.5'/%3E%3Cpath d='M12 10 V22 M12 16 L20 10 M12 16 L20 22' stroke='%23F2B03D' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Koinos AI — Your AI. Your way.</title>
+<meta name="description" content="Meet KAI, your local-first AI companion. Chat, remember, connect your apps, and build your own agents. Choose local models, the decentralized Koinos AI network, or your own API providers.">
+<meta property="og:title" content="Koinos AI — Your AI. Your way."><meta property="og:description" content="A little companion. A lot of possibility. Take control of your AI with KAI."><meta property="og:type" content="website"><meta name="theme-color" content="#f5f8ff"><link rel="icon" href="/redesign/brand-mark.svg" type="image/svg+xml">
 <style>
-:root{
-  /* dark-committed instrument palette — painted explicitly so it holds on any host ground */
-  --ink:#0A0A0C; --ink-2:#0E0E12; --panel:#111117; --panel-2:#15151c;
-  --line:#22222b; --line-2:#2f2f3a;
-  --text:#F4F3F0; --soft:#d7d6d9; --muted:#a6a4b0; --faint:#7d7c89;
-  --signal:#33E6C0;      /* network / cool */
-  --signal-dim:#1c8f7c;
-  --value:#F2B03D;       /* your hardware / earn / KAI — warm */
-  --value-dim:#a9782a;
-  --danger:#ff6b6b;
-  --max:1180px; --r:14px;
-  --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
-  --sans:"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
-  --grain:0;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{
-  margin:0; background:var(--ink); color:var(--text);
-  font-family:var(--sans); line-height:1.55; -webkit-font-smoothing:antialiased;
-  overflow-x:hidden;
-}
-body::before{ /* ambient field, warm on one corner, cool on the other — the two temperatures */
-  content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
-  background:
-    radial-gradient(760px 460px at 88% -4%, rgba(51,230,192,.10), transparent 62%),
-    radial-gradient(680px 460px at 6% 44%, rgba(242,176,61,.06), transparent 60%),
-    var(--ink);
-}
-body::after{ /* fine measurement grid */
-  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.5;
-  background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
-                   linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
-  background-size:72px 72px;
-  mask-image:linear-gradient(to bottom,#000,transparent 82%);
-}
-a{color:inherit;text-decoration:none}
-.wrap{width:min(var(--max),calc(100% - 44px));margin-inline:auto}
-:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:4px}
-::selection{background:rgba(51,230,192,.28);color:#fff}
+:root{--paper:#f5f8ff;--ink:#14284e;--muted:#61728d;--blue:#155eef;--line:#dce5f2;--soft:#eaf1ff;--navy:#0c2145;font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif;color-scheme:light}*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:95px}body{margin:0;background:var(--paper);color:var(--ink);font-size:16px;line-height:1.65}button,input{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}a:hover{color:var(--blue)}button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #5599ff;outline-offset:4px}[hidden]{display:none!important}img{max-width:100%;display:block}h1,h2,h3,p{margin:0}h1,h2,h3{line-height:1.1}h2{font-size:clamp(2.1rem,4.2vw,3.5rem);font-weight:650;letter-spacing:-.055em}h3{font-size:1.3rem;letter-spacing:-.025em}p{color:var(--muted)}.wrap{max-width:1240px;margin:auto;padding:0 34px}.eyebrow{font-size:.78rem;letter-spacing:.16em;font-weight:750;text-transform:uppercase;color:var(--blue);margin-bottom:18px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:11px;min-height:50px;padding:12px 23px;border-radius:12px;border:1px solid var(--line);font-weight:650;font-size:.91rem;background:#fff;transition:transform .2s,box-shadow .2s,background .2s;color:var(--ink);white-space:nowrap}.btn:hover{transform:translateY(-2px);box-shadow:0 8px 22px #172f5510}.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 6px 16px #155eef20}.btn.primary:hover{background:#0646c0}.btn.text{background:transparent;border-color:transparent;padding-inline:10px}.icon{width:21px;height:21px;flex:none;display:inline-block;vertical-align:middle}.actions{display:flex;flex-wrap:wrap;gap:12px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.skip{position:fixed;top:-70px;left:16px;padding:12px 20px;background:#fff;z-index:100}.skip:focus{top:10px}
+.site-nav{position:sticky;top:0;z-index:20;border-bottom:1px solid #dce5f399;background:#f8faffee;backdrop-filter:blur(18px)}.nav-inner{display:flex;align-items:center;justify-content:space-between;gap:28px;height:84px}.brand{display:flex;gap:10px;align-items:center;font-size:1.27rem;font-weight:760;letter-spacing:-.045em}.brand img{width:36px;height:36px}.brand em{font-style:normal;color:var(--blue)}.nav-links{display:flex;gap:28px;font-size:.88rem;font-weight:550}.nav-cta{display:flex;gap:10px;align-items:center}.nav-cta .btn{min-height:42px;padding:9px 17px;font-size:.84rem}.menu-toggle{display:none;border:1px solid var(--line);background:white;border-radius:9px;padding:8px 12px;font-weight:650}.mobile-nav{padding:12px 26px 22px;border-top:1px solid var(--line)}.mobile-nav a{display:block;padding:9px 0}
+.hero{position:relative;overflow:hidden;padding:75px 0 55px;background:radial-gradient(ellipse at 79% 37%,#d8e9ff 0,transparent 42%),linear-gradient(150deg,#fff 4%,#f4f8ff 64%,#eef4ff)}.hero-grid{display:grid;grid-template-columns:1.08fr 1fr;align-items:center;gap:28px}.release-pill{display:inline-flex;gap:10px;align-items:center;padding:7px 12px 7px 7px;border:1px solid #dce7f9;border-radius:100px;background:#fff8;font-size:.76rem;color:#526988;margin-bottom:27px}.release-pill b{padding:2px 9px;border-radius:100px;background:var(--soft);color:var(--blue);font-size:.71rem}.hero h1{font-size:clamp(3.8rem,6.4vw,5.6rem);line-height:1.04;font-weight:660;letter-spacing:-.065em;margin-bottom:26px}.hero h1 span{color:var(--blue)}.hero-lede{max-width:490px;font-size:1.12rem;line-height:1.75;margin-bottom:28px}.hero-lede strong{font-weight:600;color:var(--ink)}.hero-note{font-size:.76rem;margin-top:15px;color:#6c7d96}.hero-art{position:relative;min-height:580px;display:flex;justify-content:center;align-items:center}.hero-orbit{position:absolute;width:455px;height:455px;border:1px solid #bcd5fc;border-radius:50%;top:65px;left:50%;transform:translateX(-50%)}.hero-orbit:before{content:'';position:absolute;inset:35px;border:1px dashed #c8daf6;border-radius:50%}.hero-orbit:after{content:'';position:absolute;inset:-32px;border:1px solid #dde8fa;border-radius:50%}.hero-kai{width:375px;height:540px;position:relative;z-index:2;filter:drop-shadow(0 24px 19px #225ca322)}[data-kai-art] svg{height:100%;width:100%}.hero-greeting{position:absolute;top:9px;right:42px;z-index:3;transform:rotate(4deg);font-size:.88rem;border:1px solid #c4d8f9;background:white;border-radius:17px 17px 17px 3px;padding:12px 20px;box-shadow:0 8px 28px #1b458c09}.hero-greeting strong{color:var(--blue)}.float-note{position:absolute;z-index:4;display:flex;align-items:center;gap:11px;background:#fffffff0;border:1px solid #dce7f9;border-radius:15px;padding:12px 16px;box-shadow:0 15px 35px #24508d0d;font-size:.8rem}.float-note .tile-icon{background:var(--soft);color:var(--blue);padding:9px;border-radius:10px}.float-note b{display:block;line-height:1.35;font-weight:650}.float-note small{font-size:.7rem;color:var(--muted)}.float-one{left:-17px;top:150px;transform:rotate(-4deg)}.float-two{right:-8px;bottom:87px;transform:rotate(3deg)}.hero-bottom{display:flex;gap:30px;margin-top:25px;padding-top:26px;border-top:1px solid #dae5f5;font-size:.83rem;color:#607392}.hero-bottom span{display:flex;align-items:center;gap:9px}.hero-bottom .icon{width:17px;color:#4473b4}
+.belief{padding:30px 0;background:white;border-block:1px solid var(--line)}.belief-inner{display:flex;align-items:center;justify-content:space-between;gap:35px}.belief p{font-size:.76rem;max-width:165px;color:#7a88a0;line-height:1.5}.belief-list{display:flex;align-items:center;gap:36px;font-size:.96rem;font-weight:630;color:#536986;letter-spacing:-.025em}.belief-list span{white-space:nowrap}.belief-list .icon{margin-right:8px;color:var(--blue)}.section{padding:92px 0}.section-head{display:flex;justify-content:space-between;align-items:end;gap:50px;margin-bottom:38px}.section-head h2{max-width:660px}.section-head>p{max-width:340px;font-size:.94rem}.tour{background:white}.tour-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:22px}.tour-tab{display:flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--line);border-radius:100px;padding:11px 18px;color:var(--muted);font-size:.86rem;font-weight:600}.tour-tab[aria-selected=true]{background:var(--ink);border-color:var(--ink);color:white}.tour-tab .icon{width:17px;height:17px}.product-stage{position:relative;background:linear-gradient(125deg,#e8f0ff,#f1f6ff 55%,#daeaff);padding:28px;border:1px solid #dbe7f8;border-radius:22px;overflow:hidden}.app-window{border:1px solid #cbd9ed;border-radius:13px;overflow:hidden;box-shadow:0 14px 50px #274f8120;background:#f4f7fd}.window-bar{display:flex;align-items:center;justify-content:space-between;background:#f8faff;padding:8px 13px;border-bottom:1px solid var(--line);color:#6f809b;font-size:.7rem}.window-dots{display:flex;gap:5px}.window-dots i{height:7px;width:7px;border-radius:50%;background:#c5d2e5}.window-bar span:last-child{width:29px}.app-shot{width:100%;height:auto;aspect-ratio:auto;object-fit:contain;object-position:center;cursor:zoom-in;background:#f4f7fd}.tour-caption{display:grid;grid-template-columns:1fr 1.3fr auto;align-items:center;gap:32px;padding:24px 4px 0}.tour-caption h3{font-size:1.17rem}.tour-caption p{font-size:.88rem}.text-link{color:var(--blue);font-size:.87rem;font-weight:650;white-space:nowrap;border:0;background:none;padding:8px 0}.shot-disclosure{font-size:.72rem;color:#7e8ca2;margin-top:18px}
+.companion-grid{display:grid;grid-template-columns:.8fr 1fr;align-items:center;gap:92px}.companion-visual{position:relative;height:490px;background:linear-gradient(145deg,#eef5ff,#dceaff);border:1px solid #d5e3f6;border-radius:28px;overflow:hidden}.companion-visual .mini-kai{position:absolute;bottom:33px;left:50%;transform:translateX(-50%);height:310px;width:235px}.speech{position:absolute;top:43px;left:35px;right:35px;padding:18px 22px;background:white;border:1px solid #cbdffb;border-radius:16px 16px 16px 3px;box-shadow:0 14px 35px #3a69a20c;font-size:.95rem}.speech small{display:block;color:var(--blue);font-weight:650;font-size:.73rem;margin-bottom:5px}.voice-bar{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:var(--navy);color:white;padding:10px 20px;border-radius:100px;font-size:.74rem;display:flex;gap:13px;align-items:center;white-space:nowrap}.voice-bars{display:flex;gap:3px;align-items:center;height:17px}.voice-bars i{width:3px;height:8px;background:#98d9ff;border-radius:3px}.voice-bars i:nth-child(2n){height:15px}.companion-copy h2{margin-bottom:22px}.companion-copy>p{font-size:1rem;max-width:490px}.detail-list{margin:28px 0 0;padding:0;list-style:none;display:grid;gap:20px}.detail-list li{display:flex;gap:14px}.detail-list .icon{color:var(--blue);margin-top:2px}.detail-list strong{display:block;font-size:.94rem;margin-bottom:3px}.detail-list p{font-size:.88rem}.section-note{font-size:.74rem;margin-top:22px}
+.control{background:var(--navy);color:white}.control .eyebrow{color:#8cb9ff}.control .section-head>p{color:#aebdda}.control-grid{display:grid;grid-template-columns:repeat(3,1fr);margin-top:40px;border-block:1px solid #ffffff20}.route{padding:34px 30px 34px 0}.route+.route{padding-left:30px;border-left:1px solid #ffffff20}.route-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px}.route-number{font-size:.75rem;color:#8fabd6}.route .icon{width:26px;height:26px;color:#8ec7ff}.route h3{margin-bottom:15px;font-size:1.43rem}.route p{font-size:.94rem;color:#aebdda;line-height:1.75}.route-label{display:inline-block;font-size:.71rem;color:#9dc4ff;margin-top:24px;padding:4px 10px;border:1px solid #7da8e940;border-radius:100px}.control-foot{display:flex;align-items:center;gap:12px;font-size:.82rem;color:#b6c7e4;padding-top:28px}.control-foot .icon{color:#94c1ff}
+.builders{background:white}.build-layout{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center}.build-copy h2{margin-bottom:23px}.build-copy>p{max-width:490px}.build-points{display:flex;flex-wrap:wrap;gap:8px;margin:23px 0 28px}.build-points span{padding:5px 10px;border:1px solid var(--line);border-radius:6px;font-size:.76rem;color:#56708e}.code-card{background:#0e2447;border:1px solid #1f3e68;border-radius:19px;overflow:hidden;box-shadow:0 15px 40px #133d6420;transform:rotate(1deg)}.code-top{display:flex;justify-content:space-between;border-bottom:1px solid #ffffff15;padding:13px 20px;color:#9eb5d8;font-size:.78rem}.code-card pre{margin:0;padding:27px 25px;font-size:.83rem;line-height:1.9;overflow-x:auto;color:#d4e1f7;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.code-comment{color:#7d96ba}.code-purple{color:#c5abff}.code-cyan{color:#95e0ec}.code-note{border-top:1px solid #ffffff15;padding:15px 22px;color:#9eb5d8;font-size:.75rem}.build-bottom{margin-top:60px;display:grid;grid-template-columns:repeat(3,1fr);gap:30px;border-top:1px solid var(--line);padding-top:32px}.build-bottom h3{font-size:1.04rem;margin-bottom:12px}.build-bottom p{font-size:.87rem}.build-bottom .icon{color:var(--blue);margin-bottom:18px}
+.earn-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}.earn h2{margin-bottom:22px}.earn p{max-width:510px}.earn-steps{margin-top:27px;display:grid;gap:14px}.earn-step{display:flex;gap:14px;align-items:center;font-size:.88rem}.earn-step b{display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:50%;background:#e3edff;color:var(--blue);font-size:.76rem}.earn-visual{background:white;border:1px solid var(--line);border-radius:22px;padding:30px}.earn-visual .eyebrow{margin-bottom:24px}.earn-detail{display:grid;grid-template-columns:45px 1fr;gap:16px;align-items:start}.earn-detail+.earn-detail{margin-top:27px;padding-top:27px;border-top:1px solid var(--line)}.earn-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--soft);color:var(--blue)}.earn-detail h3{font-size:1.13rem;margin-bottom:9px}.earn-detail p{font-size:.88rem}.earn-detail small{display:block;color:#7a8ba4;font-size:.72rem;margin-top:10px}.earn .actions{margin-top:27px}.future{margin-top:62px;border:1px solid #cdddf5;border-radius:18px;padding:28px 32px;display:grid;grid-template-columns:165px 1fr;gap:32px;background:#edf4ff}.future-label{font-size:.75rem;font-weight:700;letter-spacing:.09em;color:#5072a5;text-transform:uppercase}.future h3{font-size:1.15rem;margin-bottom:10px}.future p{font-size:.9rem;max-width:none}.future small{display:block;color:#6e84a5;margin-top:10px;font-size:.75rem}
+.faq{background:white;padding:80px 0}.faq-grid{display:grid;grid-template-columns:.7fr 1fr;gap:95px}.faq h2{font-size:2.8rem}.faq-list details{border-bottom:1px solid var(--line)}.faq-list summary{cursor:pointer;list-style:none;padding:21px 32px 21px 0;font-size:1rem;font-weight:580;position:relative}.faq-list summary::-webkit-details-marker{display:none}.faq-list summary:after{content:'+';position:absolute;right:4px;top:19px;font-size:1.3rem;color:var(--blue)}.faq-list details[open] summary:after{content:'−'}.faq-list p{font-size:.92rem;padding:0 25px 24px 0}.faq .text-link{margin-top:23px;display:inline-block}.final-cta{padding:64px 0 60px}.cta-panel{position:relative;display:grid;grid-template-columns:1fr 230px;align-items:center;background:var(--blue);border-radius:26px;overflow:hidden;color:white;padding:49px 58px;gap:30px}.cta-panel .eyebrow{color:#b7d3ff;margin-bottom:14px}.cta-panel h2{font-size:clamp(2rem,4vw,3.2rem)}.cta-panel p{color:#cbddff;font-size:.95rem;margin:18px 0 25px;max-width:550px}.cta-panel .btn{background:white;border-color:white;color:#1248b8}.cta-panel .btn.text{color:white;border-color:#ffffff40;background:transparent}.cta-kai{height:300px;width:225px;transform:translateY(50px) rotate(6deg)}.cta-panel small{display:block;font-size:.72rem;color:#c7dbff;margin-top:13px}.waitlist-row{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:34px 10px 0}.waitlist-row h3{font-size:1rem;margin-bottom:5px}.waitlist-row p{font-size:.82rem}.waitlist-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;max-width:460px;position:relative}.waitlist-form input[type=email]{background:white;padding:12px 15px;border:1px solid var(--line);border-radius:10px;min-width:220px;min-height:49px;font-size:.9rem}.waitlist-form .btn{min-height:49px;padding:11px 18px}.form-message{flex-basis:100%;font-size:.78rem;min-height:20px}.honeypot{position:absolute;left:-10000px;opacity:0}.site-footer{padding:30px 0 25px;border-top:1px solid var(--line);font-size:.77rem;color:#6d7e98}.footer-top{display:flex;justify-content:space-between;align-items:center;gap:30px}.footer-links{display:flex;flex-wrap:wrap;gap:22px}.footer-bottom{display:flex;justify-content:space-between;gap:30px;margin-top:25px;padding-top:20px;border-top:1px solid var(--line);font-size:.72rem}.site-footer .brand{font-size:1.13rem;color:var(--ink)}.site-footer .brand img{width:29px;height:29px}.lightbox{padding:18px;max-width:min(96vw,1550px);width:96vw;border:1px solid #cad7ea;border-radius:16px;background:#f8faff;color:var(--ink)}.lightbox::backdrop{background:#06142bdc;backdrop-filter:blur(7px)}.lightbox-head{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:14px}.lightbox-head h3{font-size:1rem}.lightbox button{background:#e5edfa;border:0;border-radius:9px;padding:8px 14px;color:var(--ink)}.lightbox img{width:100%;max-height:80vh;object-fit:contain}.lightbox small{display:block;color:var(--muted);margin-top:10px;font-size:.73rem}
+@media(max-width:1100px){.nav-links{gap:19px}.hero h1{font-size:4.5rem}.hero-art{min-height:530px}.hero-kai{width:330px;height:485px}.hero-orbit{width:380px;height:380px;top:76px}.float-one{left:-15px;top:140px}.float-two{right:-8px;bottom:73px}.float-note{font-size:.72rem;padding:10px 12px;gap:8px}.float-note small{font-size:.64rem}.hero-greeting{right:10px}.belief-list{gap:23px;font-size:.86rem}.companion-grid{gap:48px}.faq-grid{gap:50px}}
+@media(max-width:850px){.wrap{padding:0 24px}.nav-links{display:none}.menu-toggle{display:block}.nav-inner{height:72px}.hero{padding-top:44px}.hero-grid{grid-template-columns:1fr;gap:0}.hero-copy{text-align:center;max-width:680px;margin:auto}.hero h1{font-size:clamp(3.5rem,10vw,5.2rem)}.hero-lede{margin-inline:auto;max-width:570px}.hero-copy .actions{justify-content:center}.hero-art{max-width:510px;width:100%;margin:20px auto 0;min-height:520px}.hero-kai{width:350px;height:510px}.hero-orbit{width:410px;height:410px;top:55px}.float-one{left:4px;top:152px}.float-two{right:8px;bottom:80px}.hero-greeting{right:20px;top:4px}.hero-bottom{justify-content:center;flex-wrap:wrap;gap:15px 25px;margin-top:15px}.belief-inner{flex-direction:column;gap:18px}.belief p{max-width:none}.belief-list{flex-wrap:wrap;justify-content:center;gap:14px 25px}.section{padding:70px 0}.section-head{display:block;margin-bottom:29px}.section-head>p{max-width:570px;margin-top:22px}.tour-caption{grid-template-columns:1fr auto;gap:10px 25px}.tour-caption p{grid-column:1/-1;grid-row:2}.product-stage{padding:20px 20px 0}.companion-grid{grid-template-columns:1fr 1fr;gap:30px}.companion-visual{height:440px}.speech{left:17px;right:17px;top:27px;font-size:.8rem;padding:14px}.companion-visual .mini-kai{height:280px;width:210px}.companion-copy h2{font-size:2.3rem}.detail-list{gap:14px}.detail-list p{font-size:.8rem}.detail-list strong{font-size:.87rem}.control-grid{grid-template-columns:1fr}.route,.route+.route{border-left:0;padding:26px 0;border-top:1px solid #ffffff20}.route:first-child{border-top:0}.route-top{margin-bottom:13px}.route-label{margin-top:15px}.build-layout{grid-template-columns:1fr;gap:35px}.build-copy>p{max-width:600px}.code-card{transform:none}.build-bottom{gap:22px}.earn-grid{grid-template-columns:1fr;gap:32px}.earn-visual{display:grid;grid-template-columns:1fr 1fr;gap:22px}.earn-visual>.eyebrow{grid-column:1/-1;margin-bottom:0}.earn-detail+.earn-detail{border-top:0;border-left:1px solid var(--line);padding:0 0 0 23px;margin:0}.earn-detail{grid-template-columns:1fr;gap:12px}.future{grid-template-columns:1fr;gap:10px}.faq-grid{grid-template-columns:1fr;gap:20px}.faq h2{font-size:2.4rem}.cta-panel{padding:35px;grid-template-columns:1fr 140px}.cta-kai{width:155px;height:240px;transform:translateY(45px)}.waitlist-row{align-items:start}.footer-top{align-items:start}.footer-links{gap:13px 20px;justify-content:flex-end;max-width:430px}}
+@media(max-width:560px){.wrap{padding:0 21px}.nav-inner{gap:12px}.brand{font-size:1.1rem}.brand img{width:29px;height:29px}.nav-cta .btn{display:none}.hero{padding-top:34px;padding-bottom:33px}.release-pill{font-size:.66rem;gap:6px;margin-bottom:25px}.release-pill b{font-size:.64rem}.hero h1{font-size:3.6rem}.hero-lede{font-size:1rem}.hero .actions{gap:8px}.hero .btn{font-size:.83rem;padding:12px 15px;min-height:47px}.hero-note{font-size:.68rem}.hero-art{min-height:455px;margin-top:20px}.hero-kai{width:295px;height:435px}.hero-orbit{width:300px;height:300px;top:83px}.hero-orbit:after{inset:-22px}.hero-orbit:before{inset:23px}.hero-greeting{top:5px;right:7px;font-size:.78rem;padding:10px 14px}.float-note{padding:9px;gap:7px;font-size:.67rem;border-radius:11px}.float-note .tile-icon{padding:6px}.float-note .icon{width:16px;height:16px}.float-note small{font-size:.59rem}.float-one{left:-11px;top:135px}.float-two{right:-8px;bottom:55px}.hero-bottom{font-size:.72rem;gap:10px 16px;padding-top:20px}.belief{padding:23px 0}.belief-list{font-size:.78rem;gap:12px 18px}.belief-list .icon{width:17px;margin-right:3px}.belief p{font-size:.75rem}.section{padding:56px 0}h2{font-size:2.3rem}.eyebrow{font-size:.7rem;margin-bottom:14px}.section-head>p{font-size:.88rem}.tour-tabs{gap:6px}.tour-tab{font-size:.73rem;padding:8px 12px;gap:6px;min-height:42px}.tour-tab .icon{width:15px}.product-stage{padding:10px;border-radius:14px}.window-bar{padding:5px 8px;font-size:.57rem}.app-window{border-radius:7px 7px 0 0}.tour-caption{padding-top:20px;gap:10px 12px}.tour-caption h3{font-size:1.01rem}.tour-caption p{font-size:.82rem}.tour-caption .text-link{font-size:.74rem}.shot-disclosure{font-size:.65rem}.companion-grid{grid-template-columns:1fr;gap:33px}.companion-visual{height:415px;order:2}.speech{left:26px;right:26px;font-size:.9rem}.companion-copy h2{font-size:2.4rem}.detail-list p{font-size:.86rem}.detail-list strong{font-size:.92rem}.section-note{font-size:.69rem}.control-foot{font-size:.77rem;align-items:start}.route p{font-size:.88rem}.build-copy>p{font-size:.93rem}.code-card pre{font-size:.68rem;padding:18px;line-height:2}.code-top{font-size:.67rem;padding:12px 16px}.code-note{font-size:.67rem;padding:13px 16px}.build-bottom{grid-template-columns:1fr;margin-top:32px;padding-top:28px;gap:27px}.build-bottom .icon{margin-bottom:12px}.build-bottom h3{margin-bottom:8px}.earn p{font-size:.93rem}.earn-visual{padding:23px;grid-template-columns:1fr}.earn-detail{grid-template-columns:40px 1fr}.earn-detail+.earn-detail{padding:23px 0 0;border-left:0;border-top:1px solid var(--line)}.earn-detail p{font-size:.84rem}.future{margin-top:40px;padding:23px}.future p{font-size:.84rem}.future-label{font-size:.67rem}.faq{padding:55px 0}.faq-list summary{font-size:.93rem}.faq-list p{font-size:.86rem}.final-cta{padding:40px 0}.cta-panel{grid-template-columns:1fr;padding:29px 25px;gap:0}.cta-panel h2{font-size:2.3rem}.cta-panel p{font-size:.9rem}.cta-kai{display:none}.cta-panel .btn{font-size:.8rem;padding:10px 14px}.waitlist-row{flex-direction:column;padding:28px 3px 0;gap:16px}.waitlist-form{width:100%}.waitlist-form input[type=email]{min-width:0;flex:1;width:55%;font-size:.8rem}.waitlist-form .btn{font-size:.8rem;padding:10px 14px}.footer-top,.footer-bottom{flex-direction:column;gap:20px}.footer-links{justify-content:start;gap:11px 18px}.footer-bottom{gap:6px;font-size:.67rem}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important}.btn:hover{transform:none}}
+/* Shared KAI rig. CSS motion only: no canvas loop, remote art or inference. */
+.kai-character{display:block;width:100%;height:100%;overflow:visible}
+.kai3d-body{transform-origin:512px 1350px;animation:kai3d-breathe 4.8s ease-in-out infinite}
+.kai3d-head{transform-origin:512px 665px;transition:transform .38s ease-in-out}
+.kai3d-head-motion{transform-origin:512px 665px;animation:kai3d-look 12s ease-in-out infinite}
+.kai3d-gaze{transform:translate(calc(var(--gaze-x,0px) * 3),calc(var(--gaze-y,0px) * 3));transition:transform .3s ease-out}
+.kai3d-eyes{transform-origin:512px 410px;animation:kai3d-blink 6.1s infinite}
+.kai3d-brows{opacity:.8}
+.kai3d-attentive,.kai3d-mouth,.kai3d-thought,.kai3d-listen{opacity:0}
+.kai3d-mouth{transform-origin:512px 534px}
+.kai3d-shadow{transform-origin:512px 1415px;animation:kai3d-ground 4.8s ease-in-out infinite}
+body[data-state=listening] .kai3d-head-motion{animation:kai3d-listening 3s ease-in-out infinite}
+body[data-state=listening] .kai3d-happy,body[data-state=thinking] .kai3d-happy,body[data-state=transcribing] .kai3d-happy{opacity:0}
+body[data-state=listening] .kai3d-attentive,body[data-state=thinking] .kai3d-attentive,body[data-state=transcribing] .kai3d-attentive{opacity:1}
+body[data-state=listening] .kai3d-listen{animation:kai3d-signal 1s ease-in-out infinite}
+body:is([data-state=thinking],[data-state=transcribing],[data-state=voicing],[data-state=searching]) .kai3d-head{transform:rotate(5deg)}
+body:is([data-state=thinking],[data-state=transcribing],[data-state=voicing],[data-state=searching]) .kai3d-head-motion{animation:kai-busy-nod 3s ease-in-out infinite}
+body[data-state=thinking] .kai3d-gaze{transform:translate(17px,-12px)}
+body[data-state=thinking] .kai3d-smile,body[data-state=transcribing] .kai3d-smile{opacity:0}
+body[data-state=thinking] .kai3d-thought,body[data-state=transcribing] .kai3d-thought{opacity:1}
+.kai3d-thought circle{animation:kai3d-dot 1.2s ease-in-out infinite}
+.kai3d-thought circle:nth-child(2){animation-delay:.15s}.kai3d-thought circle:nth-child(3){animation-delay:.3s}
+body[data-state=speaking] .kai3d-head-motion{animation:kai3d-talk 1.4s ease-in-out infinite}
+body[data-state=speaking] .kai3d-smile{opacity:0}
+body[data-state=speaking] .kai3d-mouth{opacity:1;animation:kai3d-speech .31s ease-in-out infinite alternate}
+/* Buffering pauses close the mouth without restarting the arm/head timeline. */
+body[data-state=speaking][data-audible=false] .kai3d-mouth{opacity:0;animation-play-state:paused}
+body[data-state=speaking][data-audible=false] .kai3d-smile{opacity:1}
+body[data-state=error] .kai3d-head-motion{animation:kai3d-ponder 3s ease-in-out infinite}
+body[data-state=error] .kai3d-brows{transform:rotate(-7deg);transform-origin:512px 280px}
+body.waving .kai3d-head-motion{animation:kai3d-hello 2.4s ease-in-out}
+body.waving .kai3d-body{animation:kai3d-bounce 2.4s ease-in-out}
+body.asleep .kai3d-eyes{animation:none;transform:scaleY(.12)}
+body.asleep .kai3d-head-motion{animation:none;transform:rotate(5deg)}
+body.asleep .kai3d-body{animation-duration:7s}
+body.motion-off .kai-character *,body.suspended .kai-character *{animation:none!important;transition:none!important}
+body.motion-off .kai3d-gaze,body.suspended .kai3d-gaze{transform:none}
+.kai-avatar .kai-character *{animation:none!important;transform:none!important}
+@keyframes kai3d-breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+@keyframes kai3d-ground{0%,100%{opacity:.8;transform:scaleX(1)}50%{opacity:.55;transform:scaleX(.92)}}
+@keyframes kai3d-look{0%,24%,52%,100%{transform:rotate(0)}32%,42%{transform:rotate(-3deg)}72%,83%{transform:rotate(3deg)}}
+@keyframes kai3d-blink{0%,38%,42%,70%,74%,100%{transform:scaleY(1)}40%,72%{transform:scaleY(.08)}}
+@keyframes kai3d-listening{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(-3deg) translateY(-7px)}}
+@keyframes kai3d-signal{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes kai3d-ponder{0%,100%{transform:rotate(5deg)}50%{transform:rotate(7deg) translateY(-6px)}}
+@keyframes kai3d-dot{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes kai3d-talk{0%,100%{transform:rotate(-1deg)}50%{transform:rotate(1deg) translateY(5px)}}
+@keyframes kai3d-speech{from{transform:scale(.85,.22)}to{transform:scale(1,1)}}
+@keyframes kai3d-hello{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-6deg)}40%,80%{transform:rotate(5deg)}}
+@keyframes kai3d-bounce{0%,100%{transform:translateY(0)}25%,65%{transform:translateY(-32px)}45%,85%{transform:translateY(-8px)}}
+@media(prefers-reduced-motion:reduce){.kai-character *{animation:none!important;transition:none!important}.kai3d-gaze{transform:none}}
 
-/* ---- type system ---- */
-.mono{font-family:var(--mono)}
-.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--signal);font-weight:600}
-.eyebrow.warm{color:var(--value)}
-h1,h2,h3{text-wrap:balance;margin:0;font-weight:640;letter-spacing:-.03em;line-height:1.02}
-h1{font-size:clamp(44px,6.4vw,78px);letter-spacing:-.045em}
-h2{font-size:clamp(30px,3.9vw,50px)}
-h3{font-size:19px;letter-spacing:-.02em}
-p{margin:0}
-.lead{color:var(--soft);font-size:clamp(16px,1.4vw,19px);max-width:60ch}
-.tnum{font-variant-numeric:tabular-nums}
+.kai-avatar .kai-character{overflow:hidden}
 
-/* ---- buttons ---- */
-.btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:13px;font-weight:600;
-  letter-spacing:.01em;padding:13px 18px;border-radius:11px;border:1px solid var(--line-2);
-  background:var(--panel);color:var(--text);cursor:pointer;transition:transform .15s ease,border-color .15s,background .15s}
-.btn:hover{transform:translateY(-1px);border-color:#463f5a}
-.btn .arw{transition:transform .18s}
-.btn:hover .arw{transform:translateX(3px)}
-.btn-signal{border-color:transparent;background:linear-gradient(180deg,#3ff0cc,#22c8a6);color:#04120e;box-shadow:0 10px 30px rgba(51,230,192,.18)}
-.btn-signal:hover{border-color:transparent;box-shadow:0 14px 40px rgba(51,230,192,.26)}
-.btn-value{border-color:transparent;background:linear-gradient(180deg,#f6bd55,#e59a26);color:#1a1204;box-shadow:0 10px 30px rgba(242,176,61,.16)}
-.btn-ghost{background:transparent}
+/* Articulated limbs and activity props. Every layer reuses the local texture. */
+.kai3d-puppet{transform-origin:512px 170px;transition:transform .12s ease-out}
+.kai3d-cape{transform-origin:512px 722px;animation:kai-cape-drift 4s ease-in-out infinite}
+.kai3d-arm-left{transform-origin:335px 758px}.kai3d-arm-right{transform-origin:689px 758px}
+.kai3d-forearm-left{transform-origin:260px 850px}.kai3d-forearm-right{transform-origin:764px 850px}
+.kai3d-leg-left{transform-origin:402px 1025px}.kai3d-leg-right{transform-origin:622px 1025px}
+.kai3d-shin-left{transform-origin:375px 1150px}.kai3d-shin-right{transform-origin:649px 1150px}
+.kai3d-arm,.kai3d-forearm,.kai3d-leg,.kai3d-shin{transition:transform .3s ease-out}
+.kai3d-arm-left{transform:rotate(0)}.kai3d-arm-right{animation:kai-arm-rest 4.8s ease-in-out infinite reverse}
+.kai3d-search-props,.kai3d-thinking-props,.kai3d-ledge,.kai3d-surprise{opacity:0;pointer-events:none}
+.kai3d-question-prop{transform-origin:865px 260px}.kai3d-idea-prop{opacity:0;transform-origin:887px 262px}
+body:is([data-state=thinking],[data-state=transcribing],[data-state=voicing],[data-state=searching]) .kai3d-arm-left{transform:rotate(-30deg)}
+body:is([data-state=thinking],[data-state=transcribing],[data-state=voicing],[data-state=searching]) .kai3d-forearm-left{transform:rotate(-157deg)}
+body[data-state=thinking] .kai3d-thinking-props,body[data-state=transcribing] .kai3d-thinking-props,body[data-state=voicing] .kai3d-thinking-props{opacity:1}
+body[data-state=thinking] .kai3d-question-prop,body[data-state=transcribing] .kai3d-question-prop,body[data-state=voicing] .kai3d-question-prop{animation:kai-question 5.2s ease-in-out infinite}
+body[data-state=thinking] .kai3d-idea-prop,body[data-state=transcribing] .kai3d-idea-prop,body[data-state=voicing] .kai3d-idea-prop{animation:kai-idea 5.2s ease-in-out infinite}
+body[data-state=searching] .kai3d-search-props{opacity:1}
+body[data-state=searching] .kai3d-magnifier{transform-origin:419px 707px;animation:kai-search-scan 2.6s ease-in-out infinite}
+body[data-state=searching] .kai3d-page-one{animation:kai-page-float 2.6s ease-in-out infinite}
+body[data-state=searching] .kai3d-page-two{animation:kai-page-float 2.6s ease-in-out infinite reverse}
+body[data-state=speaking] .kai3d-arm-right{animation:kai-talk-gesture 2.8s ease-in-out infinite}
+body[data-state=speaking] .kai3d-forearm-right{animation:kai-talk-hand 2.8s ease-in-out infinite}
+body[data-state=listening] .kai3d-arm-right{animation:none;transform:rotate(13deg)}
+body[data-state=listening] .kai3d-forearm-right{transform:rotate(32deg)}
+/* The desktop edge is an actual resting pose; the feet are tucked away. */
+body[data-pose=perched] .kai3d-body{animation:none;transform:translateY(430px)}
+body[data-pose=perched] .kai3d-leg,body[data-pose=perched] .kai3d-shadow{opacity:0}
+body[data-pose=perched] .kai3d-ledge{opacity:1}
+body[data-pose=perched] .kai3d-cape{animation:none;transform:scaleX(.91)}
+body[data-pose=perched]:is([data-state=idle],[data-state=listening]) .kai3d-arm{animation:none;transform:none}
+body[data-pose=perched]:is([data-state=idle],[data-state=listening]) .kai3d-forearm-left{transform:rotate(-65deg)}
+body[data-pose=perched]:is([data-state=idle],[data-state=listening]) .kai3d-forearm-right{transform:rotate(65deg)}
+/* Pickup always wins over a timed greeting or a thinking/talking body pose. */
+body[data-pose=carried] .kai3d-puppet{transform:rotate(var(--carry-tilt,0deg))}
+body[data-pose=carried] .kai3d-body{transform-origin:512px 170px;animation:kai-dangle .95s ease-in-out infinite}
+body[data-pose=carried] .kai3d-head-motion{animation:none;transform:rotate(-2deg)}
+body[data-pose=carried] .kai3d-arm-left{animation:kai-dangle-arm .8s ease-in-out infinite}
+body[data-pose=carried] .kai3d-arm-right{animation:kai-dangle-arm-right .8s ease-in-out infinite}
+body[data-pose=carried] .kai3d-forearm{animation:none;transform:none}
+body[data-pose=carried] .kai3d-leg-left{animation:kai-dangle-leg .95s ease-in-out infinite}
+body[data-pose=carried] .kai3d-leg-right{animation:kai-dangle-leg .95s ease-in-out infinite reverse}
+body[data-pose=carried] .kai3d-shin-left{transform:rotate(-9deg)}
+body[data-pose=carried] .kai3d-shin-right{transform:rotate(9deg)}
+body[data-pose=carried] .kai3d-cape{animation:kai-cape-dangle .95s ease-in-out infinite}
+body[data-pose=carried] .kai3d-shadow,body[data-pose=carried] .kai3d-search-props,body[data-pose=carried] .kai3d-thinking-props{opacity:0}
+body[data-pose=carried] .kai3d-happy{opacity:0}body[data-pose=carried] .kai3d-attentive{opacity:1}
+body[data-pose=carried]:not([data-state=speaking]) .kai3d-smile,body[data-pose=carried] .kai3d-thought{opacity:0}
+body[data-pose=carried]:not([data-state=speaking]) .kai3d-surprise{opacity:1}
+body.landing[data-pose=free] .kai3d-puppet{transform-origin:512px 1400px;animation:kai-soft-landing .65s ease-out}
+body.landing[data-pose=perched] .kai3d-head-motion{animation:kai-perch-settle .65s ease-out}
+body.landing .kai3d-shadow{animation:kai-shadow-settle .65s ease-out}
+@keyframes kai-cape-drift{0%,100%{transform:skewX(-1deg)}50%{transform:skewX(1.5deg)}}
+@keyframes kai-arm-rest{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes kai-busy-nod{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes kai-question{0%,8%{opacity:0}18%,55%{opacity:1}65%,100%{opacity:0}}
+@keyframes kai-idea{0%,62%,100%{opacity:0;transform:scale(.85)}72%,88%{opacity:1;transform:scale(1)}}
+@keyframes kai-search-scan{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@keyframes kai-page-float{0%,100%{transform:translateY(12px);opacity:.5}50%{transform:translateY(-25px);opacity:1}}
+@keyframes kai-talk-gesture{0%,100%{transform:rotate(0)}35%,60%{transform:rotate(-22deg)}}
+@keyframes kai-talk-hand{0%,100%{transform:rotate(0)}35%,60%{transform:rotate(50deg)}}
+@keyframes kai-wave-arm{0%,100%{transform:rotate(0)}22%,78%{transform:rotate(55deg)}}
+@keyframes kai-wave-hand{0%,100%{transform:rotate(0)}22%,52%,78%{transform:rotate(55deg)}37%,67%{transform:rotate(77deg)}}
+@keyframes kai-dangle{0%,100%{transform:rotate(-1.5deg) translateY(8px)}50%{transform:rotate(1.5deg) translateY(15px)}}
+@keyframes kai-dangle-arm{0%,100%{transform:rotate(-24deg)}50%{transform:rotate(-38deg)}}
+@keyframes kai-dangle-arm-right{0%,100%{transform:rotate(38deg)}50%{transform:rotate(24deg)}}
+@keyframes kai-dangle-leg{0%,100%{transform:rotate(-9deg)}50%{transform:rotate(7deg)}}
+@keyframes kai-cape-dangle{0%,100%{transform:scaleX(.85) skewX(-3deg)}50%{transform:scaleX(.92) skewX(3deg)}}
+@keyframes kai-soft-landing{0%{transform:translateY(-18px) scale(.97,1.03)}25%{transform:translateY(9px) scale(1.05,.92)}58%{transform:translateY(-6px) scale(.99,1.01)}100%{transform:none}}
+@keyframes kai-perch-settle{0%{transform:translateY(-30px) rotate(-4deg)}35%{transform:translateY(14px) rotate(2deg)}100%{transform:none}}
+@keyframes kai-shadow-settle{0%{transform:scaleX(.65);opacity:.3}35%{transform:scaleX(1.12);opacity:1}100%{transform:scaleX(1);opacity:.8}}
+body.motion-off .kai3d-puppet,body.suspended .kai3d-puppet{transform:none!important}
+body.motion-off:is([data-state=thinking],[data-state=transcribing],[data-state=voicing]) .kai3d-arm-left{transform:rotate(-30deg)}
+body.motion-off .kai3d-question-prop{opacity:1}
+@media(prefers-reduced-motion:reduce){.kai3d-puppet{transform:none!important}body:is([data-state=thinking],[data-state=transcribing],[data-state=voicing]) .kai3d-arm-left{transform:rotate(-30deg)}}
 
-/* ---- whitepaper ribbon ---- */
-.ribbon{display:block;position:relative;z-index:60;border-bottom:1px solid var(--line);
-  background:linear-gradient(90deg,rgba(242,176,61,.06),rgba(51,230,192,.08));transition:background .18s}
-.ribbon:hover{background:linear-gradient(90deg,rgba(242,176,61,.10),rgba(51,230,192,.13))}
-.ribbon-in{display:flex;align-items:center;justify-content:center;gap:8px 14px;flex-wrap:wrap;
-  padding:10px 0;font-family:var(--mono);font-size:12px;color:var(--soft);text-align:center}
-.ribbon .tag{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--signal);
-  border:1px solid var(--signal-dim);border-radius:999px;padding:3px 9px;background:rgba(51,230,192,.06)}
-.ribbon .desc{color:var(--muted)}
-.ribbon .go{color:var(--signal);display:inline-flex;align-items:center;gap:6px}
-.ribbon .go .arw{transition:transform .18s}
-.ribbon:hover .go .arw{transform:translateX(3px)}
-@media(max-width:700px){.ribbon .desc{display:none}.ribbon-in{font-size:11.5px;padding:9px 0}}
+/* A forward-facing palm and a bent elbow; the shoulder never flips over. */
+.kai3d-wave-forearm{opacity:0;pointer-events:none}
+body.waving:not([data-pose=carried]) .kai3d-arm-left{animation:kai-wave-arm 2.4s ease-in-out}
+body.waving:not([data-pose=carried]) .kai3d-forearm-left{animation:kai-wave-hand 2.4s ease-in-out}
+body.waving:not([data-pose=carried]) .kai3d-forearm-left>image{animation:kai-wave-original 2.4s linear}
+body.waving:not([data-pose=carried]) .kai3d-wave-forearm{animation:kai-wave-palm 2.4s linear}
+@keyframes kai-wave-palm{0%,14%,90%,100%{opacity:0}20%,84%{opacity:1}}
+@keyframes kai-wave-original{0%,14%,90%,100%{opacity:1}20%,84%{opacity:0}}
 
-/* ---- nav ---- */
-.nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
-  background:linear-gradient(to bottom,rgba(10,10,12,.9),rgba(10,10,12,.5) 70%,transparent);
-  border-bottom:1px solid transparent}
-.nav.stuck{border-bottom-color:var(--line)}
-.nav-in{display:flex;align-items:center;justify-content:space-between;height:66px}
-.brand{display:flex;align-items:center;gap:11px;font-family:var(--mono);font-weight:700;letter-spacing:.02em;font-size:14px}
-.mark{width:26px;height:26px;position:relative;display:grid;place-items:center}
-.mark svg{width:26px;height:26px;filter:drop-shadow(0 0 10px rgba(51,230,192,.4))}
-.brand b{font-weight:700}
-.brand .ai{color:var(--ink);background:var(--signal);padding:1px 5px;border-radius:4px;font-size:11px}
-.nav-links{display:flex;gap:26px;font-family:var(--mono);font-size:12.5px;color:var(--muted);letter-spacing:.02em}
-.nav-links a:hover{color:var(--text)}
-.nav-cta{display:flex;gap:9px}
-.burger{display:none;width:42px;height:42px;font-size:16px}
-.mobile{display:none}
+/* Raised hands have their own curled glove, with knuckles toward the viewer. */
+.kai3d-curled-forearm{opacity:0;pointer-events:none}
+body:not([data-pose=carried]):not(.waving):is([data-state=thinking],[data-state=transcribing],[data-state=voicing],[data-state=searching]) .kai3d-curled-forearm{opacity:1}
+body:not([data-pose=carried]):not(.waving):is([data-state=thinking],[data-state=transcribing],[data-state=voicing],[data-state=searching]) .kai3d-forearm-left>image{opacity:0}
+body[data-pose=carried] .kai3d-head{transform:none}
 
-/* ---- hero ---- */
-.hero{position:relative;padding:46px 0 30px}
-.hero-grid{display:grid;grid-template-columns:1.06fr .94fr;gap:30px;align-items:center;min-height:560px}
-.badge{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--soft);border:1px solid var(--line-2);border-radius:999px;padding:7px 13px;background:rgba(255,255,255,.015)}
-.badge .dot{width:6px;height:6px;border-radius:50%;background:var(--signal);box-shadow:0 0 0 4px rgba(51,230,192,.14)}
-.hero h1{margin:22px 0 0}
-.hero h1 .warm{color:var(--value)}
-.hero h1 .cool{color:var(--signal)}
-.hero h1 .danger{color:var(--danger)}
-.hero-sub .warm{color:var(--value)} .hero-sub .cool{color:var(--signal)}
-.hero-sub{margin-top:20px;font-size:clamp(16px,1.45vw,19px);color:var(--soft);max-width:56ch}
-/* dual path */
-.paths{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px}
-.path{border:1px solid var(--line);border-radius:var(--r);padding:16px;background:var(--ink-2);position:relative;transition:border-color .18s,transform .18s}
-.path:hover{transform:translateY(-2px)}
-.path.warm:hover{border-color:var(--value-dim)}
-.path.cool:hover{border-color:var(--signal-dim)}
-.path .tick{position:absolute;top:9px;right:11px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--faint)}
-.path .who{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:7px}
-.path.warm .who{color:var(--value)} .path.cool .who{color:var(--signal)}
-.path h3{font-size:17px;margin-bottom:5px}
-.path p{color:var(--muted);font-size:13.5px;margin-bottom:14px}
-.path .go{font-family:var(--mono);font-size:12.5px;display:inline-flex;gap:7px;align-items:center}
-.path.warm .go{color:var(--value)} .path.cool .go{color:var(--signal)}
-.hero-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
-.hero-note{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:12px;letter-spacing:.02em}
-.hero-foot{margin-top:26px;display:flex;gap:8px 22px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--faint);letter-spacing:.04em}
-.hero-foot span{display:inline-flex;align-items:center;gap:7px}
-.hero-foot span::before{content:"";width:5px;height:5px;border-radius:1px;background:var(--signal);transform:rotate(45deg)}
+.developer-interest{display:flex;align-items:center;gap:8px;flex-basis:100%;font-size:.8rem;color:var(--muted)}.developer-interest input{width:16px;height:16px;accent-color:var(--blue)}.section-head>p,.tour-caption p,.detail-list p,.route p,.build-bottom p,.earn-detail p,.future p,.faq-list p{font-size:1rem}
 
-/* hero canvas */
-.hero-art{position:relative;height:520px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:
-  radial-gradient(120% 120% at 15% 90%, rgba(242,176,61,.05), transparent 42%),
-  radial-gradient(120% 120% at 85% 10%, rgba(51,230,192,.06), transparent 46%),
-  var(--ink-2)}
-.hero-art canvas{display:block;width:100%;height:100%}
-.art-label{position:absolute;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--muted);
-  border:1px solid var(--line);background:rgba(10,10,12,.72);padding:6px 9px;border-radius:8px;backdrop-filter:blur(3px)}
-.art-label b{display:block;font-size:9px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:2px}
-.art-label.warm b{color:var(--value)} .art-label.cool b{color:var(--signal)}
-.al-1{left:16px;bottom:16px} .al-2{right:16px;top:16px}
-.corner{position:absolute;width:12px;height:12px;border:1px solid var(--line-2)}
-.corner.tl{top:9px;left:9px;border-right:0;border-bottom:0}
-.corner.tr{top:9px;right:9px;border-left:0;border-bottom:0}
-.corner.bl{bottom:9px;left:9px;border-right:0;border-top:0}
-.corner.br{bottom:9px;right:9px;border-left:0;border-top:0}
+/* Product layout: no decorative numbered eyebrows or isolated icon rows. */
+.route-heading,.inline-heading{display:flex;align-items:center;gap:12px;line-height:1.35}.route-heading .icon,.inline-heading .icon{flex:none;margin:0}.route h3{font-size:1.3rem}.route{padding-top:28px}.route+.route{padding-top:28px}.route p{max-width:40ch}.build-bottom .inline-heading .icon{margin:0;width:21px;height:21px}.build-bottom{gap:34px}.build-bottom .inline-heading{align-items:flex-start}.build-bottom .inline-heading .icon{margin-top:1px}.hero-grid,.tour-caption{min-width:0}.tour-panel,.product-stage,.app-window{min-width:0}.app-shot{display:block;width:100%;max-width:100%;height:auto;object-fit:contain}.tour-caption{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) auto}.shot-disclosure{font-size:.8rem;line-height:1.6}.section{padding-block:76px}.tour-caption p{line-height:1.6}.control-foot{line-height:1.6;align-items:flex-start}
+@media(max-width:850px){.tour-caption{grid-template-columns:minmax(0,1fr) auto}.section{padding-block:60px}.route p{max-width:none}}
+@media(max-width:560px){.tour-caption{grid-template-columns:1fr}.tour-caption p{grid-row:auto}.tour-caption .text-link{justify-self:start}.section{padding-block:48px}.shot-disclosure{font-size:.75rem}.tour-tabs{gap:8px}.hero-art{max-width:100%}}
 
-/* ---- section scaffolding ---- */
-section{padding:84px 0;position:relative}
-.shead{max-width:760px}
-.shead.center{margin-inline:auto;text-align:center}
-.shead h2{margin:12px 0 12px}
-.shead p{color:var(--muted);font-size:17px;max-width:64ch}
-.shead.center p{margin-inline:auto}
-.divider{height:1px;background:linear-gradient(90deg,transparent,var(--line),transparent)}
+/* Compact, evenly spaced benefit rows. Each item contains only its icon and label. */
+.hero-bottom{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px;margin-top:28px;padding-top:24px;font-size:1rem;line-height:1.45;color:#4c6588}.hero-bottom>.hero-benefit{display:flex;align-items:center;gap:11px;min-width:0}.hero-bottom .hero-benefit>span{display:block;min-width:0}.hero-bottom .icon{width:20px;height:20px;flex:none;color:#3e71b8}
+.belief{padding-block:29px}.belief-inner{display:grid;grid-template-columns:150px minmax(0,1fr);gap:30px;align-items:center}.belief-inner>p{font-size:.8125rem;line-height:1.65;color:#647a9b;max-width:none}.belief-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px;align-items:center;font-size:1.125rem;line-height:1.45;font-weight:600;letter-spacing:-.025em;color:#385579}.belief-list>span{display:flex;align-items:center;gap:11px;white-space:normal;min-width:0}.belief-list .icon{margin:0;width:24px;height:24px;flex:none}
+@media(max-width:1050px){.belief-inner{grid-template-columns:1fr;gap:18px}.belief-inner>p br{display:none}.belief-inner>p br:after{content:' '}.belief-list{gap:20px}.hero-bottom{font-size:.9375rem}}
+@media(max-width:760px){.hero-bottom{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 26px;text-align:left;max-width:610px;margin-inline:auto}.belief-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 26px;font-size:1.125rem}.belief-inner>p{font-size:.875rem}.belief{padding-block:26px}}
+@media(max-width:420px){.hero-bottom{font-size:.875rem;gap:16px}.hero-bottom>.hero-benefit{gap:8px}.hero-bottom .icon{width:18px;height:18px}.belief-list{font-size:1.0625rem;gap:20px 16px}.belief-list>span{gap:9px}.belief-list .icon{width:21px;height:21px}}
+</style></head><body id="top" data-state="idle"><a class="skip" href="#main">Skip to content</a>
+<header class="site-nav"><div class="wrap nav-inner"><a class="brand" href="#top" aria-label="Koinos AI home"><img src="/redesign/brand-mark.svg" alt="" width="36" height="36"><span>Koinos<em>AI</em></span></a><nav class="nav-links" aria-label="Main navigation"><a href="#meet-kai">Meet KAI</a><a href="#features">Explore</a><a href="#developers">Build</a><a href="/network">Network</a><a href="/account">Account</a><a href="/docs/">Docs</a></nav><div class="nav-cta"><a class="btn primary" href="/testers">Get Koinos AI <span aria-hidden="true">↗</span></a><button class="menu-toggle" aria-expanded="false" aria-controls="mobile-nav">Menu</button></div></div><nav class="mobile-nav" id="mobile-nav" hidden aria-label="Mobile navigation"><a href="#meet-kai">Meet KAI</a><a href="#features">Explore the app</a><a href="#developers">Build with KAI</a><a href="#earn">Earn & contribute</a><a href="/docs/">Documentation</a><a href="/testers">Get Koinos AI</a></nav></header>
+<main id="main">
+<section class="hero"><div class="wrap"><div class="hero-grid"><div class="hero-copy"><a class="release-pill" href="#features"><b>MEET THE NEW KAI</b> A more personal kind of AI <span aria-hidden="true">↗</span></a><h1>Your AI.<br>Your way.<br><span>Meet KAI.</span></h1><p class="hero-lede">A little companion. A lot of possibility.<br><strong>Think, build, and get things done</strong> with AI that starts on your computer—and works the way you choose.</p><div class="actions"><a class="btn primary" href="/testers"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg> Get Koinos AI</a><a class="btn" href="#features">Take a look inside <span aria-hidden="true">↓</span></a></div><p class="hero-note">Local AI is free to use · Optional API providers · Alpha available</p></div><div class="hero-art" aria-label="KAI, the blue and white robot companion"><div class="hero-orbit" aria-hidden="true"></div><div class="hero-greeting">Hey, I'm <strong>KAI.</strong> Let's make something.</div><div class="hero-kai" data-kai-art="hero"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 40 1024 1440" class="kai-character" aria-hidden="true">
+  <defs>
+    <!-- Code-native silhouette clips keep the original texture intact. -->
+    <mask maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536" id="hero-kai-head-cutout"><path fill="white" stroke="black" stroke-width="10" stroke-linejoin="round" d="M114 304 118 174Q121 96 151 96Q185 90 193 139L194 258Q300 94 510 96Q720 90 831 258L829 152Q827 99 857 96Q888 92 901 127L910 307Q939 325 952 352Q966 386 966 438Q966 520 936 544Q905 568 856 558Q836 665 674 677Q512 692 350 677Q193 664 171 554Q122 572 90 548Q60 528 56 451Q51 384 68 353Q82 320 114 304Z"/></mask>
+    <filter id="hero-kai-face-glow" x="-35%" y="-50%" width="170%" height="200%"><feGaussianBlur stdDeviation="8" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <radialGradient id="hero-kai-ground"><stop stop-color="#1268ed" stop-opacity=".18"/><stop offset="1" stop-color="#1268ed" stop-opacity="0"/></radialGradient>
 
-/* instrument panel primitive */
-.panel{position:relative;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:24px}
-.panel .plabel{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+    <mask id="hero-kai-torso-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M350 674Q510 695 677 674L738 729Q691 725 667 757L670 905Q676 930 665 951L574 1040Q514 1055 451 1040L354 952Q348 933 356 908L354 758Q329 723 285 729Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="hero-kai-upper-arm-left-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M333 726Q292 726 266 773L238 815Q223 830 234 848Q253 873 278 878Q293 883 309 861Q338 829 355 783L355 747Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="hero-kai-upper-arm-right-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M333 726Q292 726 266 773L238 815Q223 830 234 848Q253 873 278 878Q293 883 309 861Q338 829 355 783L355 747Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round" transform="translate(1024 0) scale(-1 1)"/></mask>
+    <mask id="hero-kai-forearm-left-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M239 831Q205 853 127 908Q111 930 108 962L108 972Q77 996 65 1025Q51 1040 51 1066Q50 1090 70 1097Q83 1102 95 1094L110 1058Q134 1089 153 1073Q172 1063 170 1039Q190 1033 200 1008Q242 993 267 941L301 884Q266 870 239 831Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="hero-kai-forearm-right-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M239 831Q205 853 127 908Q111 930 108 962L108 972Q77 996 65 1025Q51 1040 51 1066Q50 1090 70 1097Q83 1102 95 1094L110 1058Q134 1089 153 1073Q172 1063 170 1039Q190 1033 200 1008Q242 993 267 941L301 884Q266 870 239 831Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round" transform="translate(1024 0) scale(-1 1)"/></mask>
+    <mask id="hero-kai-thigh-left-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M361 954Q409 1006 459 1037L468 1074L451 1150Q415 1168 382 1167Q344 1161 310 1129L319 1060Q325 1017 361 954Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="hero-kai-thigh-right-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M361 954Q409 1006 459 1037L468 1074L451 1150Q415 1168 382 1167Q344 1161 310 1129L319 1060Q325 1017 361 954Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round" transform="translate(1024 0) scale(-1 1)"/></mask>
+    <mask id="hero-kai-shin-left-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M318 1123Q380 1099 422 1135L450 1150Q472 1215 465 1292Q478 1345 462 1362C397 1401 215 1425 178 1387Q170 1374 177 1347Q190 1288 246 1251Q255 1197 286 1163Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="hero-kai-shin-right-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M318 1123Q380 1099 422 1135L450 1150Q472 1215 465 1292Q478 1345 462 1362C397 1401 215 1425 178 1387Q170 1374 177 1347Q190 1288 246 1251Q255 1197 286 1163Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round" transform="translate(1024 0) scale(-1 1)"/></mask>
+    <mask id="hero-kai-wave-sleeve-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M239 831Q205 853 127 908Q111 930 108 962L160 1002Q230 990 267 941L301 884Q266 870 239 831Z" fill="white" stroke="black" stroke-width="4"/></mask>
+    <linearGradient id="hero-kai-palm-shade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#496181"/><stop offset=".5" stop-color="#162c4e"/><stop offset="1" stop-color="#061229"/></linearGradient>
+    <linearGradient id="hero-kai-cape-shade" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#039dff"/><stop offset=".32" stop-color="#064ad4"/><stop offset=".68" stop-color="#083bc5"/><stop offset="1" stop-color="#06b8ff"/></linearGradient>
+    <linearGradient id="hero-kai-prop-metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".42" stop-color="#a3eaff"/><stop offset=".65" stop-color="#0575eb"/><stop offset="1" stop-color="#05245b"/></linearGradient>
+    <radialGradient id="hero-kai-prop-glass"><stop stop-color="#58f3ff" stop-opacity=".04"/><stop offset=".72" stop-color="#07beff" stop-opacity=".12"/><stop offset="1" stop-color="#00baff" stop-opacity=".6"/></radialGradient>
+    <radialGradient id="hero-kai-bulb-light"><stop stop-color="#fffbd1"/><stop offset=".55" stop-color="#ffdf65"/><stop offset="1" stop-color="#ffaa17"/></radialGradient>
+  </defs>
+  <ellipse class="kai3d-shadow" cx="512" cy="1415" rx="390" ry="46" fill="url(#hero-kai-ground)"/>
+  <g class="kai3d-puppet"><g class="kai3d-body">
+    <g class="kai3d-cape"><path d="M351 683Q285 696 214 813L129 973Q77 1116 173 1182L183 1139Q234 1088 309 1121Q512 1145 715 1121Q790 1088 841 1139L851 1182Q947 1116 895 973L810 813Q739 696 673 683Z" fill="url(#hero-kai-cape-shade)" stroke="#075bdd" stroke-width="9"/><path d="M308 768Q184 1054 173 1150M716 768Q840 1054 851 1150" fill="none" stroke="#02c8ff" stroke-opacity=".35" stroke-width="12"/></g>
+    <g class="kai3d-leg kai3d-leg-left"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#hero-kai-thigh-left-cutout)"/><g class="kai3d-shin kai3d-shin-left"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#hero-kai-shin-left-cutout)"/></g></g>
+    <g class="kai3d-leg kai3d-leg-right"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#hero-kai-thigh-right-cutout)"/><g class="kai3d-shin kai3d-shin-right"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#hero-kai-shin-right-cutout)"/></g></g>
+    <g class="kai3d-torso"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#hero-kai-torso-cutout)"/></g>
+    <g class="kai3d-head"><g class="kai3d-head-motion">
+      <image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#hero-kai-head-cutout)"/>
+      <g class="kai3d-gaze" filter="url(#hero-kai-face-glow)" fill="#35e4ff" stroke="#35e4ff" stroke-linecap="round">
+        <g class="kai3d-brows" fill="none" stroke-width="13"><path d="M302 285Q329 266 358 280"/><path d="M660 280Q690 266 718 285"/></g>
+        <g class="kai3d-eyes" fill="none" stroke-width="30">
+          <path class="kai3d-happy" d="M283 441C299 346 382 326 412 441M610 441C641 326 724 346 740 441"/>
+          <g class="kai3d-attentive" fill="#35e4ff" stroke="none"><ellipse cx="351" cy="403" rx="28" ry="52"/><ellipse cx="672" cy="403" rx="28" ry="52"/></g>
+        </g>
+        <path class="kai3d-smile" stroke="none" d="M457 504Q512 533 568 504Q556 565 512 566Q468 565 457 504Z"/>
+        <ellipse class="kai3d-surprise" cx="512" cy="529" rx="21" ry="29" stroke="none"/>
+        <ellipse class="kai3d-mouth" cx="512" cy="534" rx="45" ry="37" stroke="none"/>
+        <g class="kai3d-thought" stroke="none"><circle cx="473" cy="535" r="11"/><circle cx="512" cy="535" r="11"/><circle cx="551" cy="535" r="11"/></g>
+      </g>
+      <g class="kai3d-listen" fill="none" stroke="#09baff" stroke-width="13" stroke-linecap="round"><path d="M27 358Q-5 418 27 479M994 358Q1026 418 994 479"/></g>
+    </g></g>
+    <g class="kai3d-search-props">
+      <g class="kai3d-search-pages" fill="#d7f8ff" fill-opacity=".83" stroke="#19c6ff" stroke-width="7"><g class="kai3d-page-one"><rect x="52" y="663" width="134" height="165" rx="17" transform="rotate(-12 119 746)"/><path d="M78 707H149M78 733H142M78 759H129"/></g><g class="kai3d-page-two"><rect x="848" y="665" width="134" height="165" rx="17" transform="rotate(12 915 746)"/><path d="M880 707H952M880 733H942M880 759H927"/></g></g>
+      <g class="kai3d-magnifier"><path d="M378 550 419 707" stroke="#032c71" stroke-width="53" stroke-linecap="round"/><path d="M379 550 419 707" stroke="url(#hero-kai-prop-metal)" stroke-width="36" stroke-linecap="round"/><circle cx="298" cy="439" r="140" fill="#07315a" fill-opacity=".2" stroke="#05377c" stroke-width="30"/><circle cx="298" cy="439" r="140" fill="url(#hero-kai-prop-glass)" stroke="url(#hero-kai-prop-metal)" stroke-width="19"/><circle cx="298" cy="439" r="119" fill="none" stroke="#1fe4ff" stroke-width="5"/><path d="M211 408Q224 350 280 347" fill="none" stroke="#c5fcff" stroke-width="15" stroke-linecap="round"/></g>
+    </g>
+    <g class="kai3d-arm kai3d-arm-left"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#hero-kai-upper-arm-left-cutout)"/><g class="kai3d-forearm kai3d-forearm-left"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#hero-kai-forearm-left-cutout)"/><g class="kai3d-curled-forearm"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#hero-kai-wave-sleeve-cutout)"/>
+      <g class="kai3d-curled-hand" transform="translate(142 965) rotate(187)" fill="url(#hero-kai-palm-shade)" stroke="#071c3c" stroke-width="6" stroke-linejoin="round">
+        <!-- A relaxed fist: upright knuckles and a thumb folded across the fingers. -->
+        <path d="M-40 0Q-58-22-53-46L-48-67Q-45-82-31-78Q-25-95-10-87Q2-99 15-87Q33-96 43-78L48-42Q58-24 40-3Z"/>
+        <path d="M-31-75-32-48Q-23-38-13-47L-10-84M-12-47Q1-38 12-49L15-84M12-49Q27-39 37-51L36-74" fill="none" stroke="#6f91b8" stroke-width="4" stroke-linecap="round"/>
+        <path d="M42-48Q63-49 60-29Q48-5 18-9L-6-18Q-18-29-8-38Q0-44 14-34L30-32Z"/>
+        <path d="M-40 0Q0-11 42 0L37 24Q-1 33-37 22Z" fill="url(#hero-kai-prop-metal)" stroke="#1255a2"/>
+      </g></g><g class="kai3d-wave-forearm"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#hero-kai-wave-sleeve-cutout)"/><g transform="translate(142 965) rotate(-120)"><g class="kai3d-wave-palm" fill="url(#hero-kai-palm-shade)" stroke="#071c3c" stroke-width="7" stroke-linejoin="round">
+        <path d="M-43-2C-61-31-70-43-77-64L-90-94Q-94-108-83-112Q-72-116-63-99L-47-78-58-155Q-60-170-48-172Q-34-174-32-157L-21-99-22-177Q-22-191-9-191Q5-190 5-175L8-101 17-166Q19-182 32-179Q44-176 41-160L33-92 49-136Q54-150 66-143Q77-137 71-124L53-64Q48-38 36-3Z"/>
+        <path d="M-33-55Q-2-69 26-49M-37-79-29-42M-6-89-4-50M24-82 16-47" fill="none" stroke="#6989af" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+        <path d="M-42-4Q-3-13 39-4L35 21Q-4 30-39 19Z" fill="url(#hero-kai-prop-metal)" stroke="#1255a2"/>
+      </g></g></g></g></g>
+    <g class="kai3d-arm kai3d-arm-right"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#hero-kai-upper-arm-right-cutout)"/><g class="kai3d-forearm kai3d-forearm-right"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#hero-kai-forearm-right-cutout)"/></g></g>
 
-/* ---- problem / enemies ---- */
-.enemies{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
-.enemy{border:1px solid var(--line);border-radius:var(--r);background:linear-gradient(180deg,var(--panel),var(--ink-2));padding:24px;position:relative;overflow:hidden}
-.enemy .idx{font-family:var(--mono);font-size:11px;color:var(--danger);letter-spacing:.1em}
-.enemy h3{margin:14px 0 8px}
-.enemy p{color:var(--muted);font-size:14.5px}
-.enemy .barb{margin-top:16px;font-family:var(--mono);font-size:12px;color:var(--soft);border-top:1px dashed var(--line-2);padding-top:12px}
-.enemy .barb b{color:var(--signal)}
+    <g class="kai3d-thinking-props">
+      <g class="kai3d-question-prop" transform="translate(865 224)"><path d="M-57-70Q-8-103 45-66Q88-35 54 12L23 40V70H-17V23Q-16 6 5-10Q35-32 8-47Q-12-61-31-43Z" fill="#0c80ff" stroke="#84eaff" stroke-width="8"/><circle cy="103" r="23" fill="#05cfff" stroke="#8bf0ff" stroke-width="6"/></g>
+      <g class="kai3d-idea-prop"><g transform="translate(887 262)"><g class="kai3d-idea-rays" fill="none" stroke="#ffcf4f" stroke-width="12" stroke-linecap="round"><path d="M0-129V-159M91-91L112-112M127 0H157M-91-91L-112-112M-127 0H-157M0-129V-159"/></g><path d="M-41 57C-44 32-79 14-79-28A79 79 0 0 1 79-28C79 14 44 32 41 57Z" fill="url(#hero-kai-bulb-light)" stroke="#fff4be" stroke-width="9"/><path d="M-15 55V-11L0 2 15-11V55M-39 74H39M-31 90H31" fill="none" stroke="#f8fcff" stroke-width="11" stroke-linecap="round"/><path d="M-28 101Q0 128 28 101" fill="#2876c2"/></g></g>
+    </g>
 
-/* ---- the shift / layers ---- */
-.layers{display:grid;grid-template-columns:1.05fr .95fr;gap:34px;align-items:center}
-.layer-list{display:grid;gap:10px;margin-top:6px}
-.layer{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:15px 17px;background:var(--ink-2)}
-.layer .lg{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:13px}
-.layer.l-local .lg{background:rgba(242,176,61,.12);color:var(--value);border:1px solid var(--value-dim)}
-.layer.l-private .lg{background:rgba(242,176,61,.06);color:var(--value);border:1px solid var(--line-2)}
-.layer.l-network .lg{background:rgba(51,230,192,.10);color:var(--signal);border:1px solid var(--signal-dim)}
-.layer.l-conf .lg{background:rgba(51,230,192,.05);color:var(--signal);border:1px dashed var(--line-2)}
-.layer strong{font-size:15px} .layer small{display:block;color:var(--muted);font-size:13px;margin-top:1px}
-.layer .cost{font-family:var(--mono);font-size:11px;color:var(--faint);text-align:right;white-space:nowrap}
-.layer.l-local .cost{color:var(--value)}
-.thesis-card{position:relative;border:1px solid var(--line);border-radius:18px;padding:28px;background:
-  radial-gradient(90% 90% at 50% 0,rgba(51,230,192,.06),transparent 60%),var(--panel)}
-.thesis-card .q{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
-.thesis-card blockquote{margin:14px 0 0;font-size:23px;line-height:1.32;letter-spacing:-.02em}
-.thesis-card blockquote .warm{color:var(--value)} .thesis-card blockquote .cool{color:var(--signal)}
-.flowbar{margin-top:22px;display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;color:var(--muted);flex-wrap:wrap}
-.flowbar .n{border:1px solid var(--line-2);border-radius:7px;padding:6px 9px}
-.flowbar .n.on-w{color:var(--value);border-color:var(--value-dim)}
-.flowbar .n.on-c{color:var(--signal);border-color:var(--signal-dim)}
-.flowbar .ar{color:var(--faint)}
+  </g></g>
+  <g class="kai3d-ledge"><path d="M166 1470H858" stroke="#053971" stroke-width="13" stroke-linecap="round"/><path d="M166 1467H858" stroke="#15c8ff" stroke-width="5" stroke-linecap="round"/></g>
+</svg>
+</div><div class="float-note float-one"><span class="tile-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span><span><b>Your computer first</b><small>Your choice of what connects</small></span></div><div class="float-note float-two"><span class="tile-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg></span><span><b>Made for your world</b><small>Your ideas. Your tools. Your KAI.</small></span></div></div></div><div class="hero-bottom"><span class="hero-benefit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg><span>Local-first by design</span></span><span class="hero-benefit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg><span>Decentralized network</span></span><span class="hero-benefit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg><span>Optional API providers</span></span><span class="hero-benefit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg><span>Open-source & extensible</span></span></div></div></section>
+<div class="belief"><div class="wrap belief-inner"><p>One workspace. <br>More possibilities.</p><div class="belief-list"><span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></svg> Talk naturally</span><span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></svg> Remember what matters</span><span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></svg> Build your routines</span><span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22v-5"/><path d="M15 8V2"/><path d="M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z"/><path d="M9 8V2"/></svg> Connect your world</span></div></div></div>
+<section class="section tour" id="features"><div class="wrap"><div class="section-head"><div><p class="eyebrow">A closer look</p><h2>One home for<br>everything you do with AI.</h2></div><p>From a quick question to a connected routine. Meet the tools inside your new KAI workspace.</p></div><div class="tour-tabs" role="tablist" aria-label="App feature tour">
+<button class="tour-tab" role="tab" id="tab-chat" aria-selected="true" aria-controls="tour-panel" data-feature="chat"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></svg> Chat</button><button class="tour-tab" role="tab" id="tab-brain" aria-selected="false" aria-controls="tour-panel" tabindex="-1" data-feature="brain"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></svg> Brain</button><button class="tour-tab" role="tab" id="tab-workflows" aria-selected="false" aria-controls="tour-panel" tabindex="-1" data-feature="workflows"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></svg> Workflows</button><button class="tour-tab" role="tab" id="tab-connections" aria-selected="false" aria-controls="tour-panel" tabindex="-1" data-feature="connections"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22v-5"/><path d="M15 8V2"/><path d="M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z"/><path d="M9 8V2"/></svg> Connections</button><button class="tour-tab" role="tab" id="tab-models" aria-selected="false" aria-controls="tour-panel" tabindex="-1" data-feature="models"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg> Models</button><button class="tour-tab" role="tab" id="tab-agents" aria-selected="false" aria-controls="tour-panel" tabindex="-1" data-feature="agents"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 22V7a1 1 0 0 0-1-1H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a1 1 0 0 0-1-1H2"/><rect x="14" y="2" width="8" height="8" rx="1"/></svg> Agent builder</button></div>
+<div id="tour-panel" role="tabpanel" aria-labelledby="tab-chat"><div class="product-stage"><div class="app-window"><div class="window-bar"><span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>Koinos AI · Test preview</span><span></span></div><img id="tour-image" class="app-shot" src="/redesign/chat.jpg" width="1363" height="936" alt="Koinos AI Test chat workspace, with KAI and the new app navigation."></div></div><div class="tour-caption" aria-live="polite"><h3 id="tour-title">Start with a conversation.</h3><p id="tour-description">Write, research, plan, and work through ideas with KAI. Keep your conversations together and choose the right model for the moment.</p><button class="text-link" id="tour-expand">View screenshot <span aria-hidden="true">↗</span></button></div></div><p class="shot-disclosure">New screenshots from the Test interface with sample workspace data. Features shown are in Test; release availability may differ.</p></div></section>
+<section class="section" id="meet-kai"><div class="wrap companion-grid"><div class="companion-visual"><div class="speech"><small>YOU + KAI</small>“Hey KAI, help me turn this idea into a plan.”</div><div class="mini-kai" data-kai-art="companion"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 40 1024 1440" class="kai-character" aria-hidden="true">
+  <defs>
+    <!-- Code-native silhouette clips keep the original texture intact. -->
+    <mask maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536" id="companion-kai-head-cutout"><path fill="white" stroke="black" stroke-width="10" stroke-linejoin="round" d="M114 304 118 174Q121 96 151 96Q185 90 193 139L194 258Q300 94 510 96Q720 90 831 258L829 152Q827 99 857 96Q888 92 901 127L910 307Q939 325 952 352Q966 386 966 438Q966 520 936 544Q905 568 856 558Q836 665 674 677Q512 692 350 677Q193 664 171 554Q122 572 90 548Q60 528 56 451Q51 384 68 353Q82 320 114 304Z"/></mask>
+    <filter id="companion-kai-face-glow" x="-35%" y="-50%" width="170%" height="200%"><feGaussianBlur stdDeviation="8" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <radialGradient id="companion-kai-ground"><stop stop-color="#1268ed" stop-opacity=".18"/><stop offset="1" stop-color="#1268ed" stop-opacity="0"/></radialGradient>
 
-/* ---- developers ---- */
-.dev-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.code{border:1px solid var(--line);border-radius:var(--r);background:#08080b;overflow:hidden}
-.code-top{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--faint)}
-.code-top .dots{display:flex;gap:6px}
-.code-top .dots i{width:9px;height:9px;border-radius:50%;background:var(--line-2)}
-.code pre{margin:0;padding:18px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.85;color:#c6c5cc}
-.code .k{color:var(--signal)} .code .s{color:var(--value)} .code .c{color:var(--faint)} .code .f{color:#8fb8ff}
-.modes{display:grid;gap:10px;margin-top:2px}
-.mode{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--ink-2);display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center}
-.mode b{font-family:var(--mono);font-size:13px}
-.mode small{color:var(--muted);font-size:13px;grid-column:1}
-.mode .pin{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--signal);border:1px solid var(--signal-dim);border-radius:6px;padding:3px 7px;grid-row:1/3;justify-self:end}
-.mode .pin.w{color:var(--value);border-color:var(--value-dim)}
+    <mask id="companion-kai-torso-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M350 674Q510 695 677 674L738 729Q691 725 667 757L670 905Q676 930 665 951L574 1040Q514 1055 451 1040L354 952Q348 933 356 908L354 758Q329 723 285 729Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="companion-kai-upper-arm-left-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M333 726Q292 726 266 773L238 815Q223 830 234 848Q253 873 278 878Q293 883 309 861Q338 829 355 783L355 747Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="companion-kai-upper-arm-right-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M333 726Q292 726 266 773L238 815Q223 830 234 848Q253 873 278 878Q293 883 309 861Q338 829 355 783L355 747Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round" transform="translate(1024 0) scale(-1 1)"/></mask>
+    <mask id="companion-kai-forearm-left-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M239 831Q205 853 127 908Q111 930 108 962L108 972Q77 996 65 1025Q51 1040 51 1066Q50 1090 70 1097Q83 1102 95 1094L110 1058Q134 1089 153 1073Q172 1063 170 1039Q190 1033 200 1008Q242 993 267 941L301 884Q266 870 239 831Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="companion-kai-forearm-right-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M239 831Q205 853 127 908Q111 930 108 962L108 972Q77 996 65 1025Q51 1040 51 1066Q50 1090 70 1097Q83 1102 95 1094L110 1058Q134 1089 153 1073Q172 1063 170 1039Q190 1033 200 1008Q242 993 267 941L301 884Q266 870 239 831Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round" transform="translate(1024 0) scale(-1 1)"/></mask>
+    <mask id="companion-kai-thigh-left-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M361 954Q409 1006 459 1037L468 1074L451 1150Q415 1168 382 1167Q344 1161 310 1129L319 1060Q325 1017 361 954Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="companion-kai-thigh-right-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M361 954Q409 1006 459 1037L468 1074L451 1150Q415 1168 382 1167Q344 1161 310 1129L319 1060Q325 1017 361 954Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round" transform="translate(1024 0) scale(-1 1)"/></mask>
+    <mask id="companion-kai-shin-left-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M318 1123Q380 1099 422 1135L450 1150Q472 1215 465 1292Q478 1345 462 1362C397 1401 215 1425 178 1387Q170 1374 177 1347Q190 1288 246 1251Q255 1197 286 1163Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="companion-kai-shin-right-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M318 1123Q380 1099 422 1135L450 1150Q472 1215 465 1292Q478 1345 462 1362C397 1401 215 1425 178 1387Q170 1374 177 1347Q190 1288 246 1251Q255 1197 286 1163Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round" transform="translate(1024 0) scale(-1 1)"/></mask>
+    <mask id="companion-kai-wave-sleeve-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M239 831Q205 853 127 908Q111 930 108 962L160 1002Q230 990 267 941L301 884Q266 870 239 831Z" fill="white" stroke="black" stroke-width="4"/></mask>
+    <linearGradient id="companion-kai-palm-shade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#496181"/><stop offset=".5" stop-color="#162c4e"/><stop offset="1" stop-color="#061229"/></linearGradient>
+    <linearGradient id="companion-kai-cape-shade" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#039dff"/><stop offset=".32" stop-color="#064ad4"/><stop offset=".68" stop-color="#083bc5"/><stop offset="1" stop-color="#06b8ff"/></linearGradient>
+    <linearGradient id="companion-kai-prop-metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".42" stop-color="#a3eaff"/><stop offset=".65" stop-color="#0575eb"/><stop offset="1" stop-color="#05245b"/></linearGradient>
+    <radialGradient id="companion-kai-prop-glass"><stop stop-color="#58f3ff" stop-opacity=".04"/><stop offset=".72" stop-color="#07beff" stop-opacity=".12"/><stop offset="1" stop-color="#00baff" stop-opacity=".6"/></radialGradient>
+    <radialGradient id="companion-kai-bulb-light"><stop stop-color="#fffbd1"/><stop offset=".55" stop-color="#ffdf65"/><stop offset="1" stop-color="#ffaa17"/></radialGradient>
+  </defs>
+  <ellipse class="kai3d-shadow" cx="512" cy="1415" rx="390" ry="46" fill="url(#companion-kai-ground)"/>
+  <g class="kai3d-puppet"><g class="kai3d-body">
+    <g class="kai3d-cape"><path d="M351 683Q285 696 214 813L129 973Q77 1116 173 1182L183 1139Q234 1088 309 1121Q512 1145 715 1121Q790 1088 841 1139L851 1182Q947 1116 895 973L810 813Q739 696 673 683Z" fill="url(#companion-kai-cape-shade)" stroke="#075bdd" stroke-width="9"/><path d="M308 768Q184 1054 173 1150M716 768Q840 1054 851 1150" fill="none" stroke="#02c8ff" stroke-opacity=".35" stroke-width="12"/></g>
+    <g class="kai3d-leg kai3d-leg-left"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#companion-kai-thigh-left-cutout)"/><g class="kai3d-shin kai3d-shin-left"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#companion-kai-shin-left-cutout)"/></g></g>
+    <g class="kai3d-leg kai3d-leg-right"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#companion-kai-thigh-right-cutout)"/><g class="kai3d-shin kai3d-shin-right"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#companion-kai-shin-right-cutout)"/></g></g>
+    <g class="kai3d-torso"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#companion-kai-torso-cutout)"/></g>
+    <g class="kai3d-head"><g class="kai3d-head-motion">
+      <image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#companion-kai-head-cutout)"/>
+      <g class="kai3d-gaze" filter="url(#companion-kai-face-glow)" fill="#35e4ff" stroke="#35e4ff" stroke-linecap="round">
+        <g class="kai3d-brows" fill="none" stroke-width="13"><path d="M302 285Q329 266 358 280"/><path d="M660 280Q690 266 718 285"/></g>
+        <g class="kai3d-eyes" fill="none" stroke-width="30">
+          <path class="kai3d-happy" d="M283 441C299 346 382 326 412 441M610 441C641 326 724 346 740 441"/>
+          <g class="kai3d-attentive" fill="#35e4ff" stroke="none"><ellipse cx="351" cy="403" rx="28" ry="52"/><ellipse cx="672" cy="403" rx="28" ry="52"/></g>
+        </g>
+        <path class="kai3d-smile" stroke="none" d="M457 504Q512 533 568 504Q556 565 512 566Q468 565 457 504Z"/>
+        <ellipse class="kai3d-surprise" cx="512" cy="529" rx="21" ry="29" stroke="none"/>
+        <ellipse class="kai3d-mouth" cx="512" cy="534" rx="45" ry="37" stroke="none"/>
+        <g class="kai3d-thought" stroke="none"><circle cx="473" cy="535" r="11"/><circle cx="512" cy="535" r="11"/><circle cx="551" cy="535" r="11"/></g>
+      </g>
+      <g class="kai3d-listen" fill="none" stroke="#09baff" stroke-width="13" stroke-linecap="round"><path d="M27 358Q-5 418 27 479M994 358Q1026 418 994 479"/></g>
+    </g></g>
+    <g class="kai3d-search-props">
+      <g class="kai3d-search-pages" fill="#d7f8ff" fill-opacity=".83" stroke="#19c6ff" stroke-width="7"><g class="kai3d-page-one"><rect x="52" y="663" width="134" height="165" rx="17" transform="rotate(-12 119 746)"/><path d="M78 707H149M78 733H142M78 759H129"/></g><g class="kai3d-page-two"><rect x="848" y="665" width="134" height="165" rx="17" transform="rotate(12 915 746)"/><path d="M880 707H952M880 733H942M880 759H927"/></g></g>
+      <g class="kai3d-magnifier"><path d="M378 550 419 707" stroke="#032c71" stroke-width="53" stroke-linecap="round"/><path d="M379 550 419 707" stroke="url(#companion-kai-prop-metal)" stroke-width="36" stroke-linecap="round"/><circle cx="298" cy="439" r="140" fill="#07315a" fill-opacity=".2" stroke="#05377c" stroke-width="30"/><circle cx="298" cy="439" r="140" fill="url(#companion-kai-prop-glass)" stroke="url(#companion-kai-prop-metal)" stroke-width="19"/><circle cx="298" cy="439" r="119" fill="none" stroke="#1fe4ff" stroke-width="5"/><path d="M211 408Q224 350 280 347" fill="none" stroke="#c5fcff" stroke-width="15" stroke-linecap="round"/></g>
+    </g>
+    <g class="kai3d-arm kai3d-arm-left"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#companion-kai-upper-arm-left-cutout)"/><g class="kai3d-forearm kai3d-forearm-left"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#companion-kai-forearm-left-cutout)"/><g class="kai3d-curled-forearm"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#companion-kai-wave-sleeve-cutout)"/>
+      <g class="kai3d-curled-hand" transform="translate(142 965) rotate(187)" fill="url(#companion-kai-palm-shade)" stroke="#071c3c" stroke-width="6" stroke-linejoin="round">
+        <!-- A relaxed fist: upright knuckles and a thumb folded across the fingers. -->
+        <path d="M-40 0Q-58-22-53-46L-48-67Q-45-82-31-78Q-25-95-10-87Q2-99 15-87Q33-96 43-78L48-42Q58-24 40-3Z"/>
+        <path d="M-31-75-32-48Q-23-38-13-47L-10-84M-12-47Q1-38 12-49L15-84M12-49Q27-39 37-51L36-74" fill="none" stroke="#6f91b8" stroke-width="4" stroke-linecap="round"/>
+        <path d="M42-48Q63-49 60-29Q48-5 18-9L-6-18Q-18-29-8-38Q0-44 14-34L30-32Z"/>
+        <path d="M-40 0Q0-11 42 0L37 24Q-1 33-37 22Z" fill="url(#companion-kai-prop-metal)" stroke="#1255a2"/>
+      </g></g><g class="kai3d-wave-forearm"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#companion-kai-wave-sleeve-cutout)"/><g transform="translate(142 965) rotate(-120)"><g class="kai3d-wave-palm" fill="url(#companion-kai-palm-shade)" stroke="#071c3c" stroke-width="7" stroke-linejoin="round">
+        <path d="M-43-2C-61-31-70-43-77-64L-90-94Q-94-108-83-112Q-72-116-63-99L-47-78-58-155Q-60-170-48-172Q-34-174-32-157L-21-99-22-177Q-22-191-9-191Q5-190 5-175L8-101 17-166Q19-182 32-179Q44-176 41-160L33-92 49-136Q54-150 66-143Q77-137 71-124L53-64Q48-38 36-3Z"/>
+        <path d="M-33-55Q-2-69 26-49M-37-79-29-42M-6-89-4-50M24-82 16-47" fill="none" stroke="#6989af" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+        <path d="M-42-4Q-3-13 39-4L35 21Q-4 30-39 19Z" fill="url(#companion-kai-prop-metal)" stroke="#1255a2"/>
+      </g></g></g></g></g>
+    <g class="kai3d-arm kai3d-arm-right"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#companion-kai-upper-arm-right-cutout)"/><g class="kai3d-forearm kai3d-forearm-right"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#companion-kai-forearm-right-cutout)"/></g></g>
 
-/* ---- earnings estimator ---- */
-.est{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch}
-.est-controls .gpu-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.chip{font-family:var(--mono);font-size:12px;padding:9px 13px;border-radius:9px;border:1px solid var(--line-2);background:var(--ink-2);color:var(--soft);cursor:pointer;transition:.15s}
-.chip:hover{border-color:#4a4460}
-.chip[aria-pressed="true"]{border-color:var(--value);color:var(--value);background:rgba(242,176,61,.08)}
-.slider-row{margin-top:22px}
-.slider-row label{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
-input[type=range]{width:100%;margin-top:12px;accent-color:var(--value)}
-.readout{display:grid;place-content:center;text-align:center;gap:6px}
-.readout .big{font-family:var(--mono);font-size:clamp(42px,6vw,62px);font-weight:700;letter-spacing:-.03em;color:var(--value);line-height:1}
-.readout .unit{font-size:18px;color:var(--soft)}
-.readout .sub{font-family:var(--mono);font-size:12px;color:var(--muted)}
-.readout .grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:20px;width:100%}
-.readout .kv{border:1px solid var(--line);border-radius:10px;padding:12px}
-.readout .kv span{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);display:block}
-.readout .kv b{font-family:var(--mono);font-size:16px;color:var(--text)}
-.disclaimer{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:16px;line-height:1.6}
+    <g class="kai3d-thinking-props">
+      <g class="kai3d-question-prop" transform="translate(865 224)"><path d="M-57-70Q-8-103 45-66Q88-35 54 12L23 40V70H-17V23Q-16 6 5-10Q35-32 8-47Q-12-61-31-43Z" fill="#0c80ff" stroke="#84eaff" stroke-width="8"/><circle cy="103" r="23" fill="#05cfff" stroke="#8bf0ff" stroke-width="6"/></g>
+      <g class="kai3d-idea-prop"><g transform="translate(887 262)"><g class="kai3d-idea-rays" fill="none" stroke="#ffcf4f" stroke-width="12" stroke-linecap="round"><path d="M0-129V-159M91-91L112-112M127 0H157M-91-91L-112-112M-127 0H-157M0-129V-159"/></g><path d="M-41 57C-44 32-79 14-79-28A79 79 0 0 1 79-28C79 14 44 32 41 57Z" fill="url(#companion-kai-bulb-light)" stroke="#fff4be" stroke-width="9"/><path d="M-15 55V-11L0 2 15-11V55M-39 74H39M-31 90H31" fill="none" stroke="#f8fcff" stroke-width="11" stroke-linecap="round"/><path d="M-28 101Q0 128 28 101" fill="#2876c2"/></g></g>
+    </g>
 
-/* how earning works — a real sequence, so numbered */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
-.step{border:1px solid var(--line);border-radius:12px;padding:20px;background:var(--ink-2)}
-.step .num{font-family:var(--mono);font-size:12px;color:var(--value);letter-spacing:.1em}
-.step h3{margin:12px 0 6px;font-size:17px}
-.step p{color:var(--muted);font-size:14px}
-a.step{transition:border-color .18s,transform .18s}
-a.step:hover{transform:translateY(-2px);border-color:var(--value-dim)}
-.step .go{margin-top:12px;font-family:var(--mono);font-size:12.5px;color:var(--value);display:inline-flex;gap:7px;align-items:center}
-.step .go .arw{transition:transform .18s}
-a.step:hover .go .arw{transform:translateX(3px)}
+  </g></g>
+  <g class="kai3d-ledge"><path d="M166 1470H858" stroke="#053971" stroke-width="13" stroke-linecap="round"/><path d="M166 1467H858" stroke="#15c8ff" stroke-width="5" stroke-linecap="round"/></g>
+</svg>
+</div><div class="voice-bar"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg><span>Just say “Hey KAI”</span><span class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div></div><div class="companion-copy"><p class="eyebrow">A little help, always close</p><h2>Big ideas.<br>Little sidekick.</h2><p>KAI steps out of the chat window and onto your desktop. A familiar face to talk things through, find your next step, and lend a hand.</p><ul class="detail-list"><li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg><div><strong>Make it a conversation.</strong><p>Talk or type, ask follow-ups, and interrupt a reply by saying “KAI.” Choose a voice with a little personality.</p></div></li><li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"/></svg><div><strong>A helping hand on your desktop.</strong><p>Ask KAI to open a website or help with supported apps. Review the task, grant access, and stop at any time.</p></div></li><li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></svg><div><strong>Give your AI a little context.</strong><p>Keep useful memories, projects, and goals in Brain. Choose what KAI remembers and edit it as life changes.</p></div></li></ul><p class="section-note">Voice listening is opt-in. Desktop control depends on your operating system, apps, and selected model.</p></div></div></section>
+<section class="section control" id="how"><div class="wrap"><div class="section-head"><div><p class="eyebrow">Take control of your AI</p><h2>Local first.<br>Open to your possibilities.</h2></div><p>Start on your computer. Reach the decentralized network when you need more. Bring an API provider when you choose. Your AI, on your terms.</p></div><div class="control-grid"><article class="route"><h3 class="route-heading"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg><span>On your computer.</span></h3><p>Run compatible models on your own hardware. Local inference has no per-token API bill, and Local Only keeps your AI requests on your device.</p><span class="route-label">Your models · Your hardware</span></article><article class="route"><h3 class="route-heading"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg><span>The decentralized network.</span></h3><p>Go beyond your hardware without relying on one AI provider. Independent computers share the work, reducing dependence on a single company’s AI ecosystem. Shared capacity and usage-based pricing are designed to keep costs lower.</p><span class="route-label">Independent compute · Paid in KAI</span></article><article class="route"><h3 class="route-heading"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg><span>Your API providers.</span></h3><p>Use your own OpenAI or Anthropic API key for desktop conversations. Choose the model that fits the task, with usage billed by that provider.</p><span class="route-label">Optional · Your own account</span></article></div><p class="control-foot"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg> Keep sensitive work in Local Only. Network requests pass through the scheduler and a serving provider; browser chat history is saved to your account.</p></div></section>
+<section class="section builders" id="developers"><div class="wrap"><div class="build-layout"><div class="build-copy"><p class="eyebrow">For the things you want to build</p><h2>Your ideas.<br>Your agents.<br>Your next project.</h2><p>Go beyond a single prompt. Give agents their own roles and tools, build teams that work through a task, and save the setup to use again. Your local definitions stay yours to inspect, change, and reuse.</p><div class="build-points"><span>Multi-agent teams</span><span>Visual workflows</span><span>Tools & MCP</span><span>Reusable pipelines</span></div><a class="text-link" href="/docs/#developer-tools">Explore the developer tools <span aria-hidden="true">↗</span></a></div><div class="code-card"><div class="code-top"><span>your-next-idea.py</span><span>YOUR LOCAL API</span></div><pre><code><span class="code-comment"># Familiar tools. Your AI underneath.</span>
+<span class="code-purple">from</span> openai <span class="code-purple">import</span> OpenAI
 
-/* ---- comparison ---- */
-.cmp-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
-table.cmp{width:100%;border-collapse:collapse;min-width:640px;font-size:14.5px}
-table.cmp th,table.cmp td{padding:16px 20px;text-align:left;border-bottom:1px solid var(--line)}
-table.cmp thead th{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
-table.cmp thead th.kai{color:var(--signal)}
-table.cmp thead th.big{color:var(--muted)}
-table.cmp tbody th{font-weight:500;color:var(--soft)}
-table.cmp td.kai{color:var(--text)}
-table.cmp td.big{color:var(--muted)}
-table.cmp td.kai::before{content:"✓ ";color:var(--signal);font-family:var(--mono)}
-table.cmp td.big::before{content:"✕ ";color:var(--faint);font-family:var(--mono)}
-table.cmp tbody tr:last-child th,table.cmp tbody tr:last-child td{border-bottom:0}
-.cmp col.c-kai{background:rgba(51,230,192,.03)}
-
-/* ---- privacy routing selector ---- */
-.route{display:grid;grid-template-columns:.85fr 1.15fr;gap:26px;align-items:center}
-.route-modes{display:grid;gap:9px}
-/* buttons do not inherit color — without this the labels render UA black */
-.rbtn{text-align:left;border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--ink-2);color:var(--text);cursor:pointer;transition:.15s;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
-.rbtn:hover{border-color:#463f5a}
-.rbtn[aria-pressed="true"]{border-color:var(--signal);background:rgba(51,230,192,.06)}
-.rbtn .rk{width:9px;height:9px;border-radius:2px;background:var(--faint);transform:rotate(45deg)}
-.rbtn[aria-pressed="true"] .rk{background:var(--signal)}
-.rbtn[aria-pressed="true"] b{color:var(--signal)}
-.rbtn b{font-family:var(--mono);font-size:13px} .rbtn small{display:block;color:var(--muted);font-size:12.5px}
-.route-viz{border:1px solid var(--line);border-radius:16px;padding:22px;background:var(--panel);min-height:230px}
-.rv-track{display:flex;align-items:center;gap:8px;margin-top:4px}
-.rv-node{flex:1;border:1px solid var(--line-2);border-radius:11px;padding:14px 10px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--faint);transition:.25s}
-.rv-node b{display:block;font-size:12.5px;color:var(--muted);margin-bottom:3px}
-.rv-node.hot{border-color:var(--signal);color:var(--signal);box-shadow:0 0 0 1px var(--signal-dim) inset,0 8px 26px rgba(51,230,192,.12)}
-.rv-node.hot b{color:var(--signal)}
-.rv-node.warm-hot{border-color:var(--value);color:var(--value);box-shadow:0 0 0 1px var(--value-dim) inset,0 8px 26px rgba(242,176,61,.12)}
-.rv-node.warm-hot b{color:var(--value)}
-/* dimmed to read as unavailable, but still legible (.32 was invisible) */
-.rv-node.blocked{opacity:.75}
-.rv-arrow{color:var(--faint);font-family:var(--mono)}
-.rv-desc{margin-top:18px;font-size:14px;color:var(--soft);min-height:44px}
-.rv-desc b{color:var(--text)}
-
-/* ---- KAI / dual network ---- */
-.two-net{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.netcard{border:1px solid var(--line);border-radius:var(--r);padding:24px;background:var(--panel);position:relative}
-.netcard .token{font-family:var(--mono);font-size:11px;letter-spacing:.12em;padding:5px 10px;border-radius:999px;display:inline-block;margin-bottom:14px}
-.netcard.kai .token{color:var(--signal);border:1px solid var(--signal-dim);background:rgba(51,230,192,.06)}
-.netcard.koin .token{color:var(--value);border:1px solid var(--value-dim);background:rgba(242,176,61,.06)}
-.netcard h3{font-size:24px;margin-bottom:8px}
-.netcard p{color:var(--muted);font-size:14.5px}
-.netcard .rw{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline}
-.netcard .rw span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
-.netcard .rw b{font-family:var(--mono);font-size:24px}
-.netcard.kai .rw b{color:var(--signal)} .netcard.koin .rw b{color:var(--value)}
-.clean-note{margin-top:16px;font-size:14px;color:var(--muted)}
-.clean-note b{color:var(--soft)}
-
-/* ---- roadmap ---- */
-.eras{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.era{border:1px solid var(--line);border-radius:12px;padding:20px;background:var(--ink-2);position:relative}
-.era .en{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--signal)}
-.era.now{border-color:var(--signal-dim);background:linear-gradient(180deg,rgba(51,230,192,.05),var(--ink-2))}
-.era.now .en{color:var(--signal)}
-.era h3{font-size:16px;margin:8px 0 12px}
-.era ul{margin:0;padding-left:16px;color:var(--muted);font-size:13px;display:grid;gap:6px}
-.era .flag{position:absolute;top:16px;right:16px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--signal)}
-
-/* ---- waitlist ---- */
-.cta{border:1px solid var(--line);border-radius:20px;padding:clamp(30px,5vw,58px);text-align:center;position:relative;overflow:hidden;background:
-  radial-gradient(700px 240px at 50% -10%,rgba(51,230,192,.10),transparent 65%),var(--panel)}
-.cta h2{margin-bottom:12px}
-.cta h2 .warm{color:var(--value)} .cta h2 .cool{color:var(--signal)}
-.cta p{color:var(--muted);max-width:56ch;margin-inline:auto}
-.wl{margin:26px auto 0;max-width:520px}
-.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:10px;padding:3px;font-family:var(--mono);font-size:12px;margin-bottom:12px}
-.seg button{padding:8px 16px;border-radius:7px;background:transparent;color:var(--muted);border:0;cursor:pointer}
-.seg button[aria-pressed="true"]{background:var(--ink);color:var(--text)}
-.wl-form{display:flex;gap:9px}
-.wl-form input{flex:1;background:var(--ink);border:1px solid var(--line-2);border-radius:11px;padding:14px 15px;color:var(--text);font-family:var(--mono);font-size:13px}
-.wl-form input::placeholder{color:var(--faint)}
-.wl-note{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:11px}
-.wl-ok{color:var(--signal);font-family:var(--mono);font-size:13px;margin-top:12px;display:none}
-
-/* ---- faq ---- */
-.faq{max-width:820px;margin-inline:auto}
-.faq details{border-bottom:1px solid var(--line);padding:18px 2px}
-.faq summary{cursor:pointer;font-size:16.5px;font-weight:560;list-style:none;display:flex;justify-content:space-between;gap:16px}
-.faq summary::-webkit-details-marker{display:none}
-.faq summary::after{content:"+";font-family:var(--mono);color:var(--signal);transition:.2s}
-.faq details[open] summary::after{transform:rotate(45deg)}
-.faq p{color:var(--muted);font-size:14.5px;margin-top:12px;max-width:70ch}
-
-/* ---- footer ---- */
-footer{border-top:1px solid var(--line);padding:36px 0 52px}
-.foot{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--muted)}
-.foot a:hover{color:var(--text)}
-.foot-links{display:flex;gap:18px;flex-wrap:wrap}
-
-/* reveal */
-.rise{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.2,.7,.2,1),transform .6s cubic-bezier(.2,.7,.2,1)}
-.rise.in{opacity:1;transform:none}
-
-@media(max-width:940px){
-  .nav-links{display:none} .burger{display:inline-flex} .nav-cta .btn:not(.burger){display:none}
-  .mobile.open{display:grid;gap:2px;padding:12px;border:1px solid var(--line);border-radius:12px;margin:6px 0 0;background:var(--panel)}
-  .mobile a{font-family:var(--mono);font-size:13px;color:var(--soft);padding:9px}
-  .hero-grid,.layers,.dev-grid,.est,.route,.two-net{grid-template-columns:1fr}
-  .hero-art{height:340px}
-  .enemies,.steps{grid-template-columns:1fr} .eras{grid-template-columns:1fr 1fr}
-}
-@media(max-width:560px){
-  .paths{grid-template-columns:1fr} .eras{grid-template-columns:1fr}
-  .wl-form{flex-direction:column} .readout .grid2{grid-template-columns:1fr}
-  section{padding:60px 0}
-  /* The routing pipeline is five flex:1 nodes in a row. The grid above it
-     collapses at 940px but the track did not, so on a phone each node was
-     squeezed to about fifty pixels and its label clipped — the privacy
-     explanation being the part that got cut (FIND-UX-001). Stack it instead
-     of scrolling it: an explanation of where your data goes should not be
-     reachable only by swiping something that does not look scrollable. */
-  .rv-track{flex-direction:column;align-items:stretch;gap:6px}
-  .rv-node{flex:none;text-align:left;padding:12px 14px}
-  .rv-arrow{transform:rotate(90deg);align-self:center;line-height:1}
-  .route-viz{padding:18px}
-}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto}.rise{opacity:1;transform:none}}
-
-/* MANIFESTO / THE FIGHT */
-.manifesto{border-top:1px solid var(--line);border-bottom:1px solid var(--line);
-  background:linear-gradient(180deg,rgba(255,107,107,.055),transparent 62%);padding:74px 0}
-.manifesto .mgrid{display:grid;grid-template-columns:1.15fr .85fr;gap:44px;align-items:start}
-.manifesto h2{font-size:clamp(30px,4.3vw,52px);line-height:1.03;letter-spacing:-.025em;margin:14px 0 0;text-wrap:balance;max-width:16ch}
-.manifesto h2 em{font-style:normal;color:var(--danger)}
-.manifesto .mbody{color:var(--soft);font-size:clamp(16px,1.45vw,19px);line-height:1.55;max-width:52ch;margin-top:20px}
-.manifesto .mbody b{color:var(--text)}
-.manifesto .resolve{margin-top:24px;font-size:clamp(16px,1.5vw,20px);line-height:1.45;max-width:52ch;text-wrap:balance;color:var(--soft)}
-.manifesto .resolve b{color:var(--text)}
-.manifesto .resolve .warm{color:var(--value)} .manifesto .resolve .cool{color:var(--signal)}
-.manifesto .caps{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--panel)}
-.manifesto .cap{padding:20px 22px;border-bottom:1px solid var(--line)}
-.manifesto .cap:last-child{border-bottom:0}
-.manifesto .cap b{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:var(--danger);text-transform:uppercase;display:flex;align-items:center;gap:9px}
-.manifesto .cap b::before{content:"";width:6px;height:6px;background:var(--danger);transform:rotate(45deg);flex:none;box-shadow:0 0 0 4px rgba(255,107,107,.12)}
-.manifesto .cap span{display:block;margin-top:9px;color:var(--soft);font-size:14.5px;line-height:1.5}
-.manifesto .cap span b{color:var(--text);font-family:inherit;letter-spacing:0}
-@media(max-width:820px){ .manifesto .mgrid{grid-template-columns:1fr;gap:30px} .manifesto{padding:56px 0} }
-</style>
-</head>
-<body>
-
-<a class="ribbon" href="/whitepaper.pdf" target="_blank" rel="noopener">
-  <span class="wrap ribbon-in">
-    <span class="tag">White paper</span>
-    <span class="desc">Working Draft v0.2 — the architecture, KAI economics, and roadmap in full.</span>
-    <span class="go">Read the paper <span class="arw">→</span></span>
-  </span>
-</a>
-
-<header class="nav" id="nav"><div class="wrap nav-in">
-  <a class="brand" href="#top">
-    <span class="mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 L28 9 V23 L16 30 L4 23 V9 Z" fill="none" stroke="#33E6C0" stroke-width="1.5"/><path d="M12 10 V22 M12 16 L20 10 M12 16 L20 22" stroke="#F2B03D" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
-    <b>KOINOS</b><span class="ai">AI</span>
-  </a>
-  <nav class="nav-links" aria-label="Primary">
-    <a href="#problem">Why</a><a href="#how">How it works</a><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#kai">KAI</a><a href="/network">Network</a><a href="#roadmap">Roadmap</a>
-  </nav>
-  <div class="nav-cta">
-    <a class="btn btn-ghost" href="/whitepaper.pdf" target="_blank" rel="noopener">White paper</a>
-    <a class="btn btn-signal" href="#waitlist">Get early access <span class="arw">→</span></a>
-    <button class="btn burger" id="burger" aria-label="Menu" aria-expanded="false">☰</button>
-  </div>
-</div>
-<div class="wrap"><div class="mobile" id="mobile">
-  <a href="#problem">Why</a><a href="#how">How it works</a><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#kai">KAI</a><a href="#roadmap">Roadmap</a><a href="/whitepaper.pdf" target="_blank" rel="noopener">White paper (PDF) →</a><a href="#waitlist">Get early access →</a>
-</div></div>
-</header>
-
-<main id="top">
-
-<!-- HERO -->
-<section class="hero"><div class="wrap"><div class="hero-grid">
-  <div>
-    <span class="badge"><span class="dot"></span> Alpha available now · live on Koinos testnet</span>
-    <h1>Take AI back from<br>the <span class="danger">data centers</span>.</h1>
-    <p class="hero-sub">A few corporations hoard the GPUs, meter every request, and keep your private data on their servers. Koinos AI puts the first layer back in your hands — private AI on hardware you <span class="warm">already own</span> — and turns the rest into a <span class="cool">decentralized network</span> no single company controls. The alpha is downloadable today, and the network is live on Koinos testnet (harbinger): chatting locally is <span class="warm">free and private</span>, and earning pays <span class="cool">KAI on testnet</span>. Two ways to take it back:</p>
-
-    <div class="hero-cta">
-      <a class="btn btn-signal" href="/testers">Download the alpha <span class="arw">→</span></a>
-      <a class="btn btn-ghost" href="#waitlist">Join the waitlist</a>
-    </div>
-    <p class="hero-note">Windows 10/11 · free · alpha earnings are testnet KAI — no monetary value yet.</p>
-
-    <div class="paths">
-      <a class="path warm" href="#earn">
-        <span class="tick mono">01 · people</span>
-        <div class="who">Run &amp; earn</div>
-        <h3>Private AI. Idle GPU that pays.</h3>
-        <p>Chat privately on your own machine. Turn unused compute into KAI.</p>
-        <span class="go">Start earning <span class="arw">→</span></span>
-      </a>
-      <a class="path cool" href="/testers">
-        <span class="tick mono">02 · builders</span>
-        <div class="who">Self-host</div>
-        <h3>Your API. Your GPUs first.</h3>
-        <p>An OpenAI-compatible endpoint you control that overflows to the network.</p>
-        <span class="go">Tester quickstart <span class="arw">→</span></span>
-      </a>
-    </div>
-
-    <div class="hero-foot">
-      <span>OpenAI-compatible</span><span>No KAI to start</span><span>Private by architecture</span><span>Settled on Koinos testnet</span>
-    </div>
-  </div>
-
-  <div class="hero-art" aria-hidden="true">
-    <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
-    <canvas id="mesh"></canvas>
-    <span class="art-label cool al-2"><b>The network</b>elastic · decentralized</span>
-    <span class="art-label warm al-1"><b>Your machine</b>local · private · earning</span>
-  </div>
-</div></div></section>
-
-<!-- MANIFESTO / THE FIGHT -->
-<section class="manifesto"><div class="wrap">
-  <div class="mgrid">
-    <div class="rise">
-      <div class="eyebrow" style="color:var(--danger)">The stakes</div>
-      <h2>Whoever owns the compute owns the <em>intelligence</em>.</h2>
-      <p class="mbody">Intelligence is becoming the most valuable resource on Earth — and it's being locked inside a handful of hyperscale data centers owned by a few of the largest companies that have ever existed. <b>That isn't a market. It's a monopoly on thought.</b></p>
-      <p class="resolve">Koinos AI is the counter-move: <b>millions of machines, owned by the people who run them</b>, coordinated by an <span class="cool">open network</span> no single company controls — with the <span class="warm">private machine on your desk</span> as the default, not the exception.</p>
-    </div>
-    <div class="caps rise" aria-label="How AI is being concentrated">
-      <div class="cap"><b>Compute</b><span>The GPUs that produce modern intelligence are <b>hoarded in hyperscale clusters</b> most people can never access.</span></div>
-      <div class="cap"><b>Data</b><span>Your prompts, files, and source code <b>become their asset</b> the moment they leave your device.</span></div>
-      <div class="cap"><b>Power</b><span>Prices, rate limits, and who's even allowed in <b>change on their terms</b> — never yours.</span></div>
-    </div>
-  </div>
-</div></section>
-
-<div class="wrap"><div class="divider"></div></div>
-
-<!-- PROBLEM -->
-<section id="problem"><div class="wrap">
-  <div class="shead rise">
-    <div class="eyebrow" style="color:var(--danger)">The status quo</div>
-    <h2>Modern AI runs on someone else's computer — and bills you for it forever.</h2>
-    <p>The dominant model concentrates the GPUs, the pricing power, and your data inside a handful of data centers. Meanwhile the capable machine on your desk sits idle most of the day.</p>
-  </div>
-  <div class="enemies">
-    <article class="enemy rise"><div class="idx">ENEMY 01</div><h3>Permanent API rent</h3><p>You build your product on an endpoint whose price, limits, and rules can change the moment it's inconvenient for you.</p><div class="barb"><b>Koinos AI →</b> your hardware is the default; the network is the overflow.</div></article>
-    <article class="enemy rise"><div class="idx">ENEMY 02</div><h3>Your data, their servers</h3><p>Prompts, files, source code, and business context leave hardware you control every time you hit a cloud model.</p><div class="barb"><b>Koinos AI →</b> local execution never leaves the device. Privacy is a mode, not a promise.</div></article>
-    <article class="enemy rise"><div class="idx">ENEMY 03</div><h3>Idle compute, wasted</h3><p>Millions of capable GPUs do nothing all night while all AI demand is funneled to hyperscale clusters.</p><div class="barb"><b>Koinos AI →</b> that idle GPU does verified AI work and earns KAI.</div></article>
-  </div>
-</div></section>
-
-<!-- HOW IT WORKS / LAYERS -->
-<section id="how"><div class="wrap">
-  <div class="layers">
-    <div class="rise">
-      <div class="eyebrow">The architecture</div>
-      <h2 style="margin:12px 0 14px">One request. Four places it can run — <span style="color:var(--value)">you</span> choose which.</h2>
-      <p class="lead" style="margin-bottom:8px">Every request is checked against your privacy and spending policy <em>before</em> anything about quality, speed, or price. Local always wins first. The network is a fallback you opt into.</p>
-      <div class="layer-list">
-        <div class="layer l-local"><span class="lg">L</span><div><strong>Local</strong><small>Runs on your machine. Strongest privacy.</small></div><span class="cost">no KAI charge</span></div>
-        <div class="layer l-private"><span class="lg">P</span><div><strong>Private pool</strong><small>Hardware your org owns or explicitly trusts.</small></div><span class="cost">internal</span></div>
-        <div class="layer l-network"><span class="lg">N</span><div><strong>Verified network</strong><small>Encrypted transport to reputation-bearing providers.</small></div><span class="cost">settled in KAI</span></div>
-        <div class="layer l-conf"><span class="lg">C</span><div><strong>Confidential <span class="mono" style="color:var(--faint);font-size:11px">· future</span></strong><small>Attested confidential-compute hardware.</small></div><span class="cost">premium KAI</span></div>
-      </div>
-    </div>
-    <aside class="thesis-card rise">
-      <div class="q">The whole thesis, one line</div>
-      <blockquote>Your hardware <span class="warm">first</span>. The network <span class="cool">when you need it</span>.</blockquote>
-      <div class="flowbar">
-        <span class="n on-w">Request</span><span class="ar">→</span>
-        <span class="n on-w">Policy check</span><span class="ar">→</span>
-        <span class="n on-w">Local</span><span class="ar">→</span>
-        <span class="n on-c">Network</span><span class="ar">→</span>
-        <span class="n on-c">Settle · KAI</span>
-      </div>
-      <p style="margin-top:20px;color:var(--muted);font-size:14px">Fallback can never silently break a privacy or spending rule. Prompts, files, and model weights never touch the chain — Koinos records ownership and settlement, nothing else.</p>
-    </aside>
-  </div>
-</div></section>
-
-<div class="wrap"><div class="divider"></div></div>
-
-<!-- DEVELOPERS -->
-<section id="developers"><div class="wrap">
-  <div class="shead rise">
-    <div class="eyebrow">For developers · your way out</div>
-    <h2>Stop renting your product's brain from a company that competes with you.</h2>
-    <p>Every app built on a hyperscale API is one price hike, rate-limit, or deprecation away from breaking — and it hands your users' data to the same firm racing to ship your product itself. Koinos AI is the exit: self-host an OpenAI-compatible gateway on hardware you own, keep your GPUs as the primary inference layer, and overflow into a decentralized network by policy, not a rewrite. Same SDK. Scoped app keys, never wallet keys. Nobody holding your roadmap hostage.</p>
-  </div>
-  <div class="dev-grid">
-    <div class="code rise">
-      <div class="code-top"><span class="dots"><i></i><i></i><i></i></span><span>app.py · drop-in OpenAI SDK</span></div>
-<pre><span class="c"># same SDK. your endpoint. your hardware first.</span>
-client = <span class="f">OpenAI</span>(
-  base_url=<span class="s">"http://localhost:8181/v1"</span>,
-  api_key=<span class="s">"kai_proj_live_••••"</span>,
+client = OpenAI(
+    base_url=<span class="code-cyan">"http://localhost:41100/v1"</span>,
+    api_key=<span class="code-cyan">"YOUR_KAI_PROJECT_KEY"</span>
 )
 
-r = client.chat.completions.<span class="f">create</span>(
-  model=<span class="s">"koinos-smart"</span>,
-  messages=[{<span class="k">"role"</span>:<span class="s">"user"</span>,<span class="k">"content"</span>:<span class="s">"…"</span>}],
-  <span class="c"># overflow policy, not a different API</span>
-  extra_body={<span class="k">"routing"</span>:<span class="s">"local-first"</span>,
-              <span class="k">"max_spend_kai"</span>:<span class="s">2.5</span>},
-)</pre>
-    </div>
-    <div class="modes rise">
-      <div class="mode"><b>Local only</b><span class="pin w">warm</span><small>Never leaves the box. Zero network charge.</small></div>
-      <div class="mode"><b>Private-pool first</b><span class="pin w">warm</span><small>Your trusted GPUs before any public provider.</small></div>
-      <div class="mode"><b>Local → network overflow</b><span class="pin">elastic</span><small>Burst to the public network only when local is saturated.</small></div>
-      <div class="mode"><b>Lowest cost / fastest</b><span class="pin">elastic</span><small>Optimize eligible routes under your budget + privacy rules.</small></div>
-      <div class="panel" style="padding:15px 16px;margin-top:2px">
-        <span class="plabel">Included</span>
-        <p style="margin-top:8px;color:var(--soft);font-size:13.5px">Streaming · project keys · per-request/day/month budgets · hard stops · model pinning · usage logs. Embeddings, tools &amp; batch on the roadmap.</p>
-      </div>
-    </div>
-  </div>
-</div></section>
+reply = client.chat.completions.create(
+    model=<span class="code-cyan">"YOUR_INSTALLED_MODEL_ALIAS"</span>,
+    messages=[{<span class="code-cyan">"role"</span>: <span class="code-cyan">"user"</span>,
+               <span class="code-cyan">"content"</span>: <span class="code-cyan">"Let's build."</span>}]
+)</code></pre><div class="code-note">OpenAI-compatible API · Project keys · Your installed models</div></div></div><div class="build-bottom"><article><h3 class="inline-heading"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></svg><span>Turn routines into workflows.</span></h3><p>Describe a routine or connect steps on a visual canvas. Use local reasoning, conditions, schedules, and approvals to make it repeatable.</p></article><article><h3 class="inline-heading"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22v-5"/><path d="M15 8V2"/><path d="M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z"/><path d="M9 8V2"/></svg><span>Work across your connected apps.</span></h3><p>Bring selected app actions into chat. Ask for a document, spreadsheet, or calendar update, then review the action before it runs.</p></article><article><h3 class="inline-heading"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg><span>Build services on your own API.</span></h3><p>Connect your tools and products to KAI's local endpoint. Build an application or service around compute you control.</p></article></div><p class="section-note">Connected actions require account setup and the appropriate permissions. Scheduled workflow reasoning uses installed local models while the desktop app is open.</p></div></section>
+<section class="section earn" id="earn"><div class="wrap"><div class="earn-grid"><div><p class="eyebrow">A network you can be part of</p><h2>AI works better<br>when we share the power.</h2><p>A decentralized network gives people a part in powering AI. Put spare capacity to work, earn KAI for useful compute, and help make capable AI more affordable. You set the resource limits.</p><div class="earn-steps"><div class="earn-step"><b>1</b> Install and choose compatible models.</div><div class="earn-step"><b>2</b> Set your limits and opt in to earning.</div><div class="earn-step"><b>3</b> Serve verified AI jobs and track your activity.</div></div><div class="actions"><a class="btn" href="/network">Explore the network <span aria-hidden="true">↗</span></a><a class="btn text" href="/docs/#earn">How earning works</a></div></div><div class="earn-visual"><p class="eyebrow">Two ways to contribute</p><article class="earn-detail"><span class="earn-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20v2"/><path d="M12 2v2"/><path d="M17 20v2"/><path d="M17 2v2"/><path d="M2 12h2"/><path d="M2 17h2"/><path d="M2 7h2"/><path d="M20 12h2"/><path d="M20 17h2"/><path d="M20 7h2"/><path d="M7 20v2"/><path d="M7 2v2"/><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg></span><div><h3>Lower costs by design.</h3><p>Using existing hardware and paying for the work you use keeps the focus on useful compute. The goal is lower costs; actual rates depend on model and network demand.</p><small>KAI · AI network rewards</small></div></article><article class="earn-detail"><span class="earn-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg></span><div><h3>Support Koinos.</h3><p>The optional Koinos Node tools offer a separate path to participate in the blockchain and configure block production.</p><small>KOIN · Separate node economics</small></div></article></div></div><aside class="future" id="roadmap"><div class="future-label">On the horizon<br>Agent network</div><div><h3>Build something useful. Let others use it.</h3><p>We're developing a way to offer agents and their services to other people: discover an agent, rent its capabilities, or earn KAI by making yours available. A next step for what you build with KAI.</p><small>In development. Agent rentals and service revenue are not a general-release feature.</small></div></aside></div></section>
+<section class="faq"><div class="wrap faq-grid"><div><p class="eyebrow">A few good questions</p><h2>Make yourself<br>at home.</h2><a class="text-link" href="/docs/">Visit the documentation <span aria-hidden="true">↗</span></a></div><div class="faq-list"><details><summary>Do I need crypto to use KAI?</summary><p>No. You can run compatible local models without buying KAI or KOIN. Your own API providers bill you separately. KAI is used for supported network services and rewards.</p></details><details><summary>Can I use local models and API providers?</summary><p>Yes. The desktop app supports installed local models and your own OpenAI or Anthropic connection. You choose the provider for conversations. Local Only blocks external providers; your API keys stay encrypted on your desktop.</p></details><details><summary>What stays on my computer?</summary><p>Local inference runs on your hardware. Your local workspace and model files stay there. Using an external AI provider, connecting an app, enabling account sync, or choosing network compute sends the information needed for that feature. You control those choices.</p></details><details><summary>Can KAI actually do things in my apps?</summary><p>In Test, KAI can use permitted actions from connected accounts and help with supported desktop tasks. You choose the connection, permissions, and actions, and review changes before they happen. Support varies by app, account, and model.</p></details><details><summary>Are these features in the download today?</summary><p>The screenshots show the latest Koinos AI Test interface. Brain, connected chat, the workflow canvas, and companion improvements are being refined there. Check the release notes for your version before relying on a feature.</p></details></div></div></section>
+<section class="final-cta"><div class="wrap"><div class="cta-panel"><div><p class="eyebrow">Think · Build · Grow</p><h2>A little curiosity.<br>A whole world of possibility.</h2><p>Make room for an AI companion that works with you.<br>Start on your computer. Decide where to go next.</p><div class="actions"><a class="btn" href="/testers"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg> Get Koinos AI</a><a class="btn text" href="https://github.com/therexdev/kaiapp" target="_blank" rel="noopener">Explore on GitHub <span aria-hidden="true">↗</span></a></div><small>Alpha software · Check release notes for platform and feature availability</small></div><div class="cta-kai" data-kai-art="cta" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 40 1024 1440" class="kai-character" aria-hidden="true">
+  <defs>
+    <!-- Code-native silhouette clips keep the original texture intact. -->
+    <mask maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536" id="cta-kai-head-cutout"><path fill="white" stroke="black" stroke-width="10" stroke-linejoin="round" d="M114 304 118 174Q121 96 151 96Q185 90 193 139L194 258Q300 94 510 96Q720 90 831 258L829 152Q827 99 857 96Q888 92 901 127L910 307Q939 325 952 352Q966 386 966 438Q966 520 936 544Q905 568 856 558Q836 665 674 677Q512 692 350 677Q193 664 171 554Q122 572 90 548Q60 528 56 451Q51 384 68 353Q82 320 114 304Z"/></mask>
+    <filter id="cta-kai-face-glow" x="-35%" y="-50%" width="170%" height="200%"><feGaussianBlur stdDeviation="8" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <radialGradient id="cta-kai-ground"><stop stop-color="#1268ed" stop-opacity=".18"/><stop offset="1" stop-color="#1268ed" stop-opacity="0"/></radialGradient>
 
-<!-- EARN + ESTIMATOR -->
-<section id="earn"><div class="wrap">
-  <div class="shead rise">
-    <div class="eyebrow warm">For you · earn with your computer</div>
-    <h2>The data centers get paid for compute like yours. Now you do.</h2>
-    <p>The same GPU that runs your games can run real AI work for the network. Install, let it benchmark your hardware, and press one button — Koinos AI handles models, safe resource limits, and pricing. You earn KAI for <em>verified useful work</em>, not idle uptime, and intelligence gets a little less centralized every time you do. During alpha, earnings are testnet KAI on Koinos testnet (harbinger) — they have no monetary value yet.</p>
-  </div>
+    <mask id="cta-kai-torso-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M350 674Q510 695 677 674L738 729Q691 725 667 757L670 905Q676 930 665 951L574 1040Q514 1055 451 1040L354 952Q348 933 356 908L354 758Q329 723 285 729Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="cta-kai-upper-arm-left-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M333 726Q292 726 266 773L238 815Q223 830 234 848Q253 873 278 878Q293 883 309 861Q338 829 355 783L355 747Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="cta-kai-upper-arm-right-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M333 726Q292 726 266 773L238 815Q223 830 234 848Q253 873 278 878Q293 883 309 861Q338 829 355 783L355 747Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round" transform="translate(1024 0) scale(-1 1)"/></mask>
+    <mask id="cta-kai-forearm-left-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M239 831Q205 853 127 908Q111 930 108 962L108 972Q77 996 65 1025Q51 1040 51 1066Q50 1090 70 1097Q83 1102 95 1094L110 1058Q134 1089 153 1073Q172 1063 170 1039Q190 1033 200 1008Q242 993 267 941L301 884Q266 870 239 831Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="cta-kai-forearm-right-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M239 831Q205 853 127 908Q111 930 108 962L108 972Q77 996 65 1025Q51 1040 51 1066Q50 1090 70 1097Q83 1102 95 1094L110 1058Q134 1089 153 1073Q172 1063 170 1039Q190 1033 200 1008Q242 993 267 941L301 884Q266 870 239 831Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round" transform="translate(1024 0) scale(-1 1)"/></mask>
+    <mask id="cta-kai-thigh-left-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M361 954Q409 1006 459 1037L468 1074L451 1150Q415 1168 382 1167Q344 1161 310 1129L319 1060Q325 1017 361 954Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="cta-kai-thigh-right-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M361 954Q409 1006 459 1037L468 1074L451 1150Q415 1168 382 1167Q344 1161 310 1129L319 1060Q325 1017 361 954Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round" transform="translate(1024 0) scale(-1 1)"/></mask>
+    <mask id="cta-kai-shin-left-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M318 1123Q380 1099 422 1135L450 1150Q472 1215 465 1292Q478 1345 462 1362C397 1401 215 1425 178 1387Q170 1374 177 1347Q190 1288 246 1251Q255 1197 286 1163Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round"/></mask>
+    <mask id="cta-kai-shin-right-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M318 1123Q380 1099 422 1135L450 1150Q472 1215 465 1292Q478 1345 462 1362C397 1401 215 1425 178 1387Q170 1374 177 1347Q190 1288 246 1251Q255 1197 286 1163Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round" transform="translate(1024 0) scale(-1 1)"/></mask>
+    <mask id="cta-kai-wave-sleeve-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536"><path d="M239 831Q205 853 127 908Q111 930 108 962L160 1002Q230 990 267 941L301 884Q266 870 239 831Z" fill="white" stroke="black" stroke-width="4"/></mask>
+    <linearGradient id="cta-kai-palm-shade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#496181"/><stop offset=".5" stop-color="#162c4e"/><stop offset="1" stop-color="#061229"/></linearGradient>
+    <linearGradient id="cta-kai-cape-shade" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#039dff"/><stop offset=".32" stop-color="#064ad4"/><stop offset=".68" stop-color="#083bc5"/><stop offset="1" stop-color="#06b8ff"/></linearGradient>
+    <linearGradient id="cta-kai-prop-metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".42" stop-color="#a3eaff"/><stop offset=".65" stop-color="#0575eb"/><stop offset="1" stop-color="#05245b"/></linearGradient>
+    <radialGradient id="cta-kai-prop-glass"><stop stop-color="#58f3ff" stop-opacity=".04"/><stop offset=".72" stop-color="#07beff" stop-opacity=".12"/><stop offset="1" stop-color="#00baff" stop-opacity=".6"/></radialGradient>
+    <radialGradient id="cta-kai-bulb-light"><stop stop-color="#fffbd1"/><stop offset=".55" stop-color="#ffdf65"/><stop offset="1" stop-color="#ffaa17"/></radialGradient>
+  </defs>
+  <ellipse class="kai3d-shadow" cx="512" cy="1415" rx="390" ry="46" fill="url(#cta-kai-ground)"/>
+  <g class="kai3d-puppet"><g class="kai3d-body">
+    <g class="kai3d-cape"><path d="M351 683Q285 696 214 813L129 973Q77 1116 173 1182L183 1139Q234 1088 309 1121Q512 1145 715 1121Q790 1088 841 1139L851 1182Q947 1116 895 973L810 813Q739 696 673 683Z" fill="url(#cta-kai-cape-shade)" stroke="#075bdd" stroke-width="9"/><path d="M308 768Q184 1054 173 1150M716 768Q840 1054 851 1150" fill="none" stroke="#02c8ff" stroke-opacity=".35" stroke-width="12"/></g>
+    <g class="kai3d-leg kai3d-leg-left"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#cta-kai-thigh-left-cutout)"/><g class="kai3d-shin kai3d-shin-left"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#cta-kai-shin-left-cutout)"/></g></g>
+    <g class="kai3d-leg kai3d-leg-right"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#cta-kai-thigh-right-cutout)"/><g class="kai3d-shin kai3d-shin-right"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#cta-kai-shin-right-cutout)"/></g></g>
+    <g class="kai3d-torso"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#cta-kai-torso-cutout)"/></g>
+    <g class="kai3d-head"><g class="kai3d-head-motion">
+      <image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#cta-kai-head-cutout)"/>
+      <g class="kai3d-gaze" filter="url(#cta-kai-face-glow)" fill="#35e4ff" stroke="#35e4ff" stroke-linecap="round">
+        <g class="kai3d-brows" fill="none" stroke-width="13"><path d="M302 285Q329 266 358 280"/><path d="M660 280Q690 266 718 285"/></g>
+        <g class="kai3d-eyes" fill="none" stroke-width="30">
+          <path class="kai3d-happy" d="M283 441C299 346 382 326 412 441M610 441C641 326 724 346 740 441"/>
+          <g class="kai3d-attentive" fill="#35e4ff" stroke="none"><ellipse cx="351" cy="403" rx="28" ry="52"/><ellipse cx="672" cy="403" rx="28" ry="52"/></g>
+        </g>
+        <path class="kai3d-smile" stroke="none" d="M457 504Q512 533 568 504Q556 565 512 566Q468 565 457 504Z"/>
+        <ellipse class="kai3d-surprise" cx="512" cy="529" rx="21" ry="29" stroke="none"/>
+        <ellipse class="kai3d-mouth" cx="512" cy="534" rx="45" ry="37" stroke="none"/>
+        <g class="kai3d-thought" stroke="none"><circle cx="473" cy="535" r="11"/><circle cx="512" cy="535" r="11"/><circle cx="551" cy="535" r="11"/></g>
+      </g>
+      <g class="kai3d-listen" fill="none" stroke="#09baff" stroke-width="13" stroke-linecap="round"><path d="M27 358Q-5 418 27 479M994 358Q1026 418 994 479"/></g>
+    </g></g>
+    <g class="kai3d-search-props">
+      <g class="kai3d-search-pages" fill="#d7f8ff" fill-opacity=".83" stroke="#19c6ff" stroke-width="7"><g class="kai3d-page-one"><rect x="52" y="663" width="134" height="165" rx="17" transform="rotate(-12 119 746)"/><path d="M78 707H149M78 733H142M78 759H129"/></g><g class="kai3d-page-two"><rect x="848" y="665" width="134" height="165" rx="17" transform="rotate(12 915 746)"/><path d="M880 707H952M880 733H942M880 759H927"/></g></g>
+      <g class="kai3d-magnifier"><path d="M378 550 419 707" stroke="#032c71" stroke-width="53" stroke-linecap="round"/><path d="M379 550 419 707" stroke="url(#cta-kai-prop-metal)" stroke-width="36" stroke-linecap="round"/><circle cx="298" cy="439" r="140" fill="#07315a" fill-opacity=".2" stroke="#05377c" stroke-width="30"/><circle cx="298" cy="439" r="140" fill="url(#cta-kai-prop-glass)" stroke="url(#cta-kai-prop-metal)" stroke-width="19"/><circle cx="298" cy="439" r="119" fill="none" stroke="#1fe4ff" stroke-width="5"/><path d="M211 408Q224 350 280 347" fill="none" stroke="#c5fcff" stroke-width="15" stroke-linecap="round"/></g>
+    </g>
+    <g class="kai3d-arm kai3d-arm-left"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#cta-kai-upper-arm-left-cutout)"/><g class="kai3d-forearm kai3d-forearm-left"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#cta-kai-forearm-left-cutout)"/><g class="kai3d-curled-forearm"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#cta-kai-wave-sleeve-cutout)"/>
+      <g class="kai3d-curled-hand" transform="translate(142 965) rotate(187)" fill="url(#cta-kai-palm-shade)" stroke="#071c3c" stroke-width="6" stroke-linejoin="round">
+        <!-- A relaxed fist: upright knuckles and a thumb folded across the fingers. -->
+        <path d="M-40 0Q-58-22-53-46L-48-67Q-45-82-31-78Q-25-95-10-87Q2-99 15-87Q33-96 43-78L48-42Q58-24 40-3Z"/>
+        <path d="M-31-75-32-48Q-23-38-13-47L-10-84M-12-47Q1-38 12-49L15-84M12-49Q27-39 37-51L36-74" fill="none" stroke="#6f91b8" stroke-width="4" stroke-linecap="round"/>
+        <path d="M42-48Q63-49 60-29Q48-5 18-9L-6-18Q-18-29-8-38Q0-44 14-34L30-32Z"/>
+        <path d="M-40 0Q0-11 42 0L37 24Q-1 33-37 22Z" fill="url(#cta-kai-prop-metal)" stroke="#1255a2"/>
+      </g></g><g class="kai3d-wave-forearm"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#cta-kai-wave-sleeve-cutout)"/><g transform="translate(142 965) rotate(-120)"><g class="kai3d-wave-palm" fill="url(#cta-kai-palm-shade)" stroke="#071c3c" stroke-width="7" stroke-linejoin="round">
+        <path d="M-43-2C-61-31-70-43-77-64L-90-94Q-94-108-83-112Q-72-116-63-99L-47-78-58-155Q-60-170-48-172Q-34-174-32-157L-21-99-22-177Q-22-191-9-191Q5-190 5-175L8-101 17-166Q19-182 32-179Q44-176 41-160L33-92 49-136Q54-150 66-143Q77-137 71-124L53-64Q48-38 36-3Z"/>
+        <path d="M-33-55Q-2-69 26-49M-37-79-29-42M-6-89-4-50M24-82 16-47" fill="none" stroke="#6989af" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+        <path d="M-42-4Q-3-13 39-4L35 21Q-4 30-39 19Z" fill="url(#cta-kai-prop-metal)" stroke="#1255a2"/>
+      </g></g></g></g></g>
+    <g class="kai3d-arm kai3d-arm-right"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#cta-kai-upper-arm-right-cutout)"/><g class="kai3d-forearm kai3d-forearm-right"><image href="/redesign/kai-character.webp" width="1024" height="1536" mask="url(#cta-kai-forearm-right-cutout)"/></g></g>
 
-  <div class="est panel rise" style="padding:26px">
-    <div class="est-controls">
-      <span class="plabel">Estimator · pick your hardware</span>
-      <div class="gpu-row" id="gpuRow" role="group" aria-label="GPU class">
-        <button class="chip" data-w="1" aria-pressed="false">RTX 3060</button>
-        <button class="chip" data-w="1.7" aria-pressed="false">RTX 4070</button>
-        <button class="chip" data-w="2.6" aria-pressed="true">RTX 4080</button>
-        <button class="chip" data-w="3.6" aria-pressed="false">RTX 4090</button>
-        <button class="chip" data-w="7.5" aria-pressed="false">A100 / pro</button>
-      </div>
-      <div class="slider-row">
-        <label>Hours contributed / day <span class="mono tnum" id="hrsOut" style="color:var(--value)">8h</span></label>
-        <input type="range" id="hrs" min="1" max="24" value="8" step="1" aria-label="Hours per day">
-      </div>
-      <div class="slider-row">
-        <label>Network utilization <span class="mono" id="utilOut" style="color:var(--value)">moderate</span></label>
-        <input type="range" id="util" min="1" max="3" value="2" step="1" aria-label="Network utilization">
-      </div>
-      <p class="disclaimer">Illustrative model — a relative earning weight from GPU class × hours × demand, not a yield promise. Real KAI reward depends on verified work, live network demand, and the KAI reference price, all still in economic simulation. Alpha earnings are testnet KAI — no monetary value yet.</p>
-    </div>
-    <div class="readout">
-      <div>
-        <div class="big tnum" id="kaiDay">—</div>
-        <div class="unit">KAI / day <span class="mono" style="color:var(--faint);font-size:12px">· est.</span></div>
-      </div>
-      <div class="grid2">
-        <div class="kv"><span>Eligible work</span><b id="eligible">LLM · Embed</b></div>
-        <div class="kv"><span>Est. KAI / month</span><b class="tnum" id="kaiMonth">—</b></div>
-      </div>
-    </div>
-  </div>
+    <g class="kai3d-thinking-props">
+      <g class="kai3d-question-prop" transform="translate(865 224)"><path d="M-57-70Q-8-103 45-66Q88-35 54 12L23 40V70H-17V23Q-16 6 5-10Q35-32 8-47Q-12-61-31-43Z" fill="#0c80ff" stroke="#84eaff" stroke-width="8"/><circle cy="103" r="23" fill="#05cfff" stroke="#8bf0ff" stroke-width="6"/></g>
+      <g class="kai3d-idea-prop"><g transform="translate(887 262)"><g class="kai3d-idea-rays" fill="none" stroke="#ffcf4f" stroke-width="12" stroke-linecap="round"><path d="M0-129V-159M91-91L112-112M127 0H157M-91-91L-112-112M-127 0H-157M0-129V-159"/></g><path d="M-41 57C-44 32-79 14-79-28A79 79 0 0 1 79-28C79 14 44 32 41 57Z" fill="url(#cta-kai-bulb-light)" stroke="#fff4be" stroke-width="9"/><path d="M-15 55V-11L0 2 15-11V55M-39 74H39M-31 90H31" fill="none" stroke="#f8fcff" stroke-width="11" stroke-linecap="round"/><path d="M-28 101Q0 128 28 101" fill="#2876c2"/></g></g>
+    </g>
 
-  <div class="steps">
-    <a class="step rise" href="/testers"><div class="num">STEP 01</div><h3>Install &amp; detect</h3><p>Koinos AI finds your CPU, GPU, VRAM, and drivers and configures a compatible runtime and model automatically.</p><span class="go">Download for Windows — free <span class="arw">→</span></span></a>
-    <div class="step rise"><div class="num">STEP 02</div><h3>Press Start Earning</h3><p>No KAI, KOIN, MANA, or manual pricing. Foreground use always wins; battery and thermal limits protect the hardware.</p></div>
-    <div class="step rise"><div class="num">STEP 03</div><h3>Do verified work</h3><p>Completed, verified AI jobs settle in KAI through Koinos — with gasless onboarding sponsored underneath.</p></div>
-  </div>
-</div></section>
-
-<div class="wrap"><div class="divider"></div></div>
-
-<!-- COMPARISON -->
-<section><div class="wrap">
-  <div class="shead center rise">
-    <div class="eyebrow">The difference, plainly</div>
-    <h2>Centralized AI vs. AI you own.</h2>
-    <p>Same familiar API surface. A completely different relationship to your compute, your data, and your bill.</p>
-  </div>
-  <div class="cmp-wrap rise">
-    <table class="cmp">
-      <colgroup><col><col class="c-kai"><col></colgroup>
-      <thead><tr><th></th><th class="kai">Koinos AI</th><th class="big">Centralized AI API</th></tr></thead>
-      <tbody>
-        <tr><th>Where inference runs</th><td class="kai">Your hardware first, network on demand</td><td class="big">Always their data center</td></tr>
-        <tr><th>Your prompts &amp; files</th><td class="kai">Stay local unless you opt out</td><td class="big">Leave your control by default</td></tr>
-        <tr><th>Cost floor</th><td class="kai">$0 for local — you own the compute</td><td class="big">Per-token rent, forever</td></tr>
-        <tr><th>Idle GPU</th><td class="kai">Earns KAI for verified work</td><td class="big">Earns nothing</td></tr>
-        <tr><th>Elastic scale</th><td class="kai">Overflow into a decentralized network</td><td class="big">Only theirs, at their price</td></tr>
-        <tr><th>Lock-in</th><td class="kai">Open, self-hostable, forkable</td><td class="big">Their SDK, their terms</td></tr>
-      </tbody>
-    </table>
-  </div>
-</div></section>
-
-<!-- PRIVACY ROUTING SELECTOR -->
-<section><div class="wrap">
-  <div class="shead rise">
-    <div class="eyebrow">Privacy by architecture</div>
-    <h2>Your data stops being their asset. You decide where it runs.</h2>
-    <p>To Big AI, your prompts and files leave your control the moment you hit send. Koinos AI flips the default: local execution never leaves your device, and when you <em>do</em> reach for the network you pick the exact privacy mode — and see precisely where your request is allowed to run.</p>
-  </div>
-  <div class="route">
-    <div class="route-modes" id="routeModes" role="group" aria-label="Privacy mode">
-      <button class="rbtn" data-mode="local" aria-pressed="true"><span class="rk"></span><span><b>Local only</b><small>Never sent off the device.</small></span></button>
-      <button class="rbtn" data-mode="private" aria-pressed="false"><span class="rk"></span><span><b>Private pool</b><small>Only your trusted hardware.</small></span></button>
-      <button class="rbtn" data-mode="network" aria-pressed="false"><span class="rk"></span><span><b>Verified network</b><small>Encrypted transport to public providers.</small></span></button>
-      <button class="rbtn" data-mode="confidential" aria-pressed="false"><span class="rk"></span><span><b>Confidential · future</b><small>Attested confidential compute only.</small></span></button>
-    </div>
-    <div class="route-viz">
-      <span class="plabel">Where this request may run</span>
-      <div class="rv-track" id="rvTrack">
-        <div class="rv-node" data-k="local"><b>Local</b>your machine</div>
-        <span class="rv-arrow">→</span>
-        <div class="rv-node" data-k="private"><b>Private</b>trusted pool</div>
-        <span class="rv-arrow">→</span>
-        <div class="rv-node" data-k="network"><b>Network</b>public providers</div>
-        <span class="rv-arrow">→</span>
-        <div class="rv-node" data-k="confidential"><b>Confidential</b>attested TEE</div>
-      </div>
-      <p class="rv-desc" id="rvDesc"></p>
-    </div>
-  </div>
-</div></section>
-
-<!-- KAI / TWO NETWORKS -->
-<section id="kai"><div class="wrap">
-  <div class="shead rise">
-    <div class="eyebrow">The KAI economy</div>
-    <h2>Value flows to useful work — not to a meter on your own machine.</h2>
-    <p>KAI settles the network: providers earn it for verified compute, model creators can earn bounded royalties, and you spend it only when you use resources someone else supplied. Local inference has no KAI charge, ever.</p>
-  </div>
-  <div class="two-net">
-    <article class="netcard kai rise">
-      <span class="token">AI COMPUTE</span>
-      <h3>Share compute → earn KAI</h3>
-      <p>Benchmark, route, protect foreground use, and settle verified AI work automatically. Providers can earn KAI without first buying KAI or KOIN.</p>
-      <div class="rw"><span>Native reward</span><b>KAI</b></div>
-    </article>
-    <article class="netcard koin rise">
-      <span class="token">KOINOS CONSENSUS</span>
-      <h3>Secure Koinos → earn KOIN</h3>
-      <p>An optional module runs a full node and, if you choose, Proof-of-Burn block production. A separate earning path with its own economics — no GPU mining required.</p>
-      <div class="rw"><span>Native reward</span><b>KOIN</b></div>
-    </article>
-  </div>
-  <p class="clean-note"><b>Clean by design:</b> KAI rewards useful AI work. KOIN rewards Koinos consensus. We never double-pay KAI just for producing blocks. Token supply, fees, and bootstrap pricing stay provisional pending economic simulation and legal review.</p>
-</div></section>
-
-<!-- ROADMAP -->
-<section id="roadmap"><div class="wrap">
-  <div class="shead rise">
-    <div class="eyebrow">Roadmap</div>
-    <h2>From private local AI to distributed intelligence.</h2>
-    <p>Prove the core loop first — install, run local AI, earn, settle, overflow — then earn the harder layers. Gated by readiness, not a calendar.</p>
-  </div>
-  <div class="eras">
-    <article class="era now rise"><span class="flag">▲ building</span><div class="en">ERA I</div><h3>Network Genesis</h3><ul><li>Local AI &amp; chat</li><li>Provider earning</li><li>KAI settlement</li><li>Self-hosted API</li><li>Network overflow</li></ul></article>
-    <article class="era rise"><div class="en">ERA II</div><h3>Open Compute</h3><ul><li>Public providers</li><li>More models &amp; hardware</li><li>Private pools</li><li>Batch / spot compute</li><li>Model marketplace</li></ul></article>
-    <article class="era rise"><div class="en">ERA III</div><h3>Autonomous AI</h3><ul><li>Persistent agents</li><li>Tools &amp; permissions</li><li>Machine payments</li><li>Confidential compute</li></ul></article>
-    <article class="era rise"><div class="en">ERA IV</div><h3>Distributed Intelligence</h3><ul><li>Synthetic data</li><li>Fine-tuning</li><li>Distillation</li><li>Distributed training</li><li>Koinos-native models</li></ul></article>
-  </div>
-</div></section>
-
-<!-- WAITLIST -->
-<section id="waitlist"><div class="wrap">
-  <div class="cta rise">
-    <div class="eyebrow">Early access</div>
-    <h2>Own your <span class="warm">AI</span>. Share the <span class="cool">scale</span>.</h2>
-    <p>Be first to run private AI on your own hardware — and first to earn from it when the network opens.</p>
-    <div class="wl">
-      <div class="seg" id="seg" role="group" aria-label="I am a">
-        <button data-seg="people" aria-pressed="true">I want to run &amp; earn</button>
-        <button data-seg="dev" aria-pressed="false">I'm a developer</button>
-      </div>
-      <form class="wl-form" id="wlForm">
-        <input type="text" id="wlHp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none">
-        <input type="email" id="wlEmail" placeholder="you@domain.com" aria-label="Email" required>
-        <button class="btn btn-signal" type="submit">Request access <span class="arw">→</span></button>
-      </form>
-      <div class="wl-ok" id="wlOk">✓ You're on the list. We'll reach out as spots open.</div>
-      <div class="wl-note" id="wlNote">No spam. No token sale. A working product first — then price discovery. We keep your email, which option you picked and the time — nothing else: <a href="/privacy">privacy</a>.</div>
-    </div>
-  </div>
-</div></section>
-
-<!-- FAQ -->
-<section><div class="wrap">
-  <div class="shead center rise"><div class="eyebrow">FAQ</div><h2>Straight answers.</h2></div>
-  <div class="faq rise">
-    <details open><summary>Do I need cryptocurrency to use it?</summary><p>No. Local AI runs on your own hardware with no KAI required. Network services can be paid through familiar payment and credit experiences, with Koinos handling settlement underneath.</p></details>
-    <details><summary>Do I need KAI or KOIN to start earning?</summary><p>No. Entry-level providers start with compatible hardware and sponsored (gasless) Koinos resource usage. Higher-value provider classes may later use KAI collateral — but you never have to buy KAI to begin earning KAI.</p></details>
-    <details><summary>Is network inference private?</summary><p>Not automatically — and we won't pretend otherwise. Local mode never leaves your device; private pools restrict execution to trusted hardware; verified-network mode uses encrypted transport; confidential compute (future) adds hardware attestation. You choose the fallback order.</p></details>
-    <details><summary>Why does the self-hosted API matter?</summary><p>It keeps your own GPUs as the primary inference layer while giving you an elastic path to decentralized capacity — instead of building your product permanently around a hyperscale API whose terms you don't control.</p></details>
-    <details><summary>Is this just crypto mining?</summary><p>No. You're not rewarded for burning power on hashes — you earn KAI for completing verified, useful AI work: inference, embeddings, evaluation, and later fine-tuning. Passive uptime isn't the reward.</p></details>
-  </div>
-</div></section>
-
-</main>
-
-<footer><div class="wrap"><div class="foot">
-  <div>© 2026 Koinos AI · Your hardware first. The network when you need it.</div>
-  <div class="foot-links"><a href="/testers">Tester quickstart</a><a href="/network">Live network</a><a href="https://github.com/therexdev/kaiapp" target="_blank" rel="noopener">GitHub</a><a href="/whitepaper.pdf" target="_blank" rel="noopener">White paper</a><a href="#developers">Developers</a><a href="#earn">Earn</a><a href="#roadmap">Roadmap</a><a href="#waitlist">Early access</a><a href="/privacy">Privacy</a><a href="mailto:contact@koinosai.com">Contact</a></div>
-</div></div></footer>
-
+  </g></g>
+  <g class="kai3d-ledge"><path d="M166 1470H858" stroke="#053971" stroke-width="13" stroke-linecap="round"/><path d="M166 1467H858" stroke="#15c8ff" stroke-width="5" stroke-linecap="round"/></g>
+</svg>
+</div></div><div class="waitlist-row" id="waitlist"><div><h3>Stay in the loop.</h3><p>Get updates as KAI grows. <a href="/privacy">Read our privacy policy.</a></p></div><form class="waitlist-form" id="waitlist-form"><label class="sr-only" for="waitlist-email">Email address</label><input id="waitlist-email" name="email" type="email" placeholder="Your email address" required autocomplete="email" maxlength="254"><label class="honeypot" aria-hidden="true">Website<input name="website" autocomplete="off" tabindex="-1"></label><button class="btn primary" type="submit">Keep me posted</button><label class="developer-interest"><input type="checkbox" name="developer"> I’m building with KAI</label><p class="form-message" id="form-message" role="status" aria-live="polite"></p></form></div></div></section>
+</main><footer class="site-footer"><div class="wrap"><div class="footer-top"><a class="brand" href="#top"><img src="/redesign/brand-mark.svg" alt="" width="29" height="29"><span>Koinos<em>AI</em></span></a><nav class="footer-links" aria-label="Footer navigation"><a href="/docs/">Documentation</a><a href="/updates">Updates</a><a href="/network">Network</a><a href="/whitepaper.pdf" target="_blank" rel="noopener">White paper</a><a href="/privacy">Privacy</a><a href="mailto:contact@koinosai.com">Contact</a></nav></div><div class="footer-bottom"><span>© 2026 Koinos AI. Your hardware first. Your choice, always.</span><span>Built on Koinos. Built around you.</span></div></div></footer>
+<dialog class="lightbox" id="screenshot-dialog" aria-labelledby="lightbox-title"><div class="lightbox-head"><h3 id="lightbox-title">Chat with KAI</h3><button id="lightbox-close" aria-label="Close screenshot">Close ×</button></div><img id="lightbox-image" alt=""><small>Koinos AI Test · Actual interface with sample workspace data.</small></dialog>
 <script>
-(function(){
-  "use strict";
-  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  /* nav */
-  var nav=document.getElementById("nav");
-  addEventListener("scroll",function(){nav.classList.toggle("stuck",scrollY>8);},{passive:true});
-  var burger=document.getElementById("burger"), mobile=document.getElementById("mobile");
-  burger.addEventListener("click",function(){var o=mobile.classList.toggle("open");burger.setAttribute("aria-expanded",o);});
-  mobile.querySelectorAll("a").forEach(function(a){a.addEventListener("click",function(){mobile.classList.remove("open");});});
-
-  /* reveal */
-  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});},{threshold:.12});
-  document.querySelectorAll(".rise").forEach(function(el){io.observe(el);});
-
-  /* hero mesh — warm local node feeding cool network nodes */
-  var cv=document.getElementById("mesh"), ctx=cv.getContext("2d"), W,H,DPR, nodes=[], packets=[], t=0, local;
-  function size(){DPR=Math.min(devicePixelRatio||1,2);var r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);build();}
-  function build(){
-    nodes=[]; local={x:W*0.2,y:H*0.78,r:6,local:true};
-    nodes.push(local);
-    var n=Math.max(10,Math.round(W/62));
-    for(var i=0;i<n;i++){nodes.push({x:Math.random()*W*0.9+W*0.05,y:Math.random()*H*0.82+H*0.05,r:1.6+Math.random()*1.8,ph:Math.random()*6.28});}
-  }
-  function emit(){
-    if(reduce)return;
-    var target=nodes[1+Math.floor(Math.random()*(nodes.length-1))];
-    packets.push({a:local,b:target,t:0,sp:0.012+Math.random()*0.02});
-  }
-  function line(a,b,al){ctx.strokeStyle="rgba(120,120,140,"+al+")";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
-  function frame(){
-    t+=0.016; ctx.clearRect(0,0,W,H);
-    for(var i=0;i<nodes.length;i++)for(var j=i+1;j<nodes.length;j++){var a=nodes[i],b=nodes[j],dx=a.x-b.x,dy=a.y-b.y,d=Math.hypot(dx,dy);if(d<150)line(a,b,(1-d/150)*0.10);}
-    for(var k=0;k<nodes.length;k++){var nd=nodes[k];var pul=nd.local?1:0.5+0.5*Math.sin(t*1.4+ (nd.ph||0));
-      if(nd.local){ctx.fillStyle="rgba(242,176,61,0.9)";ctx.shadowColor="rgba(242,176,61,0.8)";ctx.shadowBlur=18;}
-      else{ctx.fillStyle="rgba(51,230,192,"+(0.35+0.45*pul)+")";ctx.shadowColor="rgba(51,230,192,0.6)";ctx.shadowBlur=8;}
-      ctx.beginPath();ctx.arc(nd.x,nd.y,nd.r,0,6.2832);ctx.fill();ctx.shadowBlur=0;
-    }
-    if(nodes.length>1){ctx.strokeStyle="rgba(242,176,61,0.10)";ctx.lineWidth=1;for(var m=1;m<Math.min(nodes.length,7);m++){ctx.beginPath();ctx.moveTo(local.x,local.y);ctx.lineTo(nodes[m].x,nodes[m].y);ctx.stroke();}}
-    for(var p=packets.length-1;p>=0;p--){var pk=packets[p];pk.t+=pk.sp;if(pk.t>=1){packets.splice(p,1);continue;}
-      var x=pk.a.x+(pk.b.x-pk.a.x)*pk.t, y=pk.a.y+(pk.b.y-pk.a.y)*pk.t;
-      var g=ctx.createLinearGradient(pk.a.x,pk.a.y,x,y);g.addColorStop(0,"rgba(242,176,61,0)");g.addColorStop(1,"rgba(51,230,192,0.7)");
-      ctx.strokeStyle=g;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(pk.a.x,pk.a.y);ctx.lineTo(x,y);ctx.stroke();
-      ctx.fillStyle="rgba(180,255,238,0.95)";ctx.beginPath();ctx.arc(x,y,1.8,0,6.2832);ctx.fill();
-    }
-    requestAnimationFrame(frame);
-  }
-  size(); addEventListener("resize",size);
-  if(reduce){/* one static frame */ var pf=function(){ctx.clearRect(0,0,W,H);for(var i=0;i<nodes.length;i++)for(var j=i+1;j<nodes.length;j++){var a=nodes[i],b=nodes[j],d=Math.hypot(a.x-b.x,a.y-b.y);if(d<150)line(a,b,(1-d/150)*0.1);}nodes.forEach(function(nd){ctx.fillStyle=nd.local?"rgba(242,176,61,0.9)":"rgba(51,230,192,0.6)";ctx.beginPath();ctx.arc(nd.x,nd.y,nd.r,0,6.28);ctx.fill();});};pf();}
-  else{frame(); setInterval(emit,520);}
-
-  /* estimator */
-  var gpuRow=document.getElementById("gpuRow"), hrs=document.getElementById("hrs"), util=document.getElementById("util");
-  var kaiDay=document.getElementById("kaiDay"), kaiMonth=document.getElementById("kaiMonth"), hrsOut=document.getElementById("hrsOut"),
-      utilOut=document.getElementById("utilOut"), eligible=document.getElementById("eligible");
-  var w=2.6; var utilLabels={1:"light",2:"moderate",3:"high"}, utilMul={1:0.55,2:1,3:1.5};
-  var eligByW=[[1.6,"LLM · Embed"],[3,"LLM · Embed · Vision"],[99,"LLM · Vision · Train-ready"]];
-  function elig(w){for(var i=0;i<eligByW.length;i++)if(w<=eligByW[i][0])return eligByW[i][1];return eligByW[eligByW.length-1][1];}
-  function calc(){
-    var h=+hrs.value, u=+util.value;
-    var day=w*h*utilMul[u]*3.1;
-    kaiDay.textContent=day.toFixed(1);
-    kaiMonth.textContent=Math.round(day*30).toLocaleString();
-    hrsOut.textContent=h+"h"; utilOut.textContent=utilLabels[u]; eligible.textContent=elig(w);
-  }
-  gpuRow.addEventListener("click",function(e){var b=e.target.closest(".chip");if(!b)return;
-    gpuRow.querySelectorAll(".chip").forEach(function(c){c.setAttribute("aria-pressed","false");});
-    b.setAttribute("aria-pressed","true"); w=+b.dataset.w; calc();});
-  hrs.addEventListener("input",calc); util.addEventListener("input",calc); calc();
-
-  /* privacy routing */
-  var order=["local","private","network","confidential"];
-  var desc={
-    local:"Stays on <b>your machine</b>. Nothing is sent anywhere — the strongest, simplest privacy guarantee.",
-    private:"Runs on <b>your machine or trusted private-pool</b> hardware. Public providers are off-limits.",
-    network:"Falls back to <b>reputation-bearing public providers</b> over encrypted transport when local isn't enough. The host can access workload plaintext — so this is opt-in.",
-    confidential:"<span style='color:var(--faint)'>Future:</span> remote fallback only to <b>attested confidential-compute</b> environments that prove their execution state first."
-  };
-  var rmodes=document.getElementById("routeModes"), rvDesc=document.getElementById("rvDesc");
-  var rvNodes={}; document.querySelectorAll("#rvTrack .rv-node").forEach(function(n){rvNodes[n.dataset.k]=n;});
-  function setMode(mode){
-    rmodes.querySelectorAll(".rbtn").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.mode===mode));});
-    var idx=order.indexOf(mode);
-    order.forEach(function(k,i){var nd=rvNodes[k];nd.className="rv-node";
-      if(i<=idx){ if(k==="local"||k==="private"){nd.classList.add("warm-hot");} else {nd.classList.add("hot");} }
-      else nd.classList.add("blocked");
-    });
-    rvDesc.innerHTML=desc[mode];
-  }
-  rmodes.addEventListener("click",function(e){var b=e.target.closest(".rbtn");if(b)setMode(b.dataset.mode);});
-  setMode("local");
-
-  /* waitlist */
-  var seg=document.getElementById("seg"), form=document.getElementById("wlForm"), ok=document.getElementById("wlOk"),
-      note=document.getElementById("wlNote"), email=document.getElementById("wlEmail"), hp=document.getElementById("wlHp");
-  var segVal="people", sending=false, noteText=note.textContent;
-  seg.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
-    seg.querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed","false");});
-    b.setAttribute("aria-pressed","true"); segVal=b.dataset.seg;
-    email.placeholder = segVal==="dev" ? "you@company.com" : "you@domain.com";});
-  form.addEventListener("submit",function(e){e.preventDefault();
-    if(!email.value||sending){return;}
-    var btn=form.querySelector('button[type="submit"]');
-    sending=true; btn.disabled=true; btn.style.opacity=".7";
-    note.textContent=noteText; note.style.color="";
-    fetch("/api/waitlist",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({email:email.value.trim(),segment:segVal,website:hp?hp.value:""})
-    }).then(function(r){
-      return r.json().then(function(j){return {ok:r.ok&&j&&j.ok===true,err:j&&j.error};},
-                           function(){return {ok:r.ok,err:null};});
-    }).then(function(res){
-      if(!res.ok){throw new Error(res.err||"");}
-      form.style.display="none"; note.style.display="none"; ok.style.display="block";
-    }).catch(function(err){
-      note.textContent=(err&&err.message)||"Something went wrong — please try again.";
-      note.style.color="var(--danger)";
-    }).then(function(){sending=false; btn.disabled=false; btn.style.opacity="";});
-  });
-})();
-</script>
-</body>
-</html>
+const features={chat:{title:'Start with a conversation.',description:'Write, research, plan, and work through ideas with KAI. Keep your conversations together and choose the right model for the moment.',alt:'Koinos AI Test chat workspace, with KAI and the new app navigation.'},brain:{title:'An AI that knows your world.',description:'Organize memories, projects, and goals. Bring in selected sources, explore their connections, and choose the context KAI can use.',alt:'The KAI Brain workspace with sample project memories, goals, and sources.'},workflows:{title:'Teach KAI your kind of routine.',description:'Connect steps on a visual canvas. Add local reasoning, branches, schedules, and approval points, then review every run.',alt:'The KAI visual workflow builder displaying a sample project briefing routine.'},connections:{title:'Bring your everyday apps along.',description:'Discover connections, link your accounts, and choose what KAI can read or do. Use permitted actions in chat and reviewed workflows.',alt:'The KAI Connections catalog showing available app integrations.'},models:{title:'Choose the brain behind the conversation.',description:'Browse compatible local models, compare options, and keep useful models on your machine. Add your own API providers for desktop chat.',alt:'The Koinos AI Test model library with local model options.'},agents:{title:'Give every agent a job.',description:'Build a team with defined roles, instructions, and tools. Save and reuse it, or create pipelines for work that needs more than one step.',alt:'The Koinos AI Test multi-agent builder with a sample agent team.'}};
+let activeFeature='chat';const tabs=[...document.querySelectorAll('.tour-tab')],tourImage=document.getElementById('tour-image');
+function setFeature(key){const f=features[key];if(!f)return;activeFeature=key;tabs.forEach(t=>{const active=t.dataset.feature===key;t.setAttribute('aria-selected',String(active));t.tabIndex=active?0:-1});document.getElementById('tour-panel').setAttribute('aria-labelledby','tab-'+key);tourImage.src=window.KAI_REVIEW_IMAGES?.[key]||'/redesign/'+key+'.jpg';tourImage.alt=f.alt;document.getElementById('tour-title').textContent=f.title;document.getElementById('tour-description').textContent=f.description;}
+tabs.forEach((tab,index)=>{tab.addEventListener('click',()=>setFeature(tab.dataset.feature));tab.addEventListener('keydown',event=>{let next;if(event.key==='ArrowRight')next=(index+1)%tabs.length;if(event.key==='ArrowLeft')next=(index+tabs.length-1)%tabs.length;if(event.key==='Home')next=0;if(event.key==='End')next=tabs.length-1;if(next!==undefined){event.preventDefault();tabs[next].focus();setFeature(tabs[next].dataset.feature)}})});
+const dialog=document.getElementById('screenshot-dialog');function showScreenshot(){const img=document.getElementById('lightbox-image');img.src=tourImage.src;img.alt=tourImage.alt;document.getElementById('lightbox-title').textContent=features[activeFeature].title;dialog.showModal()}
+document.getElementById('tour-expand').addEventListener('click',showScreenshot);tourImage.addEventListener('click',showScreenshot);document.getElementById('lightbox-close').addEventListener('click',()=>dialog.close());dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});
+const menuToggle=document.querySelector('.menu-toggle'),mobileMenu=document.getElementById('mobile-nav');menuToggle.addEventListener('click',()=>{const open=menuToggle.getAttribute('aria-expanded')!=='true';menuToggle.setAttribute('aria-expanded',String(open));mobileMenu.hidden=!open});mobileMenu.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{mobileMenu.hidden=true;menuToggle.setAttribute('aria-expanded','false')}));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!mobileMenu.hidden){mobileMenu.hidden=true;menuToggle.setAttribute('aria-expanded','false');menuToggle.focus()}});
+document.getElementById('waitlist-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,msg=document.getElementById('form-message'),submit=form.querySelector('button');if(window.KAI_REDESIGN_REVIEW||location.protocol==='file:'){msg.textContent='This is a design preview. Signup will be available on the live website.';return}submit.disabled=true;msg.textContent='Submitting…';try{const response=await fetch('/api/waitlist',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:form.elements.email.value.trim(),segment:form.elements.developer.checked?'dev':'people',website:form.elements.website.value})});const data=await response.json();if(!response.ok||!data.ok)throw Error(data.error||'Please try again.');msg.textContent='You’re on the list. We’ll keep you posted.';form.reset()}catch(error){msg.textContent=error.message||'Could not submit. Please try again.'}finally{submit.disabled=false}});
+</script></body></html>

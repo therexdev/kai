@@ -6,82 +6,39 @@
 <title>Koinos AI — Dashboard</title>
 <meta name="robots" content="noindex" />
 <style>
-:root{
-  --ink:#0A0A0C; --panel:#111117; --panel-2:#15151c;
-  --line:#22222b; --line-2:#2f2f3a;
-  --text:#F4F3F0; --soft:#d7d6d9; --muted:#a6a4b0; --faint:#7d7c89;
-  --signal:#33E6C0; --signal-dim:#1c8f7c;
-  --value:#F2B03D; --danger:#ff6b6b;
-  --r:14px;
-  --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
-  --sans:"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
-a{color:inherit;text-decoration:none}
-.wrap{width:min(760px,calc(100% - 32px));margin:0 auto;padding:40px 0 72px}
-.brand{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--signal);font-weight:600;margin:0}
-h1{font-size:clamp(26px,4vw,34px);margin:.3em 0 .35em}
-.muted{color:var(--muted);font-size:13.5px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin:14px 0}
-.btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:13px;font-weight:600;
-  padding:11px 15px;border-radius:11px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);
-  cursor:pointer;transition:border-color .15s}
-.btn:hover{border-color:#463f5a}
-.nav{display:flex;gap:10px;flex-wrap:wrap;margin:-4px 0 18px}
-.sect{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:30px 0 8px}
-.addr{font-family:var(--mono);font-size:12px;color:var(--muted);word-break:break-all;margin-bottom:8px}
+:root{color-scheme:light;--ink:#f5f8ff;--ink-2:#edf3ff;--panel:#fff;--panel-2:#edf3ff;--line:#dce5f2;--line-2:#c9d7ec;--text:#14284e;--soft:#344e74;--muted:#5e718e;--faint:#6b7f9c;--signal:#155eef;--signal-dim:#155eef;--value:#315ba2;--value-dim:#bfd3f4;--danger:#b52842;--max:1180px;--r:18px;--mono:ui-monospace,SFMono-Regular,Consolas,monospace;--sans:Inter,system-ui,-apple-system,'Segoe UI',sans-serif}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:100px}body{margin:0;background:var(--ink);color:var(--text);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}body::before,body::after{display:none}a{color:inherit;text-decoration:none}a:hover{color:var(--signal)}button,input,select,textarea{font:inherit}button{cursor:pointer}img{max-width:100%;height:auto}h1,h2,h3,p{margin:0}h1,h2,h3{line-height:1.2;letter-spacing:-.035em}h1{font-size:clamp(2rem,4.3vw,3.1rem);font-weight:650}h2{font-size:1.5rem}h3{font-size:1.1rem}.wrap{width:min(var(--max),calc(100% - 56px));margin-inline:auto}.mono,.addr{font-family:var(--mono)}.tnum{font-variant-numeric:tabular-nums}.lead{font-size:1rem;color:var(--muted);max-width:65ch;line-height:1.75}.muted,.hint{color:var(--muted);font-size:.9375rem}.eyebrow,.plabel{font:650 .8rem/1.5 var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--signal)}:focus-visible{outline:3px solid #79a9ff;outline-offset:3px}::selection{background:#d9e8ff;color:var(--text)}.hide,[hidden]{display:none!important}.body-link{color:var(--signal);text-decoration:underline;text-underline-offset:3px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:46px;padding:11px 18px;border:1px solid var(--line-2);border-radius:11px;background:white;color:var(--text);font:600 .9rem/1.4 var(--sans);cursor:pointer;text-align:center;transition:background .15s,border-color .15s}.btn:hover{background:#edf4ff;border-color:#a7c6f8}.btn-signal,.btn.primary{background:var(--signal);border-color:var(--signal);color:white;box-shadow:0 5px 16px #155eef15}.btn-signal:hover,.btn.primary:hover{background:#064bc9;color:white}.btn-ghost{background:transparent}.btn:disabled{opacity:.5;cursor:default}.icon{display:inline-block;width:21px;height:21px;flex:none;vertical-align:middle}.inline-heading{display:flex;align-items:center;gap:10px}.inline-heading .icon{color:var(--signal)}
+.kai-site-header{position:sticky;top:0;z-index:30;background:#f8fafff2;backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}.kai-header-inner{max-width:1240px;margin:auto;min-height:78px;padding:12px 28px;display:flex;align-items:center;justify-content:space-between;gap:24px}.kai-brand{display:inline-flex;align-items:center;gap:10px;white-space:nowrap;font-size:1.25rem;font-weight:750;letter-spacing:-.045em;color:var(--text)}.kai-brand img{display:block;width:35px;height:35px}.kai-brand em{font-style:normal;color:var(--signal)}.kai-site-links{display:flex;gap:22px;align-items:center;font-size:.875rem;font-weight:560}.kai-site-links a[aria-current=page]{color:var(--signal)}.kai-site-menu{display:none;position:relative}.kai-site-menu summary{padding:9px 12px;border:1px solid var(--line);border-radius:9px;cursor:pointer;font-size:.875rem;font-weight:600;list-style:none}.kai-site-menu summary::-webkit-details-marker{display:none}.kai-site-menu nav{position:absolute;top:48px;right:0;width:210px;padding:12px;background:white;border:1px solid var(--line);border-radius:13px;box-shadow:0 15px 30px #14284e15}.kai-site-menu nav a{display:block;padding:9px 12px}.kai-site-footer{border-top:1px solid var(--line);margin-top:48px;padding:26px 0 34px}.kai-footer-inner{max-width:1180px;width:calc(100% - 56px);margin:auto;display:flex;align-items:center;justify-content:space-between;gap:24px}.kai-site-footer nav{display:flex;flex-wrap:wrap;gap:12px 22px;font-size:.875rem;color:var(--muted)}.kai-copyright{font-size:.8125rem;color:var(--faint)}
+.kai-page-heading{display:flex;justify-content:space-between;align-items:center;gap:40px;padding:44px 0 24px}.kai-page-heading>div{max-width:780px}.kai-page-heading h1{margin:10px 0 16px}.kai-page-heading img{width:112px;height:156px;object-fit:contain;flex:none}.kai-page-heading .eyebrow{margin:0}.live-flag{display:inline-flex;align-items:center;gap:8px;font-size:.8125rem;font-weight:600;color:var(--signal)}.live-flag .pulse{width:7px;height:7px;border-radius:50%;background:var(--signal)}
+.card,.panel,.tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}.card,.panel{padding:24px}.card h2{margin-bottom:12px}.note,.stamp,.dl-note{color:var(--faint);font-size:.8125rem;line-height:1.6}.empty{padding:30px;color:var(--muted);background:white;border:1px solid var(--line);border-radius:var(--r);font-size:.9375rem}.err{color:var(--danger)}.sec-label,.sect{font-size:1.15rem;font-weight:650;color:var(--text);letter-spacing:-.02em;margin-bottom:14px}.chip{display:inline-block;padding:3px 9px;margin:3px 4px 0 0;border:1px solid var(--line);border-radius:7px;background:var(--panel-2);font-size:.8125rem;color:var(--soft)}
+@media(max-width:960px){.kai-site-links{gap:14px}.kai-header-inner{gap:15px}.kai-site-header .btn{display:none}}
+@media(max-width:720px){.wrap{width:calc(100% - 36px)}.kai-header-inner{min-height:68px;padding:10px 18px}.kai-site-links{display:none}.kai-site-menu{display:block}.kai-brand{font-size:1.15rem}.kai-brand img{width:31px;height:31px}.kai-page-heading{gap:20px;padding-top:30px}.kai-page-heading img{width:80px;height:115px}.kai-page-heading h1{font-size:2rem}.kai-footer-inner{width:calc(100% - 36px);flex-direction:column;align-items:flex-start}.kai-site-footer{margin-top:36px}.card,.panel{padding:20px}}
+@media(max-width:450px){.kai-page-heading{align-items:flex-start;gap:12px}.kai-page-heading img{width:62px;height:94px}.kai-page-heading h1{font-size:1.8rem}.kai-page-heading .lead{font-size:.9375rem}.kai-page-heading{padding-bottom:16px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important}}
 
-.node-state{display:flex;align-items:center;gap:7px;margin-bottom:7px}
-.node-dot{width:8px;height:8px;border-radius:50%;background:#8b98a9;flex-shrink:0}
-.node-dot.ok{background:#34d399}
-.node-dot.busy{background:#38bdf8}
-.node-dot.off{background:#f87171}
-.node-models{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-.node-models .chip{font-size:.82em;padding:2px 8px;border-radius:999px;border:1px solid #1c2430;background:#10161d;color:#8b98a9}
-.node-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font-size:.9em}
-.node-grid .k{color:#8b98a9}
+.dashboard-wrap{max-width:1060px;padding-bottom:30px}.dashboard-wrap>.nav{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 30px}.sect{margin:30px 0 14px}.dashboard-wrap .card{margin-bottom:16px}.addr{font-size:.875rem;overflow-wrap:anywhere;color:var(--muted);margin-bottom:12px}.node-state{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-weight:550}.node-dot{width:7px;height:7px;border-radius:50%;background:#8293ac;flex:none}.node-dot.ok{background:#147855}.node-dot.busy{background:#155eef}.node-dot.off{background:#b52842}.node-models{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}.node-grid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 18px;font-size:.9375rem}.node-grid .k{color:var(--muted)}.node-grid>*{overflow-wrap:anywhere}.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0 10px}.tile{padding:16px;border-radius:12px;background:#f6f9ff}.tile .t-label{font-size:.8125rem;color:var(--muted)}.tile .t-value{font-size:1.6rem;line-height:1.3;font-weight:650;margin:7px 0 5px;overflow-wrap:anywhere}.tile .t-sub{font-size:.8125rem;color:var(--faint)}.note{margin-top:14px}.note.warn{color:#795a13}.stamp{margin-top:14px}.empty{padding:24px}
+@media(max-width:560px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.tile{padding:12px}.tile .t-value{font-size:1.3rem}.node-grid{grid-template-columns:1fr 1fr;gap:6px 12px}.dashboard-wrap>.nav{margin-bottom:22px}}
 
-/*
- * Tiles wrap to whatever fits. The floor is deliberately low: at 140px a
- * phone gets ONE tile per row, which turned four figures into four full
- * screens of scrolling. Two-up is the minimum that still reads as a summary.
- */
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:9px;margin:14px 0 4px}
-.tile{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
-.tile .t-label{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
-.tile .t-value{font-size:18px;font-weight:650;margin:3px 0 1px}
-.tile .t-sub{font-size:11px;color:var(--muted);line-height:1.35}
-.note{font-size:12.5px;color:var(--muted);margin:12px 0 0}
-.note.warn{color:var(--value)}
-.stamp{font-size:11px;color:var(--faint);margin-top:10px}
-.empty{color:var(--muted);font-size:14px}
-
-@media (max-width:420px){
-  .wrap{width:calc(100% - 24px);padding:28px 0 56px}
-  .card{padding:15px}
-  .tiles{gap:8px}
-}
 </style>
+<link rel="icon" href="/redesign/brand-mark.svg" type="image/svg+xml"><meta name="theme-color" content="#f5f8ff">
 </head>
-<body>
-<div class="wrap">
-  <p class="brand">Koinos AI</p>
-  <h1>Dashboard</h1>
+<body><header class="kai-site-header"><div class="kai-header-inner"><a class="kai-brand" href="/"><img src="/redesign/brand-mark.svg" alt=""><span>Koinos<em>AI</em></span></a><nav class="kai-site-links" aria-label="Main"><a href="/">Home</a><a href="/network">Network</a><a href="/testers">Get KAI</a><a href="/dashboard" aria-current="page">Dashboard</a><a href="/account">Account</a></nav><a class="btn btn-signal" href="/app#chat">Open KAI ↗</a><details class="kai-site-menu"><summary>Menu</summary><nav aria-label="Mobile"><a href="/">Home</a><a href="/network">Network</a><a href="/testers">Get KAI</a><a href="/dashboard" aria-current="page">Dashboard</a><a href="/account">Account</a><a href="/app#chat">Open KAI</a></nav></details></div></header>
+<main class="wrap dashboard-wrap"><div class="kai-page-heading"><div><p class="eyebrow">Your dashboard</p><h1>Your machines, at a glance.</h1><p class="muted" id="lede">Everything your machines are doing, in one place.</p></div><img src="/redesign/kai-companion.svg" alt="KAI, keeping you company"></div>
   <p class="nav">
     <a class="btn" href="/app">Chat</a>
     <a class="btn" href="/account">Account</a>
   </p>
-  <p class="muted" id="lede">Everything your machines are doing, in one place.</p>
 
-  <div class="sect">AI nodes — answering chat for the network</div>
+
+  <div class="sect">AI compute</div>
   <div id="ai"><p class="empty">Loading…</p></div>
 
-  <div class="sect">Koinos nodes — producing blocks</div>
+  <div class="sect">Koinos block production</div>
   <div id="koinos"><p class="empty">Loading…</p></div>
 
   <p class="stamp" id="stamp"></p>
-</div>
+</main><footer class="kai-site-footer"><div class="kai-footer-inner"><p class="kai-copyright">© 2026 Koinos AI · Think. Build. Grow.</p><nav aria-label="Footer"><a href="/docs/">Docs</a><a href="/updates">Updates</a><a href="/privacy">Privacy</a><a href="https://github.com/therexdev/kaiapp">GitHub</a><a href="mailto:contact@koinosai.com">Contact</a></nav></div></footer>
 <script src="/dashboard.js"></script>
 </body>
 </html>
