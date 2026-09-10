@@ -49,8 +49,18 @@ async function spin({ operatorSecret = null } = {}) {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   return {
     base: `http://127.0.0.1:${server.address().port}`,
+    sched,
     stop: () => new Promise((r) => server.close(r)),
   };
+}
+
+async function waitFor(predicate, label, timeoutMs = 3000) {
+  const until = Date.now() + timeoutMs;
+  while (Date.now() < until) {
+    if (predicate()) return;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  assert.fail(`timed out waiting for ${label}`);
 }
 
 (async () => {
@@ -263,6 +273,91 @@ async function spin({ operatorSecret = null } = {}) {
       // unsigned billable terms would otherwise have allowed.
       const upsell = await send({ model: "deepseek-r1-32b" });
       assert.strictEqual(upsell.status, 401, "a replay against a pricier class must be refused too");
+    } finally {
+      await s.stop();
+    }
+  });
+
+  await test("signed consume timestamps must be finite numbers", async () => {
+    const s = await spin();
+    try {
+      const { Signer } = require("koilib");
+      const user = Signer.fromSeed("probe-finite-consumer-time");
+      const address = user.getAddress();
+      const messages = [{ role: "user", content: "hello" }];
+      const ts = "NaN";
+      const hash = require("node:crypto").createHash("sha256")
+        .update(`consume|${address}|${ts}|${JSON.stringify(messages)}`).digest();
+      const signature = Buffer.from(await user.signHash(hash)).toString("base64");
+      const res = await fetch(`${s.base}/consume/chat/completions`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ address, ts, messages, signature, model: "koinos-fast" }),
+      });
+      assert.strictEqual(res.status, 401, `a nonnumeric timestamp reached dispatch (got ${res.status})`);
+      assert.match(String((await res.json()).error.message), /timestamp/i);
+      assert.strictEqual(s.sched.queue.length, 0, "an invalid timestamp must enqueue no work");
+    } finally {
+      await s.stop();
+    }
+  });
+
+  await test("one desktop wallet has one active request and disconnect cleans its job", async () => {
+    const s = await spin();
+    try {
+      const { Signer } = require("koilib");
+      const user = Signer.fromSeed("probe-wallet-lifecycle");
+      const address = user.getAddress();
+      const messages = [{ role: "user", content: "hold this request" }];
+      let seq = 0;
+      const signedBody = async () => {
+        const ts = Date.now() + (++seq);
+        const hash = require("node:crypto").createHash("sha256")
+          .update(`consume|${address}|${ts}|${JSON.stringify(messages)}`).digest();
+        return {
+          address, ts, messages, model: "koinos-fast",
+          signature: Buffer.from(await user.signHash(hash)).toString("base64"),
+        };
+      };
+      const send = async (signal) => fetch(`${s.base}/consume/chat/completions`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(await signedBody()),
+        signal,
+      });
+
+      const reg = await fetch(`${s.base}/worker/register`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ address: "1ProbeWorkerNeverAnswersXXXXXXXXXX", models: ["koinos-fast"], capabilities: { ramGb: 16 } }),
+      }).then((r) => r.json());
+
+      const firstAbort = new AbortController();
+      const first = send(firstAbort.signal);
+      await waitFor(() => s.sched._consumers.size === 1 && s.sched.queue.length === 1, "first request to park");
+      assert.strictEqual(s.sched._consumerAddresses.has(address), true, "the wallet is reserved while its request runs");
+
+      const concurrent = await send();
+      assert.strictEqual(concurrent.status, 409, `a concurrent request was accepted (got ${concurrent.status})`);
+      assert.match(String((await concurrent.json()).error.message), /earlier request/);
+
+      const picked = await fetch(`${s.base}/worker/next-job?token=${reg.token}`).then((r) => r.json());
+      assert.ok(picked.job, "the first request reaches a worker lease");
+      assert.strictEqual(s.sched.pending.size, 1, "the leased job is pending before disconnect");
+
+      firstAbort.abort();
+      await first.catch(() => {});
+      await waitFor(
+        () => s.sched._consumers.size === 0 && s.sched._consumerAddresses.size === 0 && s.sched.queue.length === 0 && s.sched.pending.size === 0,
+        "disconnect cleanup",
+      );
+
+      const retryAbort = new AbortController();
+      const retry = send(retryAbort.signal);
+      await waitFor(() => s.sched._consumers.size === 1 && s.sched.queue.length === 1, "a fresh request after cleanup");
+      retryAbort.abort();
+      await retry.catch(() => {});
+      await waitFor(() => s.sched._consumerAddresses.size === 0 && s.sched.queue.length === 0, "retry cleanup");
     } finally {
       await s.stop();
     }

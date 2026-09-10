@@ -329,7 +329,7 @@ async function main() {
   const painted = [...dashSrc.matchAll(/class="([a-z0-9 -]+)"/g)].flatMap((m) => m[1].split(" ")).filter(Boolean);
   const missing = [...new Set(painted)].filter((c) => !new RegExp("\\." + c + "[^a-z0-9-]").test(dashHtml));
   check(missing.length === 0, `every class the dashboard paints is styled${missing.length ? ` (missing: ${missing.join(", ")})` : ""}`);
-  check(/\.brand[^a-z-]/.test(dashHtml), "…the page's own eyebrow included");
+  check(/\.eyebrow[^a-z-]/.test(dashHtml), "…the page's own eyebrow included");
 
   /* ------------------------------------------------------------------ */
   console.log("\n12) a card with no figures explains itself instead of showing blanks");
@@ -357,8 +357,8 @@ async function main() {
     "…and an old app is named as the reason, rather than four empty boxes");
   check(/tiles \? `<div class="tiles">/.test(dashSrc),
     "…with the tile row omitted entirely when there are no tiles");
-  check(/minmax\(112px/.test(dashHtml),
-    "tiles fit two-up on a phone — at 140px the owner's screenshot showed one per row");
+  check(/@media\(max-width:560px\)[^{]*\{[^}]*\.tiles\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/.test(dashHtml),
+    "tiles fit two-up on a phone — the owner's screenshot showed one per row");
 
   // The two VHP figures, which do not always agree.
   check(/VHP in wallet/.test(dashSrc) && /mismatch/.test(dashSrc),

@@ -218,8 +218,9 @@ async function main() {
     check(/rel="apple-touch-icon"/.test(shell), "shell links the apple touch icon");
     check(/name="apple-mobile-web-app-capable" content="yes"/.test(shell), "iOS standalone flag set");
     check(
-      /name="apple-mobile-web-app-status-bar-style" content="black"/.test(shell),
-      "status bar is 'black', not 'black-translucent' — translucent needs safe-area padding the layout does not have"
+      /name="apple-mobile-web-app-status-bar-style" content="(?:black|default)"/.test(shell) &&
+        !/name="apple-mobile-web-app-status-bar-style" content="black-translucent"/.test(shell),
+      "status bar is opaque — translucent needs safe-area padding the layout does not have"
     );
     check(/name="theme-color"/.test(shell), "theme-color set");
     const client = fs.readFileSync(path.join(ROOT, "views", "app.js"), "utf8");

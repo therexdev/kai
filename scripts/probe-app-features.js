@@ -324,11 +324,10 @@ async function main() {
     check(r.json.chats[0].messages === 2, "the list counts what is in it");
 
     /*
-     * A tab shut mid-generation still keeps its answer. The socket closes
-     * BEFORE the reply arrives, so anything that saved at close time would
-     * find nothing — while the work was really done and the grant really
-     * charged. Abort a request the moment the first delta lands, then look
-     * for the answer afterwards.
+     * A tab shut mid-generation cancels its network job. The socket closes
+     * BEFORE the reply arrives; letting the worker finish would create a
+     * receipt and charge for an answer nobody can receive. Abort a request
+     * after the first delta, then prove only the user's question remains.
      */
     // Its own wallet, like every other paid case here: the free allowance is
     // one token per ADDRESS per day in this probe, and gr_chat spent its one
@@ -358,9 +357,9 @@ async function main() {
     await new Promise((r2) => setTimeout(r2, 1500));
     r = await jsonReq(port, "GET", `/app/api/chats/${abandonChat}`, { cookie: mine.cookie });
     const abandoned = r.json.messages;
-    check(abandoned.length === 2, `the abandoned chat kept both turns (got ${abandoned.length})`);
-    check(String(abandoned[1]?.content || "").includes("Koinos Network answered"),
-      "…including an answer nobody was still watching arrive");
+    check(abandoned.length === 1, `the abandoned chat kept the question only (got ${abandoned.length})`);
+    check(abandoned[0]?.role === "user" && abandoned[0]?.content === "Ask and run away.",
+      "…and did not store or charge an answer nobody was still watching");
 
     /* ------------------------------------------------------------------ */
     console.log("\n5) the grant paid for it");
