@@ -1,7 +1,49 @@
 {
   "_comment": "The source of truth for koinosai.com/updates and for the What's new link in the app's update popup. Newest first. Every kaiapp [release] MUST add an entry here in the same session it ships, or a tester gets a popup pointing at a version the page has never heard of. `kind` is one of: new, fix, change.",
-  "latest": "0.54.1",
+  "latest": "0.54.7",
   "releases": [
+    {
+      "version": "0.54.7",
+      "date": "2026-09-13",
+      "title": "Sign producer transactions with Kondor on your secure computer",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "The KAI Producer Signer at https://koinosai.com/producer-signer/ lets you review and sign Mainnet producer registration, KOIN burns, and KOIN/VHP transfers using Kondor on a separate computer. Your producer private key stays in Kondor; no WIF export or KAI installation is needed on that computer."
+        },
+        {
+          "kind": "new",
+          "text": "Node → Producer wallet custody → External signing now has the signer link, Download unsigned JSON, and Import signed JSON. Prepare on the node computer, sign in the secure computer’s browser, then return the signed file to KAI and confirm the broadcast. Verify registration on-chain before starting production."
+        },
+        {
+          "kind": "fix",
+          "text": "KAI accepts Kondor mana reductions within the prepared maximum and verifies the resulting transaction ID and signature. All operations, accounts, recipients, amounts, network, nonce and hot public key must remain unchanged. Keep Kondor Use free mana off; if Max mana exceeds the prepared limit, lower it in Kondor and sign again."
+        },
+        {
+          "kind": "change",
+          "text": "The signing page verifies Mainnet and current canonical contract addresses, decodes actual operations, and checks exact burn approvals. Drafts expire in KAI after 15 minutes. Kondor can contact its RPC for simulation; the page requests signing and KAI performs the separately confirmed broadcast. Test and live include the same signing flow."
+        }
+      ]
+    },
+    {
+      "version": "0.54.6",
+      "date": "2026-09-13",
+      "title": "External producer custody and a clearer node dashboard",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "Producer wallet custody supports an external producer address with a separate hot block-production key. Registration, burns and transfers require external signatures, while the local KAI earning wallet stays separate and automatic producer funds operations are disabled."
+        },
+        {
+          "kind": "fix",
+          "text": "External custody settings are verified on disk when saved. Unreadable custody settings disable production and producer wallet actions until the intended mode is explicitly saved again."
+        },
+        {
+          "kind": "change",
+          "text": "The node dashboard now places Node Details in its own card under running status, followed by Node value, Profit & return, Koinos network and Activity. Network footer text was removed and section/button spacing improved."
+        }
+      ]
+    },
     {
       "version": "0.54.1",
       "date": "2026-09-04",
