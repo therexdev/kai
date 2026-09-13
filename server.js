@@ -1693,6 +1693,7 @@ app.get("/admin/export.json", requireAuth, async (req, res, next) => {
 });
 
 /* ---------------------------------------------- static assets + fallbacks */
+app.use("/producer-signer", require("./lib/producer-signer")(PUBLIC_DIR));
 app.use(express.static(PUBLIC_DIR));
 
 app.use((req, res) => {
