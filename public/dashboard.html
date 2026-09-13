@@ -19,6 +19,7 @@
 
 .dashboard-wrap{max-width:1060px;padding-bottom:30px}.dashboard-wrap>.nav{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 30px}.sect{margin:30px 0 14px}.dashboard-wrap .card{margin-bottom:16px}.addr{font-size:.875rem;overflow-wrap:anywhere;color:var(--muted);margin-bottom:12px}.node-state{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-weight:550}.node-dot{width:7px;height:7px;border-radius:50%;background:#8293ac;flex:none}.node-dot.ok{background:#147855}.node-dot.busy{background:#155eef}.node-dot.off{background:#b52842}.node-models{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}.node-grid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 18px;font-size:.9375rem}.node-grid .k{color:var(--muted)}.node-grid>*{overflow-wrap:anywhere}.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0 10px}.tile{padding:16px;border-radius:12px;background:#f6f9ff}.tile .t-label{font-size:.8125rem;color:var(--muted)}.tile .t-value{font-size:1.6rem;line-height:1.3;font-weight:650;margin:7px 0 5px;overflow-wrap:anywhere}.tile .t-sub{font-size:.8125rem;color:var(--faint)}.note{margin-top:14px}.note.warn{color:#795a13}.stamp{margin-top:14px}.empty{padding:24px}
 @media(max-width:560px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.tile{padding:12px}.tile .t-value{font-size:1.3rem}.node-grid{grid-template-columns:1fr 1fr;gap:6px 12px}.dashboard-wrap>.nav{margin-bottom:22px}}
+.producer-signing{border-color:#bad0f4;background:#fafdff}.producer-signing h2{font-size:1.25rem}.producer-signing ol{padding-left:22px;margin:16px 0;color:var(--soft)}.producer-signing li+li{margin-top:7px}.producer-signing-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:18px}.producer-signing .note{max-width:75ch}
 
 </style>
 <link rel="icon" href="/redesign/brand-mark.svg" type="image/svg+xml"><meta name="theme-color" content="#f5f8ff">
@@ -28,6 +29,7 @@
   <p class="nav">
     <a class="btn" href="/app">Chat</a>
     <a class="btn" href="/account">Account</a>
+    <a class="btn" href="/producer-signer/">Sign with Kondor</a>
   </p>
 
 
@@ -35,6 +37,17 @@
   <div id="ai"><p class="empty">Loading…</p></div>
 
   <div class="sect">Koinos block production</div>
+  <section class="card producer-signing" aria-labelledby="producer-signing-title">
+    <h2 id="producer-signing-title">Keep your producer key in Kondor</h2>
+    <p class="muted">Sign producer registration, KOIN burns and KOIN/VHP transfers on your secure computer. Your private key stays in Kondor.</p>
+    <ol>
+      <li>In the desktop app, open <strong>Node → Producer wallet custody → External signing</strong>. Prepare your transaction and download the unsigned JSON.</li>
+      <li>On the computer with Kondor, open the signer below. Load the file, review the details and approve signing in Kondor.</li>
+      <li>Return the signed JSON to KAI on the node computer, import it and confirm the broadcast. For registration, verify the on-chain key before starting production.</li>
+    </ol>
+    <div class="producer-signing-actions"><a class="btn btn-signal" href="/producer-signer/">Open Kondor signer →</a><a class="body-link" href="https://github.com/therexdev/kaiapp/blob/test/docs/EXTERNAL_PRODUCER.md">Setup and backup guide</a></div>
+    <p class="note">Mainnet · Requires KAI v0.54.7 or the latest Test build. The signer needs no KAI website account. Keep Kondor's Use free mana off; Optimize mana can stay on within the prepared maximum.</p>
+  </section>
   <div id="koinos"><p class="empty">Loading…</p></div>
 
   <p class="stamp" id="stamp"></p>

@@ -13,7 +13,7 @@
         },
         {
           "kind": "new",
-          "text": "Node → Producer wallet custody → External signing now has the signer link, Download unsigned JSON, and Import signed JSON. Prepare on the node computer, sign in the secure computer’s browser, then return the signed file to KAI and confirm the broadcast. Verify registration on-chain before starting production."
+          "text": "Node → Producer wallet custody → External signing now has the signer link, Download unsigned JSON, and Import signed JSON. Prepare on the node computer, sign in the secure computer’s browser, then return the signed file to KAI and confirm the broadcast. Verify registration on-chain before starting production. The website Dashboard also links to the signer and includes the three-step instructions."
         },
         {
           "kind": "fix",
