@@ -161,6 +161,8 @@ app.use("/r", (req, res) => {
  * rather than a second, stricter opinion.
  */
 app.use("/app/api", express.json({ limit: "256kb" }));
+app.use("/build/api", express.json({ limit: "1mb" }));
+app.use("/build/public", express.json({ limit: "32kb" }));
 app.use("/connections/webhook", express.raw({ type: "application/json", limit: "40kb" }));
 app.use("/connections/events", express.json({ limit: "24kb" }));
 app.use("/connections/api", express.json({ limit: "24kb" }));
@@ -319,6 +321,18 @@ try {
 // One page serves sign-in, the account view, and device-link approval; the
 // /link deep-link is what the desktop app shows next to its code.
 app.get(["/account", "/link"], (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "account.html")));
+
+// KAI Build shares account identity, but has its own durable projects and jobs.
+// The privileged deployment signer runs as a separate OS service.
+try {
+  const { createBuilderRouter } = require("./lib/builder/router");
+  const builder = createBuilderRouter({ accounts, stateDir: STATE_ROOT });
+  app.use(builder.router);
+  console.log("[builder] /build enabled; AI " + (builder.service.agent.configured ? "configured" : "awaiting key") + ", publishing " + (builder.service.signer.configured ? "configured" : "awaiting signer"));
+} catch (e) {
+  console.error("[builder] unavailable:", e.message);
+  app.use("/build", (_req, res) => res.status(503).type("text/plain").send("The builder is temporarily unavailable. Please try again later."));
+}
 
 /*
  * The dashboard — what your machines are doing.

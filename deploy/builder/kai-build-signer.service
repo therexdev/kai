@@ -1,0 +1,31 @@
+[Unit]
+Description=Koinos AI Build isolated deployment signer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kai-build-signer
+Group=kai-build-signer
+WorkingDirectory=/opt/kai-build-signer
+EnvironmentFile=/etc/kai-build-signer.env
+ExecStart=/usr/bin/env node /opt/kai-build-signer/scripts/build/signer.js
+Restart=on-failure
+RestartSec=5
+StateDirectory=kai-build-signer
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/kai-build-signer
+
+[Install]
+WantedBy=multi-user.target
