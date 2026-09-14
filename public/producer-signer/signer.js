@@ -40,7 +40,7 @@
       const rows = [["Action", { register: "Register hot production key", burn: "Burn KOIN → own VHP", transfer: "Transfer " + last.token }[checked.action]], ["Network", "Koinos Mainnet"], ["Producer / payer", checked.payer]];
       if (checked.action === "register") rows.push(["Hot public key", a.public_key]);
       else rows.push(["Amount", amount(a.value || a.token_amount) + " " + (checked.action === "burn" ? "KOIN" : last.token)], ["Recipient", a.to || a.vhp_address]);
-      rows.push(["Maximum mana", amount(checked.manaLimitSatoshis) + " mana"], ["Expires in KAI", new Date(candidate.expiresAt).toLocaleTimeString()], ["Chain ID", checked.chainId], ["Nonce", checked.nonce], ["Unsigned transaction ID", checked.id]);
+      rows.push(["Maximum mana", amount(checked.manaLimitSatoshis) + " mana"], ["Expires in KAI", new Date(candidate.expiresAt).toLocaleString()], ["Chain ID", checked.chainId], ["Nonce", checked.nonce], ["Unsigned transaction ID", checked.id]);
       $("review-fields").replaceChildren();
       for (const [label, value] of rows) { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = label; dd.textContent = value; $("review-fields").append(dt, dd); }
       $("operations").textContent = JSON.stringify(checked.operations, null, 2);

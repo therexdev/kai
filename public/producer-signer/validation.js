@@ -30,7 +30,8 @@
     if (prepared.id !== tx.id || prepared.header.operation_merkle_root !== tx.header.operation_merkle_root) throw new Error("Transaction hash differs from its contents. Nothing was broadcast.");
   }
   function fresh(draft, now = Date.now()) {
-    if (!draft || draft.format !== "kai-producer-transaction-v1" || !Number.isSafeInteger(draft.expiresAt) || draft.expiresAt <= now || draft.expiresAt > now + 15 * 60000 + 30000) throw new Error("Invalid or expired draft. Prepare a fresh transaction in KAI.");
+    if (draft?.signingWindow === "offline-24h" && (!Number.isSafeInteger(draft.createdAt) || draft.createdAt > now + 30000 || draft.expiresAt - draft.createdAt !== 24 * 60 * 60000)) throw new Error("Invalid offline signing window. Prepare a fresh transaction in KAI.");
+    if (!draft || draft.format !== "kai-producer-transaction-v1" || !Number.isSafeInteger(draft.expiresAt) || draft.expiresAt <= now || draft.expiresAt > now + (draft.signingWindow === "offline-24h" ? 24 * 60 : 15) * 60000 + 30000) throw new Error("Invalid or expired draft. Prepare a fresh transaction in KAI.");
   }
   async function validateSigned(draft, transaction) {
     fresh(draft); shape(draft.transaction); shape(transaction);
