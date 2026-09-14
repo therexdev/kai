@@ -63,7 +63,13 @@
       $("signed").value = JSON.stringify(signed, null, 2); $("signed-details").hidden = false;
       $("signed-status").textContent = `Signature verified. Final mana limit: ${amount(signed.header.rc_limit)} mana. Transaction ID: ${signed.id}`;
       status("Signed transaction verified. Download it and return to KAI to broadcast.");
-    } catch (e) { signed = null; status(e.message, true); }
+    } catch (e) {
+      signed = null;
+      const message = /connection lost/i.test(e.message)
+        ? "Kondor closed the connection before this page received a signed transaction. No signed file is available and this page has not broadcast anything. Close leftover Kondor prompts and use only one Kondor extension in this browser profile. If it repeats, capture the error from Kondor’s extension console immediately after pressing Sign; changing the mana limit or registering another hot key will not repair a missing response."
+        : e.message;
+      status(message, true);
+    }
     finally { busy = false; controls(); }
   });
   $("download").addEventListener("click", () => {
