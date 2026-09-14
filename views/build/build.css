@@ -373,6 +373,13 @@ button {
   margin-top: 30px;
   box-shadow: 0 9px 35px #44577907;
 }
+.start-composer .idea-label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
 .start-composer textarea {
   width: 100%;
   resize: vertical;
