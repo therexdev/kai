@@ -1,0 +1,255 @@
+{
+  "methods": {
+    "initialize": {
+      "argument": "app.Request",
+      "return": "app.Result",
+      "entry_point": 1192148610,
+      "read_only": false
+    },
+    "get_config": {
+      "argument": "app.Request",
+      "return": "app.Result",
+      "entry_point": 3159346644,
+      "read_only": true
+    },
+    "list_records": {
+      "argument": "app.Request",
+      "return": "app.Result",
+      "entry_point": 981339004,
+      "read_only": true
+    },
+    "get_record": {
+      "argument": "app.Request",
+      "return": "app.Result",
+      "entry_point": 1922743361,
+      "read_only": true
+    },
+    "create_record": {
+      "argument": "app.Request",
+      "return": "app.Result",
+      "entry_point": 3010658483,
+      "read_only": false
+    },
+    "edit_record": {
+      "argument": "app.Request",
+      "return": "app.Result",
+      "entry_point": 1081516026,
+      "read_only": false
+    },
+    "vote": {
+      "argument": "app.Request",
+      "return": "app.Result",
+      "entry_point": 2871477364,
+      "read_only": false
+    },
+    "close_poll": {
+      "argument": "app.Request",
+      "return": "app.Result",
+      "entry_point": 1006379883,
+      "read_only": false
+    },
+    "set_release": {
+      "argument": "app.Request",
+      "return": "app.Result",
+      "entry_point": 2665875285,
+      "read_only": false
+    },
+    "propose_owner": {
+      "argument": "app.Request",
+      "return": "app.Result",
+      "entry_point": 198312784,
+      "read_only": false
+    },
+    "accept_owner": {
+      "argument": "app.Request",
+      "return": "app.Result",
+      "entry_point": 3668871220,
+      "read_only": false
+    }
+  },
+  "koilib_types": {
+    "nested": {
+      "app": {
+        "nested": {
+          "Config": {
+            "fields": {
+              "owner": {
+                "type": "bytes",
+                "id": 1
+              },
+              "pending_owner": {
+                "type": "bytes",
+                "id": 2
+              },
+              "title": {
+                "type": "string",
+                "id": 3
+              },
+              "count": {
+                "type": "uint32",
+                "id": 4
+              },
+              "revision": {
+                "type": "uint64",
+                "id": 5
+              },
+              "release_hash": {
+                "type": "bytes",
+                "id": 6
+              }
+            }
+          },
+          "Record": {
+            "fields": {
+              "id": {
+                "type": "uint32",
+                "id": 1
+              },
+              "author": {
+                "type": "bytes",
+                "id": 2
+              },
+              "title": {
+                "type": "string",
+                "id": 3
+              },
+              "body": {
+                "type": "string",
+                "id": 4
+              },
+              "options": {
+                "rule": "repeated",
+                "type": "string",
+                "id": 5
+              },
+              "votes": {
+                "rule": "repeated",
+                "type": "uint32",
+                "id": 6
+              },
+              "closed": {
+                "type": "bool",
+                "id": 7
+              }
+            }
+          },
+          "Ballot": {
+            "fields": {
+              "voted": {
+                "type": "bool",
+                "id": 1
+              }
+            }
+          },
+          "Request": {
+            "fields": {
+              "account": {
+                "type": "bytes",
+                "id": 1
+              },
+              "title": {
+                "type": "string",
+                "id": 2
+              },
+              "body": {
+                "type": "string",
+                "id": 3
+              },
+              "options": {
+                "rule": "repeated",
+                "type": "string",
+                "id": 4
+              },
+              "id": {
+                "type": "uint32",
+                "id": 5
+              },
+              "choice": {
+                "type": "uint32",
+                "id": 6
+              },
+              "offset": {
+                "type": "uint32",
+                "id": 7
+              },
+              "release_hash": {
+                "type": "bytes",
+                "id": 8
+              }
+            }
+          },
+          "Result": {
+            "fields": {
+              "config": {
+                "type": "Config",
+                "id": 1
+              },
+              "records": {
+                "rule": "repeated",
+                "type": "Record",
+                "id": 2
+              },
+              "record": {
+                "type": "Record",
+                "id": 3
+              },
+              "ok": {
+                "type": "bool",
+                "id": 4
+              }
+            }
+          },
+          "MetadataArgs": {
+            "fields": {
+              "contract_id": {
+                "type": "bytes",
+                "id": 1
+              },
+              "expected_owner": {
+                "type": "bytes",
+                "id": 2
+              },
+              "expected_pending_owner": {
+                "type": "bytes",
+                "id": 3
+              }
+            }
+          },
+          "Metadata": {
+            "fields": {
+              "hash": {
+                "type": "bytes",
+                "id": 1
+              },
+              "system": {
+                "type": "bool",
+                "id": 2
+              },
+              "authorizes_call_contract": {
+                "type": "bool",
+                "id": 3
+              },
+              "authorizes_transaction_application": {
+                "type": "bool",
+                "id": 4
+              },
+              "authorizes_upload_contract": {
+                "type": "bool",
+                "id": 5
+              }
+            }
+          },
+          "MetadataResult": {
+            "fields": {
+              "value": {
+                "type": "Metadata",
+                "id": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "types": "Cs4GChhhc3NlbWJseS9wcm90by9hcHAucHJvdG8SA2FwcCJ0CgZDb25maWcSDQoFb3duZXIYASABKAwSFQoNcGVuZGluZ19vd25lchgCIAEoDBINCgV0aXRsZRgDIAEoCRINCgVjb3VudBgEIAEoDRIQCghyZXZpc2lvbhgFIAEoBBIUCgxyZWxlYXNlX2hhc2gYBiABKAwicQoGUmVjb3JkEgoKAmlkGAEgASgNEg4KBmF1dGhvchgCIAEoDBINCgV0aXRsZRgDIAEoCRIMCgRib2R5GAQgASgJEg8KB29wdGlvbnMYBSADKAkSDQoFdm90ZXMYBiADKA0SDgoGY2xvc2VkGAcgASgIIhcKBkJhbGxvdBINCgV2b3RlZBgBIAEoCCKKAQoHUmVxdWVzdBIPCgdhY2NvdW50GAEgASgMEg0KBXRpdGxlGAIgASgJEgwKBGJvZHkYAyABKAkSDwoHb3B0aW9ucxgEIAMoCRIKCgJpZBgFIAEoDRIOCgZjaG9pY2UYBiABKA0SDgoGb2Zmc2V0GAcgASgNEhQKDHJlbGVhc2VfaGFzaBgIIAEoDCJsCgZSZXN1bHQSGwoGY29uZmlnGAEgASgLMgsuYXBwLkNvbmZpZxIcCgdyZWNvcmRzGAIgAygLMgsuYXBwLlJlY29yZBIbCgZyZWNvcmQYAyABKAsyCy5hcHAuUmVjb3JkEgoKAm9rGAQgASgIIlsKDE1ldGFkYXRhQXJncxITCgtjb250cmFjdF9pZBgBIAEoDBIWCg5leHBlY3RlZF9vd25lchgCIAEoDBIeChZleHBlY3RlZF9wZW5kaW5nX293bmVyGAMgASgMIpoBCghNZXRhZGF0YRIMCgRoYXNoGAEgASgMEg4KBnN5c3RlbRgCIAEoCBIgChhhdXRob3JpemVzX2NhbGxfY29udHJhY3QYAyABKAgSKgoiYXV0aG9yaXplc190cmFuc2FjdGlvbl9hcHBsaWNhdGlvbhgEIAEoCBIiChphdXRob3JpemVzX3VwbG9hZF9jb250cmFjdBgFIAEoCCIuCg5NZXRhZGF0YVJlc3VsdBIcCgV2YWx1ZRgBIAEoCzINLmFwcC5NZXRhZGF0YWIGcHJvdG8z"
+}

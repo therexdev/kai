@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>App · Koinos AI</title>
+    <link rel="stylesheet" href="/build/assets/build.css" />
+    <script src="/producer-signer/kondor.min.js" defer></script>
+    <script src="/build/assets/bridge.js" defer></script>
+    <script src="/build/assets/host.js" defer></script>
+  </head>
+  <body class="host-page">
+    <header class="host-bar">
+      <div class="host-brand">
+        <a href="/build"
+          ><img src="/redesign/brand-mark.svg" alt="Koinos AI Build" /></a
+        ><strong id="app-title">Loading app…</strong
+        ><span id="app-network" class="pill"></span>
+      </div>
+      <div><small id="app-contract"></small></div>
+    </header>
+    <div id="host-status" class="host-status" role="status" hidden></div>
+    <iframe
+      id="app-frame"
+      class="host-frame"
+      sandbox="allow-scripts"
+      title="Koinos community app"
+      referrerpolicy="no-referrer"
+    ></iframe>
+  </body>
+</html>

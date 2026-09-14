@@ -4,3 +4,5 @@ node_modules/
 data/
 npm-debug.log*
 .DS_Store
+contracts/build-app/build/*.wat
+contracts/build-app/build/*.map

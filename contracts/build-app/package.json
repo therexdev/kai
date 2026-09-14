@@ -1,0 +1,19 @@
+{
+  "name": "kai-build-app-contract",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "generate": "node scripts/generate.js",
+    "build": "npm run generate && asc assembly/index.ts --target release --use abort= && node scripts/guard-hash.js && asc assembly/guard-entry.ts --binaryFile build/guard.wasm --optimizeLevel 3 --use abort=",
+    "test": "npm run generate && asp --nologo"
+  },
+  "devDependencies": {
+    "@koinos/sdk-as": "1.0.0",
+    "micromatch": "4.0.8",
+    "protobufjs": "7.6.6",
+    "yaml": "2.9.0"
+  },
+  "overrides": {
+    "protobufjs": "7.6.6"
+  }
+}

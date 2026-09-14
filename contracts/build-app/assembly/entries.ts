@@ -1,0 +1,11 @@
+export const initialize: u32 = 1192148610;
+export const get_config: u32 = 3159346644;
+export const list_records: u32 = 981339004;
+export const get_record: u32 = 1922743361;
+export const create_record: u32 = 3010658483;
+export const edit_record: u32 = 1081516026;
+export const vote: u32 = 2871477364;
+export const close_poll: u32 = 1006379883;
+export const set_release: u32 = 2665875285;
+export const propose_owner: u32 = 198312784;
+export const accept_owner: u32 = 3668871220;

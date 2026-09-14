@@ -1,0 +1,11 @@
+syntax = "proto3";
+package app;
+message Config { bytes owner = 1; bytes pending_owner = 2; string title = 3; uint32 count = 4; uint64 revision = 5; bytes release_hash = 6; }
+message Record { uint32 id = 1; bytes author = 2; string title = 3; string body = 4; repeated string options = 5; repeated uint32 votes = 6; bool closed = 7; }
+message Ballot { bool voted = 1; }
+message Request { bytes account = 1; string title = 2; string body = 3; repeated string options = 4; uint32 id = 5; uint32 choice = 6; uint32 offset = 7; bytes release_hash = 8; }
+message Result { Config config = 1; repeated Record records = 2; Record record = 3; bool ok = 4; }
+// Wire-compatible with koinos.chain.get_contract_metadata, syscall 112.
+message MetadataArgs { bytes contract_id = 1; bytes expected_owner = 2; bytes expected_pending_owner = 3; }
+message Metadata { bytes hash = 1; bool system = 2; bool authorizes_call_contract = 3; bool authorizes_transaction_application = 4; bool authorizes_upload_contract = 5; }
+message MetadataResult { Metadata value = 1; }

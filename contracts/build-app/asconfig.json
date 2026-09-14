@@ -1,0 +1,1 @@
+{"targets":{"release":{"binaryFile":"build/contract.wasm","optimizeLevel":3,"shrinkLevel":0,"converge":false,"noAssert":false}},"options":{}}
