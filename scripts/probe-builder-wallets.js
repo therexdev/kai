@@ -105,6 +105,18 @@ test("preview ignores extension errors while preserving real app failures", () =
     sourceFile: "chrome-extension://wallet/content-script.js",
   });
   assert.equal(messages.length, 3);
+  listeners.securitypolicyviolation({
+    effectiveDirective: "script-src-elem",
+    blockedURI: "https://static.cloudflareinsights.com/beacon.min.js",
+    sourceFile: "https://koinosai.com/apps/test/content",
+  });
+  assert.equal(messages.length, 3);
+  listeners.securitypolicyviolation({
+    effectiveDirective: "script-src-elem",
+    blockedURI: "https://example.invalid/app.js",
+  });
+  assert.equal(messages.length, 4);
+  assert.equal(messages[3].kind, "policy");
 });
 
 function browser(fetchImpl) {
