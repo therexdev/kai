@@ -269,6 +269,208 @@ test("canonical confirmation wins over a duplicate submission error", async (t) 
   assert.equal(result.pending, undefined);
 });
 
+function frontendJob(t) {
+  const f = fixture(t),
+    { s, p, c } = f;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kai-nonce-job-"));
+  const calls = [],
+    submissions = [];
+  const makeBuilder = () =>
+    new Builder({
+      stateDir: dir,
+      autoStart: false,
+      chain: c,
+      signer: {
+        configured: true,
+        call: (action, payload) => {
+          if (action === "status") return s.status();
+          calls.push(structuredClone(payload));
+          return s.run(action, payload);
+        },
+      },
+    });
+  let builder = makeBuilder();
+  t.after(() => {
+    builder.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  const project = builder.store.create(
+    p.accountId,
+    "Publish",
+    "voting",
+    starter("voting", "Publish"),
+  );
+  p.projectId = project.id;
+  const app = s.create(p),
+    guard = s.guard();
+  builder.store.publish(
+    p.accountId,
+    project.id,
+    1,
+    {
+      contractId: app.address,
+      guardId: guard.address,
+      chainId: c.config.chainId,
+      network: c.config.network,
+      owner: s.signer.getAddress(),
+      txId: "original",
+    },
+    "first-release",
+  );
+  const files = builder.store.files(p.accountId, project.id).files;
+  const version = builder.store.saveRevision(
+    p.accountId,
+    project.id,
+    { ...files, "app.css": files["app.css"] + "\n/* Frontend update */" },
+    "Frontend update",
+  );
+  p.hash = version.hash;
+  c.provider.invokeGetContractMetadata = async (id) => ({
+    value: {
+      hash: wasmHash(id === guard.address ? "guard" : "contract"),
+      authorizes_upload_contract: true,
+      authorizes_call_contract: true,
+      authorizes_transaction_application: true,
+    },
+  });
+  c.provider.sendTransaction = async (tx) => {
+    submissions.push(structuredClone(tx));
+    throw Object.assign(Error("Koinos: invalid account nonce"), {
+      status: 502,
+      rpcError: true,
+    });
+  };
+  const job = builder.store.enqueue(p.accountId, project.id, "publish", {
+    revision: version.revision,
+  });
+  // Exercise the normal 40-poll loop without waiting two wall-clock minutes.
+  const timeout = global.setTimeout;
+  t.mock.method(global, "setTimeout", (fn, ms, ...args) =>
+    timeout(fn, ms === 3000 ? 0 : ms, ...args),
+  );
+  return {
+    ...f,
+    get b() {
+      return builder;
+    },
+    job,
+    app,
+    calls,
+    submissions,
+    restart() {
+      builder.close();
+      builder = makeBuilder();
+    },
+  };
+}
+
+test("a nonce conflict polls the same frontend transaction through index lag and finality without rebroadcast", async (t) => {
+  const f = frontendJob(t);
+  let checks = 0;
+  f.c.confirmed = async (id) => {
+    assert.equal(id, f.submissions[0].id);
+    if (++checks < 4)
+      throw Object.assign(Error("not final"), {
+        status: 409,
+        confirmationPhase: checks < 3 ? "not_seen" : "finality",
+      });
+    return true;
+  };
+  await f.b.tick();
+  assert.equal(f.submissions.length, 1);
+  assert.equal(f.calls.length, 2);
+  assert.deepEqual(f.calls[0], f.calls[1]);
+  assert.equal(f.submissions[0].operations.length, 2);
+  assert.ok(f.submissions[0].operations.every((o) => !o.upload_contract));
+  assert.equal(
+    f.b.store.detail(f.p.accountId, f.p.projectId).jobs[0].status,
+    "completed",
+  );
+  assert.equal(f.b.store.owned(f.p.accountId, f.p.projectId).live_revision, 2);
+  assert.equal(
+    f.b.store.owned(f.p.accountId, f.p.projectId).contract_id,
+    f.app.address,
+  );
+  assert.equal(
+    f.b.store.db.prepare("SELECT tx_id FROM releases WHERE id=?").get(f.job.id)
+      .tx_id,
+    f.submissions[0].id,
+  );
+});
+
+test("an unresolved nonce conflict stays bounded and resumes read-only confirmation after restart", async (t) => {
+  const f = frontendJob(t);
+  await f.b.tick();
+  const failed = f.b.store.detail(f.p.accountId, f.p.projectId).jobs[0];
+  assert.equal(failed.status, "failed");
+  assert.match(failed.error, /nonce conflict.*No replacement transaction/);
+  assert.equal(f.calls.length, 1);
+  assert.equal(f.submissions.length, 1);
+  assert.equal(f.b.store.owned(f.p.accountId, f.p.projectId).live_revision, 1);
+  const saved = JSON.parse(
+    f.b.store.db.prepare("SELECT payload FROM jobs WHERE id=?").get(f.job.id)
+      .payload,
+  );
+  assert.equal(saved.confirmationTxId, f.submissions[0].id);
+  f.restart();
+  f.c.confirmed = async (id) => {
+    assert.equal(id, saved.confirmationTxId);
+    return true;
+  };
+  f.b.retry(f.p.accountId, f.p.projectId, f.job.id);
+  await f.b.tick();
+  assert.equal(f.submissions.length, 1);
+  assert.deepEqual(f.calls[0], f.calls[1]);
+  assert.equal(
+    f.b.store.detail(f.p.accountId, f.p.projectId).jobs[0].status,
+    "completed",
+  );
+});
+
+test("nonce recovery never publishes a reverted transaction or skips the signer's release check", async (t) => {
+  for (const outcome of ["reverted", "unavailable", "wrong-release"])
+    await t.test(outcome, async (t) => {
+      const f = frontendJob(t);
+      let checks = 0;
+      f.c.confirmed = async () => {
+        if (!checks++)
+          throw Object.assign(Error("not indexed"), {
+            status: 409,
+            confirmationPhase: "not_seen",
+          });
+        if (outcome === "reverted")
+          throw Object.assign(Error("Koinos reverted this transaction"), {
+            status: 422,
+          });
+        if (outcome === "unavailable") throw Error("offline");
+        return true;
+      };
+      if (outcome === "wrong-release")
+        f.c.read = async () => ({
+          config: {
+            owner: f.s.signer.getAddress(),
+            release_hash: "0".repeat(64),
+          },
+        });
+      await f.b.tick();
+      const job = f.b.store.detail(f.p.accountId, f.p.projectId).jobs[0];
+      assert.equal(job.status, "failed");
+      assert.match(
+        job.error,
+        outcome === "reverted"
+          ? /reverted/
+          : outcome === "unavailable"
+            ? /could not be checked/
+            : /does not match this build/,
+      );
+      assert.equal(f.submissions.length, 1);
+      assert.equal(
+        f.b.store.owned(f.p.accountId, f.p.projectId).live_revision,
+        1,
+      );
+    });
+});
+
 test("publishing job preserves the node reason and transaction ID for the retry UI", async (t) => {
   const { s, c } = fixture(t);
   c.provider.sendTransaction = async () => {
