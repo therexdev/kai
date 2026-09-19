@@ -12,7 +12,7 @@
               "The app request timed out. Check the wallet prompt and try again.",
             ),
           );
-        }, 180000);
+        }, 600000);
       pending.set(id, { resolve, reject, timer });
       parent.postMessage({ type: "kai-app-request", id, method, args }, "*");
     });
@@ -30,25 +30,37 @@
   });
   Object.defineProperty(window, "kai", {
     value: Object.freeze({
-      connect: () => request("connect", {}),
+      connect: (wallet) => request("connect", { wallet }),
+      disconnect: () => request("disconnect", {}),
       read: (method, args = {}) => request("read", { method, args }),
       call: (method, args = {}) => request("call", { method, args }),
     }),
     writable: false,
   });
-  window.addEventListener("error", (e) =>
+  // Some wallet extensions inject into every frame and reject on startup.
+  // Only ignore errors whose source is an extension; generated app errors
+  // (including unsupported wallet code) must remain visible.
+  const extensionError = (e) =>
+    /(?:chrome|moz|safari-web)-extension:\/\//i.test(
+      String(e.filename || "") +
+        " " +
+        String(e.error?.stack || e.reason?.stack || ""),
+    );
+  window.addEventListener("error", (e) => {
+    if (extensionError(e)) return;
     parent.postMessage(
       { type: "kai-app-error", message: String(e.message).slice(0, 500) },
       "*",
-    ),
-  );
-  window.addEventListener("unhandledrejection", (e) =>
+    );
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    if (extensionError(e)) return;
     parent.postMessage(
       {
         type: "kai-app-error",
         message: String(e.reason?.message || e.reason).slice(0, 500),
       },
       "*",
-    ),
-  );
+    );
+  });
 })();

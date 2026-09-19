@@ -65,6 +65,9 @@ class BuildSigner {
     this.db.exec(
       "CREATE TABLE IF NOT EXISTS guards(id TEXT PRIMARY KEY,address TEXT NOT NULL,encrypted_key TEXT NOT NULL)",
     );
+    this.db.exec(
+      "CREATE TABLE IF NOT EXISTS retired_deployments(operation_id TEXT PRIMARY KEY,app_json TEXT NOT NULL,operation_json TEXT NOT NULL,retired_at INTEGER NOT NULL)",
+    );
     if (
       !this.db
         .prepare("PRAGMA table_info(operations)")
@@ -148,8 +151,10 @@ class BuildSigner {
   }
   limit() {
     const rows = this.db
-        .prepare("SELECT rc_limit FROM operations WHERE created_at>?")
-        .all(Date.now() - 86400000),
+        .prepare(
+          "SELECT rc_limit FROM operations WHERE created_at>? UNION ALL SELECT json_extract(operation_json,'$.rc_limit') rc_limit FROM retired_deployments WHERE json_extract(operation_json,'$.created_at')>?",
+        )
+        .all(Date.now() - 86400000, Date.now() - 86400000),
       used = rows.reduce((sum, r) => sum + BigInt(r.rc_limit), 0n);
     if (used + BigInt(this.chain.config.rcLimit) > this.dailyMana)
       throw fail(
@@ -167,6 +172,8 @@ class BuildSigner {
       owner: this.signer.getAddress(),
       network: this.chain.config.network,
       chainId: this.chain.config.chainId,
+      contractHash: this.wasmHash,
+      guardHash: this.guardHash,
     };
   }
   async run(kind, p) {
@@ -202,6 +209,58 @@ class BuildSigner {
       if (previous.payload !== request || previous.kind !== kind)
         throw fail("Signing request has changed.", 409);
       tx = JSON.parse(previous.transaction_json);
+      // The first beta's _start did not invoke main. These exact bytes cannot
+      // initialize an app or grant upload authority. Retire only a confirmed
+      // testnet deployment of that known artifact, preserving its audit/key
+      // records, then retry the same saved release with a fresh app address.
+      const legacyHash =
+        "0x122056495da7bf263f95a0a57c5e468ad91bed8cc60b04c89edd7df9d30741b2657a";
+      const upload = tx.operations?.find(
+        (o) => o.upload_contract?.contract_id === row.address,
+      )?.upload_contract;
+      if (
+        kind === "release" &&
+        this.chain.config.chainId ===
+          "EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==" &&
+        upload &&
+        "0x1220" +
+          crypto
+            .createHash("sha256")
+            .update(Buffer.from(upload.bytecode, "base64url"))
+            .digest("hex") ===
+          legacyHash
+      ) {
+        await this.chain.confirmed(tx.id);
+        const meta = await this.chain.provider.invokeGetContractMetadata(
+          row.address,
+        );
+        if (meta?.value?.hash === legacyHash) {
+          this.db.exec("BEGIN IMMEDIATE");
+          try {
+            this.db
+              .prepare("INSERT INTO retired_deployments VALUES(?,?,?,?)")
+              .run(
+                p.operationId,
+                JSON.stringify(row),
+                JSON.stringify(previous),
+                Date.now(),
+              );
+            this.db
+              .prepare("DELETE FROM operations WHERE id=?")
+              .run(p.operationId);
+            this.db.prepare("DELETE FROM apps WHERE id=?").run(row.id);
+            this.db.exec("COMMIT");
+          } catch (e) {
+            this.db.exec("ROLLBACK");
+            throw e;
+          }
+          return this.run(kind, p);
+        }
+        throw fail(
+          "The earlier deployment's code changed. Automatic recovery has stopped.",
+          409,
+        );
+      }
     } else {
       const pending = this.db
         .prepare(
@@ -385,6 +444,11 @@ class BuildSigner {
       .prepare("UPDATE operations SET confirmed=1 WHERE id=?")
       .run(p.operationId);
     const { config } = await this.chain.read(row.address, "get_config", {});
+    if (!config)
+      throw fail(
+        "The deployment transaction is confirmed, but the app did not initialize. Update the builder signing service before retrying this saved request.",
+        409,
+      );
     if (kind === "release" && config.release_hash !== p.hash)
       throw fail("The confirmed release does not match this build.", 409);
     if (kind === "propose" && config.pending_owner !== p.target)

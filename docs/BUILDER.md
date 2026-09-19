@@ -99,18 +99,28 @@ Transfer is two-step: the current owner proposes an address, then that address
 accepts with its wallet. A proposal alone does not transfer control. Future
 frontend publication requires the new owner to sign `set_release` for the exact
 source hash. The site waits for canonical-chain finality before switching the
-live revision. Users can sign directly with Kondor or download/import signed
-JSON. The transaction, payer, chain, resource limit and operations must remain
+live revision. Users can sign with Kondor or KOIN Vault, or download/import signed
+JSON for Kondor. The transaction, payer, chain, resource limit and operations must remain
 unchanged. Wallet requests expire after 30 minutes. Kondor's free-mana rewriting
-must be disabled. This version does not yet support Koin Vault's additional
-smart-wallet authorization operations.
+must be disabled. KOIN Vault uses its own approval and broadcast API; the builder
+validates the on-chain transaction against the reviewed payer, chain, nonce,
+guard and app operations. A Vault submission ID is persisted separately and
+ownership/publication still require canonical finality. It never passes smart
+account signatures through Kondor's recovered-address check.
+
+The live `https://koinvault.app` service currently runs on **mainnet**. The
+wallet chooser shows both wallets, but refuses Vault pairing/signing for a
+**testnet** project with a clear network message. Kondor can be configured for
+the builder's Foundation testnet. A mainnet KOIN Vault account cannot sign a
+testnet action; enabling testnet Vault requires a separately configured wallet
+service. There is no automatic network switch in its connection API.
 
 Hosted source files remain associated with the creator's Koinos AI account.
 On-chain transfer does not transfer that account or the hosting service. A
 different recipient can export/self-host the app and control it independently.
 Project JSON import creates a fresh project; it does not claim an existing
 contract. The ZIP includes a standalone static site that connects directly to
-public RPC and Kondor, editable source, the WASM/ABI and contract source.
+public RPC, Kondor and KOIN Vault (on mainnet), editable source, the WASM/ABI and contract source.
 
 Restoring source creates a new draft version. Existing public data is retained.
 The v1 UI publishes frontend changes and release commitments; it does not
@@ -185,3 +195,31 @@ in the signer env only after that testnet loop passes. Existing projects are
 network bound; switching the server network does not migrate them. Use a
 separate state directory for a separate network or keep the beta deployment
 on testnet until a deliberate migration is implemented.
+
+## September 2026 startup fix and saved deployment recovery
+
+The first beta WASM artifacts exported `main` but did not call it from `_start`.
+An upload could succeed while all app and guard calls returned empty results.
+Both entry files now invoke `main()`. A probe executes the **compiled WASM**
+startup path so class-level MockVM tests cannot miss this regression again.
+
+After deploying this update, rerun:
+
+```bash
+sudo bash /opt/koinos/kai/deploy/builder/install.sh
+```
+
+The installer preserves the existing deployer key, encryption key and databases.
+The web worker checks the signer's contract/guard hashes before publication and
+shows an explicit service-update error if they differ. Then use **Retry saved
+publishing request** on the failed project. The signer recognizes only the exact
+old no-op artifact on the Foundation testnet, confirms its original transaction,
+archives the old app/key and operation records, and deploys the corrected
+contracts to a fresh app address. Other altered contracts and unconfirmed
+transactions are not migrated. The abandoned no-op address had no initialized
+app records; it is never represented as a working or wallet-owned app.
+
+Generated sources may use only `kai.connect()`, `kai.disconnect()`, `kai.read()`
+and `kai.call()`. The trusted wallet chooser offers Kondor and KOIN Vault.
+Validation rejects MetaMask/EVM provider code. Extension-origin startup errors
+are excluded from preview diagnostics; ordinary app errors remain visible.

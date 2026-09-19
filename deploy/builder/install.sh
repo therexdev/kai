@@ -10,7 +10,7 @@ command -v npm >/dev/null
 node -e 'require("node:sqlite")' >/dev/null
 if ! id kai-build-signer >/dev/null 2>&1; then useradd --system --home-dir /var/lib/kai-build-signer --shell /usr/sbin/nologin kai-build-signer; fi
 install -d -m 0755 "$BUILDER_TARGET" "$BUILDER_TARGET/scripts/build" "$BUILDER_TARGET/lib/builder" "$BUILDER_TARGET/contracts/build-app/build"
-for BUILDER_FILE in package.json package-lock.json scripts/build/signer.js lib/builder/chain.js lib/builder/store.js contracts/build-app/build/contract.wasm contracts/build-app/build/guard.wasm contracts/build-app/build/contract.abi.json; do
+for BUILDER_FILE in package.json package-lock.json scripts/build/signer.js lib/builder/chain.js lib/builder/wallet-proof.js lib/builder/store.js contracts/build-app/build/contract.wasm contracts/build-app/build/guard.wasm contracts/build-app/build/contract.abi.json; do
   install -m 0644 "$BUILDER_REPO/$BUILDER_FILE" "$BUILDER_TARGET/$BUILDER_FILE"
 done
 (cd "$BUILDER_TARGET" && npm ci --omit=dev --ignore-scripts --no-audit --no-fund)
