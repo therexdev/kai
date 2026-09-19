@@ -2,6 +2,9 @@ import { System, Protobuf, authority } from "@koinos/sdk-as";
 import { App } from "./App";
 import { app as A } from "./proto/app";
 export function main(): i32 {
+  // Arguments may be 12 KB; stored records can also exceed the SDK's default
+  // 1 KB. This bounds individual argument/storage reads with room for protobuf.
+  System.setSystemBufferSize(32 * 1024);
   const args = System.getArguments(),
     c = new App();
   if (args.entry_point == 0x4a2dbd90) {

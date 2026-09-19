@@ -198,6 +198,27 @@ on testnet until a deliberate migration is implemented.
 
 ## Publishing diagnostics and saved retries
 
+### Full deployment return-buffer fix
+
+The SDK defaults to a 1 KB syscall response buffer. Reading the entire transaction
+during initialization returned more than 65 KB because deployment includes both
+WASM uploads and the ABI. The contract now reads only transaction ID and signatures,
+and sets a 32 KB buffer for allowed arguments and stored records. CI enforces the
+real host's return-buffer boundary (the SDK mock otherwise silently truncates),
+reproduces the exact failure using the previous binary, then initializes the fixed
+binary from a complete signed deployment. Large records and result pages are also
+covered.
+
+After deploying the website, rerun the signer installer below and retry the saved
+publishing request. The signer recognizes only the exact old buffer-bug bytecode
+on Foundation testnet. It requires either a canonically reverted transaction or
+the same deterministic buffer error from a non-broadcast simulation, plus an
+undeployed app address. It archives the rejected operation, preserves the app
+address/key and saved job, and prepares corrected uploads. Uncertain, included,
+successful or changed deployments are preserved without replacement. Archived
+operations still count toward the deployment mana allowance. This can recover a
+job that already has an archive from the earlier no-op startup bug.
+
 The signer now returns submission failures and bounded contract logs immediately.
 A node rejection, a reverted submission receipt, or an uncertain HTTP response
 must not be presented as “waiting for finality.” The saved transaction and app
