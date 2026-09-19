@@ -89,6 +89,16 @@ test("preview ignores extension errors while preserving real app failures", () =
     filename: "https://koinosai.com/apps/test/content",
   });
   assert.equal(messages[1].message, "broken app");
+  listeners.securitypolicyviolation({
+    effectiveDirective: "form-action",
+    blockedURI: "https://example.invalid/?private=data",
+    lineNumber: 12,
+    columnNumber: 3,
+  });
+  assert.equal(messages[2].kind, "policy");
+  assert.match(messages[2].message, /preventDefault/);
+  assert.doesNotMatch(JSON.stringify(messages[2]), /private=data/);
+  assert.equal(messages[2].line, 12);
 });
 
 function browser(fetchImpl) {

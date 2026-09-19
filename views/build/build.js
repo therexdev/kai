@@ -12,6 +12,8 @@
       draft: null,
       busy: false,
       chain: null,
+      previewDiagnostics: [],
+      previewRevision: null,
     };
   let queuedIdea = "",
     poller = null;
@@ -20,6 +22,28 @@
     onError: (message) => {
       $("preview-error").textContent = message;
       $("preview-error").hidden = false;
+    },
+    onDiagnostic: (d) => {
+      if (
+        !state.detail ||
+        state.previewRevision !== state.detail.project.revision
+      )
+        return;
+      const entry = {
+        kind: d.kind,
+        message: String(d.message || "").slice(0, 500),
+        action: String(d.action || "").slice(0, 80),
+        line: d.line,
+        column: d.column,
+      };
+      if (
+        !state.previewDiagnostics.some(
+          (e) => JSON.stringify(e) === JSON.stringify(entry),
+        )
+      )
+        state.previewDiagnostics = [...state.previewDiagnostics, entry].slice(
+          -8,
+        );
     },
   });
   function note(message, error = false) {
@@ -173,6 +197,8 @@
   }
   function preview() {
     bridge.reset();
+    state.previewDiagnostics = [];
+    state.previewRevision = state.detail.project.revision;
     $("preview-error").hidden = true;
     $("preview").src =
       base() + "/preview?revision=" + state.detail.project.revision;
@@ -370,7 +396,13 @@
     const prompt = $("prompt").value.trim();
     if (!prompt) return;
     action(async () => {
-      await api(base() + "/messages", { prompt });
+      await api(base() + "/messages", {
+        prompt,
+        diagnostics: {
+          revision: state.previewRevision,
+          errors: state.previewDiagnostics,
+        },
+      });
       $("prompt").value = "";
       await refresh();
     });
