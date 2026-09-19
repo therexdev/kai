@@ -71,7 +71,12 @@
     );
   });
   window.addEventListener("securitypolicyviolation", (e) => {
-    if (extensionError({ filename: e.blockedURI })) return;
+    if (
+      extensionError({
+        filename: String(e.sourceFile || "") + " " + String(e.blockedURI || ""),
+      })
+    )
+      return;
     const directive = String(e.effectiveDirective || "unknown").slice(0, 80);
     parent.postMessage(
       {
