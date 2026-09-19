@@ -55,8 +55,14 @@ does not call token contracts.
 | KAI_BUILD_SIGNER_URL | Private signer endpoint, normally http://127.0.0.1:3091 |
 | KAI_BUILD_SIGNER_TOKEN | Shared secret used only between web and signer |
 | KAI_BUILD_RPC_URL / KAI_BUILD_CHAIN_ID / KAI_BUILD_NETWORK | Explicit RPC and chain configuration; match the signer |
-| KAI_BUILD_DAILY_JOBS / KAI_BUILD_GLOBAL_DAILY_JOBS | Per-account / global editing jobs per rolling day; installer sets 5 / 25 |
 | KAI_STATE_DIR | Existing website state root; builder data is in builder/projects.sqlite |
+
+Build jobs have no daily per-account or site-wide allowance. The former
+`KAI_BUILD_DAILY_JOBS` and `KAI_BUILD_GLOBAL_DAILY_JOBS` settings are ignored,
+including values left in existing server environment files. Projects still
+allow one active job at a time; request throttling and the signer's separate
+transaction and mana budgets remain in effect. No signer reinstall is needed
+to remove the daily build allowance.
 
 | Signer-only variable | Meaning |
 | --- | --- |
