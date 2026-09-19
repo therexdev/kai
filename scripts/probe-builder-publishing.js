@@ -50,6 +50,93 @@ function fixture(t) {
   return { s, p, c };
 }
 
+test("a frontend release reuses the deployed app and guard without uploading either contract", async (t) => {
+  const { s, p, c } = fixture(t),
+    sent = [];
+  c.confirmed = async () => true;
+  c.provider.sendTransaction = async (tx) => {
+    sent.push(structuredClone(tx));
+    return {};
+  };
+  const deployed = await s.run("release", p);
+  assert.equal(sent[0].operations.filter((o) => o.upload_contract).length, 2);
+  const originalApp = s.app(p),
+    originalGuard = s.guard();
+  c.provider.invokeGetContractMetadata = async (address) => ({
+    value: {
+      hash: wasmHash(address === deployed.guardId ? "guard" : "contract"),
+      authorizes_upload_contract: true,
+      authorizes_call_contract: true,
+      authorizes_transaction_application: true,
+    },
+  });
+  c.provider.getNextNonce = async () => "KAI=";
+  p.hash = "d".repeat(64);
+  p.operationId = "job_" + "e".repeat(24);
+  const updated = await s.run("release", p),
+    tx = sent[1];
+  assert.equal(updated.contractId, deployed.contractId);
+  assert.equal(updated.guardId, deployed.guardId);
+  assert.deepEqual(s.app(p), originalApp);
+  assert.deepEqual(s.guard(), originalGuard);
+  assert.equal(tx.operations.length, 2);
+  assert.ok(tx.operations.every((o) => !o.upload_contract));
+  assert.equal(tx.operations[0].call_contract.contract_id, deployed.guardId);
+  assert.deepEqual(
+    tx.operations[1],
+    await c.operation(deployed.contractId, "set_release", {
+      account: require("../lib/builder/chain").bytes(s.signer.getAddress()),
+      title: p.title,
+      release_hash: Buffer.from(p.hash, "hex").toString("base64url"),
+    }),
+  );
+  assert.equal(tx.signatures.length, 1);
+});
+
+test("resuming an already live version never calls the signing service", async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kai-live-release-"));
+  let calls = 0;
+  const b = new Builder({
+    stateDir: dir,
+    autoStart: false,
+    signer: {
+      configured: true,
+      call: async () => {
+        calls++;
+        throw Error("unexpected signing request");
+      },
+    },
+  });
+  t.after(() => {
+    b.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  const p = b.store.create(
+    "acc_probe",
+    "Live app",
+    "voting",
+    starter("voting", "Live app"),
+  );
+  const chain = {
+    contractId: "existing",
+    guardId: "guard",
+    chainId: b.chain.config.chainId,
+    network: "testnet",
+    owner: "owner",
+    txId: "original-tx",
+  };
+  b.store.publish("acc_probe", p.id, 1, chain, "original-release");
+  b.store.enqueue("acc_probe", p.id, "publish", { revision: 1 });
+  await b.tick();
+  assert.equal(calls, 0);
+  assert.equal(b.store.detail("acc_probe", p.id).jobs[0].status, "completed");
+  assert.equal(
+    b.store.db.prepare("SELECT count(*) n FROM releases").get().n,
+    1,
+  );
+  assert.equal(b.store.owned("acc_probe", p.id).contract_id, "existing");
+});
+
 test("RPC diagnostics retain bounded contract logs without exposing the RPC payload", async (t) => {
   t.mock.method(global, "fetch", async () => ({
     ok: true,

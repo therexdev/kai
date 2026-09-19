@@ -467,20 +467,66 @@
   $("publish").onclick = () =>
     action(async () => {
       $("publish-status").textContent = "";
-      $("publish-dialog").showModal();
-      const p = state.detail.project;
+      const p = state.detail.project,
+        updating = !!p.contract_id,
+        alreadyLive = p.revision === p.live_revision;
+      $("publish-heading").textContent = updating
+        ? "Publish frontend update"
+        : "Deploy and publish app";
       $("publish-description").textContent =
-        "Publish version " + p.revision + " of “" + p.title + "”.";
+        "Version " +
+        p.revision +
+        " of “" +
+        p.title +
+        "”" +
+        (alreadyLive ? " is already live." : " will become public.");
       $("publish-details").textContent =
         "Network: " +
         state.config.network +
-        "\nAddress: /apps/" +
-        p.slug +
-        (p.contract_id
-          ? "\nContract: " + p.contract_id
-          : "\nA new contract address will be created for this app.");
+        "\nLive URL: " +
+        new URL(
+          "/apps/" + encodeURIComponent(p.slug),
+          state.config.publicOrigin || location.origin,
+        ).href +
+        (updating
+          ? "\nExisting contract: " + p.contract_id
+          : "\nFirst publish: creates this app's contract on " +
+            state.config.network +
+            ".");
+      $("publish-explanation").textContent = updating
+        ? "This updates your frontend and keeps the same contract, address, and stored data. A Koinos transaction records the new frontend version; it does not deploy or upgrade contract code."
+        : "The first publish deploys the app's contract and makes your frontend live. Later frontend updates reuse this contract and its stored data.";
+      $("publish-platform").textContent = alreadyLive
+        ? "Already published"
+        : updating
+          ? "Publish frontend update"
+          : "Deploy and publish";
+      $("publish-wallet").textContent = "Approve frontend update";
+      // Clear the previous project's actions while ownership is checked.
+      $("publish-platform").hidden = false;
+      $("publish-platform").disabled = true;
+      $("publish-wallet").hidden = true;
+      $("publish-wallet").disabled = alreadyLive;
+      $("publish-dialog").showModal();
+      if (alreadyLive) {
+        $("publish-status").textContent =
+          "There are no unpublished changes. No transaction is needed.";
+        return;
+      }
       let managed = true;
-      if (p.contract_id) managed = (await chainInfo()).managed;
+      if (updating) {
+        try {
+          const chain = await chainInfo();
+          if (!chain.config)
+            throw Error(
+              "The existing contract could not be verified. Publishing is paused; please retry shortly.",
+            );
+          managed = chain.managed;
+        } catch (e) {
+          $("publish-status").textContent = e.message;
+          return;
+        }
+      }
       $("publish-platform").hidden = !managed;
       $("publish-platform").disabled = !state.config.publishingReady;
       $("publish-wallet").hidden = !p.contract_id || managed;
@@ -490,13 +536,17 @@
     });
   $("publish-platform").onclick = () =>
     action(async () => {
+      const updating = !!state.detail.project.contract_id;
       await api(base() + "/publish", {
         revision: state.detail.project.revision,
       });
       $("publish-dialog").close();
       await refresh();
       note(
-        "Publishing started. You can leave this page and return to check progress.",
+        (updating
+          ? "Frontend update started using the existing contract. "
+          : "Initial contract deployment started. ") +
+          "You can leave this page and return to check progress.",
       );
     });
   $("publish-wallet").onclick = () =>
@@ -519,7 +569,8 @@
     $("wallet-description").textContent = {
       accept: "Accept ownership of this app with your wallet.",
       propose: "Offer ownership to the wallet below.",
-      publish: "Authorize this frontend release with the app owner's wallet.",
+      publish:
+        "Approve the new frontend version with the app owner's wallet. This records a release on the existing contract and preserves its code, address, and stored data.",
     }[
       d.method === "accept_owner"
         ? "accept"
