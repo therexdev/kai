@@ -42,7 +42,7 @@ if [ ! -f /etc/kai-build-web.env ]; then
   {
     if [ -n "$BUILDER_OPENAI_KEY" ]; then printf 'KAI_BUILD_OPENAI_API_KEY=%s\n' "$BUILDER_OPENAI_KEY"; fi
     printf 'KAI_BUILD_SIGNER_URL=http://127.0.0.1:3091\nKAI_BUILD_SIGNER_TOKEN=%s\n' "$BUILDER_TOKEN"
-    printf 'KAI_BUILD_MODEL=gpt-5.6\nKAI_BUILD_NETWORK=testnet\nKAI_BUILD_RPC_URL=https://testnet.koinosfoundation.org/jsonrpc\nKAI_BUILD_CHAIN_ID=EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==\nKAI_BUILD_DAILY_JOBS=5\nKAI_BUILD_GLOBAL_DAILY_JOBS=25\n'
+    printf 'KAI_BUILD_MODEL=gpt-5.6\nKAI_BUILD_NETWORK=testnet\nKAI_BUILD_RPC_URL=https://testnet.koinosfoundation.org/jsonrpc\nKAI_BUILD_CHAIN_ID=EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==\n'
   } > /etc/kai-build-web.env
   unset BUILDER_OPENAI_KEY
 fi
