@@ -78,6 +78,15 @@
     )
       return;
     const directive = String(e.effectiveDirective || "unknown").slice(0, 80);
+    // Cloudflare injects this analytics script after the app is rendered.
+    // Keep it blocked; it is not generated app code that the editor can fix.
+    if (
+      directive === "script-src-elem" &&
+      /^https:\/\/static\.cloudflareinsights\.com(?:\/|$)/.test(
+        String(e.blockedURI || ""),
+      )
+    )
+      return;
     parent.postMessage(
       {
         type: "kai-app-error",
