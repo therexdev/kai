@@ -560,6 +560,86 @@ button {
 .message.assistant {
   color: #596b87;
 }
+.message.assistant .message-body {
+  white-space: normal;
+}
+.message-body > :first-child {
+  margin-top: 0;
+}
+.message-body > :last-child {
+  margin-bottom: 0;
+}
+.message-body p {
+  margin: 0 0 0.8em;
+}
+.message-body h1,
+.message-body h2,
+.message-body h3,
+.message-body h4 {
+  font-size: 1.08em;
+  line-height: 1.5;
+  margin: 1em 0 0.45em;
+  color: var(--text);
+}
+.message-body ul,
+.message-body ol {
+  margin: 0.5em 0 0.9em;
+  padding-left: 1.5em;
+}
+.message-body li {
+  margin: 0.25em 0;
+}
+.message-body a {
+  color: var(--violet);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.message-body code {
+  font-size: 0.9em;
+  background: #f0eef8;
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+.message-body .code-block {
+  margin: 0.8em 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8f9fc;
+}
+.message-body pre {
+  overflow-x: auto;
+  white-space: pre;
+  margin: 8px 0 0;
+}
+.message-body pre code {
+  background: none;
+  padding: 0;
+}
+.message-body .code-lang {
+  color: var(--muted);
+  font-size: 10px;
+}
+.message-body .code-copy {
+  float: right;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: white;
+  padding: 2px 6px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.message-body blockquote {
+  margin: 0.8em 0;
+  padding-left: 12px;
+  border-left: 3px solid #d8cff3;
+}
+.message-body figure {
+  margin: 0.8em 0;
+}
+.message-body img {
+  max-width: 100%;
+}
 .chat-composer {
   border: 1px solid #e2ddef;
   border-radius: 12px;
@@ -633,6 +713,48 @@ button {
   flex-direction: column;
   min-width: 0;
   flex: 1;
+}
+.published-app {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  padding: 14px 20px;
+  background: #f3faf7;
+  border-bottom: 1px solid #dfeee7;
+}
+.published-app-info {
+  flex: 1;
+  min-width: 0;
+}
+.published-app-label {
+  color: #32745a;
+  font-size: 12px;
+  font-weight: 650;
+  margin-bottom: 5px;
+}
+#live-version {
+  margin-left: 8px;
+  color: #74887e;
+  font-size: 11px;
+  font-weight: 400;
+}
+#live-url {
+  font-size: 12px;
+  color: #426b5c;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+#live-draft-note {
+  font-size: 11px;
+  color: #74887e;
+  margin: 5px 0 0;
+}
+.published-app .button {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 11px;
 }
 .canvas-toolbar {
   height: 57px;

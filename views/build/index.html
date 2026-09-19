@@ -10,6 +10,7 @@
     <script src="/build/assets/qrcode.js" defer></script>
     <script src="/build/assets/wallets.js" defer></script>
     <script src="/build/assets/bridge.js" defer></script>
+    <script src="/build/assets/markdown.js" defer></script>
     <script src="/build/assets/build.js" defer></script>
   </head>
   <body>
@@ -182,6 +183,29 @@
             </p>
           </div>
           <div class="canvas-panel">
+            <section
+              id="published-app"
+              class="published-app"
+              aria-label="Published app"
+              hidden
+            >
+              <div class="published-app-info">
+                <div class="published-app-label">
+                  Live app <span id="live-version"></span>
+                </div>
+                <a id="live-url" target="_blank" rel="noopener noreferrer"></a>
+                <p id="live-draft-note" hidden>
+                  Your draft has changes that are not live yet.
+                </p>
+              </div>
+              <button
+                id="copy-live-link"
+                class="button secondary"
+                type="button"
+              >
+                Copy link
+              </button>
+            </section>
             <div class="canvas-toolbar">
               <div class="tabs" role="tablist" aria-label="Project views">
                 <button

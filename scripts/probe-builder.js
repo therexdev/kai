@@ -15,6 +15,31 @@ const { BuildStore, digest } = require("../lib/builder/store"),
   { BuildChain } = require("../lib/builder/chain"),
   { Signer, Transaction } = require("koilib");
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "kai-build-test-"));
+test("publishing messages share a complete clickable URL and Markdown escapes untrusted HTML", () => {
+  const { mdToHtml } = require("../public/docs/md");
+  const message = Builder.prototype.publishedMessage.call(
+    { publicOrigin: "https://koinosai.com" },
+    2,
+    "community-voting-d7777b4f",
+  );
+  const url = "https://koinosai.com/apps/community-voting-d7777b4f";
+  const rendered = mdToHtml(message);
+  assert.ok(rendered.includes('href="' + url + '"'));
+  assert.ok(rendered.includes(">" + url + "</a>"));
+  assert.match(
+    mdToHtml("**Support**\n\n- First choice\n- Second choice"),
+    /<strong>Support<\/strong>.*<ul>.*<li>First choice<\/li>/,
+  );
+  const unsafe = mdToHtml(
+    '<script>alert(1)</script>\n<img src=x onerror="alert(1)">\n[bad](javascript:alert(1))',
+  );
+  assert.doesNotMatch(unsafe, /<script|<img|href="javascript:/);
+  assert.match(unsafe, /&lt;script&gt;/);
+  assert.match(
+    mdToHtml("```html\n<img src=x>\n```"),
+    /<pre><code>&lt;img src=x&gt;<\/code><\/pre>/,
+  );
+});
 test("projects, source and chats remain account scoped and survive restart", () => {
   const dir = tmp();
   let s = new BuildStore(dir);
