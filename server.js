@@ -413,6 +413,7 @@ app.get("/api/health", (_req, res) =>
   res.json({
     ok: true,
     runtime: runtime.summary(),
+    payouts: scheduler.payoutStatus(),
     // Store truth from the process itself: which ledger backend actually
     // engaged (a KAI_STORE flip that didn't take shows `degraded` here),
     // plus the node runtime — both needed to operate the git-driven env
