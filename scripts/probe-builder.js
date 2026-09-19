@@ -131,6 +131,14 @@ test("OpenAI tool loop applies an actual file change, validates it and returns a
     [
       {
         type: "function_call",
+        name: "read_preview_diagnostics",
+        call_id: "diagnostics",
+        arguments: "{}",
+      },
+    ],
+    [
+      {
+        type: "function_call",
         name: "write_files",
         call_id: "c2",
         arguments: JSON.stringify({
@@ -162,6 +170,20 @@ test("OpenAI tool loop applies an actual file change, validates it and returns a
       assert.equal(body.store, false);
       assert.equal(body.parallel_tool_calls, false);
       assert.ok(!body.tools.some((t) => /sign|publish|shell/.test(t.name)));
+      if (step === 2) {
+        const report = JSON.parse(
+          body.input.find(
+            (i) =>
+              i.call_id === "diagnostics" && i.type === "function_call_output",
+          ).output,
+        );
+        assert.equal(report.browserTested, false);
+        assert.equal(
+          report.errors[0].message,
+          "Cannot read properties of null",
+        );
+        assert.equal(report.errors[0].line, 42);
+      }
       return {
         ok: true,
         json: async () => ({
@@ -176,10 +198,17 @@ test("OpenAI tool loop applies an actual file change, validates it and returns a
     files,
     messages: [],
     prompt: "Change Before to After",
+    diagnostics: [
+      {
+        kind: "javascript",
+        message: "Cannot read properties of null",
+        line: 42,
+      },
+    ],
     onUsage: (n) => (usage += n),
   });
-  assert.equal(step, 4);
-  assert.equal(usage, 40);
+  assert.equal(step, 5);
+  assert.equal(usage, 50);
   assert.equal(out.changed, true);
   assert.ok(out.files["index.html"].includes("After"));
   assert.equal(out.summary, "Updated the heading.");
@@ -283,7 +312,7 @@ test("HTTP routes share real session auth and refuse cross-account / opaque-orig
     assert.equal(preview.status, 200);
     assert.match(
       preview.headers.get("content-security-policy"),
-      /sandbox allow-scripts/,
+      /sandbox allow-scripts allow-forms;/,
     );
     assert.ok(
       !preview.headers
@@ -295,6 +324,14 @@ test("HTTP routes share real session auth and refuse cross-account / opaque-orig
       /connect-src 'none'/,
     );
     assert.ok(preview.text.includes("kai-app-request"));
+    assert.match(
+      preview.headers.get("content-security-policy"),
+      /form-action 'none'/,
+    );
+    assert.match(
+      (await request("/build")).text,
+      /sandbox="allow-scripts allow-forms"/,
+    );
     const files = builder.store.files(a.id, p.id).files;
     assert.equal(
       (
@@ -314,6 +351,32 @@ test("HTTP routes share real session auth and refuse cross-account / opaque-orig
       ).status,
       200,
     );
+    builder.agent = { configured: true };
+    const reported = await request(
+      "/build/api/projects/" + p.id + "/messages",
+      {
+        method: "POST",
+        body: {
+          prompt: "Fix the feature button",
+          diagnostics: {
+            revision: 2,
+            errors: [
+              {
+                kind: "bridge",
+                message: "Unsupported method",
+                action: "call:create_feature",
+                formValues: "must not be stored",
+              },
+            ],
+          },
+        },
+      },
+    );
+    assert.equal(reported.status, 202);
+    const edit = builder.store.claim();
+    assert.equal(edit.payload.diagnostics[0].action, "call:create_feature");
+    assert.equal(edit.payload.diagnostics[0].formValues, undefined);
+    builder.store.finish(edit);
     assert.equal(
       (
         await request("/build/api/projects/" + p.id + "/publish", {
@@ -355,7 +418,11 @@ test("HTTP routes share real session auth and refuse cross-account / opaque-orig
       assert.equal(duplicate.status, 409);
       assert.match(duplicate.data.error, /already live/);
     }
-    assert.equal(builder.store.detail(a.id, p.id).jobs.length, 0);
+    assert.equal(
+      builder.store.detail(a.id, p.id).jobs.filter((j) => j.kind === "publish")
+        .length,
+      0,
+    );
     assert.equal(
       builder.store.db.prepare("SELECT count(*) n FROM wallet_drafts").get().n,
       0,

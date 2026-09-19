@@ -43,6 +43,7 @@
       mode = "preview",
       getProject = () => null,
       onError = () => {},
+      onDiagnostic = () => {},
       api = null,
     } = {},
   ) {
@@ -164,6 +165,7 @@
         return;
       const d = event.data;
       if (d?.type === "kai-app-error") {
+        onDiagnostic(d);
         onError(String(d.message).slice(0, 500));
         return;
       }
@@ -277,6 +279,13 @@
         } else throw Error("This app requested an unsupported action.");
       } catch (e) {
         error = e.message;
+        onDiagnostic({
+          kind: "bridge",
+          message: String(error).slice(0, 500),
+          action:
+            String(d.method || "") +
+            (typeof d.args?.method === "string" ? ":" + d.args.method : ""),
+        });
       }
       if (event.source === frame.contentWindow)
         frame.contentWindow.postMessage(

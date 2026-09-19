@@ -49,7 +49,13 @@
   window.addEventListener("error", (e) => {
     if (extensionError(e)) return;
     parent.postMessage(
-      { type: "kai-app-error", message: String(e.message).slice(0, 500) },
+      {
+        type: "kai-app-error",
+        kind: "javascript",
+        message: String(e.message).slice(0, 500),
+        line: e.lineno,
+        column: e.colno,
+      },
       "*",
     );
   });
@@ -58,7 +64,28 @@
     parent.postMessage(
       {
         type: "kai-app-error",
+        kind: "promise",
         message: String(e.reason?.message || e.reason).slice(0, 500),
+      },
+      "*",
+    );
+  });
+  window.addEventListener("securitypolicyviolation", (e) => {
+    if (extensionError({ filename: e.blockedURI })) return;
+    const directive = String(e.effectiveDirective || "unknown").slice(0, 80);
+    parent.postMessage(
+      {
+        type: "kai-app-error",
+        kind: "policy",
+        action: directive,
+        message:
+          directive === "form-action"
+            ? "Direct form submission was blocked. Handle the form's submit event, call event.preventDefault() before any await, and use kai.call() for wallet actions."
+            : "The app tried an operation blocked by its content policy (" +
+              directive +
+              "). Use the supported kai bridge and local HTML, CSS and JavaScript.",
+        line: e.lineNumber,
+        column: e.columnNumber,
       },
       "*",
     );
