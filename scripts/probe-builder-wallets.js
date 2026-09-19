@@ -448,6 +448,8 @@ test("old signer is stopped before release and the saved job resumes after its u
             ? {
                 contractHash: wasmHash("contract"),
                 guardHash: wasmHash("guard"),
+                publishingProtocol: require("../lib/builder/chain")
+                  .PUBLISHING_PROTOCOL,
               }
             : { ready: true };
         releases++;

@@ -5,7 +5,7 @@
   "scripts": {
     "generate": "node scripts/generate.js",
     "build": "npm run generate && asc assembly/index.ts --target release --use abort= && node scripts/guard-hash.js && asc assembly/guard-entry.ts --binaryFile build/guard.wasm --optimizeLevel 3 --use abort=",
-    "test": "npm run generate && asp --nologo"
+    "test": "npm run generate && asp --nologo && node scripts/probe-runtime.js"
   },
   "devDependencies": {
     "@koinos/sdk-as": "1.0.0",

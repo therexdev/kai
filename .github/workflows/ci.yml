@@ -27,6 +27,10 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - name: Execute the shipped builder contracts
+        run: |
+          npm ci --prefix contracts/build-app
+          node contracts/build-app/scripts/probe-runtime.js
 
       # Globbed rather than listed: a probe that has to be added to a list by
       # hand is a probe that will one day not be, and "nobody runs it" is the

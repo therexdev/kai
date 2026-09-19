@@ -12,6 +12,8 @@ const { Signer, Transaction, utils } = require("koilib"),
     settings,
     validAddress,
     guardOperation,
+    PUBLISHING_PROTOCOL,
+    chainErrorDetail,
   } = require("../../lib/builder/chain");
 const { fail } = require("../../lib/builder/store");
 class BuildSigner {
@@ -174,6 +176,7 @@ class BuildSigner {
       chainId: this.chain.config.chainId,
       contractHash: this.wasmHash,
       guardHash: this.guardHash,
+      publishingProtocol: PUBLISHING_PROTOCOL,
     };
   }
   async run(kind, p) {
@@ -417,29 +420,78 @@ class BuildSigner {
     }
     // Persist before broadcast. A lost HTTP response retries this exact signed
     // transaction; it never generates another key, nonce, or deployment.
-    let submitError = null;
-    try {
-      await this.chain.provider.sendTransaction(tx);
-    } catch (e) {
-      submitError = e;
-    }
-    try {
-      await this.chain.confirmed(tx.id);
-    } catch (e) {
-      if (e.status === 422) {
-        this.db
-          .prepare("UPDATE operations SET confirmed=1 WHERE id=?")
-          .run(p.operationId);
-        throw e;
+    let pending = null;
+    const confirm = async () => {
+      try {
+        await this.chain.confirmed(tx.id);
+        pending = null;
+        return true;
+      } catch (e) {
+        if (e.status === 422) {
+          this.db
+            .prepare("UPDATE operations SET confirmed=1 WHERE id=?")
+            .run(p.operationId);
+          throw fail(e.message + " Transaction: " + tx.id, 422);
+        }
+        if (e.status !== 409) throw e;
+        pending = e;
+        return false;
       }
-      if (e.status === 409) return { pending: true, txId: tx.id };
-      if (submitError)
+    };
+    // A saved transaction may already be final, or be included but not final.
+    // Check first: broadcasting it again can return a misleading nonce error.
+    let final = previous ? await confirm() : false;
+    if (
+      !final &&
+      !["finality", "receipt"].includes(pending?.confirmationPhase)
+    ) {
+      let submitError = null;
+      try {
+        const result = await this.chain.provider.sendTransaction(tx);
+        if (result.receipt?.reverted)
+          submitError = Object.assign(
+            fail(
+              "Koinos reverted the submission: " +
+                chainErrorDetail(null, result.receipt),
+              422,
+            ),
+            { rpcError: true },
+          );
+      } catch (e) {
+        submitError = e;
+      }
+      try {
+        final = await confirm();
+      } catch (e) {
+        if (e.status === 422 || !submitError) throw e;
+        // The submission error is still useful if the confirmation RPC also
+        // fails. Do not claim rejection is permanent or create another tx.
+      }
+      if (
+        !final &&
+        submitError &&
+        !["finality", "receipt"].includes(pending?.confirmationPhase)
+      ) {
+        const detail = submitError.status
+          ? submitError.message
+          : "The node did not respond.";
         throw fail(
-          "Deployment could not be confirmed. Retry this release; its transaction is saved.",
-          409,
+          (submitError.rpcError && !submitError.rpcTransient
+            ? "The node refused the latest publishing submission. "
+            : "The publishing submission could not be verified. ") +
+            detail +
+            " Your request is saved; retry will check the same transaction. Transaction: " +
+            tx.id,
+          502,
         );
-      throw e;
+      }
     }
+    if (!final)
+      return {
+        pending: true,
+        txId: tx.id,
+        phase: pending?.confirmationPhase || "not_seen",
+      };
     this.db
       .prepare("UPDATE operations SET confirmed=1 WHERE id=?")
       .run(p.operationId);
@@ -498,7 +550,12 @@ function main() {
                 : await service.run(action, req.body),
             );
           } catch (e) {
-            console.error("[build signer]", action, e.status || 500);
+            console.error(
+              "[build signer]",
+              action,
+              e.status || 500,
+              e.status ? e.message : "Chain verification failed",
+            );
             res.status(e.status || 502).json({
               error: e.status
                 ? e.message
@@ -511,7 +568,12 @@ function main() {
   app.listen(
     Number(process.env.KAI_BUILD_SIGNER_PORT || 3091),
     "127.0.0.1",
-    () => console.log("KAI Build signer listening on loopback."),
+    () =>
+      console.log(
+        "KAI Build signer listening on loopback. Publishing protocol " +
+          PUBLISHING_PROTOCOL +
+          ".",
+      ),
   );
 }
 if (require.main === module) main();
