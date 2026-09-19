@@ -52,6 +52,10 @@
   }
   function controls() {
     const running = !!active();
+    const project = state.detail?.project;
+    if (project?.live_revision)
+      $("live-draft-note").hidden =
+        !state.dirty && project.revision === project.live_revision;
     $("send").disabled =
       running || state.busy || state.dirty || !state.config?.aiReady;
     $("code-editor").readOnly = running || state.busy;
@@ -89,11 +93,24 @@
       nearBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 100;
     area.replaceChildren();
     for (const m of state.detail.messages) {
-      const div = node("div", null, "message " + m.role);
-      div.append(
-        node("span", m.role === "user" ? "You" : "KAI", "role"),
-        document.createTextNode(m.content),
-      );
+      const div = node("div", null, "message " + m.role),
+        body = node("div", null, "message-body");
+      if (m.role === "assistant") {
+        // Make saved publication notices from older releases useful as well.
+        const content = m.content.replace(
+          /^(Version \d+ is published\. Your live app is at )(\/apps\/[a-z0-9-]+)\.$/,
+          (_match, prefix, path) => {
+            const url = new URL(
+              path,
+              state.config.publicOrigin || location.origin,
+            ).href;
+            return prefix + "[" + url + "](" + url + ").";
+          },
+        );
+        // Shared renderer escapes raw HTML first and permits only safe links.
+        body.innerHTML = window.mdToHtml(content);
+      } else body.textContent = m.content;
+      div.append(node("span", m.role === "user" ? "You" : "KAI", "role"), body);
       area.append(div);
     }
     const failed = state.detail.jobs.find((j) => j.status === "failed");
@@ -173,9 +190,29 @@
     $("project-crumb").hidden = false;
     $("project-crumb").textContent = detail.project.title;
     $("publish").hidden = false;
-    $("live-link").hidden = !detail.project.live_revision;
-    if (detail.project.live_revision)
-      $("live-link").href = "/apps/" + detail.project.slug;
+    const published = !!detail.project.live_revision;
+    $("live-link").hidden = !published;
+    $("published-app").hidden = !published;
+    if (published) {
+      const url = new URL(
+        "/apps/" + encodeURIComponent(detail.project.slug),
+        state.config.publicOrigin || location.origin,
+      ).href;
+      $("live-link").href = url;
+      $("live-url").href = url;
+      $("live-url").textContent = url;
+      $("live-version").textContent =
+        "Version " +
+        detail.project.live_revision +
+        " · " +
+        (detail.project.network || state.config.network);
+      $("live-draft-note").hidden =
+        detail.project.revision === detail.project.live_revision;
+    } else {
+      $("live-link").removeAttribute("href");
+      $("live-url").removeAttribute("href");
+      $("live-url").textContent = "";
+    }
     if (changed && !state.dirty) {
       state.files = { ...detail.files };
       state.editRevision = detail.project.revision;
@@ -241,6 +278,26 @@
       $("tab-" + name).setAttribute("aria-selected", String(name === tab));
     }
   }
+  $("copy-live-link").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText($("live-url").href);
+      note("Live app link copied.");
+    } catch {
+      note("Select and copy the live app URL shown above the preview.");
+    }
+  };
+  $("messages").addEventListener("click", async (event) => {
+    const button = event.target.closest(".code-copy");
+    if (!button) return;
+    const code = button.closest(".code-block")?.querySelector("pre code");
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code.textContent);
+      note("Code copied.");
+    } catch {
+      note("Select the code to copy it.");
+    }
+  });
   document
     .querySelectorAll("[data-tab]")
     .forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
