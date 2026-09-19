@@ -196,6 +196,31 @@ network bound; switching the server network does not migrate them. Use a
 separate state directory for a separate network or keep the beta deployment
 on testnet until a deliberate migration is implemented.
 
+## Publishing diagnostics and saved retries
+
+The signer now returns submission failures and bounded contract logs immediately.
+A node rejection, a reverted submission receipt, or an uncertain HTTP response
+must not be presented as “waiting for finality.” The saved transaction and app
+key are retained; retry checks that transaction before any rebroadcast. Included
+transactions are polled without rebroadcast, and canonical finality remains
+required before the frontend becomes public. Errors include the transaction ID.
+
+After this website update, rerun the existing installer on the server:
+
+```bash
+sudo bash /opt/koinos/kai/deploy/builder/install.sh
+```
+
+This preserves the existing environment and databases. The website requires
+publishing protocol 2 so an older signer cannot silently repeat the timeout loop.
+The service journal also records bounded publishing errors without keys or raw
+transaction payloads. These diagnostics do not by themselves resolve a rejected
+transaction; use the reported node reason to correct its underlying cause.
+
+CI executes the shipped WASM through `_start`, initializes and reads app state,
+and runs guard hash validation. This uses the SDK mock VM and does not substitute
+for successful deployment and canonical confirmation on the configured network.
+
 ## September 2026 startup fix and saved deployment recovery
 
 The first beta WASM artifacts exported `main` but did not call it from `_start`.
