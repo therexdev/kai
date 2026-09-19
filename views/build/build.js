@@ -98,6 +98,13 @@
     }
     const failed = state.detail.jobs.find((j) => j.status === "failed");
     if (failed && ["publish", "propose"].includes(failed.kind)) {
+      area.append(
+        node(
+          "p",
+          failed.error || "Publishing needs attention. Your project is saved.",
+          "publish-error",
+        ),
+      );
       const retry = node(
         "button",
         "Retry saved publishing request",
@@ -511,6 +518,11 @@
   $("wallet-sign").onclick = () =>
     action(async () => {
       const tx = await KaiBuildBridge.sign(state.draft);
+      await submitWallet(tx);
+    });
+  $("wallet-vault").onclick = () =>
+    action(async () => {
+      const tx = await KaiBuildBridge.sign(state.draft, "koinvault");
       await submitWallet(tx);
     });
   $("wallet-confirm").onclick = () => action(confirmWallet);

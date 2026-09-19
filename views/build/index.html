@@ -7,6 +7,8 @@
     <link rel="icon" href="/redesign/brand-mark.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/build/assets/build.css" />
     <script src="/producer-signer/kondor.min.js" defer></script>
+    <script src="/build/assets/qrcode.js" defer></script>
+    <script src="/build/assets/wallets.js" defer></script>
     <script src="/build/assets/bridge.js" defer></script>
     <script src="/build/assets/build.js" defer></script>
   </head>
@@ -87,7 +89,8 @@
               <span class="eyebrow">YOUR IDEA. ON THE BLOCKCHAIN.</span>
               <h1>Build on Koinos<br /><span>with KAI.</span></h1>
               <p>
-                Create a dApp on the Koinos blockchain.<br />Describe it, build it in chat, and make it yours.
+                Create a dApp on the Koinos blockchain.<br />Describe it, build
+                it in chat, and make it yours.
               </p>
             </div>
             <img
@@ -124,7 +127,8 @@
               ><small>Build a community dApp ↗</small></button
             ><button class="starter" data-template="blank">
               <span class="starter-icon coral" aria-hidden="true">✳</span
-              ><strong>Your own dApp</strong><span>Create an interface powered by Koinos app data.</span
+              ><strong>Your own dApp</strong
+              ><span>Create an interface powered by Koinos app data.</span
               ><small>Start your dApp ↗</small>
             </button>
           </div>
@@ -411,7 +415,11 @@
         request stays unchanged.
       </p>
       <div class="button-row">
-        <button id="wallet-sign" class="button primary">Sign with Kondor</button
+        <button id="wallet-sign" class="button primary">
+          Sign with Kondor
+        </button>
+        <button id="wallet-vault" class="button primary">
+          Sign with KOIN Vault</button
         ><button id="wallet-download" class="button secondary">
           Download unsigned JSON</button
         ><button id="wallet-import" class="button secondary">

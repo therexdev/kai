@@ -1,2 +1,2 @@
 // Generated from the compiled app template.
-export function appHash():Uint8Array {return Uint8Array.wrap(changetype<ArrayBuffer>([18,32,86,73,93,167,191,38,63,149,160,165,124,94,70,138,217,27,237,140,198,11,4,200,158,221,125,249,211,7,65,178,101,122] as StaticArray<u8>));}
+export function appHash():Uint8Array {return Uint8Array.wrap(changetype<ArrayBuffer>([18,32,142,4,88,25,252,234,138,163,206,118,39,185,247,63,210,155,22,10,72,212,121,4,250,166,167,69,62,32,222,225,105,42] as StaticArray<u8>));}

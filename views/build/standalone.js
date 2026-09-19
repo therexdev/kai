@@ -142,6 +142,52 @@
       const d = drafts.get(args.draftId);
       if (!d) throw Error("Wallet request expired.");
       const tx = args.transaction;
+      if (tx?.wallet === "koinvault") {
+        if (!/^0x1220[0-9a-f]{64}$/i.test(tx.txId || ""))
+          throw Error("Invalid KOIN Vault transaction ID.");
+        const found = await provider.getTransactionsById([tx.txId]);
+        const item = found.transactions?.find(
+          (t) => t.transaction?.id === tx.txId,
+        );
+        if (!item)
+          throw Error(
+            "KOIN Vault's transaction is awaiting chain inclusion. Check the wallet before retrying.",
+          );
+        KaiWalletProof.verify(d.transaction, item.transaction, tx.txId, {
+          Transaction,
+          utils,
+        });
+        const head = await provider.getHeadInfo();
+        const blocks = await provider.getBlocksById(
+          item.containing_blocks || [],
+          { returnBlock: false, returnReceipt: true },
+        );
+        for (const block of blocks.block_items || []) {
+          const canonical = await provider.getBlocks(
+            Number(block.block_height),
+            1,
+            head.head_topology.id,
+          );
+          if (canonical[0]?.block_id !== block.block_id) continue;
+          const receipt = block.receipt?.transaction_receipts?.find(
+            (r) => r.id === tx.txId,
+          );
+          if (receipt?.reverted)
+            throw Error("Koinos reverted this transaction.");
+          if (receipt) {
+            drafts.delete(args.draftId);
+            return {
+              txId: tx.txId,
+              pending:
+                BigInt(block.block_height) >
+                BigInt(head.last_irreversible_block || 0),
+            };
+          }
+        }
+        throw Error(
+          "KOIN Vault's transaction is awaiting confirmation. Check the wallet before retrying.",
+        );
+      }
       if (
         JSON.stringify(tx.header) !== JSON.stringify(d.transaction.header) ||
         JSON.stringify(tx.operations) !==

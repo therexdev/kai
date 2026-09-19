@@ -2,49 +2,8 @@
 (() => {
   const READ = new Set(["get_config", "list_records", "get_record"]),
     WRITE = new Set(["create_record", "edit_record", "vote", "close_poll"]);
-  async function bounded(promise, ms = 180000) {
-    let timer;
-    try {
-      return await Promise.race([
-        promise,
-        new Promise((_, reject) => {
-          timer = setTimeout(
-            () =>
-              reject(
-                Error(
-                  "The wallet did not respond. Close any pending wallet prompt and try again.",
-                ),
-              ),
-            ms,
-          );
-        }),
-      ]);
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-  async function accounts() {
-    if (!window.kondor)
-      throw Error("Kondor could not load. Refresh the page and try again.");
-    const result = await bounded(kondor.getAccounts());
-    if (!Array.isArray(result) || !result.length)
-      throw Error("Choose an account in Kondor to continue.");
-    return result;
-  }
-  async function sign(draft) {
-    const list = await accounts();
-    if (!list.some((a) => a.address === draft.signerAddress))
-      throw Error("Choose " + draft.signerAddress + " in Kondor.");
-    const result = await bounded(
-      kondor
-        .getSigner(draft.signerAddress)
-        .signTransaction(structuredClone(draft.transaction), {
-          [draft.contractId]: draft.abi,
-          ...(draft.guardId ? { [draft.guardId]: draft.guardAbi } : {}),
-        }),
-    );
-    return result.transaction || result;
-  }
+  const ownerWallet = KaiBuildWallets.create();
+  const sign = (draft, wallet = "kondor") => ownerWallet.sign(draft, wallet);
   function review(title, description, details) {
     return new Promise((resolve) => {
       const dialog = document.createElement("dialog"),
@@ -87,7 +46,10 @@
       api = null,
     } = {},
   ) {
+    const wallet = KaiBuildWallets.create();
     let connected = null,
+      previewWallet = null,
+      pendingSubmission = null,
       working = false,
       start = Date.now(),
       reads = 0,
@@ -97,6 +59,7 @@
       votes = new Set();
     function reset() {
       connected = null;
+      previewWallet = null;
       working = false;
       version = null;
       records = [];
@@ -221,33 +184,36 @@
         if (++reads > 80)
           throw Error("This app is sending too many requests. Wait a moment.");
         if (d.method === "connect") {
-          if (mode === "preview") result = { address: "Preview wallet" };
-          else {
+          if (mode === "preview") {
+            const choice =
+              d.args?.wallet ||
+              previewWallet ||
+              (await KaiBuildWallets.choose(true));
+            if (!["kondor", "koinvault"].includes(choice))
+              throw Error("Choose Kondor or KOIN Vault.");
+            previewWallet = choice;
+            result = {
+              address: "Preview wallet",
+              wallet: choice,
+              preview: true,
+            };
+          } else {
             if (working)
               throw Error("Finish the current wallet request first.");
-            if (!connected) {
-              working = true;
-              try {
-                if (
-                  !(await review(
-                    "Connect this app",
-                    "Share your public wallet address with " +
-                      (getProject()?.title || "this app") +
-                      ".",
-                    {
-                      app: getProject()?.title,
-                      network: getProject()?.network,
-                    },
-                  ))
-                )
-                  throw Error("Connection cancelled.");
-                connected = (await accounts())[0].address;
-              } finally {
-                working = false;
-              }
+            working = true;
+            try {
+              result = await wallet.connect(getProject() || {}, d.args?.wallet);
+              connected = result.address;
+            } finally {
+              working = false;
             }
-            result = { address: connected };
           }
+        } else if (d.method === "disconnect") {
+          if (working) throw Error("Finish the current wallet request first.");
+          if (mode !== "preview") await wallet.disconnect();
+          connected = null;
+          previewWallet = null;
+          result = { disconnected: true };
         } else if (d.method === "read" && READ.has(d.args?.method)) {
           result =
             mode === "preview"
@@ -264,27 +230,46 @@
               throw Error("Too many wallet requests. Wait a minute.");
             working = true;
             try {
-              const { draft } = await api("prepare", {
-                ...d.args,
-                address: connected,
-              });
-              if (
-                !(await review(
-                  "Review app transaction",
-                  "This action uses your wallet's mana. Nothing is signed until you approve it in your wallet.",
-                  {
-                    app: getProject()?.title,
-                    network: draft.network,
-                    wallet: connected,
-                    contract: draft.contractId,
-                    action: draft.method,
-                    arguments: draft.args,
-                  },
-                ))
-              )
-                throw Error("Transaction cancelled.");
-              const transaction = await sign(draft);
-              result = await api("submit", { draftId: draft.id, transaction });
+              if (pendingSubmission) {
+                if (JSON.stringify(d.args) !== pendingSubmission.action)
+                  throw Error(
+                    "The previous wallet request is unresolved. Retry that action to check its status before starting another.",
+                  );
+              } else {
+                const { draft } = await api("prepare", {
+                  ...d.args,
+                  address: connected,
+                });
+                if (
+                  !(await review(
+                    "Review app transaction",
+                    "This action uses your wallet's mana. Nothing is signed until you approve it in your wallet.",
+                    {
+                      app: getProject()?.title,
+                      network: draft.network,
+                      wallet: connected,
+                      contract: draft.contractId,
+                      action: draft.method,
+                      arguments: draft.args,
+                    },
+                  ))
+                )
+                  throw Error("Transaction cancelled.");
+                pendingSubmission = {
+                  action: JSON.stringify(d.args),
+                  draft,
+                  request: null,
+                };
+              }
+              if (!pendingSubmission.request) {
+                const transaction = await wallet.sign(pendingSubmission.draft);
+                pendingSubmission.request = {
+                  draftId: pendingSubmission.draft.id,
+                  transaction,
+                };
+              }
+              result = await api("submit", pendingSubmission.request);
+              pendingSubmission = null;
             } finally {
               working = false;
             }
@@ -302,7 +287,10 @@
     window.addEventListener("message", listener);
     return {
       reset,
-      destroy: () => window.removeEventListener("message", listener),
+      destroy: () => {
+        wallet.destroy();
+        window.removeEventListener("message", listener);
+      },
     };
   }
   window.KaiBuildBridge = { create, sign, review };

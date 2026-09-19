@@ -1215,3 +1215,25 @@ dialog pre {
     transition: none !important;
   }
 }
+/* Wallet prompts stay outside the sandboxed app. */
+.wallet-choice {
+  max-width: min(440px, calc(100vw - 32px));
+}
+.wallet-choice .wallet-qr {
+  display: block;
+  max-width: 100%;
+  width: 260px;
+  height: 260px;
+  object-fit: contain;
+  margin: 20px auto;
+  background: #fff;
+  border-radius: 12px;
+}
+.wallet-choice a.button {
+  text-decoration: none;
+  text-align: center;
+}
+.publish-error {
+  color: #b94747;
+  overflow-wrap: anywhere;
+}

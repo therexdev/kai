@@ -24,3 +24,6 @@ export function main(): i32 {
   System.exit(0, Protobuf.encode(out, A.Result.encode));
   return 0;
 }
+
+// Koinos executes the module start function, not an exported `main` by name.
+main();
