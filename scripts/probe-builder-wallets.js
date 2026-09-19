@@ -99,6 +99,12 @@ test("preview ignores extension errors while preserving real app failures", () =
   assert.match(messages[2].message, /preventDefault/);
   assert.doesNotMatch(JSON.stringify(messages[2]), /private=data/);
   assert.equal(messages[2].line, 12);
+  listeners.securitypolicyviolation({
+    effectiveDirective: "script-src-elem",
+    blockedURI: "inline",
+    sourceFile: "chrome-extension://wallet/content-script.js",
+  });
+  assert.equal(messages.length, 3);
 });
 
 function browser(fetchImpl) {
