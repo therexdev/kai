@@ -333,6 +333,33 @@ test("HTTP routes share real session auth and refuse cross-account / opaque-orig
     assert.equal(imported.status, 201);
     assert.notEqual(imported.data.project.id, p.id);
     assert.equal(imported.data.project.contract_id, null);
+    builder.store.publish(
+      a.id,
+      p.id,
+      2,
+      {
+        contractId: "existing",
+        guardId: "guard",
+        chainId: builder.chain.config.chainId,
+        network: "testnet",
+        owner: "owner",
+        txId: "published-tx",
+      },
+      "published-release",
+    );
+    for (const route of ["/publish", "/wallet/prepare"]) {
+      const duplicate = await request("/build/api/projects/" + p.id + route, {
+        method: "POST",
+        body: { action: "publish", revision: 2 },
+      });
+      assert.equal(duplicate.status, 409);
+      assert.match(duplicate.data.error, /already live/);
+    }
+    assert.equal(builder.store.detail(a.id, p.id).jobs.length, 0);
+    assert.equal(
+      builder.store.db.prepare("SELECT count(*) n FROM wallet_drafts").get().n,
+      0,
+    );
   } finally {
     await new Promise((r) => server.close(r));
     builder.close();

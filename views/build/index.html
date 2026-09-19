@@ -397,7 +397,7 @@
     </dialog>
     <dialog id="publish-dialog">
       <div class="dialog-head">
-        <h2>Publish your app</h2>
+        <h2 id="publish-heading">Publish your app</h2>
         <button
           class="icon-button"
           data-close="publish-dialog"
@@ -408,10 +408,7 @@
       </div>
       <p id="publish-description"></p>
       <div id="publish-details" class="release-details"></div>
-      <p class="muted">
-        The saved version becomes public. Contract data stays on Koinos when you
-        change the frontend.
-      </p>
+      <p id="publish-explanation" class="muted"></p>
       <div class="button-row">
         <button id="publish-platform" class="button primary">
           Publish with KAI</button
