@@ -4,9 +4,13 @@ const test = require("node:test"),
   fs = require("fs"),
   os = require("os"),
   path = require("path");
-const { Signer } = require("koilib");
+const { Signer, Transaction } = require("koilib");
 const { BuildSigner } = require("./build/signer");
-const { BuildChain, chainErrorDetail } = require("../lib/builder/chain");
+const {
+  BuildChain,
+  chainErrorDetail,
+  wasmHash,
+} = require("../lib/builder/chain");
 const { Builder } = require("../lib/builder/service");
 const { starter } = require("../lib/builder/projects");
 
@@ -215,4 +219,162 @@ test("publishing job preserves the node reason and transaction ID for the retry 
     /compute bandwidth limit exceeded.*Transaction: 0x1220/,
   );
   assert.equal(b.store.owned("acc_probe", p.id).live_revision, null);
+});
+
+async function smallBufferJournal(t) {
+  const f = fixture(t),
+    { s, p, c } = f;
+  c.provider.sendTransaction = async () => ({});
+  await s.run("release", p);
+  const row = s.app(p);
+  const tx = JSON.parse(
+    s.db
+      .prepare("SELECT transaction_json FROM operations WHERE id=?")
+      .get(p.operationId).transaction_json,
+  );
+  tx.operations.find(
+    (o) => o.upload_contract?.contract_id === row.address,
+  ).upload_contract.bytecode = fs
+    .readFileSync(path.join(__dirname, "fixtures/builder-small-buffer.wasm"))
+    .toString("base64url");
+  await Transaction.prepareTransaction(tx);
+  tx.signatures = [];
+  for (const key of [
+    s.decrypt(s.guard().encrypted_key),
+    s.decrypt(row.encrypted_key),
+    s.signer.getPrivateKey("wif"),
+  ])
+    await Signer.fromWif(key).signTransaction(tx);
+  s.db
+    .prepare("UPDATE operations SET transaction_json=? WHERE id=?")
+    .run(JSON.stringify(tx), p.operationId);
+  return { ...f, row, tx };
+}
+
+test("known buffer rejection is simulated without broadcast, archived, and rebuilt with the same app key", async (t) => {
+  const { s, p, c, row, tx } = await smallBufferJournal(t);
+  // This is the same saved job that already recovered from the first no-op
+  // contract: a second archive must not collide with its existing audit entry.
+  s.db
+    .prepare("INSERT INTO retired_deployments VALUES(?,?,?,?)")
+    .run(
+      p.operationId,
+      JSON.stringify(row),
+      JSON.stringify({ created_at: Date.now(), rc_limit: "2000000000" }),
+      Date.now(),
+    );
+  const sends = [];
+  c.provider.sendTransaction = async (transaction, broadcast = true) => {
+    sends.push({ transaction: structuredClone(transaction), broadcast });
+    if (!broadcast)
+      throw Object.assign(
+        Error("Koinos: return buffer is not large enough for the return value"),
+        { status: 502, rpcError: true },
+      );
+    return {};
+  };
+  const result = await s.run("release", p);
+  assert.equal(result.pending, true);
+  assert.equal(sends[0].broadcast, false);
+  assert.equal(sends[0].transaction.id, tx.id);
+  assert.equal(sends[1].broadcast, true);
+  assert.notEqual(result.txId, tx.id);
+  assert.deepEqual(s.app(p), row);
+  const upload = sends[1].transaction.operations.find(
+    (o) => o.upload_contract?.contract_id === row.address,
+  ).upload_contract;
+  assert.equal(
+    "0x1220" +
+      require("crypto")
+        .createHash("sha256")
+        .update(Buffer.from(upload.bytecode, "base64url"))
+        .digest("hex"),
+    wasmHash("contract"),
+  );
+  assert.equal(
+    s.db.prepare("SELECT * FROM replaced_operations").get().transaction_id,
+    tx.id,
+  );
+  assert.equal(
+    s.db.prepare("SELECT count(*) n FROM retired_deployments").get().n,
+    1,
+  );
+  await s.run("release", p);
+  assert.equal(sends.length, 3);
+  assert.equal(sends[2].transaction.id, result.txId);
+  s.dailyMana = 6000000000n;
+  assert.throws(() => s.limit(), /daily deployment mana allowance/);
+});
+
+test("buffer recovery refuses pending, successful, changed, and unverifiable deployments", async (t) => {
+  for (const state of [
+    "finality",
+    "confirmed",
+    "code-present",
+    "timeout",
+    "other-error",
+    "accepted",
+  ])
+    await t.test(state, async (t) => {
+      const { s, p, c, row, tx } = await smallBufferJournal(t);
+      let broadcasts = 0;
+      c.provider.sendTransaction = async (_tx, broadcast = true) => {
+        if (broadcast) broadcasts++;
+        if (state === "timeout")
+          throw new DOMException("timed out", "TimeoutError");
+        if (state === "other-error")
+          throw Object.assign(Error("Koinos: invalid nonce"), {
+            status: 502,
+            rpcError: true,
+          });
+        return { receipt: { reverted: false } };
+      };
+      if (state === "confirmed") c.confirmed = async () => true;
+      if (state === "finality")
+        c.confirmed = async () => {
+          throw Object.assign(Error("waiting for finality"), {
+            status: 409,
+            confirmationPhase: "finality",
+          });
+        };
+      if (state === "code-present")
+        c.provider.invokeGetContractMetadata = async () => ({
+          value: { hash: "changed-code" },
+        });
+      await assert.rejects(() => s.run("release", p));
+      assert.equal(broadcasts, 0);
+      assert.deepEqual(s.app(p), row);
+      assert.equal(
+        s.db.prepare("SELECT count(*) n FROM replaced_operations").get().n,
+        0,
+      );
+      assert.equal(
+        JSON.parse(
+          s.db
+            .prepare("SELECT transaction_json FROM operations WHERE id=?")
+            .get(p.operationId).transaction_json,
+        ).id,
+        tx.id,
+      );
+    });
+});
+
+test("a canonically reverted buffer deployment is recovered without resubmitting the failed transaction", async (t) => {
+  const { s, p, c, tx } = await smallBufferJournal(t);
+  c.confirmed = async (id) => {
+    throw Object.assign(
+      Error("reverted or pending"),
+      id === tx.id
+        ? { status: 422 }
+        : { status: 409, confirmationPhase: "not_seen" },
+    );
+  };
+  c.provider.sendTransaction = async (next, broadcast = true) => {
+    assert.notEqual(next.id, tx.id);
+    assert.equal(broadcast, true);
+    return {};
+  };
+  const result = await s.run("release", p);
+  assert.equal(result.pending, true);
+  assert.notEqual(result.txId, tx.id);
 });

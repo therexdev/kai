@@ -70,6 +70,9 @@ class BuildSigner {
     this.db.exec(
       "CREATE TABLE IF NOT EXISTS retired_deployments(operation_id TEXT PRIMARY KEY,app_json TEXT NOT NULL,operation_json TEXT NOT NULL,retired_at INTEGER NOT NULL)",
     );
+    this.db.exec(
+      "CREATE TABLE IF NOT EXISTS replaced_operations(transaction_id TEXT PRIMARY KEY,operation_id TEXT NOT NULL,operation_json TEXT NOT NULL,replaced_at INTEGER NOT NULL)",
+    );
     if (
       !this.db
         .prepare("PRAGMA table_info(operations)")
@@ -154,9 +157,13 @@ class BuildSigner {
   limit() {
     const rows = this.db
         .prepare(
-          "SELECT rc_limit FROM operations WHERE created_at>? UNION ALL SELECT json_extract(operation_json,'$.rc_limit') rc_limit FROM retired_deployments WHERE json_extract(operation_json,'$.created_at')>?",
+          "SELECT rc_limit FROM operations WHERE created_at>? UNION ALL SELECT json_extract(operation_json,'$.rc_limit') rc_limit FROM retired_deployments WHERE json_extract(operation_json,'$.created_at')>? UNION ALL SELECT json_extract(operation_json,'$.rc_limit') rc_limit FROM replaced_operations WHERE json_extract(operation_json,'$.created_at')>?",
         )
-        .all(Date.now() - 86400000, Date.now() - 86400000),
+        .all(
+          Date.now() - 86400000,
+          Date.now() - 86400000,
+          Date.now() - 86400000,
+        ),
       used = rows.reduce((sum, r) => sum + BigInt(r.rc_limit), 0n);
     if (used + BigInt(this.chain.config.rcLimit) > this.dailyMana)
       throw fail(
@@ -221,17 +228,18 @@ class BuildSigner {
       const upload = tx.operations?.find(
         (o) => o.upload_contract?.contract_id === row.address,
       )?.upload_contract;
+      const uploadHash = upload
+        ? "0x1220" +
+          crypto
+            .createHash("sha256")
+            .update(Buffer.from(upload.bytecode, "base64url"))
+            .digest("hex")
+        : null;
       if (
         kind === "release" &&
         this.chain.config.chainId ===
           "EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==" &&
-        upload &&
-        "0x1220" +
-          crypto
-            .createHash("sha256")
-            .update(Buffer.from(upload.bytecode, "base64url"))
-            .digest("hex") ===
-          legacyHash
+        uploadHash === legacyHash
       ) {
         await this.chain.confirmed(tx.id);
         const meta = await this.chain.provider.invokeGetContractMetadata(
@@ -263,6 +271,81 @@ class BuildSigner {
           "The earlier deployment's code changed. Automatic recovery has stopped.",
           409,
         );
+      }
+      // The next beta invoked main but fetched the entire deployment (including
+      // its WASM) into a 1 KB buffer. Recover only those exact testnet bytes.
+      if (
+        kind === "release" &&
+        this.chain.config.chainId ===
+          "EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==" &&
+        uploadHash ===
+          "0x12208e045819fcea8aa3ce7627b9f73fd29b160a48d47904faa6a7453e20dee1692a"
+      ) {
+        let reverted = false;
+        let confirmed = false;
+        try {
+          await this.chain.confirmed(tx.id);
+          confirmed = true;
+        } catch (e) {
+          if (e.status === 422) reverted = true;
+          else if (e.status !== 409 || e.confirmationPhase !== "not_seen")
+            throw e;
+        }
+        if (confirmed)
+          throw fail(
+            "The earlier app deployment already succeeded. Automatic replacement has stopped.",
+            409,
+          );
+        const meta = await this.chain.provider.invokeGetContractMetadata(
+          row.address,
+        );
+        if (meta?.value?.hash)
+          throw fail(
+            "The earlier app address already has contract code. Automatic replacement has stopped.",
+            409,
+          );
+        if (!reverted) {
+          // Absence from the transaction store is not evidence of rejection.
+          // Simulate the SAME signed transaction without broadcasting, and
+          // require the specific deterministic buffer failure before replacing.
+          let bufferFailure = false;
+          try {
+            const result = await this.chain.provider.sendTransaction(tx, false);
+            bufferFailure =
+              !!result.receipt?.reverted &&
+              /return buffer is not large enough for the return value/.test(
+                chainErrorDetail(null, result.receipt),
+              );
+          } catch (e) {
+            bufferFailure =
+              e.rpcError === true &&
+              /return buffer is not large enough for the return value/.test(
+                e.message,
+              );
+          }
+          if (!bufferFailure)
+            throw fail(
+              "The saved deployment could not be verified as rejected by the buffer error. Its transaction is preserved. Retry shortly. Transaction: " +
+                tx.id,
+              409,
+            );
+        }
+        this.db.exec("BEGIN IMMEDIATE");
+        try {
+          this.db
+            .prepare("INSERT INTO replaced_operations VALUES(?,?,?,?)")
+            .run(tx.id, p.operationId, JSON.stringify(previous), Date.now());
+          this.db
+            .prepare("DELETE FROM operations WHERE id=?")
+            .run(p.operationId);
+          this.db.exec("COMMIT");
+        } catch (e) {
+          this.db.exec("ROLLBACK");
+          throw e;
+        }
+        // Preserve the existing app address/key, project and saved version;
+        // prepare corrected app/guard uploads under the same publishing job.
+        return this.run(kind, p);
       }
     } else {
       const pending = this.db

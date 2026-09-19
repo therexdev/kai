@@ -4,6 +4,8 @@ import {
   StringBytes,
   authority,
   Crypto,
+  Protobuf,
+  value,
 } from "@koinos/sdk-as";
 import { app as A } from "./proto/app";
 import * as E from "./entries";
@@ -50,10 +52,28 @@ export class App {
     return c!;
   }
   bootstrap(): bool {
-    const tx = System.getTransaction();
-    if (tx.id === null) return false;
-    for (let i = 0; i < tx.signatures.length; i++) {
-      const pub = System.recoverPublicKey(tx.signatures[i], tx.id!);
+    // A deployment includes the WASM and ABI. Never read those large operation
+    // payloads into the syscall buffer just to verify its bootstrap signature.
+    const id = System.getTransactionField("id"),
+      field = System.getTransactionField("signatures");
+    if (
+      id === null ||
+      id!.bytes_value === null ||
+      field === null ||
+      field!.message_value === null ||
+      field!.message_value!.value === null
+    )
+      return false;
+    const signatures = Protobuf.decode<value.list_type>(
+      field!.message_value!.value!,
+      value.list_type.decode,
+    ).values;
+    for (let i = 0; i < signatures.length; i++) {
+      if (signatures[i].bytes_value === null) continue;
+      const pub = System.recoverPublicKey(
+        signatures[i].bytes_value!,
+        id!.bytes_value!,
+      );
       if (pub !== null && equal(Crypto.addressFromPublicKey(pub!), this.id))
         return true;
     }
