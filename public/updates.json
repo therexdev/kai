@@ -1,7 +1,46 @@
 {
   "_comment": "The source of truth for koinosai.com/updates and for the What's new link in the app's update popup. Newest first. Every kaiapp [release] MUST add an entry here in the same session it ships, or a tester gets a popup pointing at a version the page has never heard of. `kind` is one of: new, fix, change.",
-  "latest": "0.54.7",
+  "latest": "0.54.10",
   "releases": [
+    {
+      "version": "0.54.10",
+      "date": "2026-09-20",
+      "title": "App languages, KAI Eyes, smoother conversations and node privacy fixes",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "Choose English, Español, Português (Brasil), Français or Deutsch in the first-launch language dialog or Settings → Language. The dialog starts with a supported system language, previews your choice and remembers it after Continue. Existing users see it once after updating. Menus and controls change immediately, and the desktop companion and tray follow the same choice."
+        },
+        {
+          "kind": "change",
+          "text": "Interface translations are bundled and work offline, including Local-Only mode. Switching languages preserves unsent text and form values. User content, wallet addresses, selected models and voices stay unchanged. Some advanced help and service diagnostics still fall back to English; these initial translations are available for alpha feedback."
+        },
+        {
+          "kind": "new",
+          "text": "KAI Eyes lets you explicitly enable screen or camera context for a supported installed local vision model or your private desktop AI provider. A visible indicator shows capture, recent frames stay in memory rather than being saved to chat history, and capture stops on Off, hide, return to the app, quit or a brain change. Seeing the screen does not grant permission to click or type."
+        },
+        {
+          "kind": "change",
+          "text": "KAI listening now uses local Silero voice activity detection and Smart-Turn to better distinguish a pause from a finished thought. Tap-to-send, bounded silence fallback and the KAI interruption cue remain available. Microphone capture, model work and playback share cancellation so stopped turns cannot revive late audio or text."
+        },
+        {
+          "kind": "fix",
+          "text": "Pocket, Windows and natural voice replies use a shared playback clock to reduce artificial gaps between prepared sentences. Quick start still plays the first complete sentence, and Stop cancels queued audio. This changes playback timing, not the selected voice or English-only voice engine language support."
+        },
+        {
+          "kind": "fix",
+          "text": "Settings → Check for updates now contacts the installed app's actual update service and reports whether it is current, downloading, ready to install or unable to reach the service. Automatic checks continue unchanged."
+        },
+        {
+          "kind": "fix",
+          "text": "Koinos Node can open and run while AI Privacy remains Local-Only. Blockchain synchronization, production and explicit wallet actions use their existing controls, while AI web access, cloud connections and account access still follow the selected AI privacy mode."
+        },
+        {
+          "kind": "change",
+          "text": "This alpha release promotes the tested app updates together. Unsigned macOS builds continue to require a fresh manual download for each update; Windows and Linux keep their existing update flows."
+        }
+      ]
+    },
     {
       "version": "0.54.7",
       "date": "2026-09-13",
