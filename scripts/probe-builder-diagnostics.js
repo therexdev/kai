@@ -47,6 +47,8 @@ test("Kondor mana optimization changes the ID but preserves the reviewed action 
   chain.provider.sendTransaction = async () => { throw Error("invalid account nonce"); };
   chain.confirmed = async () => true;
   assert.equal(await chain.submitExact(expected, signed, address), signed.id);
+  chain.provider.sendTransaction = async () => ({ receipt: { reverted: true, logs: ["Poll is closed"] } });
+  await assert.rejects(() => chain.submitExact(expected, signed, address), /Poll is closed/);
 });
 
 function bridgeHarness({ sign, submit }) {
