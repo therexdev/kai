@@ -25,7 +25,7 @@
     clearTimeout(p.timer);
     pending.delete(event.data.id);
     event.data.error
-      ? p.reject(Error(event.data.error))
+      ? p.reject(Object.assign(Error(event.data.error), event.data.failure || {}))
       : p.resolve(event.data.result);
   });
   Object.defineProperty(window, "kai", {
