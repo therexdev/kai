@@ -1,0 +1,44 @@
+--- a/src/ts/storage.ts
++++ b/src/ts/storage.ts
+@@ -22,7 +22,7 @@
+   });
+ }
+ 
+-export const DEFAULT_CURRENT_NETWORK = "mainnet";
++export const DEFAULT_CURRENT_NETWORK = "foundation";
+ export const CHAINGE_USDT_ADDRESS = "14MjxccMUZrtBPXnNkuAC5MLtPev2Zsk3N";
+ export const TOKEN_LIST_URL =
+   "https://raw.githubusercontent.com/koindx/token-list/refs/heads/main/src/tokens/mainnet.json";
+@@ -57,7 +57,7 @@
+   manaMeter?: string;
+ }
+ 
+-export const DEFAULT_NETWORKS: Network[] = [
++export const DEFAULT_NETWORKS: Network[] = ([
+   {
+     name: "Koinos Mainnet",
+     tag: "mainnet",
+@@ -103,7 +103,7 @@
+     rpcNodes: ["https://testnet.koinosfoundation.org/jsonrpc"],
+     // This chain has no nickname, mana-meter or free-mana contracts.
+   },
+-];
++] as Network[]).filter((network) => network.tag === "foundation");
+ 
+ export async function setNetworks(networks: Network[]): Promise<void> {
+   // take default values except the RPC nodes
+--- a/manifest.js
++++ b/manifest.js
+@@ -13,9 +13,9 @@
+ };
+ 
+ const manifest = {
+-  name: "Kondor",
+-  description: "Koinos Wallet in your browser",
+-  version: testMode ? "0.91.5" : packageJson.version,
++  name: "Kondor Foundation Preview (Unofficial)",
++  description: "Unofficial Foundation testnet preview. Use a separate browser profile and testnet-only accounts.",
++  version: "1.3.0.1",
+   manifest_version: 3,
+   permissions: ["storage", "windows"],
+   background: {
