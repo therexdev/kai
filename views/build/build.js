@@ -140,18 +140,20 @@
       div.append(node("span", m.role === "user" ? "You" : "KAI", "role"), body);
       area.append(div);
     }
-    const failed = state.detail.jobs.find((j) => j.status === "failed");
-    if (failed && ["publish", "propose"].includes(failed.kind)) {
+    const latestEdit = state.detail.jobs.find((j) => j.kind === "edit");
+    const failed = state.detail.jobs.find((j) => j.status === "failed" &&
+      (j.kind !== "edit" || (j === latestEdit && j.revision === state.detail.project.revision)));
+    if (failed && ["edit", "publish", "propose"].includes(failed.kind)) {
       area.append(
         node(
           "p",
-          failed.error || "Publishing needs attention. Your project is saved.",
+          failed.error || "This request needs attention. Your project is saved.",
           "publish-error",
         ),
       );
       const retry = node(
         "button",
-        "Retry saved publishing request",
+        failed.kind === "edit" ? "Retry saved edit" : "Retry saved publishing request",
         "retry-job",
       );
       retry.onclick = () =>
@@ -160,6 +162,14 @@
           await refresh();
         });
       area.append(retry);
+      if (failed.error_detail) {
+        const copy = node("button", "Copy error details", "retry-job");
+        copy.onclick = () => action(async () => {
+          await navigator.clipboard.writeText(failed.error_detail);
+          copy.textContent = "Copied";
+        });
+        area.append(copy);
+      }
     }
     if (nearBottom || !area.scrollTop) area.scrollTop = area.scrollHeight;
   }
