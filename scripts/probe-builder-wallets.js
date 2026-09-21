@@ -190,6 +190,7 @@ test("Kondor connection and signing never touch injected EVM providers", async (
   });
   b.window.kondor = {
     getAccounts: async () => [{ address: account }],
+    getProvider: () => ({ getChainId: async () => MAINNET }),
     getSigner: (address) => ({
       signTransaction: async (tx) => {
         assert.equal(address, account);
@@ -200,7 +201,7 @@ test("Kondor connection and signing never touch injected EVM providers", async (
   assert.equal((await b.wallet.connect({}, "kondor")).address, account);
   const signed = await b.wallet.sign({
     signerAddress: account,
-    transaction: { id: "tx" },
+    transaction: { id: "tx", header: { payer: account, chain_id: MAINNET } },
     contractId: "app",
     abi: {},
   });
@@ -209,6 +210,47 @@ test("Kondor connection and signing never touch injected EVM providers", async (
     () => b.wallet.connect({}, "metamask"),
     /Kondor or KOIN Vault/,
   );
+  b.wallet.destroy();
+});
+
+test("Kondor checks its configured chains before opening a signing window", async () => {
+  const foundation = "EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==";
+  const harbinger = "EiBncD4pKRIQWco_WRqo5Q-xnXR7JuO3PtZv983mKdKHSQ==";
+  const b = browser(() => { throw Error("no RPC expected"); });
+  let foundationSupported = false, signatures = 0;
+  b.window.kondor = {
+    getAccounts: async () => [{ address: account }],
+    getProvider: tag => ({ getChainId: async () => {
+      if (!tag || tag === "harbinger") return harbinger;
+      if (tag === "mainnet") return MAINNET;
+      if (tag === "foundation" && foundationSupported) return foundation;
+      throw Error("network " + tag + " not found");
+    } }),
+    getSigner: () => ({ signTransaction: async tx => { signatures++; return { ...tx, signatures: ["signed"] }; } }),
+  };
+  const draft = { signerAddress: account, contractId: "app", abi: {}, transaction: { header: { payer: account, chain_id: foundation } } };
+  await b.wallet.connect({}, "kondor");
+  await assert.rejects(() => b.wallet.sign(draft), e => e.code === "WALLET_NETWORK_UNSUPPORTED" && /Foundation testnet/.test(e.message));
+  assert.equal(signatures, 0);
+  // Mainnet must work even if the wallet currently has Harbinger selected.
+  assert.ok((await b.wallet.sign({ ...draft, transaction: { header: { payer: account, chain_id: MAINNET } } })).signatures);
+  foundationSupported = true;
+  assert.ok((await b.wallet.sign(draft)).signatures);
+  assert.equal(signatures, 2);
+  await assert.rejects(() => b.wallet.sign({ ...draft, transaction: { header: { chain_id: foundation } } }), e => e.code === "WALLET_DRAFT_INVALID");
+  assert.equal(signatures, 2);
+  b.wallet.destroy();
+});
+
+test("an unavailable Kondor network check is not misreported as unsupported", async () => {
+  const b = browser(() => {});
+  b.window.kondor = {
+    getAccounts: async () => [{ address: account }],
+    getProvider: () => ({ getChainId: async () => { throw Error("Connection lost"); } }),
+    getSigner: () => { throw Error("must not open signing"); },
+  };
+  await b.wallet.connect({}, "kondor");
+  await assert.rejects(() => b.wallet.sign({ signerAddress: account, transaction: { header: { payer: account, chain_id: MAINNET } } }), e => e.code === "WALLET_NETWORK_CHECK_FAILED");
   b.wallet.destroy();
 });
 

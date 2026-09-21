@@ -70,7 +70,7 @@
   }
   const base = () => "/build/api/projects/" + state.detail.project.id;
   const active = () =>
-    state.detail?.jobs.find((j) => ["running", "queued"].includes(j.status));
+    state.detail?.jobs.find((j) => ["running", "queued", "confirming"].includes(j.status));
   function node(tag, text, cls) {
     const n = document.createElement(tag);
     if (text != null) n.textContent = text;
@@ -118,8 +118,13 @@
   function renderMessages() {
     const area = $("messages"),
       nearBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 100;
+    const trackedTransactions = [...state.detail.releases.map(r => r.tx_id), active()?.txId].filter(Boolean);
     area.replaceChildren();
     for (const m of state.detail.messages) {
+      // Older workers wrote normal finality waits into chat as errors. The
+      // current status below now replaces those obsolete retry instructions.
+      if (m.role === "assistant" && trackedTransactions.some(id => m.content.includes(id)) &&
+          /^(The transaction is included in a block but has not reached finality\.|The node has not returned the transaction receipt\.)/.test(m.content)) continue;
       const div = node("div", null, "message " + m.role),
         body = node("div", null, "message-body");
       if (m.role === "assistant") {
@@ -141,7 +146,9 @@
       area.append(div);
     }
     const latestEdit = state.detail.jobs.find((j) => j.kind === "edit");
-    const failed = state.detail.jobs.find((j) => j.status === "failed" &&
+    const failed = !active() && state.detail.jobs.find((j) => j.status === "failed" &&
+      j === state.detail.jobs.find((other) => other.kind === j.kind) &&
+      (j.kind !== "publish" || j.revision > state.detail.project.live_revision) &&
       (j.kind !== "edit" || (j === latestEdit && j.revision === state.detail.project.revision)));
     if (failed && ["edit", "publish", "propose"].includes(failed.kind)) {
       area.append(
