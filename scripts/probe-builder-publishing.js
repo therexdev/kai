@@ -343,11 +343,6 @@ function frontendJob(t) {
   const job = builder.store.enqueue(p.accountId, project.id, "publish", {
     revision: version.revision,
   });
-  // Exercise the normal 40-poll loop without waiting two wall-clock minutes.
-  const timeout = global.setTimeout;
-  t.mock.method(global, "setTimeout", (fn, ms, ...args) =>
-    timeout(fn, ms === 3000 ? 0 : ms, ...args),
-  );
   return {
     ...f,
     get b() {
@@ -357,6 +352,10 @@ function frontendJob(t) {
     app,
     calls,
     submissions,
+    async checkAgain() {
+      builder.store.db.prepare("UPDATE jobs SET next_check_at=0 WHERE id=?").run(job.id);
+      await builder.tick();
+    },
     restart() {
       builder.close();
       builder = makeBuilder();
@@ -377,6 +376,7 @@ test("a nonce conflict polls the same frontend transaction through index lag and
     return true;
   };
   await f.b.tick();
+  for (let i = 0; i < 4; i++) await f.checkAgain();
   assert.equal(f.submissions.length, 1);
   assert.equal(f.calls.length, 2);
   assert.deepEqual(f.calls[0], f.calls[1]);
@@ -401,9 +401,10 @@ test("a nonce conflict polls the same frontend transaction through index lag and
 test("an unresolved nonce conflict stays bounded and resumes read-only confirmation after restart", async (t) => {
   const f = frontendJob(t);
   await f.b.tick();
-  const failed = f.b.store.detail(f.p.accountId, f.p.projectId).jobs[0];
-  assert.equal(failed.status, "failed");
-  assert.match(failed.error, /nonce conflict.*No replacement transaction/);
+  const pending = f.b.store.detail(f.p.accountId, f.p.projectId).jobs[0];
+  assert.equal(pending.status, "confirming");
+  assert.equal(pending.error, null);
+  assert.match(pending.stage, /Checking automatically/);
   assert.equal(f.calls.length, 1);
   assert.equal(f.submissions.length, 1);
   assert.equal(f.b.store.owned(f.p.accountId, f.p.projectId).live_revision, 1);
@@ -417,14 +418,80 @@ test("an unresolved nonce conflict stays bounded and resumes read-only confirmat
     assert.equal(id, saved.confirmationTxId);
     return true;
   };
-  f.b.retry(f.p.accountId, f.p.projectId, f.job.id);
-  await f.b.tick();
+  await f.checkAgain();
   assert.equal(f.submissions.length, 1);
   assert.deepEqual(f.calls[0], f.calls[1]);
   assert.equal(
     f.b.store.detail(f.p.accountId, f.p.projectId).jobs[0].status,
     "completed",
   );
+});
+
+test("normal finality remains pending beyond two minutes, survives restart and publishes automatically", async (t) => {
+  const f = frontendJob(t);
+  let clock = Date.now(), final = false, checks = 0;
+  t.mock.method(Date, "now", () => clock);
+  f.c.provider.sendTransaction = async tx => { f.submissions.push(structuredClone(tx)); return {}; };
+  f.c.confirmed = async () => {
+    checks++;
+    if (!final) throw Object.assign(Error("included"), { status: 409, confirmationPhase: "finality" });
+    return true;
+  };
+  await f.b.tick();
+  const firstChecks = checks;
+  await f.b.tick();
+  assert.equal(checks, firstChecks, "respects the next-check time");
+  assert.throws(() => f.b.store.enqueue(f.p.accountId, f.p.projectId, "publish", { revision: 2 }), /already.*running/);
+  const beforeMessages = f.b.store.detail(f.p.accountId, f.p.projectId).messages.length;
+  for (let i = 0; i < 25; i++) {
+    clock += 10000;
+    if (i === 10) f.restart();
+    await f.b.tick();
+    const job = f.b.store.detail(f.p.accountId, f.p.projectId).jobs[0];
+    assert.equal(job.status, "confirming");
+    assert.equal(job.error, null);
+    assert.match(job.stage, /waiting for finality.*automatically/);
+    assert.equal(job.txId, f.submissions[0].id);
+  }
+  assert.equal(f.b.store.detail(f.p.accountId, f.p.projectId).messages.length, beforeMessages);
+  assert.equal(f.submissions.length, 1);
+  assert.equal(f.calls.length, 1);
+  assert.equal(f.b.store.owned(f.p.accountId, f.p.projectId).live_revision, 1);
+  // A waiting publication does not monopolize the worker for other accounts.
+  const other = f.b.store.create("other", "Other app", "board", starter("board", "Other app"));
+  f.b.agent = { run: async ({ files }) => ({ files, changed: false, summary: "Checked." }) };
+  f.b.store.enqueue("other", other.id, "edit", { revision: 1, prompt: "Check this" });
+  await f.b.tick();
+  assert.equal(f.b.store.detail("other", other.id).jobs[0].status, "completed");
+  final = true; clock += 10000;
+  await f.b.tick();
+  assert.equal(f.b.store.detail(f.p.accountId, f.p.projectId).jobs[0].status, "completed");
+  assert.equal(f.b.store.owned(f.p.accountId, f.p.projectId).live_revision, 2);
+  assert.equal(f.submissions.length, 1);
+  assert.equal(f.b.store.detail(f.p.accountId, f.p.projectId).messages.filter(m => /Version 2 is published/.test(m.content)).length, 1);
+});
+
+test("old finality failures resume on startup but rejected or superseded requests do not", async (t) => {
+  const { BuildStore } = require("../lib/builder/store");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kai-finality-migration-"));
+  let store = new BuildStore(dir);
+  t.after(() => { store.close(); fs.rmSync(dir, { recursive: true, force: true }); });
+  const txId = "0x1220" + "a".repeat(64), cases = {};
+  for (const kind of ["waiting", "rejected", "superseded"]) {
+    const p = store.create("owner", kind, "board", starter("board", kind));
+    const job = store.enqueue("owner", p.id, "publish", { revision: 1 });
+    store.finish({ ...job, project_id: p.id }, kind === "rejected"
+      ? "The node refused the latest publishing submission. Transaction: " + txId
+      : "The transaction is included in a block but has not reached finality. Use Retry saved publishing request to check the same transaction. Transaction: " + txId);
+    if (kind === "superseded") store.enqueue("owner", p.id, "publish", { revision: 1 });
+    cases[kind] = { p, job };
+  }
+  store.close(); store = new BuildStore(dir);
+  for (const [kind, { job }] of Object.entries(cases)) {
+    const row = store.db.prepare("SELECT * FROM jobs WHERE id=?").get(job.id);
+    assert.equal(row.status, kind === "waiting" ? "confirming" : "failed");
+    if (kind === "waiting") assert.equal(JSON.parse(row.payload).confirmationTxId, txId);
+  }
 });
 
 test("nonce recovery never publishes a reverted transaction or skips the signer's release check", async (t) => {
@@ -453,16 +520,13 @@ test("nonce recovery never publishes a reverted transaction or skips the signer'
           },
         });
       await f.b.tick();
+      await f.checkAgain();
       const job = f.b.store.detail(f.p.accountId, f.p.projectId).jobs[0];
-      assert.equal(job.status, "failed");
-      assert.match(
-        job.error,
-        outcome === "reverted"
-          ? /reverted/
-          : outcome === "unavailable"
-            ? /could not be checked/
-            : /does not match this build/,
-      );
+      assert.equal(job.status, outcome === "unavailable" ? "confirming" : "failed");
+      if (outcome === "unavailable") {
+        assert.equal(job.error, null);
+        assert.match(job.stage, /unavailable.*automatically/);
+      } else assert.match(job.error, outcome === "reverted" ? /reverted/ : /does not match this build/);
       assert.equal(f.submissions.length, 1);
       assert.equal(
         f.b.store.owned(f.p.accountId, f.p.projectId).live_revision,

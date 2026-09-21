@@ -9,7 +9,7 @@
     return n;
   };
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  async function bounded(promise) {
+  async function bounded(promise, timeoutMs = 120000, timeoutMessage = "Kondor did not respond. Open Kondor, check its network, and try again.") {
     let timer;
     try {
       return await Promise.race([
@@ -19,10 +19,10 @@
             () =>
               reject(
                 Error(
-                  "Kondor did not respond. Open Kondor, check its network, and try again.",
+                  timeoutMessage,
                 ),
               ),
-            120000,
+            timeoutMs,
           );
         }),
       ]);
@@ -198,6 +198,26 @@
         throw Error("Choose an account in Kondor.");
       return accounts;
     }
+    async function checkKondorNetwork(draft) {
+      const expected = draft.transaction?.header?.chain_id;
+      if (!expected || draft.transaction?.header?.payer !== draft.signerAddress ||
+          (draft.chainId && draft.chainId !== expected))
+        throw Object.assign(Error("The app prepared an invalid wallet transaction. Its payer or network does not match the reviewed request."), { code: "WALLET_DRAFT_INVALID" });
+      if (typeof window.kondor.getProvider !== "function")
+        throw Object.assign(Error("The Kondor integration could not check network support."), { code: "WALLET_NETWORK_CHECK_FAILED" });
+      // getChainId reads Kondor's own network configuration, not our RPC.
+      // Checking it before signTransaction avoids the empty approval window
+      // (and subsequent 'payer is undefined') on an unrecognized chain.
+      const reports = await Promise.allSettled([undefined, "mainnet", "harbinger", "foundation", "testnet"].map(async tag =>
+        bounded(window.kondor.getProvider(tag).getChainId(), 10000, "Kondor's network check timed out.")));
+      const chains = reports.filter(r => r.status === "fulfilled").map(r => r.value);
+      if (chains.includes(expected)) return;
+      const uncertain = reports.some(r => r.status === "rejected" && !/network .+ not found/i.test(r.reason?.message || ""));
+      if (!chains.length || uncertain)
+        throw Object.assign(Error("Kondor's network support could not be checked. The signing request has not been opened."), { code: "WALLET_NETWORK_CHECK_FAILED" });
+      const label = expected === "EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==" ? "Koinos Foundation testnet" : "this app's network";
+      throw Object.assign(Error("Kondor does not recognize " + label + " (" + expected + "). Its signing window cannot initialize on this chain. A Kondor release with support for this network is required; editing or republishing the app cannot add wallet network support."), { code: "WALLET_NETWORK_UNSUPPORTED" });
+    }
     function checkNetwork(project) {
       const chainId =
         project.chainId ||
@@ -289,6 +309,7 @@
             ".",
         );
       if (selected === "kondor") {
+        await checkKondorNetwork(draft);
         const list = await kondorAccounts();
         if (!list.some((a) => a.address === address))
           throw Error(
