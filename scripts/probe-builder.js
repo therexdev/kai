@@ -427,6 +427,36 @@ test("HTTP routes share real session auth and refuse cross-account / opaque-orig
       builder.store.db.prepare("SELECT count(*) n FROM wallet_drafts").get().n,
       0,
     );
+    const diagnosticsPath = "/build/public/" + p.slug + "/diagnostics";
+    const diagnosticBody = { revision: 2, errors: [{ kind: "bridge", phase: "prepare", message: "Server guard failed" }] };
+    assert.equal((await request(diagnosticsPath, { method: "POST", body: diagnosticBody, originHeader: "null" })).status, 403);
+    assert.equal((await request(diagnosticsPath, { method: "POST", body: diagnosticBody, session: other, originHeader: "https://koinosai.com" })).status, 404);
+    assert.equal((await request(diagnosticsPath, { method: "POST", body: diagnosticBody, session: null, originHeader: "https://koinosai.com" })).data.recorded, false);
+    assert.equal((await request(diagnosticsPath, { method: "POST", body: diagnosticBody, originHeader: "https://koinosai.com" })).data.recorded, true);
+    assert.equal(builder.store.liveDiagnostics(a.id, p.id)[0].phase, "prepare");
+
+    // Once a wallet-adjusted ID is sent, retries must preserve that ID.
+    builder.chain.preparePublic = async () => ({ id: "unsigned-id" });
+    let sends = 0;
+    builder.chain.submitExact = async (_expected, tx, _address, verified) => {
+      verified(tx.id);
+      if (++sends === 1) throw Object.assign(Error("Response lost"), { status: 502 });
+      return tx.id;
+    };
+    const prepared = await request("/build/public/" + p.slug + "/prepare", {
+      method: "POST", originHeader: "https://koinosai.com",
+      body: { address: Signer.fromSeed("draft fixture").getAddress(), method: "create_record", args: { title: "Feature", body: "Description", options: [] } },
+    });
+    assert.equal(prepared.status, 200);
+    const submitPath = "/build/public/" + p.slug + "/submit/" + prepared.data.draft.id;
+    const submit = (id) => request(submitPath, { method: "POST", originHeader: "https://koinosai.com", body: { transaction: { id } } });
+    assert.equal((await submit("wallet-adjusted-id")).status, 502);
+    const replacement = await submit("replacement-id");
+    assert.equal(replacement.status, 409);
+    assert.equal(replacement.data.retryable, undefined);
+    assert.equal((await submit("wallet-adjusted-id")).data.txId, "wallet-adjusted-id");
+    assert.equal((await submit("wallet-adjusted-id")).data.txId, "wallet-adjusted-id");
+    assert.equal(sends, 2);
   } finally {
     await new Promise((r) => server.close(r));
     builder.close();

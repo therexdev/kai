@@ -33,6 +33,9 @@
         kind: d.kind,
         message: String(d.message || "").slice(0, 500),
         action: String(d.action || "").slice(0, 80),
+        phase: d.phase,
+        wallet: d.wallet,
+        code: d.code,
         line: d.line,
         column: d.column,
       };

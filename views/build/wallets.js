@@ -212,7 +212,8 @@
     async function connect(project = {}, wallet) {
       if (wallet && !["kondor", "koinvault"].includes(wallet))
         throw Error("Choose Kondor or KOIN Vault.");
-      if (address && (!wallet || wallet === selected)) {
+      // An explicit wallet button is also the account-switch/reconnect action.
+      if (address && !wallet) {
         if (selected === "koinvault") await status();
         return { address, wallet: selected };
       }

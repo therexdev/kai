@@ -188,15 +188,14 @@
           "KOIN Vault's transaction is awaiting confirmation. Check the wallet before retrying.",
         );
       }
-      if (
-        JSON.stringify(tx.header) !== JSON.stringify(d.transaction.header) ||
-        JSON.stringify(tx.operations) !==
-          JSON.stringify(d.transaction.operations) ||
-        tx.id !== d.transaction.id
-      )
-        throw Error(
-          "The wallet changed this request. Turn off Use free mana and retry.",
-        );
+      try {
+        KaiWalletProof.verify(d.transaction, tx, tx.id, { Transaction, utils }, "Kondor");
+        if (!(await window.Signer.recoverAddresses(tx)).includes(d.signerAddress))
+          throw Error("Sign with the reviewed account.");
+      } catch (e) { e.retryable = !d.signedTxId; throw e; }
+      if (d.signedTxId && d.signedTxId !== tx.id)
+        throw Error("Retry the saved transaction before starting another action.");
+      d.signedTxId = tx.id;
       await provider.sendTransaction(tx);
       drafts.delete(args.draftId);
       return { txId: tx.id };

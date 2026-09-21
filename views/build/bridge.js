@@ -49,6 +49,7 @@
   ) {
     const wallet = KaiBuildWallets.create();
     let connected = null,
+      connectedWallet = null,
       previewWallet = null,
       pendingSubmission = null,
       working = false,
@@ -60,6 +61,7 @@
       votes = new Set();
     function reset() {
       connected = null;
+      connectedWallet = null;
       previewWallet = null;
       working = false;
       version = null;
@@ -175,7 +177,8 @@
         d.id.length > 30
       )
         return;
-      let result, error;
+      let result, error, failure;
+      let phase = "request";
       try {
         if (JSON.stringify(d).length > 12000)
           throw Error("App request is too large.");
@@ -186,6 +189,7 @@
         if (++reads > 80)
           throw Error("This app is sending too many requests. Wait a moment.");
         if (d.method === "connect") {
+          phase = "connect";
           if (mode === "preview") {
             const choice =
               d.args?.wallet ||
@@ -206,6 +210,7 @@
             try {
               result = await wallet.connect(getProject() || {}, d.args?.wallet);
               connected = result.address;
+              connectedWallet = result.wallet;
             } finally {
               working = false;
             }
@@ -214,9 +219,11 @@
           if (working) throw Error("Finish the current wallet request first.");
           if (mode !== "preview") await wallet.disconnect();
           connected = null;
+          connectedWallet = null;
           previewWallet = null;
           result = { disconnected: true };
         } else if (d.method === "read" && READ.has(d.args?.method)) {
+          phase = "read";
           result =
             mode === "preview"
               ? await demo(d.args.method, d.args.args || {})
@@ -238,14 +245,16 @@
                     "The previous wallet request is unresolved. Retry that action to check its status before starting another.",
                   );
               } else {
+                phase = "prepare";
                 const { draft } = await api("prepare", {
                   ...d.args,
                   address: connected,
                 });
+                phase = "review";
                 if (
                   !(await review(
                     "Review app transaction",
-                    "This action uses your wallet's mana. Nothing is signed until you approve it in your wallet.",
+                    "Review this app action, then approve it in your wallet. Your wallet may adjust the mana limit; the app action and account stay the same.",
                     {
                       app: getProject()?.title,
                       network: draft.network,
@@ -264,13 +273,27 @@
                 };
               }
               if (!pendingSubmission.request) {
-                const transaction = await wallet.sign(pendingSubmission.draft);
+                phase = "sign";
+                let transaction;
+                try { transaction = await wallet.sign(pendingSubmission.draft); }
+                catch (e) {
+                  // Kondor signs only; no submission has happened. A fresh
+                  // attempt may prepare a current nonce after cancellation.
+                  // Vault broadcasts inside its wallet; preserve its request.
+                  if (connectedWallet === "kondor") pendingSubmission = null;
+                  throw e;
+                }
                 pendingSubmission.request = {
                   draftId: pendingSubmission.draft.id,
                   transaction,
                 };
               }
-              result = await api("submit", pendingSubmission.request);
+              phase = "submit";
+              try { result = await api("submit", pendingSubmission.request); }
+              catch (e) {
+                if (e.retryable === true) pendingSubmission = null;
+                throw e;
+              }
               pendingSubmission = null;
             } finally {
               working = false;
@@ -279,17 +302,21 @@
         } else throw Error("This app requested an unsupported action.");
       } catch (e) {
         error = e.message;
+        failure = { phase, code: e.code || "", retryable: e.retryable === true };
         onDiagnostic({
           kind: "bridge",
           message: String(error).slice(0, 500),
           action:
             String(d.method || "") +
             (typeof d.args?.method === "string" ? ":" + d.args.method : ""),
+          phase,
+          wallet: connectedWallet,
+          code: e.code,
         });
       }
       if (event.source === frame.contentWindow)
         frame.contentWindow.postMessage(
-          { type: "kai-app-response", id: d.id, result, error },
+          { type: "kai-app-response", id: d.id, result, error, failure },
           "*",
         );
     };

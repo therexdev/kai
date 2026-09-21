@@ -275,3 +275,28 @@ Generated sources may use only `kai.connect()`, `kai.disconnect()`, `kai.read()`
 and `kai.call()`. The trusted wallet chooser offers Kondor and KOIN Vault.
 Validation rejects MetaMask/EVM provider code. Extension-origin startup errors
 are excluded from preview diagnostics; ordinary app errors remain visible.
+# Live app troubleshooting and wallet recovery
+
+The editor can use `inspect_app`, `read_live_source`, and `read_app_contract`
+to compare draft and published source, inspect the configured chain and guard,
+read real contract state, and review failures from the published app. These tools
+are read-only. They do not run a browser or prove that a wallet signature works.
+The edit loop allows up to 16 rounds within the existing context budget.
+
+When the project owner is signed in on the live site, the trusted host records
+bounded original errors with their revision and phase (connect, prepare, sign,
+submit, or read). Reports are restricted to that owner's project, retained for
+24 hours, capped at 24 per project, and stripped of arbitrary payload fields.
+Preview errors and published-app errors are separately identified to the model.
+The host shows the original error before generated app code can rewrite it.
+
+Kondor's mana optimization can change `rc_limit` and the signed transaction ID.
+The server accepts that approved change while pinning the payer, chain, nonce,
+operations and recovered signing account. The first verified signed ID is saved
+before submission, used for confirmation, and cannot be replaced on retry.
+Cancelled/failed Kondor signing releases its unsigned draft. Uncertain submitted
+transactions and unresolved KOIN Vault requests are retained.
+
+This update changes the website and exported runtime only. Existing hosted apps
+receive the bridge changes after refresh; no contract upload or signer reinstall
+is required. The current contract template still limits available chain actions.
