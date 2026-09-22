@@ -92,7 +92,10 @@
           apply(node, attr, item);
         }
       }
-      for (const select of root.document.querySelectorAll('[data-language-select]')) select.value = preference || 'auto';
+      for (const select of root.document.querySelectorAll('[data-language-select]')) {
+        select.value = next;
+        select.title = languages.find(language => language.code === next).name;
+      }
       root.document.dispatchEvent(new root.CustomEvent('kai:language-changed', { detail: { language: next } }));
     }
     return next;
@@ -174,7 +177,11 @@
   }
   function addSelector() {
     const doc = root.document;
-    const host = doc.querySelector('[data-language-host],.nav-cta,.kai-header-inner,.workspace-bar,.topbar .topbar-actions,.topbar,header,.wrap');
+    // Resolve hosts in priority order: a comma-separated query would pick an
+    // outer header before its menu, leaving the control on a separate row.
+    const host = ['[data-language-host]', '.site-nav .nav-links', '.kai-site-links',
+      '.nav-cta', '.kai-header-inner', '.workspace-bar', '.topbar .topbar-actions',
+      '.topbar', '.wrap .nav', 'header', '.wrap'].map(selector => doc.querySelector(selector)).find(Boolean);
     if (!host) return;
     const label = doc.createElement('label');
     label.className = 'kai-language-control';
@@ -183,19 +190,35 @@
     const select = doc.createElement('select');
     select.setAttribute('data-language-select', '');
     select.setAttribute('aria-label', 'Language');
-    const automatic = doc.createElement('option');
-    automatic.value = 'auto'; automatic.textContent = 'Browser language';
-    select.append(automatic);
-    remember(automatic, 'Browser language');
     remember(select, 'Language', 'aria-label');
     for (const language of languages) {
       const option = doc.createElement('option');
-      option.value = language.code; option.textContent = language.name; option.lang = language.code;
+      option.value = language.code;
+      option.textContent = language.code.slice(0, 2).toUpperCase();
+      option.lang = language.code;
+      option.setAttribute('aria-label', language.name);
       select.append(option);
     }
-    select.value = preference || 'auto';
+    select.value = locale;
+    select.title = languages.find(language => language.code === locale).name;
     select.addEventListener('change', () => setLanguage(select.value, { persist: true }));
     label.append(caption, select); host.append(label);
+    const mobileHost = host.matches('.site-nav .nav-links') ? doc.querySelector('.site-nav .mobile-nav')
+      : host.matches('.kai-site-links') ? doc.querySelector('.kai-site-menu nav') : null;
+    if (mobileHost && root.matchMedia) {
+      const mobile = root.matchMedia(host.matches('.site-nav .nav-links') ? '(max-width: 850px)' : '(max-width: 720px)');
+      const placeSelector = () => {
+        (mobile.matches ? mobileHost : host).append(label);
+        if (!mobile.matches) {
+          if (mobileHost.matches('.mobile-nav')) {
+            mobileHost.hidden = true;
+            doc.querySelector('.menu-toggle')?.setAttribute('aria-expanded', 'false');
+          } else mobileHost.closest('details').open = false;
+        }
+      };
+      placeSelector();
+      mobile.addEventListener('change', placeSelector);
+    }
   }
   function start() {
     addSelector();

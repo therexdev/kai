@@ -35,6 +35,12 @@ function make(html, preferences = ['es-MX'], saved = null, blocked = false) {
       const dom = make(source, [language]); const w = dom.window;
       assert.equal(w.document.documentElement.lang, language, page);
       assert.equal(w.document.querySelectorAll('[data-language-select]').length, 1, page);
+      const select = w.document.querySelector('[data-language-select]');
+      assert.equal(select.value, language, page);
+      assert.deepEqual([...select.options].map(option => option.textContent), ['EN', 'ES', 'PT', 'FR', 'DE']);
+      assert.equal(select.querySelector('[value="auto"]'), null);
+      const menu = w.document.querySelector('.site-nav .nav-links,.kai-site-links,.wrap .nav');
+      if (menu) assert.ok(menu.contains(select), page + ': selector belongs to the menu');
       assert.equal(w.KaiI18n.preference, null);
       const links = [...w.document.querySelectorAll('a')].map(a => a.getAttribute('href'));
       w.KaiI18n.setLanguage('de'); w.KaiI18n.setLanguage('en');
@@ -82,7 +88,9 @@ function make(html, preferences = ['es-MX'], saved = null, blocked = false) {
     [['zh-CN'], null, false, 'en'], [['es-MX'], 'de', false, 'de'],
     [['fr-CA'], 'invalid', false, 'fr'], [['de-DE'], null, true, 'de'],
   ]) {
-    const d = make(base, prefs, saved, blocked); assert.equal(d.window.KaiI18n.language, expected); d.window.close();
+    const d = make(base, prefs, saved, blocked); assert.equal(d.window.KaiI18n.language, expected);
+    assert.equal(d.window.document.querySelector('[data-language-select]').value, expected);
+    d.window.close();
   }
   console.log('PASS: 10 pages × 5 languages; regional detection, preference persistence, blocked storage, form/event preservation, safe dynamic translations, user-content isolation and English restoration.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
