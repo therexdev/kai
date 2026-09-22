@@ -22,6 +22,7 @@
 
 </style>
 <link rel="icon" href="/redesign/brand-mark.svg" type="image/svg+xml"><meta name="theme-color" content="#f5f8ff">
+<link rel="stylesheet" href="/i18n/language.css">
 </head>
 <body><header class="kai-site-header"><div class="kai-header-inner"><a class="kai-brand" href="/"><img src="/redesign/brand-mark.svg" alt=""><span>Koinos<em>AI</em></span></a><nav class="kai-site-links" aria-label="Main"><a href="/">Home</a><a href="/network">Network</a><a href="/testers">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account" aria-current="page">Account</a></nav><a class="btn btn-signal" href="/app#chat">Open KAI ↗</a><details class="kai-site-menu"><summary>Menu</summary><nav aria-label="Mobile"><a href="/">Home</a><a href="/network">Network</a><a href="/testers">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account" aria-current="page">Account</a><a href="/app#chat">Open KAI</a></nav></details></div></header>
 <main class="kai-account-layout"><aside class="kai-account-intro"><div><p class="eyebrow">Your KAI account</p><h2>KAI, wherever you are.</h2><p>Manage your devices, wallets, and access from one familiar place.</p></div><img src="/redesign/kai-companion.svg" alt="KAI, your AI companion"></aside><div class="kai-account-main">
@@ -123,6 +124,8 @@
   <p class="muted" style="margin-top:26px"><a href="/">← koinosai.com</a></p>
 </div></main><footer class="kai-site-footer"><div class="kai-footer-inner"><p class="kai-copyright">© 2026 Koinos AI · Think. Build. Grow.</p><nav aria-label="Footer"><a href="/docs/">Docs</a><a href="/updates">Updates</a><a href="/privacy">Privacy</a><a href="https://github.com/therexdev/kaiapp">GitHub</a><a href="mailto:contact@koinosai.com">Contact</a></nav></div></footer>
 
+<script src="/i18n/catalogs.js"></script>
+<script src="/i18n/i18n.js"></script>
 <script>
 "use strict";
 /* Self-contained page logic, no build step (repo posture). Talks to the
@@ -145,7 +148,7 @@ const bufToB64u = (b) => btoa(String.fromCharCode(...new Uint8Array(b))).replace
  * addresses and model classes the scheduler already filters, but "happens to
  * be safe" is not a policy — escape at the boundary. */
 const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-const say = (id, text, ok) => { const el = $(id); el.textContent = text || ""; el.className = "msg " + (ok ? "ok" : "err"); };
+const say = (id, text, ok) => { const el = $(id); KaiI18n.setText(el, text || ""); el.className = "msg " + (ok ? "ok" : "err"); };
 
 let account = null;
 
@@ -170,9 +173,7 @@ async function applyMethods() {
   $("cardPasskey").classList.toggle("hide", !m.signin.passkey);
   $("noSignup").classList.toggle("hide", m.canCreateAccount !== false);
   if (m.canCreateAccount === false) {
-    $("noSignupWhy").textContent =
-      "A passkey signs you back in but cannot create an account, and neither email nor Google sign-in is " +
-      "switched on yet. The site operator enables one of those; nothing is wrong with your device.";
+    KaiI18n.setText($("noSignupWhy"), KaiI18n.message`A passkey signs you back in but cannot create an account, and neither email nor Google sign-in is switched on yet. The site operator enables one of those; nothing is wrong with your device.`);
   }
 }
 
@@ -188,7 +189,7 @@ async function refresh() {
   outEl.classList.toggle("hide", !!account);
   const linking = new URLSearchParams(location.search).get("code");
   if (linking) $("linkCode").value = linking;
-  $("title").textContent = location.pathname === "/link" ? "Approve a device" : "Account";
+  KaiI18n.setText($("title"), location.pathname === "/link" ? "Approve a device" : "Account");
   if (!account) return;
   /*
    * Arrived here from a gated page? Go back to it now that we can get in.
@@ -206,17 +207,17 @@ async function refresh() {
   if (account.email) m.push("email");
   if (account.google) m.push("Google");
   if (account.passkeys.length) m.push(`${account.passkeys.length} passkey${account.passkeys.length > 1 ? "s" : ""}`);
-  $("methods").textContent = "Sign-in methods: " + (m.join(", ") || "none yet");
+  KaiI18n.setText($("methods"), KaiI18n.message`Sign-in methods: ${m.join(", ") || "none yet"}`);
   const w = $("wallets");
   w.innerHTML = "";
-  if (!account.wallets.length) w.innerHTML = '<p class="muted">No wallets linked yet.</p>';
+  if (!account.wallets.length) w.innerHTML = KaiI18n.html`<p class="muted">No wallets linked yet.</p>`;
   for (const it of account.wallets) {
     const d = document.createElement("div");
     d.className = "item wallet-item";
-    d.innerHTML = `<div class="wallet-head"><span class="addr"></span><button class="x" title="Unlink">✕</button></div>`;
+    d.innerHTML = KaiI18n.html`<div class="wallet-head"><span class="addr"></span><button class="x" title="Unlink">✕</button></div>`;
     d.querySelector(".addr").textContent = it.address;
     d.querySelector(".x").onclick = async () => {
-      if (!confirm(`Unlink ${it.address}?`)) return;
+      if (!confirm(KaiI18n.tMessage`Unlink ${it.address}?`)) return;
       await j(`/account/wallets/${it.address}`, undefined, "DELETE").catch((e) => alert(e.message));
       refresh();
     };
@@ -253,17 +254,16 @@ function grantRow(g) {
         : `expires in ${span(g.expiresAt - Date.now())}`;
   const d = document.createElement("div");
   d.className = "item";
-  d.innerHTML = '<div style="min-width:0"><div class="addr"></div><div class="muted" style="margin-top:3px"></div></div>';
+  d.innerHTML = KaiI18n.html`<div style="min-width:0"><div class="addr"></div><div class="muted" style="margin-top:3px"></div></div>`;
   d.querySelector(".addr").textContent = g.address;
-  d.querySelector(".muted").textContent =
-    `$${g.remainingUsd.toFixed(4)} left of $${g.maxUsd.toFixed(2)} · ${state}`;
+  KaiI18n.setText(d.querySelector(".muted"), KaiI18n.message`$${g.remainingUsd.toFixed(4)} left of $${g.maxUsd.toFixed(2)} · ${state}`);
   if (g.live) {
     const b = document.createElement("button");
     b.className = "x";
-    b.title = "End web access for this wallet";
+    KaiI18n.setAttribute(b, 'title', KaiI18n.message`End web access for this wallet`);
     b.textContent = "✕";
     b.onclick = async () => {
-      if (!confirm(`End web access for ${g.address}?\n\nkoinosai.com/app stops being able to spend immediately. Anything already spent stays spent.`)) return;
+      if (!confirm(KaiI18n.tMessage`End web access for ${g.address}?\n\nkoinosai.com/app stops being able to spend immediately. Anything already spent stays spent.`)) return;
       try {
         await j(`/account/grants/${encodeURIComponent(g.id)}`, undefined, "DELETE");
       } catch (e) {
@@ -281,7 +281,7 @@ function paintGrants() {
   el.innerHTML = "";
   const gs = account.grants || [];
   if (!gs.length) {
-    el.innerHTML = '<p class="muted">Nothing authorised. The web app cannot spend anything on your behalf.</p>';
+    el.innerHTML = KaiI18n.html`<p class="muted">Nothing authorised. The web app cannot spend anything on your behalf.</p>`;
     return;
   }
   for (const g of gs.filter((x) => x.live)) el.appendChild(grantRow(g));
@@ -290,7 +290,7 @@ function paintGrants() {
     const h = document.createElement("p");
     h.className = "muted";
     h.style.margin = "16px 0 0";
-    h.textContent = "No longer spendable";
+    KaiI18n.setText(h, "No longer spendable");
     el.appendChild(h);
     for (const g of past) el.appendChild(grantRow(g));
   }
@@ -302,7 +302,7 @@ function paintGrants() {
  * intercepts it. */
 async function loadSessions() {
   const el = $("sessions");
-  el.textContent = "loading…";
+  KaiI18n.setText(el, "loading…");
   el.className = "muted";
   let list;
   try {
@@ -314,20 +314,19 @@ async function loadSessions() {
   el.className = "";
   el.innerHTML = "";
   if (!list.length) {
-    el.innerHTML = '<p class="muted">No live sessions.</p>';
+    el.innerHTML = KaiI18n.html`<p class="muted">No live sessions.</p>`;
     return;
   }
   for (const sn of list) {
     const d = document.createElement("div");
     d.className = "item";
-    d.innerHTML = '<div style="min-width:0"><div class="addr"></div><div class="muted" style="margin-top:3px"></div></div>';
-    d.querySelector(".addr").textContent = (sn.label || "session") + (sn.current ? " — this browser" : "");
-    d.querySelector(".muted").textContent =
-      `${sn.id} · last used ${ago(sn.lastUsedAt)} · expires in ${span(sn.expiresAt - Date.now())}`;
+    d.innerHTML = KaiI18n.html`<div style="min-width:0"><div class="addr"></div><div class="muted" style="margin-top:3px"></div></div>`;
+    KaiI18n.setText(d.querySelector(".addr"), sn.current ? KaiI18n.message`${sn.label || "session"} — this browser` : KaiI18n.message`${sn.label || "session"}`);
+    KaiI18n.setText(d.querySelector(".muted"), KaiI18n.message`${sn.id} · last used ${ago(sn.lastUsedAt)} · expires in ${span(sn.expiresAt - Date.now())}`);
     if (!sn.current) {
       const b = document.createElement("button");
       b.className = "x";
-      b.title = "End this session";
+      KaiI18n.setAttribute(b, 'title', KaiI18n.message`End this session`);
       b.textContent = "✕";
       b.onclick = async () => {
         try {
@@ -379,8 +378,8 @@ $("emailBtn").onclick = async () => {
     if ($("codeRow").classList.contains("hide")) {
       await j("/auth/email/start", { email });
       $("codeRow").classList.remove("hide");
-      $("emailBtn").textContent = "Sign in";
-      say("emailMsg", "Code sent — check your inbox.", true);
+      KaiI18n.setText($("emailBtn"), "Sign in");
+      say("emailMsg", KaiI18n.message`Code sent — check your inbox.`, true);
       $("code").focus();
     } else {
       await j("/auth/email/verify", { email, code: $("code").value.trim() });
@@ -423,7 +422,7 @@ $("pkAdd").onclick = async () => {
       clientDataJSON: bufToB64u(cred.response.clientDataJSON),
       label: navigator.platform || "passkey",
     });
-    say("pkAddMsg", "Passkey added.", true);
+    say("pkAddMsg", KaiI18n.message`Passkey added.`, true);
     refresh();
   } catch (e) { say("pkAddMsg", e.message); }
 };
@@ -432,7 +431,7 @@ $("pkAdd").onclick = async () => {
 $("linkBtn").onclick = async () => {
   try {
     await j("/auth/device/approve", { userCode: $("linkCode").value.trim() });
-    say("linkMsg", "Approved — the app will sign itself in within a few seconds.", true);
+    say("linkMsg", KaiI18n.message`Approved — the app will sign itself in within a few seconds.`, true);
   } catch (e) { say("linkMsg", e.message); }
 };
 
@@ -440,10 +439,10 @@ $("logout").onclick = async () => { await j("/auth/logout", {}); refresh(); };
 $("revokeAll").onclick = async () => {
   // This ends the session running this page too, so it is a one-way door and
   // says so before it opens.
-  if (!confirm("Sign out of every browser and revoke every spending grant?\n\nThis signs you out here as well, and koinosai.com/app stops being able to spend until you authorise it again from the desktop app.")) return;
+  if (!confirm(KaiI18n.t("Sign out of every browser and revoke every spending grant?\n\nThis signs you out here as well, and koinosai.com/app stops being able to spend until you authorise it again from the desktop app."))) return;
   try {
     const r = await j("/account/sessions/revoke-all", {});
-    $("sessMsg").textContent = `Ended ${r.sessions} session${r.sessions === 1 ? "" : "s"} and revoked ${r.grants} grant${r.grants === 1 ? "" : "s"}.`;
+    KaiI18n.setText($("sessMsg"), KaiI18n.message`Sessions ended: ${r.sessions}. Grants revoked: ${r.grants}.`);
   } catch (e) {
     $("sessMsg").textContent = e.message;
   }

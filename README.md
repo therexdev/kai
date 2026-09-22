@@ -17,6 +17,33 @@ data/waitlist.jsonl   signups, one JSON object per line (created at runtime, git
 
 The paper is served straight from `public/` at the stable path **`/whitepaper.pdf`**, linked from the top ribbon, the nav, the mobile menu, and the footer. To publish a new revision, overwrite `public/whitepaper.pdf` and update the version wording in the ribbon (search `Working Draft v0.2` in `public/index.html`) — keep the filename unchanged so shared links keep working.
 
+## Website languages
+
+The website interface supports English, Spanish, Brazilian Portuguese, French,
+and German. A first visit uses the first supported language in the browser's
+language preferences, falling back to English. The language selector applies
+immediately and saves an explicit choice in this browser. “Browser language”
+clears that choice and follows the browser again. Language changes do not reload
+the page, reset forms, sign out accounts, or translate user content, addresses,
+model identifiers, or source code.
+
+Translations are local files in `public/i18n/`; no translation service or API key
+is used. Edit the four JSON catalogs and run `node scripts/build-site-locales.js`
+to update the shared browser bundle. English page copy is the fallback for new
+or missing messages. Keep interpolated values in numbered placeholders and use
+`KaiI18n.setText`, `KaiI18n.setAttribute`, or tagged `KaiI18n.html` templates at
+interface text sinks. Never pass user-authored content through a translation
+lookup. Static UI is registered before page controllers load account data.
+
+The main pages and web app/builder interface are translated. Technical Markdown
+guides and historical release-note bodies retain their original English and are
+labeled accordingly. The whitepaper and standalone external signing tool remain
+separate English artifacts. These catalogs are initial translations for review.
+
+`node scripts/probe-website-i18n.js` checks detection, persistence, language
+switching, content isolation, and the page integrations. CI also runs
+`node tests/website-i18n.browser.cjs` with Chromium.
+
 ## Run locally
 
 ```bash

@@ -51,9 +51,10 @@ main figcaption{font-size:12.5px;color:var(--faint);margin-top:7px;font-family:v
   .burger{display:block;background:none;border:1px solid var(--line-2);color:var(--text);border-radius:8px;padding:5px 10px;font-size:16px;cursor:pointer}
 }
 </style>
+<link rel="stylesheet" href="/i18n/language.css">
 </head>
 <body>
-<div class="top">
+<div class="top" data-language-host>
   <button class="burger" id="burger" aria-label="Menu">☰</button>
   <div class="brand">Koinos <span>AI</span> Docs</div>
   <span class="tag">ALPHA</span>
@@ -61,9 +62,11 @@ main figcaption{font-size:12.5px;color:var(--faint);margin-top:7px;font-family:v
 </div>
 <div class="layout">
   <nav id="nav"></nav>
-  <main id="main"><p>Loading…</p></main>
+  <main lang="en" translate="no" id="main"><p>Loading…</p></main>
 </div>
 
+<script src="/i18n/catalogs.js"></script>
+<script src="/i18n/i18n.js"></script>
 <script src="md.js"></script>
 <script>
 "use strict";
@@ -99,13 +102,13 @@ for (const p of PAGES) {
   if (p.group) {
     const g = document.createElement("div");
     g.className = "group";
-    g.textContent = p.group;
+    KaiI18n.setText(g, p.group);
     nav.appendChild(g);
   } else {
     const a = document.createElement("a");
     a.href = `#${p.id}`;
     a.dataset.id = p.id;
-    a.textContent = p.title;
+    KaiI18n.setText(a, p.title);
     nav.appendChild(a);
   }
 }
@@ -118,14 +121,21 @@ async function show() {
     const r = await fetch(`content/${page.id}.md`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     main.innerHTML = mdToHtml(await r.text());
+    const notice = document.createElement("p");
+    notice.lang = KaiI18n.language;
+    notice.className = "language-note";
+    KaiI18n.setText(notice, "This guide is currently available in English.");
+    notice.hidden = KaiI18n.language === "en";
+    main.prepend(notice);
   } catch (e) {
-    main.innerHTML = `<p>Could not load this page (${e.message}). <a href="#getting-started">Back to start</a>.</p>`;
+    main.innerHTML = KaiI18n.html`<p>Could not load this page (${e.message}). <a href="#getting-started">Back to start</a>.</p>`;
   }
   main.parentElement.scrollTop = 0;
   window.scrollTo(0, 0);
   nav.classList.remove("open");
 }
 window.addEventListener("hashchange", show);
+document.addEventListener("kai:language-changed", () => { const note = main.querySelector(".language-note"); if (note) { note.hidden = KaiI18n.language === "en"; note.lang = KaiI18n.language; } });
 document.getElementById("burger").addEventListener("click", () => nav.classList.toggle("open"));
 show();
 </script>
