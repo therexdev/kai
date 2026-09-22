@@ -25,7 +25,15 @@ async function route(route){
  const reports=[];
  for(const url of ['/','/network','/testers','/privacy','/account','/dashboard','/updates','/docs/','/app','/build']){
   await page.goto('http://kai.test'+url);await page.waitForTimeout(150);
-  const report=await page.evaluate(()=>({path:location.pathname,lang:document.documentElement.lang,selector:document.querySelectorAll('[data-language-select]').length,heading:document.querySelector('h1,h2')?.textContent,overflow:document.documentElement.scrollWidth>innerWidth+1}));reports.push(report);assert.equal(report.lang,'es',url);assert.equal(report.selector,1,url);
+  const report=await page.evaluate(()=>({path:location.pathname,lang:document.documentElement.lang,selector:document.querySelectorAll('[data-language-select]').length,heading:document.querySelector('h1,h2')?.textContent,overflow:document.documentElement.scrollWidth>innerWidth+1}));reports.push(report);assert.equal(report.lang,'es',url);assert.equal(report.selector,1,url);assert.equal(report.overflow,false,url);
+  if(url==='/app'){
+   assert.equal(await page.locator('#composer-input').getAttribute('placeholder'),'Pregunta lo que quieras…');
+   assert.equal(await page.locator('#doc-ai-input').getAttribute('placeholder'),'Pregunta sobre este documento…');
+   await page.setViewportSize({width:1440,height:900});
+   await page.waitForFunction(()=>document.getElementById('composer-input').placeholder.includes('Mayús+Intro'));
+   assert.match(await page.locator('#doc-ai-input').getAttribute('placeholder'),/hazlo más conciso/);
+   await page.setViewportSize({width:390,height:844});
+  }
  }
  await page.goto('http://kai.test/');await page.selectOption('[data-language-select]','de');await page.locator('#waitlist-email').fill('user@example.com');
  await page.selectOption('[data-language-select]','fr');assert.equal(await page.inputValue('#waitlist-email'),'user@example.com');

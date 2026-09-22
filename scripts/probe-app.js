@@ -258,7 +258,8 @@ async function main() {
 
     // The long placeholder ran past the single visible row and was cut
     // mid-word; it is set from JS so the phone gets a short one.
-    check(/placeholder = narrow\(\)/.test(clientJs), "the placeholder shortens on a phone");
+    check(/KaiI18n\.setAttribute\(input, 'placeholder', narrow\(\) \? KaiI18n\.message`Ask anything…`/.test(clientJs),
+      "the localized placeholder shortens on a phone");
     // The markup ships the SHORT one so the first paint is right at any
     // width; JS adds the keyboard hint on a wide screen.
     check(/placeholder="Ask anything…"/.test(shellCss), "…and the markup ships the short one, so nothing flashes");
@@ -280,9 +281,8 @@ async function main() {
     check(/id="doc-switch"/.test(clientJs), "the document list collapses too");
     check(/No documents yet/.test(clientJs), "…and says so when there is nothing to switch to");
     // Same long-placeholder cut as the chat composer had.
-    check(/placeholder = narrow\(\)\s*\n?\s*\?\s*"Ask about this document…"/.test(clientJs)
-      || /narrow\(\)[\s\S]{0,40}"Ask about this document…"/.test(clientJs),
-      "the docs placeholder shortens on a phone");
+    check(/KaiI18n\.setAttribute\(input, 'placeholder', narrow\(\) \? KaiI18n\.message`Ask about this document…`/.test(clientJs),
+      "the localized docs placeholder shortens on a phone");
     check(/placeholder="Ask about this document…"/.test(shellCss),
       "…and the markup ships the short one there too");
 
