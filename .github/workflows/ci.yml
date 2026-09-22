@@ -64,3 +64,21 @@ jobs:
         run: |
           node --check server.js
           for f in lib/*.js scripts/*.js; do node --check "$f"; done
+
+  website-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/website-i18n.browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: website-language-preview
+          path: tests/website-*.png
+          if-no-files-found: ignore

@@ -81,7 +81,7 @@ const pct = (v) => (v == null || !isFinite(v) ? null : `${(Number(v) * 100).toFi
 function usd(v) {
   if (v == null || !isFinite(v)) return "—";
   const d = Math.abs(v) >= 1000 ? 0 : 2;
-  return "$" + Number(v).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+  return "$" + Number(v).toLocaleString(KaiI18n.language, { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 
 /**
@@ -91,7 +91,7 @@ function usd(v) {
  */
 function price(v) {
   if (v == null || !isFinite(v)) return "—";
-  return "$" + Number(v).toLocaleString(undefined, { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+  return "$" + Number(v).toLocaleString(KaiI18n.language, { minimumFractionDigits: 6, maximumFractionDigits: 6 });
 }
 
 /**
@@ -105,7 +105,7 @@ function koin(sats, unit = "KOIN") {
   if (sats == null) return null;
   const n = Number(sats) / 1e8;
   if (!isFinite(n)) return null;
-  return n.toLocaleString(undefined, { maximumFractionDigits: 2 }) + " " + unit;
+  return n.toLocaleString(KaiI18n.language, { maximumFractionDigits: 2 }) + " " + unit;
 }
 
 function ago(iso) {
@@ -120,13 +120,13 @@ function ago(iso) {
 }
 
 const tile = (label, value, sub) =>
-  `<div class="tile"><div class="t-label">${esc(label)}</div><div class="t-value">${esc(value)}</div>` +
-  `<div class="t-sub">${esc(sub || "")}</div></div>`;
+  KaiI18n.html`<div class="tile"><div class="t-label">${KaiI18n.textHTML(label)}</div><div class="t-value">${esc(value)}</div>` +
+  KaiI18n.html`<div class="t-sub">${KaiI18n.textHTML(sub || "")}</div></div>`;
 
 const rows = (pairs) =>
-  `<div class="node-grid">${pairs
+  KaiI18n.html`<div class="node-grid">${pairs
     .filter(([, v]) => v != null && v !== "")
-    .map(([k, v]) => `<span class="k">${esc(k)}</span><span>${esc(v)}</span>`)
+    .map(([k, v]) => `<span class="k">${KaiI18n.textHTML(k)}</span><span>${esc(v)}</span>`)
     .join("")}</div>`;
 
 function head(n) {
@@ -134,7 +134,7 @@ function head(n) {
   const state = n.online
     ? n.busy ? "Working now" : "Online, waiting for jobs"
     : n.lastSeenAt ? `Offline — last seen ${ago(n.lastSeenAt) || "a while ago"}` : "Offline";
-  return `<div class="node-state"><span class="node-dot ${dot}"></span>${esc(state)}</div>
+  return KaiI18n.html`<div class="node-state"><span class="node-dot ${dot}"></span>${KaiI18n.textHTML(state)}</div>
           <div class="addr">${esc(n.address)}</div>`;
 }
 
@@ -143,9 +143,9 @@ function aiCard(n) {
   const p = n.perf || {};
   const r = n.reputation || {};
   const models = (n.models || []).length
-    ? `<div class="node-models">${n.models.map((m) => `<span class="chip">${esc(m)}</span>`).join("")}</div>`
-    : `<div class="muted">Offering no models to the network. The app's Earn tab says which of your downloaded models fit this machine, and why.</div>`;
-  return `<div class="card">${head(n)}${models}${rows([
+    ? KaiI18n.html`<div class="node-models">${n.models.map((m) => `<span class="chip">${esc(m)}</span>`).join("")}</div>`
+    : KaiI18n.html`<div class="muted">Offering no models to the network. The app's Earn tab says which of your downloaded models fit this machine, and why.</div>`;
+  return KaiI18n.html`<div class="card">${head(n)}${models}${rows([
     ["Memory", n.ramGb ? `${n.ramGb} GB${n.accelerated ? " · GPU accelerated" : ""}` : n.accelerated ? "GPU accelerated" : null],
     // What the NETWORK clocked, not what the machine claimed.
     ["Speed (measured)", num(p.srvTokPerSec) ? `${num(p.srvTokPerSec)} tok/s` : null],
@@ -228,14 +228,14 @@ function koinosCard(n) {
 
   const producing = prodVhp != null && prodVhp > 0;
   const phead =
-    `<div class="node-state"><span class="node-dot ${producing ? "ok" : "off"}"></span>` +
+    KaiI18n.html`<div class="node-state"><span class="node-dot ${producing ? "ok" : "off"}"></span>` +
     `${producing ? "Producing blocks" : "Not producing"}</div>` +
-    `<div class="addr">${esc(n.address)}</div>`;
+    KaiI18n.html`<div class="addr">${esc(n.address)}</div>`;
 
-  return `<div class="card">${phead}${tiles ? `<div class="tiles">${tiles}</div>` : ""}${rows([
+  return KaiI18n.html`<div class="card">${phead}${tiles ? `<div class="tiles">${tiles}</div>` : ""}${rows([
     ["KOIN", koin(k.koinSats)],
     ["VHP producing", prodVhp != null
-      ? `${prodVhp.toLocaleString(undefined, { maximumFractionDigits: 2 })} VHP`
+      ? `${prodVhp.toLocaleString(KaiI18n.language, { maximumFractionDigits: 2 })} VHP`
       : koin(k.vhpSats, "VHP")],
     ["VHP in wallet", mismatch ? koin(k.vhpSats, "VHP") : null],
     ["Network total", k.networkVhp != null ? `${Math.round(k.networkVhp).toLocaleString()} VHP` : null],
@@ -254,8 +254,8 @@ function koinosCard(n) {
      * can fail to mention.
      */
     k.stakeBehind
-      ? `This node is producing with ${esc(prodVhp.toLocaleString(undefined, { maximumFractionDigits: 2 }))} VHP but the wallet holds ${esc(koin(k.vhpSats, "VHP"))} — ${esc(Number(k.stakeShortfallPct ?? 0).toFixed(0))}% of your stake is sitting out of the block lottery, and the share and rate above are understated to match. Restart the Koinos node so the producer re-reads your stake.`
-      : `The node reports producing with ${esc(prodVhp.toLocaleString(undefined, { maximumFractionDigits: 2 }))} VHP while the wallet holds ${esc(koin(k.vhpSats, "VHP"))}. The share and rate above use the node's own figure.`
+      ? `This node is producing with ${esc(prodVhp.toLocaleString(KaiI18n.language, { maximumFractionDigits: 2 }))} VHP but the wallet holds ${esc(koin(k.vhpSats, "VHP"))} — ${esc(Number(k.stakeShortfallPct ?? 0).toFixed(0))}% of your stake is sitting out of the block lottery, and the share and rate above are understated to match. Restart the Koinos node so the producer re-reads your stake.`
+      : `The node reports producing with ${esc(prodVhp.toLocaleString(KaiI18n.language, { maximumFractionDigits: 2 }))} VHP while the wallet holds ${esc(koin(k.vhpSats, "VHP"))}. The share and rate above use the node's own figure.`
   }</p>` : ""}
   ${note ? `<p class="note">${esc(note)}</p>` : ""}
   <p class="note">Expected rate is an average — block production is a lottery, so quiet stretches of several hours are normal at a small share.${
@@ -278,7 +278,7 @@ async function load() {
     if (r.status === 401 || r.status === 403) { location.href = "/account?next=/dashboard"; return; }
     nodes = (await r.json()).nodes || [];
   } catch {
-    $("stamp").textContent = "Could not reach the network just now — showing the last successful reading.";
+    KaiI18n.setText($("stamp"), "Could not reach the network just now — showing the last successful reading.");
     return;
   }
 
@@ -289,10 +289,10 @@ async function load() {
 
   const aiHtml = ai.length
     ? ai.map(aiCard).join("")
-    : `<p class="empty">No machine has connected yet. Run Koinos AI and switch on Earning to put one to work.</p>`;
+    : KaiI18n.html`<p class="empty">No machine has connected yet. Run Koinos AI and switch on Earning to put one to work.</p>`;
   const koinosHtml = koinos.length
     ? koinos.map(koinosCard).join("")
-    : `<p class="empty">No Koinos node is reporting. A machine shows up here once it is producing blocks AND Earning is on — the node's report travels with the app's connection to the network.</p>`;
+    : KaiI18n.html`<p class="empty">No Koinos node is reporting. A machine shows up here once it is producing blocks AND Earning is on — the node's report travels with the app's connection to the network.</p>`;
 
   /*
    * Only touch the DOM when something actually changed. Replacing innerHTML
@@ -303,7 +303,7 @@ async function load() {
   paint("ai", aiHtml);
   paint("koinos", koinosHtml);
 
-  $("stamp").textContent = `Updated ${new Date().toLocaleTimeString()} · refreshes every ${REFRESH_MS / 1000}s`;
+  KaiI18n.setText($("stamp"), KaiI18n.message`Updated ${new Date().toLocaleTimeString(KaiI18n.language)} · refreshes every ${REFRESH_MS / 1000}s`);
 }
 
 /*

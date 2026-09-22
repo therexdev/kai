@@ -26,6 +26,7 @@
 
 </style>
 <link rel="icon" href="/redesign/brand-mark.svg" type="image/svg+xml"><meta name="theme-color" content="#f5f8ff">
+<link rel="stylesheet" href="/i18n/language.css">
 </head>
 <body>
 
@@ -63,6 +64,8 @@
 
 <footer class="kai-site-footer"><div class="kai-footer-inner"><p class="kai-copyright">© 2026 Koinos AI · Think. Build. Grow.</p><nav aria-label="Footer"><a href="/docs/">Docs</a><a href="/updates">Updates</a><a href="/privacy">Privacy</a><a href="https://github.com/therexdev/kaiapp">GitHub</a><a href="mailto:contact@koinosai.com">Contact</a></nav></div></footer>
 
+<script src="/i18n/catalogs.js"></script>
+<script src="/i18n/i18n.js"></script>
 <script>
 (function(){
   "use strict";
@@ -70,35 +73,35 @@
   var $ = function(id){ return document.getElementById(id); };
 
   function fmtSpeed(p){
-    if (!p || !(p.srvTokPerSec > 0)) return '<span class="u">measuring…</span>';
-    return p.srvTokPerSec.toFixed(1) + ' <span class="u">tok/s</span>';
+    if (!p || !(p.srvTokPerSec > 0)) return KaiI18n.html`<span class="u">measuring…</span>`;
+    return KaiI18n.html`${p.srvTokPerSec.toFixed(1)} <span class="u">tok/s</span>`;
   }
   function fmtReliability(p){
-    if (!p || typeof p.sr !== "number") return '<span class="u">measuring…</span>';
-    return Math.round(p.sr * 100) + '<span class="u">%</span>';
+    if (!p || typeof p.sr !== "number") return KaiI18n.html`<span class="u">measuring…</span>`;
+    return KaiI18n.html`${Math.round(p.sr * 100)}<span class="u">%</span>`;
   }
   // Shadow trust score (§7.4): earned from age, reliability, verification
   // history, and real paid work. Absent-safe against older schedulers.
   function fmtTrust(rep){
-    if (!rep || typeof rep.r !== "number") return '<span class="u">building…</span>';
+    if (!rep || typeof rep.r !== "number") return KaiI18n.html`<span class="u">building…</span>`;
     return rep.r.toFixed(2);
   }
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
 
   function render(d){
     $("tWorkers").textContent = d.workersOnline;
-    $("tWorkersSub").textContent = d.workersOnline === 1 ? "one machine holding the line" : "independent machines";
+    KaiI18n.setText($("tWorkersSub"), d.workersOnline === 1 ? "one machine holding the line" : "independent machines");
     $("tModels").textContent = (d.models || []).length;
     var jobs = (d.queueDepth || 0) + (d.pendingJobs || 0);
     $("tJobs").textContent = jobs;
-    $("tJobsSub").textContent = jobs === 0 ? "quiet right now — capacity to spare" : "queued + being served";
+    KaiI18n.setText($("tJobsSub"), jobs === 0 ? "quiet right now — capacity to spare" : "queued + being served");
 
     var mb = $("modelsBody");
     if ((d.models || []).length === 0){
-      mb.innerHTML = '<tr><td colspan="2" class="mono" style="color:var(--muted)">No classes live</td></tr>';
+      mb.innerHTML = KaiI18n.html`<tr><td colspan="2" class="mono" style="color:var(--muted)">No classes live</td></tr>`;
     } else {
       mb.innerHTML = d.models.map(function(m){
-        return '<tr><td class="mono">' + esc(m.model) + '</td><td class="num tnum">' + m.providers + '</td></tr>';
+        return KaiI18n.html`<tr><td class="mono">${esc(m.model)}</td><td class="num tnum">${m.providers}</td></tr>`;
       }).join("");
     }
 
@@ -106,26 +109,17 @@
     var ws = d.workers || [];
     $("emptyState").style.display = ws.length ? "none" : "block";
     cards.innerHTML = ws.map(function(w){
-      var st = w.busy ? '<span class="status serving"><span class="dot"></span>Serving</span>'
-                      : '<span class="status online"><span class="dot"></span>Online</span>';
-      var chips = (w.models || []).map(function(m){ return '<span class="chip">' + esc(m) + '</span>'; }).join("");
-      return '<div class="card">' +
-        '<div class="top"><span class="addr">' + esc(w.address) + '</span>' + st + '</div>' +
-        '<div class="meta">last contact ' + w.lastSeenSecs + 's ago</div>' +
-        '<div class="models">' + chips + '</div>' +
-        '<div class="stats">' +
-          '<div class="stat"><div class="k">Speed</div><div class="v tnum">' + fmtSpeed(w.perf) + '</div></div>' +
-          '<div class="stat"><div class="k">Reliability</div><div class="v tnum">' + fmtReliability(w.perf) + '</div></div>' +
-          '<div class="stat"><div class="k">Trust</div><div class="v tnum">' + fmtTrust(w.reputation) + '</div></div>' +
-          '<div class="stat"><div class="k">Jobs this epoch</div><div class="v tnum">' + (w.jobsThisEpoch || 0) + '</div></div>' +
-        '</div></div>';
+      var st = w.busy ? KaiI18n.html`<span class="status serving"><span class="dot"></span>Serving</span>`
+                      : KaiI18n.html`<span class="status online"><span class="dot"></span>Online</span>`;
+      var chips = (w.models || []).map(function(m){ return KaiI18n.html`<span class="chip">${esc(m)}</span>`; }).join("");
+      return KaiI18n.html`<div class="card"><div class="top"><span class="addr">${esc(w.address)}</span>${st}</div><div class="meta">last contact ${w.lastSeenSecs}s ago</div><div class="models">${chips}</div><div class="stats"><div class="stat"><div class="k">Speed</div><div class="v tnum">${fmtSpeed(w.perf)}</div></div><div class="stat"><div class="k">Reliability</div><div class="v tnum">${fmtReliability(w.perf)}</div></div><div class="stat"><div class="k">Trust</div><div class="v tnum">${fmtTrust(w.reputation)}</div></div><div class="stat"><div class="k">Jobs this epoch</div><div class="v tnum">${w.jobsThisEpoch || 0}</div></div></div></div>`;
     }).join("");
   }
 
   function tickAge(){
     if (!lastAt){ return; }
     var s = Math.max(0, Math.round((Date.now() - lastAt) / 1000));
-    $("tAge").innerHTML = s + '<span class="u" style="font-family:var(--mono);font-size:13px;color:var(--muted)">s ago</span>';
+    $("tAge").innerHTML = KaiI18n.html`${s}<span class="u" style="font-family:var(--mono);font-size:13px;color:var(--muted)">s ago</span>`;
   }
 
   function refresh(){

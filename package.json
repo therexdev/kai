@@ -2,7 +2,7 @@
   "name": "kai",
   "version": "1.0.0",
   "private": true,
-  "description": "Koinos AI production website \u2014 Express landing page + waitlist API",
+  "description": "Koinos AI production website — Express landing page + waitlist API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -20,5 +20,9 @@
   },
   "overrides": {
     "protobufjs": "7.4.0"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "playwright": "^1.63.0"
   }
 }

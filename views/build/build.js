@@ -50,7 +50,7 @@
     },
   });
   function note(message, error = false) {
-    $("notice").textContent = message;
+    KaiI18n.setText($("notice"), message);
     $("notice").classList.toggle("error", error);
     $("notice").hidden = !message;
   }
@@ -73,7 +73,8 @@
     state.detail?.jobs.find((j) => ["running", "queued", "confirming"].includes(j.status));
   function node(tag, text, cls) {
     const n = document.createElement(tag);
-    if (text != null) n.textContent = text;
+    if (text && typeof text === "object" && Array.isArray(text.values)) KaiI18n.setText(n, text);
+    else if (text != null) n.textContent = text;
     if (cls) n.className = cls;
     return n;
   }
@@ -92,13 +93,13 @@
       running || state.busy || !state.detail?.project.contract_id;
     $("job-status").hidden = !running;
     if (running) $("job-stage").textContent = active().stage;
-    $("file-dirty").textContent = state.dirty ? "Unsaved changes" : "";
+    KaiI18n.setText($("file-dirty"), state.dirty ? "Unsaved changes" : "");
   }
   function renderProjects() {
     $("project-list").replaceChildren();
     if (!state.projects.length)
       $("project-list").append(
-        node("p", "Your ideas will live here.", "empty-projects"),
+        node("p", KaiI18n.message`Your ideas will live here.`, "empty-projects"),
       );
     for (const p of state.projects) {
       const b = node(
@@ -142,7 +143,7 @@
         // Shared renderer escapes raw HTML first and permits only safe links.
         body.innerHTML = window.mdToHtml(content);
       } else body.textContent = m.content;
-      div.append(node("span", m.role === "user" ? "You" : "KAI", "role"), body);
+      div.append(node("span", m.role === "user" ? KaiI18n.message`You` : KaiI18n.message`KAI`, "role"), body);
       area.append(div);
     }
     const latestEdit = state.detail.jobs.find((j) => j.kind === "edit");
@@ -154,13 +155,13 @@
       area.append(
         node(
           "p",
-          failed.error || "This request needs attention. Your project is saved.",
+          (failed.error) || (KaiI18n.message`This request needs attention. Your project is saved.`),
           "publish-error",
         ),
       );
       const retry = node(
         "button",
-        failed.kind === "edit" ? "Retry saved edit" : "Retry saved publishing request",
+        failed.kind === "edit" ? KaiI18n.message`Retry saved edit` : KaiI18n.message`Retry saved publishing request`,
         "retry-job",
       );
       retry.onclick = () =>
@@ -170,10 +171,10 @@
         });
       area.append(retry);
       if (failed.error_detail) {
-        const copy = node("button", "Copy error details", "retry-job");
+        const copy = node("button", KaiI18n.message`Copy error details`, "retry-job");
         copy.onclick = () => action(async () => {
           await navigator.clipboard.writeText(failed.error_detail);
-          copy.textContent = "Copied";
+          KaiI18n.setText(copy, "Copied");
         });
         area.append(copy);
       }
@@ -187,17 +188,17 @@
         content = node("div"),
         title = node("strong", "Version " + v.revision);
       if (v.revision === state.detail.project.live_revision)
-        title.append(node("span", "LIVE", "live"));
+        title.append(node("span", KaiI18n.message`LIVE`, "live"));
       content.append(
         title,
         node("p", v.summary),
         node("time", new Date(v.created_at).toLocaleString()),
       );
-      const b = node("button", "Restore", "button secondary");
+      const b = node("button", KaiI18n.message`Restore`, "button secondary");
       b.disabled = v.revision === state.detail.project.revision || !!active();
       b.onclick = () =>
         action(async () => {
-          if (state.dirty && !confirm("Discard the unsaved file changes?"))
+          if (state.dirty && !confirm(KaiI18n.t("Discard the unsaved file changes?")))
             return;
           await api(base() + "/restore", {
             revision: v.revision,
@@ -247,11 +248,7 @@
       $("live-link").href = url;
       $("live-url").href = url;
       $("live-url").textContent = url;
-      $("live-version").textContent =
-        "Version " +
-        detail.project.live_revision +
-        " · " +
-        (detail.project.network || state.config.network);
+      KaiI18n.setText($("live-version"), KaiI18n.message`Version ${detail.project.live_revision} · ${detail.project.network || state.config.network}`);
       $("live-draft-note").hidden =
         detail.project.revision === detail.project.live_revision;
     } else {
@@ -289,7 +286,7 @@
     render(data, force);
   }
   async function openProject(id) {
-    if (state.dirty && !confirm("Discard the unsaved file changes?")) return;
+    if (state.dirty && !confirm(KaiI18n.t("Discard the unsaved file changes?"))) return;
     state.dirty = false;
     const g = ++state.generation;
     const data = await api("/build/api/projects/" + encodeURIComponent(id));
@@ -327,9 +324,9 @@
   $("copy-live-link").onclick = async () => {
     try {
       await navigator.clipboard.writeText($("live-url").href);
-      note("Live app link copied.");
+      note(KaiI18n.message`Live app link copied.`);
     } catch {
-      note("Select and copy the live app URL shown above the preview.");
+      note(KaiI18n.message`Select and copy the live app URL shown above the preview.`);
     }
   };
   $("messages").addEventListener("click", async (event) => {
@@ -339,9 +336,9 @@
     if (!code) return;
     try {
       await navigator.clipboard.writeText(code.textContent);
-      note("Code copied.");
+      note(KaiI18n.message`Code copied.`);
     } catch {
-      note("Select the code to copy it.");
+      note(KaiI18n.message`Select the code to copy it.`);
     }
   });
   document
@@ -402,7 +399,7 @@
             await refresh();
           } else
             note(
-              "Your starter is ready. AI editing becomes available after the server setup is completed.",
+              KaiI18n.message`Your starter is ready. AI editing becomes available after the server setup is completed.`,
             );
         }
         queuedIdea = "";
@@ -450,7 +447,7 @@
       );
       state.dirty = false;
       await refresh(true);
-      note("Version saved. The preview is updated.");
+      note(KaiI18n.message`Version saved. The preview is updated.`);
     });
   $("refresh-preview").onclick = () => {
     if (state.detail) preview();
@@ -484,16 +481,11 @@
     action(async () => {
       $("settings-status").textContent = "";
       $("settings-dialog").showModal();
-      $("ownership-info").textContent = "Checking app ownership…";
+      KaiI18n.setText($("ownership-info"), "Checking app ownership…");
       const { config, managed } = await chainInfo(),
         p = state.detail.project;
-      $("ownership-info").textContent = config
-        ? "Contract: " +
-          p.contract_id +
-          "\nOwner: " +
-          config.owner +
-          (config.pending_owner ? "\nOffered to: " + config.pending_owner : "")
-        : "This app has not been published yet.";
+      KaiI18n.setText($("ownership-info"), config ? KaiI18n.message`Contract: ${p.contract_id}
+Owner: ${config.owner}${config.pending_owner ? "\nOffered to: " + config.pending_owner : ""}` : "This app has not been published yet.");
       $("accept-owner").hidden = !config?.pending_owner;
       $("propose-owner").disabled = !config;
       $("owner-address").value = config?.pending_owner || "";
@@ -510,8 +502,7 @@
       if (!data.config) throw Error("Publish this app first.");
       if (data.managed) {
         await api(base() + "/ownership/propose", { target });
-        $("settings-status").textContent =
-          "The ownership offer is being recorded. Once it is confirmed, accept it with the new wallet.";
+        KaiI18n.setText($("settings-status"), "The ownership offer is being recorded. Once it is confirmed, accept it with the new wallet.");
         await refresh();
       } else await prepareWallet("propose", { target });
     });
@@ -522,38 +513,20 @@
       const p = state.detail.project,
         updating = !!p.contract_id,
         alreadyLive = p.revision === p.live_revision;
-      $("publish-heading").textContent = updating
-        ? "Publish frontend update"
-        : "Deploy and publish app";
-      $("publish-description").textContent =
-        "Version " +
-        p.revision +
-        " of “" +
-        p.title +
-        "”" +
-        (alreadyLive ? " is already live." : " will become public.");
-      $("publish-details").textContent =
-        "Network: " +
-        state.config.network +
-        "\nLive URL: " +
-        new URL(
+      KaiI18n.setText($("publish-heading"), updating ? "Publish frontend update" : "Deploy and publish app");
+      KaiI18n.setText($("publish-description"), KaiI18n.message`Version ${p.revision} of “${p.title}”${alreadyLive ? " is already live." : " will become public."}`);
+      KaiI18n.setText($("publish-details"), KaiI18n.message`Network: ${state.config.network}
+Live URL: ${new URL(
           "/apps/" + encodeURIComponent(p.slug),
           state.config.publicOrigin || location.origin,
-        ).href +
-        (updating
+        ).href}${updating
           ? "\nExisting contract: " + p.contract_id
           : "\nFirst publish: creates this app's contract on " +
             state.config.network +
-            ".");
-      $("publish-explanation").textContent = updating
-        ? "This updates your frontend and keeps the same contract, address, and stored data. A Koinos transaction records the new frontend version; it does not deploy or upgrade contract code."
-        : "The first publish deploys the app's contract and makes your frontend live. Later frontend updates reuse this contract and its stored data.";
-      $("publish-platform").textContent = alreadyLive
-        ? "Already published"
-        : updating
-          ? "Publish frontend update"
-          : "Deploy and publish";
-      $("publish-wallet").textContent = "Approve frontend update";
+            "."}`);
+      KaiI18n.setText($("publish-explanation"), updating ? "This updates your frontend and keeps the same contract, address, and stored data. A Koinos transaction records the new frontend version; it does not deploy or upgrade contract code." : "The first publish deploys the app's contract and makes your frontend live. Later frontend updates reuse this contract and its stored data.");
+      KaiI18n.setText($("publish-platform"), alreadyLive ? "Already published" : updating ? "Publish frontend update" : "Deploy and publish");
+      KaiI18n.setText($("publish-wallet"), "Approve frontend update");
       // Clear the previous project's actions while ownership is checked.
       $("publish-platform").hidden = false;
       $("publish-platform").disabled = true;
@@ -561,8 +534,7 @@
       $("publish-wallet").disabled = alreadyLive;
       $("publish-dialog").showModal();
       if (alreadyLive) {
-        $("publish-status").textContent =
-          "There are no unpublished changes. No transaction is needed.";
+        KaiI18n.setText($("publish-status"), "There are no unpublished changes. No transaction is needed.");
         return;
       }
       let managed = true;
@@ -583,8 +555,7 @@
       $("publish-platform").disabled = !state.config.publishingReady;
       $("publish-wallet").hidden = !p.contract_id || managed;
       if (managed && !state.config.publishingReady)
-        $("publish-status").textContent =
-          "Publishing is waiting for the server's signing service to be configured. Your draft is saved.";
+        KaiI18n.setText($("publish-status"), "Publishing is waiting for the server's signing service to be configured. Your draft is saved.");
     });
   $("publish-platform").onclick = () =>
     action(async () => {
@@ -618,7 +589,7 @@
     $("settings-dialog").close();
     $("publish-dialog").close();
     const d = state.draft;
-    $("wallet-description").textContent = {
+    KaiI18n.setText($("wallet-description"), {
       accept: "Accept ownership of this app with your wallet.",
       propose: "Offer ownership to the wallet below.",
       publish:
@@ -629,7 +600,7 @@
         : d.method === "propose_owner"
           ? "propose"
           : "publish"
-    ];
+    ]);
     $("wallet-details").textContent = JSON.stringify(
       {
         network: d.network,
@@ -642,8 +613,7 @@
       null,
       2,
     );
-    $("wallet-status").textContent =
-      "Review the request, then sign here or import a signed transaction.";
+    KaiI18n.setText($("wallet-status"), "Review the request, then sign here or import a signed transaction.");
     $("wallet-confirm").hidden = false;
     $("wallet-dialog").showModal();
   }
@@ -653,8 +623,7 @@
       "/build/api/projects/" + d.projectId + "/wallet/" + d.id + "/submit",
       { transaction: transaction.transaction || transaction },
     );
-    $("wallet-status").textContent =
-      "Transaction submitted. Waiting for blockchain confirmation…";
+    KaiI18n.setText($("wallet-status"), "Transaction submitted. Waiting for blockchain confirmation…");
     $("wallet-confirm").hidden = false;
     await confirmWallet();
   }
@@ -665,14 +634,13 @@
         "/build/api/projects/" + d.projectId + "/wallet/" + d.id + "/confirm",
         {},
       );
-      $("wallet-status").textContent = "Confirmed on Koinos.";
+      KaiI18n.setText($("wallet-status"), "Confirmed on Koinos.");
       sessionStorage.removeItem("kai-build-draft");
       $("wallet-confirm").hidden = true;
       await refresh();
-      note("Your wallet action is confirmed.");
+      note(KaiI18n.message`Your wallet action is confirmed.`);
     } catch (e) {
-      $("wallet-status").textContent =
-        e.message + " Use Check confirmation to continue.";
+      KaiI18n.setText($("wallet-status"), KaiI18n.message`${e.message} Use Check confirmation to continue.`);
     }
   }
   $("wallet-sign").onclick = () =>
@@ -717,14 +685,13 @@
   });
   async function init() {
     state.config = await api("/build/api/config");
-    $("account-name").textContent =
-      state.config.account.email || "Koinos AI account";
+    if (state.config.account.email) $("account-name").textContent = state.config.account.email;
+    else KaiI18n.setText($("account-name"), "Koinos AI account");
     $("network").textContent = state.config.network;
-    $("model-label").textContent = "OpenAI · " + state.config.model;
+    KaiI18n.setText($("model-label"), KaiI18n.message`OpenAI · ${state.config.model}`);
     if (!state.config.aiReady) {
       $("setup-note").hidden = false;
-      $("setup-note").textContent =
-        "AI editing is waiting for server setup. You can create projects, edit their files, and try the previews now.";
+      KaiI18n.setText($("setup-note"), "AI editing is waiting for server setup. You can create projects, edit their files, and try the previews now.");
     }
     await listProjects();
     const id = new URLSearchParams(location.search).get("project");

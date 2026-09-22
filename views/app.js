@@ -135,12 +135,11 @@ async function load() {
 
 function paintChrome() {
   const a = state.account;
-  $("who").textContent = a ? a.email || `account ${a.id.slice(0, 8)}` : "";
+  if (a?.email) $("who").textContent = a.email;
+  else KaiI18n.setText($("who"), a ? KaiI18n.message`account ${a.id.slice(0, 8)}` : "");
 
   const g = state.grant;
-  $("spend").textContent = g
-    ? `${usd(g.remainingUsd)} left of ${usd(g.maxUsd)}`
-    : "No spending limit set";
+  KaiI18n.setText($("spend"), g ? KaiI18n.message`${usd(g.remainingUsd)} left of ${usd(g.maxUsd)}` : "No spending limit set");
   $("spend").style.color = g ? "" : "var(--danger)";
 
   // Views that cost money are unreachable without a grant — and they SAY so,
@@ -148,7 +147,7 @@ function paintChrome() {
   for (const btn of document.querySelectorAll(".nav-item")) {
     const needs = SPENDS.has(btn.dataset.view) && !g;
     btn.disabled = false; // still clickable: clicking explains why
-    btn.title = needs ? "Set a spending limit first" : "";
+    KaiI18n.setAttribute(btn, 'title', needs ? KaiI18n.message`Set a spending limit first` : "");
     btn.style.opacity = needs ? ".55" : "";
   }
 }
@@ -168,9 +167,7 @@ function show(view) {
     btn.classList.toggle("active", !!btn.dataset.view && btn.dataset.view === view);
   }
   if (gated) {
-    $("gate-msg").textContent = state.account?.wallets?.length
-      ? "Your wallet is linked — it just has no spending limit authorised yet."
-      : "You have no wallet linked to this account yet.";
+    KaiI18n.setText($("gate-msg"), state.account?.wallets?.length ? "Your wallet is linked — it just has no spending limit authorised yet." : "You have no wallet linked to this account yet.");
   }
   if (view === "wallet") { paintWallet(); paintSpend().catch(() => {}); }
   if (view === "chat") {
@@ -198,7 +195,7 @@ function grantCard(g, isCurrent) {
       : g.remainingUsd <= 0
         ? "Used up"
         : `Expires in ${span(until)}`;
-  return `
+  return KaiI18n.html`
     <div class="card${g.live ? "" : " spent"}">
       <h2>${esc(short(g.address))}${isCurrent ? " <span class=\"hint\">— in use</span>" : ""}</h2>
       <div class="bal"><b>${esc(usd(g.remainingUsd))}</b><span class="hint">left of ${esc(usd(g.maxUsd))}</span></div>
@@ -215,12 +212,12 @@ function grantCard(g, isCurrent) {
  */
 async function paintSpend() {
   const el = $("spend-log");
-  el.innerHTML = '<p class="hint">loading…</p>';
+  el.innerHTML = KaiI18n.html`<p class="hint">loading…</p>`;
   let data;
   try {
     data = await api("/app/api/spend");
   } catch (e) {
-    el.innerHTML = `<p class="hint">${esc(e.message)}</p>`;
+    el.innerHTML = KaiI18n.html`<p class="hint">${esc(e.message)}</p>`;
     return;
   }
   if (!data.events.length) {
@@ -233,21 +230,21 @@ async function paintSpend() {
      */
     const spentBefore = (state.account?.grants || []).some((g) => g.spentUsd > 0);
     el.innerHTML = spentBefore
-      ? '<p class="hint">No itemised history — this grant was spending before the log existed. The totals above are still complete.</p>'
-      : '<p class="hint">Nothing spent yet.</p>';
+      ? KaiI18n.html`<p class="hint">No itemised history — this grant was spending before the log existed. The totals above are still complete.</p>`
+      : KaiI18n.html`<p class="hint">Nothing spent yet.</p>`;
     return;
   }
   const capped = data.count >= data.retained;
   el.innerHTML =
-    `<div class="card">` +
-    data.events.map((e) => `
+    KaiI18n.html`<div class="card">` +
+    data.events.map((e) => KaiI18n.html`
       <div class="spend-row">
         <span class="tag">${esc(e.source)}</span>
         <span class="what">${esc(e.label || "—")}${e.model ? ` <span class="hint">· ${esc(e.model)}</span>` : ""}</span>
         <span class="hint">${esc(when(e.createdAt))}</span>
         <span class="amt${e.costUsd > 0 ? "" : " free"}">${e.costUsd > 0 ? esc(usd(e.costUsd)) : "free"}</span>
       </div>`).join("") +
-    `<p class="hint" style="margin-top:12px">${esc(usd(data.totalUsd))} across ${data.count} request${data.count === 1 ? "" : "s"}` +
+    KaiI18n.html`<p class="hint" style="margin-top:12px">${esc(usd(data.totalUsd))} · Requests: ${data.count}` +
     (capped ? `, the most recent ${data.retained} kept` : "") +
     `. Each grant's own total above is the lifetime figure.</p></div>`;
 }
@@ -258,7 +255,7 @@ function paintWallet() {
   if (!a) { body.innerHTML = ""; return; }
   const grants = a.grants || [];
   if (!grants.length) {
-    body.innerHTML = `<div class="card warn"><h2>Nothing authorised</h2>
+    body.innerHTML = KaiI18n.html`<div class="card warn"><h2>Nothing authorised</h2>
       <p class="hint">This site cannot spend anything on your behalf. That is the default, and it is the correct one — a grant is something you create deliberately, on your <a href="/account">account page</a>, by signing with the wallet that will pay.</p></div>`;
     return;
   }
@@ -268,7 +265,7 @@ function paintWallet() {
   body.innerHTML =
     live.map((g) => grantCard(g, cur && g.id === cur.id)).join("") +
     (past.length
-      ? `<h2 class="section">No longer spendable</h2>` + past.map((g) => grantCard(g, false)).join("")
+      ? KaiI18n.html`<h2 class="section">No longer spendable</h2>` + past.map((g) => grantCard(g, false)).join("")
       : "");
 }
 
@@ -298,7 +295,7 @@ const atBottom = (el) => el.scrollHeight - el.scrollTop - el.clientHeight <= STI
 
 function note(text, bad) {
   const el = $("chat-note");
-  el.textContent = text || "";
+  KaiI18n.setText(el, text || "");
   el.style.color = bad ? "var(--danger)" : "";
 }
 
@@ -374,9 +371,9 @@ function paintChatList() {
   const open = el.classList.contains("open");
   el.className = `chat-list${narrow() && !open ? " collapsed" : ""}${open ? " open" : ""}`;
   el.innerHTML =
-    `<button class="new-chat" id="new-chat">+ New chat</button>` +
-    `<button class="chat-switch" id="chat-switch"><span>${esc(here ? here.title : "No chats yet")}</span>▾</button>` +
-    chat.list.map((c) => `
+    KaiI18n.html`<button class="new-chat" id="new-chat">+ New chat</button>` +
+    KaiI18n.html`<button class="chat-switch" id="chat-switch"><span>${esc(here ? here.title : "No chats yet")}</span>▾</button>` +
+    chat.list.map((c) => KaiI18n.html`
       <div class="chat-row${c.id === chat.current ? " active" : ""}" data-id="${esc(c.id)}">
         <button class="pick" title="${esc(c.title)}">${esc(c.title)}</button>
         <button class="ren" title="Rename this chat">✎</button>
@@ -416,7 +413,7 @@ async function removeChat(cid) {
   // Deleting a conversation is not undoable and the button is one pixel from
   // the one that opens it, so it asks — but only when there is something to
   // lose. Confirming the deletion of an empty chat is just noise.
-  if (c && c.messages > 0 && !confirm(`Delete "${c.title}"? The messages in it go too.`)) return;
+  if (c && c.messages > 0 && !confirm(KaiI18n.tMessage`Delete "${c.title}"? The messages in it go too.`)) return;
   try {
     const { chats } = await api(`/app/api/chats/${encodeURIComponent(cid)}`, undefined, "DELETE");
     chat.list = chats;
@@ -430,7 +427,7 @@ async function loadThread() {
   const t = $("thread");
   if (!chat.current) {
     chat.messages = [];
-    t.innerHTML = `<div class="kai-welcome"><div><h1>Hi, I’m <span>KAI.</span></h1><p>Ask a question, work through an idea, or make a little progress on your next project.</p></div><img src="/redesign/kai-companion.svg" alt="KAI"><p class="hint">Powered by the decentralized Koinos AI network. You choose a model and control your spending limit. Browser conversations are saved to your account.</p></div>`;
+    t.innerHTML = KaiI18n.html`<div class="kai-welcome"><div><h1>Hi, I’m <span>KAI.</span></h1><p>Ask a question, work through an idea, or make a little progress on your next project.</p></div><img src="/redesign/kai-companion.svg" alt="KAI"><p class="hint">Powered by the decentralized Koinos AI network. You choose a model and control your spending limit. Browser conversations are saved to your account.</p></div>`;
     return;
   }
   try {
@@ -461,8 +458,8 @@ function msgHtml(m) {
       : "free allowance",
     );
   }
-  const meta = bits.length ? `<div class="meta">${bits.join(" · ")}</div>` : "";
-  return `<div class="msg ${m.role === "user" ? "user" : "bot"}${m.error ? " err" : ""}">
+  const meta = bits.length ? KaiI18n.html`<div class="meta">${bits.join(" · ")}</div>` : "";
+  return KaiI18n.html`<div class="msg ${m.role === "user" ? "user" : "bot"}${m.error ? " err" : ""}">
     <div class="who">${m.role === "user" ? "You" : "Koinos AI"}</div>
     <div class="body">${esc(m.content)}</div>${meta}
   </div>`;
@@ -471,7 +468,7 @@ function msgHtml(m) {
 function paintThread(pending) {
   const t = $("thread");
   if (!chat.messages.length && !pending) {
-    t.innerHTML = `<div class="kai-welcome"><div><h1>Hi, I’m <span>KAI.</span></h1><p>Ask a question, work through an idea, or make a little progress on your next project.</p></div><img src="/redesign/kai-companion.svg" alt="KAI"><p class="hint">Powered by the decentralized Koinos AI network. You choose a model and control your spending limit. Browser conversations are saved to your account.</p></div>`;
+    t.innerHTML = KaiI18n.html`<div class="kai-welcome"><div><h1>Hi, I’m <span>KAI.</span></h1><p>Ask a question, work through an idea, or make a little progress on your next project.</p></div><img src="/redesign/kai-companion.svg" alt="KAI"><p class="hint">Powered by the decentralized Koinos AI network. You choose a model and control your spending limit. Browser conversations are saved to your account.</p></div>`;
     return;
   }
   /*
@@ -509,7 +506,7 @@ async function send(text) {
   chat.messages.push({ role: "user", content: text, servedModel: null });
   let answer = "";
   const draw = () => paintThread(
-    `<div class="msg bot"><div class="who">Koinos AI</div><div class="body">${esc(answer)}${answer ? "" : '<span class="dots"></span>'}</div></div>`
+    `<div class="msg bot"><div class="who">Koinos AI</div><div class="body">${esc(answer)}${answer ? "" : KaiI18n.html`<span class="dots"></span>`}</div></div>`
   );
   draw();
 
@@ -593,7 +590,7 @@ function wireComposer() {
    * ran. On a phone the advice is also just wrong: there is no Shift+Enter.
    */
   const setHint = () => {
-    input.placeholder = narrow() ? "Ask anything…" : "Ask anything — Enter to send, Shift+Enter for a new line";
+    KaiI18n.setAttribute(input, 'placeholder', narrow() ? KaiI18n.message`Ask anything…` : KaiI18n.message`Ask anything — Enter to send, Shift+Enter for a new line`);
   };
   setHint();
   window.addEventListener("resize", setHint);
@@ -622,7 +619,7 @@ function wireComposer() {
   $("run-mine").addEventListener("change", (e) => {
     network.useMine = e.target.checked;
     $("run-on").classList.toggle("on", network.useMine);
-    note(network.useMine ? "Answers will run on your own machine — no charge." : "");
+    note(network.useMine ? KaiI18n.message`Answers will run on your own machine — no charge.` : "");
   });
   $("composer").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -640,7 +637,7 @@ const docs = { list: [], current: null, body: "", title: "", busy: false, saveTi
 
 function docNote(text, bad) {
   const el = $("doc-note");
-  el.textContent = text || "";
+  KaiI18n.setText(el, text || "");
   el.style.color = bad ? "var(--danger)" : "";
 }
 
@@ -667,9 +664,9 @@ function paintDocList() {
   const open = el.classList.contains("open");
   el.className = `chat-list${narrow() && !open ? " collapsed" : ""}${open ? " open" : ""}`;
   el.innerHTML =
-    `<button class="new-chat" id="new-doc">+ New document</button>` +
-    `<button class="chat-switch" id="doc-switch"><span>${esc(here ? here.title : "No documents yet")}</span>▾</button>` +
-    docs.list.map((d) => `
+    KaiI18n.html`<button class="new-chat" id="new-doc">+ New document</button>` +
+    KaiI18n.html`<button class="chat-switch" id="doc-switch"><span>${esc(here ? here.title : "No documents yet")}</span>▾</button>` +
+    docs.list.map((d) => KaiI18n.html`
       <div class="chat-row${d.id === docs.current ? " active" : ""}" data-id="${esc(d.id)}">
         <button class="pick" title="${esc(d.title)}">${esc(d.title)}</button>
       </div>`).join("");
@@ -716,12 +713,12 @@ async function openDoc(did) {
   try {
     const { doc } = await api(`/app/api/docs/${encodeURIComponent(did)}`);
     docs.current = doc.id;
-    docs.title = doc.title === "Untitled" ? "" : doc.title;
+    KaiI18n.setAttribute(docs, 'title', doc.title === "Untitled" ? "" : doc.title);
     docs.body = doc.body;
     docs.dirty = false;
     $("doc-title").value = docs.title;
     $("doc-body").value = docs.body;
-    $("doc-status").textContent = "Saved";
+    KaiI18n.setText($("doc-status"), "Saved");
     docNote("");
   } catch (e) { docNote(e.message, true); }
 }
@@ -738,7 +735,7 @@ async function saveDoc() {
   const id = docs.current;
   const title = $("doc-title").value;
   const body = $("doc-body").value;
-  $("doc-status").textContent = "Saving…";
+  KaiI18n.setText($("doc-status"), "Saving…");
   try {
     const r = await api(`/app/api/docs/${encodeURIComponent(id)}`, { title, body }, "PUT");
     docs.list = r.docs;
@@ -747,7 +744,7 @@ async function saveDoc() {
     // every keystroke's save would steal focus from the field being typed in.
     const shown = $("doc-list").querySelector(`.chat-row[data-id="${id}"] .pick`);
     if (shown && shown.textContent !== r.doc.title) paintDocList();
-    $("doc-status").textContent = "Saved";
+    KaiI18n.setText($("doc-status"), "Saved");
   } catch (e) {
     $("doc-status").textContent = "";
     docNote(e.message, true);
@@ -756,7 +753,7 @@ async function saveDoc() {
 
 function touchDoc() {
   docs.dirty = true;
-  $("doc-status").textContent = "Unsaved";
+  KaiI18n.setText($("doc-status"), "Unsaved");
   if (docs.saveTimer) clearTimeout(docs.saveTimer);
   docs.saveTimer = setTimeout(() => { docs.saveTimer = null; saveDoc(); }, 900);
 }
@@ -778,10 +775,10 @@ async function askDoc(instruction) {
   const selection = docSelection();
   docs.busy = true;
   $("doc-ai-send").disabled = true;
-  docNote(selection ? "Asking about the selected passage…" : "Asking about the whole document…");
+  docNote(selection ? KaiI18n.message`Asking about the selected passage…` : KaiI18n.message`Asking about the whole document…`);
   $("doc-answer").hidden = false;
   const out = $("doc-answer-body");
-  out.innerHTML = '<span class="dots"></span>';
+  out.innerHTML = KaiI18n.html`<span class="dots"></span>`;
   let answer = "";
 
   try {
@@ -815,7 +812,7 @@ async function askDoc(instruction) {
         if (d.done) {
           answer = String(d.output ?? answer);
           out.textContent = answer;
-          docNote(d.servedModel ? `Answered by ${d.servedModel}. Nothing has been changed in your document.` : "");
+          docNote(d.servedModel ? KaiI18n.message`Answered by ${d.servedModel}. Nothing has been changed in your document.` : "");
         }
       }
     }
@@ -840,7 +837,7 @@ function wireDocs() {
   $("doc-delete").addEventListener("click", async () => {
     if (!docs.current) return;
     const d = docs.list.find((x) => x.id === docs.current);
-    if (!confirm(`Delete "${d?.title || "this document"}"? This cannot be undone.`)) return;
+    if (!confirm(KaiI18n.tMessage`Delete "${d?.title || "this document"}"? This cannot be undone.`)) return;
     if (docs.saveTimer) { clearTimeout(docs.saveTimer); docs.saveTimer = null; }
     docs.dirty = false; // do not resurrect it with a queued autosave
     try {
@@ -860,9 +857,7 @@ function wireDocs() {
    * was cut mid-word, which made it look like a bug rather than a hint.
    */
   const setDocHint = () => {
-    input.placeholder = narrow()
-      ? "Ask about this document…"
-      : "Ask about this document — \u201Ctighten this\u201D, \u201Cwhat am I missing?\u201D";
+    KaiI18n.setAttribute(input, 'placeholder', narrow() ? KaiI18n.message`Ask about this document…` : KaiI18n.message`Ask about this document — “tighten this”, “what am I missing?”`);
   };
   setDocHint();
   window.addEventListener("resize", setDocHint);
@@ -900,7 +895,7 @@ function wireDocs() {
     }
     touchDoc();
     hideAnswer();
-    docNote("Inserted. Ctrl+Z undoes it.");
+    docNote(KaiI18n.message`Inserted. Ctrl+Z undoes it.`);
   };
   $("doc-insert").addEventListener("click", () => put("insert"));
   $("doc-replace").addEventListener("click", () => put("replace"));
@@ -963,12 +958,10 @@ function paintRunOn() {
     // exactly the surprise this feature exists to avoid.
     network.useMine = false;
     cb.checked = false;
-    note("Your machine can't serve that model — switching back to the network.");
+    note(KaiI18n.message`Your machine can't serve that model — switching back to the network.`);
   }
   box.classList.toggle("on", network.useMine);
-  box.title = canServe
-    ? "Answer on your own machine. Costs nothing and never touches your spending limit."
-    : "";
+  KaiI18n.setAttribute(box, 'title', canServe ? KaiI18n.message`Answer on your own machine. Costs nothing and never touches your spending limit.` : "");
 }
 
 async function loadNetwork() {
@@ -982,12 +975,12 @@ async function loadNetwork() {
   const sel = $("composer-model");
   const prev = sel.value || network.choice;
   sel.innerHTML =
-    `<option value="auto">Best available</option>` +
-    list.map((m) => `<option value="${esc(m.model)}">${esc(m.model)} — ${usd(m.outUsdPerM)}/M out</option>`).join("");
+    KaiI18n.html`<option value="auto">Best available</option>` +
+    list.map((m) => KaiI18n.html`<option value="${esc(m.model)}">${esc(m.model)} — ${usd(m.outUsdPerM)}/M out</option>`).join("");
   sel.value = list.some((m) => m.model === prev) || prev === "auto" ? prev : "auto";
   network.choice = sel.value;
   paintRunOn();
-  if (!list.length) note("Nobody is serving the network right now — an answer may take a moment or be refused.");
+  if (!list.length) note(KaiI18n.message`Nobody is serving the network right now — an answer may take a moment or be refused.`);
 }
 
 /* ---------------------------------------------------------------- memory */
@@ -1003,10 +996,10 @@ async function loadMemory() {
 function paintMemory() {
   const el = $("mem-list");
   if (!memory.list.length) {
-    el.innerHTML = `<p class="hint" style="margin-top:10px">Nothing remembered yet.</p>`;
+    el.innerHTML = KaiI18n.html`<p class="hint" style="margin-top:10px">Nothing remembered yet.</p>`;
     return;
   }
-  el.innerHTML = memory.list.map((m) => `
+  el.innerHTML = memory.list.map((m) => KaiI18n.html`
     <div class="mem-item" data-id="${esc(m.id)}">
       <span>${esc(m.text)}<i class="u">${m.uses ? `used ${m.uses}×` : "not used yet"}</i></span>
       <button title="Forget this">✕</button>
@@ -1049,7 +1042,7 @@ const tasks = { list: [], busy: false };
 
 function taskNote(text, bad) {
   const el = $("task-note");
-  el.textContent = text || "";
+  KaiI18n.setText(el, text || "");
   el.style.color = bad ? "var(--danger)" : "";
 }
 
@@ -1072,18 +1065,18 @@ async function loadTasks() {
 function taskCard(t) {
   const last = t.lastRunAt
     ? t.lastOk
-      ? `<div class="hint" style="margin-bottom:5px">Last run ${esc(when(t.lastRunAt))} · run ${t.runs}</div><div class="last">${esc(t.lastOutput || "(empty answer)")}</div>`
-      : `<div class="hint" style="margin-bottom:5px;color:var(--danger)">Last run ${esc(when(t.lastRunAt))} failed: ${esc(t.lastError || "")}</div>`
-    : `<p class="hint">Has not run yet.</p>`;
-  return `
+      ? KaiI18n.html`<div class="hint" style="margin-bottom:5px">Last run ${esc(when(t.lastRunAt))} · run ${t.runs}</div><div class="last">${esc(t.lastOutput || "(empty answer)")}</div>`
+      : KaiI18n.html`<div class="hint" style="margin-bottom:5px;color:var(--danger)">Last run ${esc(when(t.lastRunAt))} failed: ${esc(t.lastError || "")}</div>`
+    : KaiI18n.html`<p class="hint">Has not run yet.</p>`;
+  return KaiI18n.html`
     <div class="card task-card${t.enabled ? "" : " paused"}" data-id="${esc(t.id)}">
       <h2>${esc(t.title)}</h2>
-      <div class="when">${esc(everyLabel(t.everyMinutes))} · ${t.enabled ? `next ${esc(when(t.nextRunAt, true))}` : "not scheduled"}</div>
+      <div class="when">${KaiI18n.textHTML(everyLabel(t.everyMinutes))} · ${t.enabled ? `next ${esc(when(t.nextRunAt, true))}` : "not scheduled"}</div>
       <div class="prompt">${esc(t.prompt)}</div>
       ${last}
       <div class="task-actions">
         <button class="btn small" data-act="run">Run now</button>
-        <button class="btn small ghost" data-act="toggle">${t.enabled ? "Pause" : "Resume"}</button>
+        <button class="btn small ghost" data-act="toggle">${KaiI18n.textHTML(t.enabled ? "Pause" : "Resume")}</button>
         <button class="btn small ghost" data-act="delete">Delete</button>
       </div>
     </div>`;
@@ -1092,7 +1085,7 @@ function taskCard(t) {
 function paintTasks() {
   const el = $("task-list");
   if (!tasks.list.length) {
-    el.innerHTML = `<div class="card"><p class="hint">No tasks yet. A good first one: “Summarise what changed on the Koinos Network today.”</p></div>`;
+    el.innerHTML = KaiI18n.html`<div class="card"><p class="hint">No tasks yet. A good first one: “Summarise what changed on the Koinos Network today.”</p></div>`;
     return;
   }
   el.innerHTML = tasks.list.map(taskCard).join("");
@@ -1102,7 +1095,7 @@ function paintTasks() {
     card.querySelector('[data-act="run"]').onclick = () => runTaskNow(id, card);
     card.querySelector('[data-act="toggle"]').onclick = () => patchTask(id, { enabled: !t.enabled });
     card.querySelector('[data-act="delete"]').onclick = async () => {
-      if (!confirm(`Delete "${t.title}"? It stops running immediately.`)) return;
+      if (!confirm(KaiI18n.tMessage`Delete "${t.title}"? It stops running immediately.`)) return;
       try {
         const r = await api(`/app/api/tasks/${encodeURIComponent(id)}`, undefined, "DELETE");
         tasks.list = r.tasks;
@@ -1126,7 +1119,7 @@ async function runTaskNow(id, card) {
   tasks.busy = true;
   const btn = card.querySelector('[data-act="run"]');
   btn.disabled = true;
-  btn.textContent = "Running…";
+  KaiI18n.setText(btn, "Running…");
   try {
     // Run-now takes the same code path the schedule takes, so this is a real
     // rehearsal rather than a lookalike. It can take a while — a big class
@@ -1146,7 +1139,7 @@ function wireTasks() {
   $("task-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const prompt = $("task-prompt").value.trim();
-    if (!prompt) return taskNote("A task needs a prompt.", true);
+    if (!prompt) return taskNote(KaiI18n.message`A task needs a prompt.`, true);
     const everyMinutes = Number($("task-every").value);
     const btn = $("task-create");
     btn.disabled = true;
@@ -1175,19 +1168,18 @@ function wirePurge() {
   $("purge").addEventListener("click", async () => {
     // Two confirmations, because this is not undoable and the button sits on
     // a page people visit to read a balance.
-    if (!confirm("Delete every chat, document, task and memory stored here?\n\nThis cannot be undone. Your account, wallets and spending grants are not affected.")) return;
-    if (!confirm("Last check — this deletes all of it, permanently.")) return;
+    if (!confirm(KaiI18n.t("Delete every chat, document, task and memory stored here?\n\nThis cannot be undone. Your account, wallets and spending grants are not affected."))) return;
+    if (!confirm(KaiI18n.t("Last check — this deletes all of it, permanently."))) return;
     const note = $("purge-note");
-    note.textContent = "Deleting…";
+    KaiI18n.setText(note, "Deleting…");
     try {
       const { deleted } = await api("/app/api/data", undefined, "DELETE");
       const n = (v, one, many) => `${v} ${v === 1 ? one : many}`;
-      note.textContent =
-        `Deleted ${n(deleted.chats, "chat", "chats")}, ` +
+      KaiI18n.setText(note, `Deleted ${n(deleted.chats, "chat", "chats")}, ` +
         `${n(deleted.docs, "document", "documents")}, ` +
         `${n(deleted.tasks, "task", "tasks")}, ` +
         `${n(deleted.memories, "memory", "memories")} and ` +
-        `${n(deleted.spendEvents, "spend record", "spend records")}.`;
+        `${n(deleted.spendEvents, "spend record", "spend records")}.`);
       // Everything on screen is now stale — reload the views that showed it.
       chat.current = null;
       docs.current = null;
@@ -1228,7 +1220,7 @@ function boot() {
     .then(() => show(location.hash.slice(1) || "chat"))
     .catch((e) => {
       // Not the signed-out case (that redirected already) — something broke.
-      $("gate-msg").textContent = `Could not load your account: ${e.message}`;
+      KaiI18n.setText($("gate-msg"), KaiI18n.message`Could not load your account: ${e.message}`);
       $("view-gate").hidden = false;
     });
 

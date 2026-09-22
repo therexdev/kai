@@ -26,43 +26,42 @@ const kindOf = (k) => (KINDS.has(String(k)) ? String(k) : "change");
 function when(iso) {
   const d = new Date(`${iso}T00:00:00Z`);
   if (isNaN(d)) return esc(iso);
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
+  return d.toLocaleDateString(KaiI18n.language, { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 }
 
 function releaseCard(r, isLatest) {
   const items = (r.changes || [])
-    .map((c) => `<li><span class="kind ${kindOf(c.kind)}">${esc(kindOf(c.kind))}</span><span>${esc(c.text)}</span></li>`)
+    .map((c) => KaiI18n.html`<li><span class="kind ${kindOf(c.kind)}">${esc(KaiI18n.t(kindOf(c.kind)))}</span><span lang="en">${esc(c.text)}</span></li>`)
     .join("");
-  return `<article class="rel" id="v${esc(r.version)}">
+  return KaiI18n.html`<article class="rel" id="v${esc(r.version)}">
     <div class="rel-head">
       <a class="ver" href="#v${esc(r.version)}">v${esc(r.version)}</a>
       <span class="date">${when(r.date)}</span>
-      ${isLatest ? `<span class="tag">Latest</span>` : ""}
+      ${isLatest ? KaiI18n.html`<span class="tag">Latest</span>` : ""}
     </div>
-    ${r.title ? `<h2>${esc(r.title)}</h2>` : ""}
+    ${r.title ? `<h2 lang="en">${esc(r.title)}</h2>` : ""}
     <ul>${items || `<li><span>No notes for this release.</span></li>`}</ul>
   </article>`;
 }
 
 async function load() {
+  document.getElementById("release-language-note").hidden = KaiI18n.language === "en";
   let data;
   try {
     const r = await fetch("/updates.json", { headers: { accept: "application/json" }, cache: "no-store" });
     data = await r.json();
   } catch {
     document.getElementById("list").innerHTML =
-      `<p class="empty">Couldn't load the update list just now. Try again in a moment.</p>`;
+      KaiI18n.html`<p class="empty">Couldn't load the update list just now. Try again in a moment.</p>`;
     return;
   }
 
   const releases = Array.isArray(data.releases) ? data.releases : [];
   document.getElementById("list").innerHTML = releases.length
     ? releases.map((r) => releaseCard(r, r.version === data.latest)).join("")
-    : `<p class="empty">No releases listed yet.</p>`;
+    : KaiI18n.html`<p class="empty">No releases listed yet.</p>`;
 
-  document.getElementById("foot").textContent = releases.length
-    ? `${releases.length} release${releases.length === 1 ? "" : "s"} listed · latest v${data.latest}`
-    : "";
+  KaiI18n.setText(document.getElementById("foot"), releases.length ? KaiI18n.message`Releases listed: ${releases.length} · latest v${data.latest}` : "");
 
   /*
    * Land on the release the app asked about. The browser already tried this
@@ -88,9 +87,10 @@ async function load() {
     const note = document.createElement("p");
     note.className = "empty";
     note.style.marginBottom = "14px";
-    note.textContent = `No notes listed for ${want.slice(1)} — it may predate this page. The releases below are the ones on record.`;
+    KaiI18n.setText(note, KaiI18n.message`No notes listed for ${want.slice(1)} — it may predate this page. The releases below are the ones on record.`);
     document.getElementById("list").prepend(note);
   }
 }
 
+document.addEventListener("kai:language-changed", load);
 load();
