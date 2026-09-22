@@ -1,7 +1,26 @@
 {
   "_comment": "The source of truth for koinosai.com/updates and for the What's new link in the app's update popup. Newest first. Every kaiapp [release] MUST add an entry here in the same session it ships, or a tester gets a popup pointing at a version the page has never heard of. `kind` is one of: new, fix, change.",
-  "latest": "0.54.10",
+  "latest": "0.54.11",
   "releases": [
+    {
+      "version": "0.54.11",
+      "date": "2026-09-22",
+      "title": "Koinos AI primary API with automatic backup connections",
+      "changes": [
+        {
+          "kind": "change",
+          "text": "The desktop app now uses https://api.koinosai.com as its default Mainnet API, with https://api.koinosblocks.com and https://api.koinos.io as automatic backups. Explicitly configured custom RPC endpoints keep priority."
+        },
+        {
+          "kind": "fix",
+          "text": "RPC requests move to a backup after a timeout, connection or HTTP failure, invalid response, or missing RPC method. Each endpoint gets one attempt per request, with a 12-second timeout; later requests try the primary again."
+        },
+        {
+          "kind": "change",
+          "text": "Local node health and synchronization checks still query the local node directly. Transaction transport retries reuse the same signed transaction, while chain and contract rejections retain their original error instead of being retried through another provider."
+        }
+      ]
+    },
     {
       "version": "0.54.10",
       "date": "2026-09-20",
