@@ -22,8 +22,10 @@ The paper is served straight from `public/` at the stable path **`/whitepaper.pd
 The website interface supports English, Spanish, Brazilian Portuguese, French,
 and German. A first visit uses the first supported language in the browser's
 language preferences, falling back to English. The language selector applies
-immediately and saves an explicit choice in this browser. “Browser language”
-clears that choice and follows the browser again. Language changes do not reload
+immediately and saves an explicit choice in this browser. Its compact box shows
+the active language (EN, ES, PT, FR or DE), including the detected browser default.
+It sits beside the desktop menu links and at the bottom of the expanded mobile
+menu. Language changes do not reload
 the page, reset forms, sign out accounts, or translate user content, addresses,
 model identifiers, or source code.
 

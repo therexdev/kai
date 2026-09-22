@@ -18,6 +18,33 @@ async function route(route){
  if(!fs.existsSync(file))return route.fulfill({status:404,body:'missing'});
  return route.fulfill({contentType:mime[path.extname(file)]||'application/octet-stream',body:fs.readFileSync(file)});
 }
+async function openLanguageMenu(page){
+ if(await page.locator('[data-language-select]').isVisible())return;
+ const toggle=page.locator('.menu-toggle');
+ if(await toggle.count())await toggle.click();
+ else await page.locator('.kai-site-menu summary').click();
+}
+async function checkLanguageLayout(page){
+ const select=page.locator('[data-language-select]');
+ await openLanguageMenu(page);
+ const layout=await select.evaluate(el=>{
+  const box=el.getBoundingClientRect(),control=el.parentElement,menu=control.parentElement;
+  const lastLink=[...menu.children].filter(child=>child.tagName==='A').at(-1)?.getBoundingClientRect();
+  const mobile=menu.matches('.mobile-nav,.kai-site-menu nav');
+  const header=el.closest('.site-nav,.kai-site-header');
+  return {width:box.width,height:box.height,mobile,inMenu:menu.matches('.nav-links,.kai-site-links,.mobile-nav,.kai-site-menu nav'),
+   belowLinks:!lastLink||box.top>=lastLink.bottom,inline:!lastLink||Math.abs((box.top+box.bottom-lastLink.top-lastLink.bottom)/2)<2,
+   afterLinks:!lastLink||box.left>=lastLink.right,insideHeader:!header||box.right<=header.getBoundingClientRect().right,
+   value:el.value,label:el.selectedOptions[0].textContent,options:[...el.options].map(o=>o.textContent),
+   overflow:document.documentElement.scrollWidth>innerWidth+1};
+ });
+ assert.equal(layout.width,44);assert.equal(layout.height,44);assert.equal(layout.overflow,false);
+ assert.equal(layout.label,layout.value.slice(0,2).toUpperCase());
+ assert.deepEqual(layout.options,['EN','ES','PT','FR','DE']);
+ assert.equal(layout.inMenu,true);assert.equal(layout.insideHeader,true);
+ if(layout.mobile)assert.equal(layout.belowLinks,true);else{assert.equal(layout.inline,true);assert.equal(layout.afterLinks,true);}
+ return layout;
+}
 (async()=>{
  const browser=await chromium.launch({headless:true});
  const context=await browser.newContext({locale:'es-MX',viewport:{width:390,height:844}});await context.route('**/*',route);
@@ -35,13 +62,34 @@ async function route(route){
    await page.setViewportSize({width:390,height:844});
   }
  }
- await page.goto('http://kai.test/');await page.selectOption('[data-language-select]','de');await page.locator('#waitlist-email').fill('user@example.com');
+ await page.goto('http://kai.test/');await openLanguageMenu(page);await page.selectOption('[data-language-select]','de');await page.locator('#waitlist-email').fill('user@example.com');
  await page.selectOption('[data-language-select]','fr');assert.equal(await page.inputValue('#waitlist-email'),'user@example.com');
  await page.click('[data-feature="brain"]');assert.equal(await page.locator('#tour-title').textContent(),'Une IA qui connaît votre univers.');
  await page.goto('http://kai.test/network');assert.equal(await page.locator('html').getAttribute('lang'),'fr');
  assert.equal(await page.locator('#modelsBody .mono').textContent(),'Home');
- await page.selectOption('[data-language-select]','en');assert.equal(await page.locator('h1').textContent(),'AI, powered by people.');
- await page.selectOption('[data-language-select]','auto');assert.equal(await page.locator('html').getAttribute('lang'),'es');
- await page.goto('http://kai.test/');await page.screenshot({path:path.join(__dirname,'website-mobile-es.png'),fullPage:false});
+ await openLanguageMenu(page);await page.selectOption('[data-language-select]','en');assert.equal(await page.locator('h1').textContent(),'AI, powered by people.');
+ await page.evaluate(()=>localStorage.removeItem('kai-website-language'));await page.reload();
+ assert.equal(await page.locator('html').getAttribute('lang'),'es');assert.equal(await page.inputValue('[data-language-select]'),'es');
+ // Exercise both header styles around their mobile breakpoints, preserving one
+ // selector while it moves into/out of the menu, for every supported language.
+ for(const url of ['/','/network']){
+  await page.goto('http://kai.test'+url);
+  for(const lang of ['en','es','pt-BR','fr','de']){
+   await page.evaluate(lang=>KaiI18n.setLanguage(lang),lang);
+   for(const width of [390,720,721,850,851,1024,1440]){
+    await page.setViewportSize({width,height:900});await page.waitForTimeout(50);
+    await checkLanguageLayout(page);
+   }
+  }
+ }
+ await page.goto('http://kai.test/');await page.screenshot({path:path.join(__dirname,'website-desktop-es.png'),fullPage:false});
+ await page.setViewportSize({width:390,height:844});await checkLanguageLayout(page);
+ await page.screenshot({path:path.join(__dirname,'website-mobile-es.png'),fullPage:false});
+ const english=await browser.newContext({locale:'en-US',viewport:{width:1440,height:900}});await english.route('**/*',route);
+ const firstVisit=await english.newPage();await firstVisit.goto('http://kai.test/');
+ assert.equal(await firstVisit.inputValue('[data-language-select]'),'en');
+ assert.equal(await firstVisit.locator('[data-language-select] option:checked').textContent(),'EN');
+ assert.equal(await firstVisit.evaluate(()=>localStorage.getItem('kai-website-language')),null);
+ await english.close();
  console.log(JSON.stringify({reports,errors},null,2));await browser.close();if(errors.length)process.exitCode=1;
 })().catch(e=>{console.error(e);process.exit(1)});
