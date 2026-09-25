@@ -2,8 +2,9 @@
 
 This branch adds shadow-only master adapters for the approved KOIN transition.
 The availability router is disabled by default. A separate paid-job development
-engine now implements reservations, metering, receipt verification and read-only
-settlement reconciliation. There is no KOIN signer, broadcaster, contract
+engine now implements reservations, a pinned Qwen tokenizer, an opt-in
+worker/scheduler flow, receipt verification and read-only settlement
+reconciliation. There is no KOIN signer, broadcaster, contract
 deployment or payout change.
 
 Enable only on an explicitly selected instance with `KAI_KOIN_SHADOW=1`,
@@ -41,8 +42,9 @@ reliability, production retention/backup/recovery, finality reconciliation and
 real tariffs remain activation gates.
 
 See [koin-paid-jobs.md](koin-paid-jobs.md) for the new shadow job engine,
-its tested recovery behavior, and the remaining integration work. It has no
-public routes and does not feed synthetic charges into reward allocations.
+its tested recovery behavior, operator-controlled experiment routes, and the
+remaining integration work. It does not feed synthetic charges into reward
+allocations. Production `server.js` does not enable that experiment.
 
 `node scripts/probe-koin-shadow.js` tests protocol signatures, full-minute
 coverage, restarts, operator controls and the actual Scheduler mount. Existing
