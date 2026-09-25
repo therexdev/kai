@@ -16,6 +16,7 @@ existing availability shadow router remains independent.
 | `lib/koin-network/tokenizer.js` | Hash-verified local Hugging Face tokenizer and Jinja chat template, checked against reference vectors |
 | `lib/koin-network/work-router.js` | Operator-controlled experiment routes, qualified worker dispatch and bound receipts |
 | `lib/koin-network/consumer-review.js` | In-process customer review harness, exact signed approval, retry and session revocation |
+| `lib/koin-network/funded-session.js` | Read-only custody/session evidence tied to a subsequently irreversible observed block |
 | `lib/koin-network/job-protocol.js` | Shared Test/master quote and receipt validation; canonical copy in `kaiapp/core/lib/koin-network` |
 | `scripts/probe-koin-paid-jobs.js` | Financial invariants, multiple writers, abrupt exit, replay and fork recovery tests |
 
@@ -100,6 +101,8 @@ required. The client cannot supply either decision.
 | `/koin/shadow/jobs/grant` | Operator secret | Create a synthetic bounded grant |
 | `/koin/shadow/jobs/session` | Operator secret | Read synthetic session limits, holds, expiry and revocation |
 | `/koin/shadow/jobs/revoke` | Operator secret | Stop new work; retain holds for accepted or uncertain work |
+| `/koin/shadow/jobs/funding-observe` | Operator secret, configured observer | Capture pinned chain/session/custody state; does not create a grant |
+| `/koin/shadow/jobs/funding-verify` | Operator secret, configured observer | Check observed block finality and unchanged current session state |
 | `/koin/shadow/jobs/quote` | Operator secret | Count and quote literal messages |
 | `/koin/shadow/jobs/reserve` | Operator secret plus consumer signature | Reserve the quote; verify original messages; hold transient prompt |
 | `/koin/shadow/jobs/status` | Operator secret | Read state and counted usage, never plaintext output |
@@ -210,6 +213,45 @@ verification and control all ledger mutations behind the trusted service boundar
 
 ## Remaining integration and activation gates
 
+### Funded-session evidence
+
+`FundedSessionObserver` is a read-only component. An operator can provide an
+instance as `koinWork.fundingObserver`; production does not configure it.
+Construction requires a trusted provider and explicit chain ID, credits address
+and WASM hash, KOIN token address, verifier address, tariff policy hash and policy
+version. It uses the generated credits ABI for `config`, `get_session` and
+`balances`, checks contract metadata and refuses extra authority flags.
+
+Ordinary Koinos `chain.read_contract` accepts contract ID, entry point and args;
+it has no block-selector field. Therefore a current read alone is not an
+irreversible-state proof. `observe({id, owner})` sandwiches the reads between
+matching head IDs/heights/timestamps on one coherent RPC node and privately
+retains the snapshot. `verify(observationId)` waits until that observed height
+is irreversible and resolves the block against the head that supplied LIB.
+It then repeats the pinned reads. Changed session/custody/configuration state
+requires a new observation; revocation, pause, exhaustion, expiry, insufficient
+backing, stale heads, wrong chains or changed bytecode are rejected.
+
+Successful evidence reports remaining funds, per-job limit, remaining jobs,
+nonce, expiry, state hash and block references. It **always** reports
+`paymentsEnabled: false` and `spendingAuthorized: false`. It never imports a
+chain balance into a simulation grant, dispatches work, signs or broadcasts.
+Finalized custody evidence alone does not solve concurrent reservation ownership,
+consumer authentication, dispatch-time revalidation or settlement submission.
+Those remain required before paid work is enabled.
+
+The observer trusts the configured RPC node; it is not a cryptographic light
+client or a guarantee against a dishonest or incoherent load-balanced provider.
+Reads retry if the head moves. The head must be within two minutes of the local
+clock (at most one minute ahead). At most 32 private observations are retained,
+with a default 15-minute lifetime. A restart requires observing again, never
+reconstructing authority from client-supplied evidence. No snapshots are accepted
+from HTTP callers. This iteration is tested with ABI-serialized fixture RPC
+responses and scheduler HTTP requests, not deployed/funded contracts.
+
+Run `node scripts/probe-koin-funded-session.js`. RPC field reference:
+[Koinos chain RPC definitions](https://pkg.go.dev/github.com/koinos/koinos-proto-golang/v2@v2.6.0/koinos/rpc/chain#ReadContractRequest).
+
 ### Offline tariff calibration
 
 `node scripts/calibrate-koin-tariff.js TOKENIZER_DIRECTORY EVIDENCE.json` writes
@@ -249,9 +291,10 @@ Run `node scripts/probe-koin-calibration.js` for the offline accounting checks.
 - Measure hardware costs, model tariffs and SLA/challenge rules; extend the
   reference/pinned-tokenizer coverage beyond Koinos Fast. The implemented Qwen
   adapter verifies artifacts and token IDs, but supplies no production prices.
-- Verify funded grants, balances, revocations and policy from finalized chain
-  state; coordinate session ownership across verifier replicas. The current
-  synthetic grant API must never become remote spending authorization.
+- Connect the read-only funded-session evidence to a distinct durable funded
+  reservation ledger, with current dispatch-time revocation checks and exclusive
+  session ownership across verifier replicas. The current synthetic grant API
+  must never become remote spending authorization.
 - Implement reviewed consumer quote acceptance and funded-session controls in
   the desktop UI. The worker/scheduler shadow protocol is connected, but existing
   `jobId|output` signatures and provider-reported usage remain ineligible for
