@@ -1,0 +1,10 @@
+{
+  "source": "therexdev/kaiapp/core/lib/koin-network",
+  "mode": "shadow-only",
+  "sha256": {
+    "policy.js": "510cf4df51b720ccdd8688eb8a6f627ae67b38e50aac225bca2c7d124973549c",
+    "presence.js": "c72b18edb144c1da28470b4ff5b55c38403b92b16aca7edf021b96c08d586ce7",
+    "shadow.js": "df2c8571cf0141cffa0491d9cc339de7c6382cb982c1dc49be24057f8686da78",
+    "shadow-router.js": "970b44bf5ac7dcb65b4f515fab61926f3874bc49eec5a9e6881418896212a8a0"
+  }
+}
