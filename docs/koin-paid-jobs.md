@@ -17,6 +17,7 @@ existing availability shadow router remains independent.
 | `lib/koin-network/work-router.js` | Operator-controlled experiment routes, qualified worker dispatch and bound receipts |
 | `lib/koin-network/consumer-review.js` | In-process customer review harness, exact signed approval, retry and session revocation |
 | `lib/koin-network/funded-session.js` | Read-only custody/session evidence tied to a subsequently irreversible observed block |
+| `lib/koin-network/funded-reservations.js` | Separate durable funded-accounting rehearsal; verified observations, approved quotes and atomic holds |
 | `lib/koin-network/job-protocol.js` | Shared Test/master quote and receipt validation; canonical copy in `kaiapp/core/lib/koin-network` |
 | `scripts/probe-koin-paid-jobs.js` | Financial invariants, multiple writers, abrupt exit, replay and fork recovery tests |
 
@@ -213,6 +214,51 @@ verification and control all ledger mutations behind the trusted service boundar
 
 ## Remaining integration and activation gates
 
+### Durable funded reservation rehearsal
+
+`FundedReservations` now connects `FundedSessionObserver` to a separate SQLite
+ledger. It requires explicit deployment pins and the matching `Meter` policy.
+It cannot import synthetic grants or accept funding evidence from a request
+body. `reserve` and `markDispatched` call the trusted observer themselves and
+require freshly rechecked, irreversible evidence for the correct contract,
+owner, session and tariff policy. Evidence older than five seconds is refused
+at the database write. Fresh observation IDs must be obtained again after a
+restart; existing holds remain durable.
+
+Only quotes issued by this ledger's configured meter can be reserved. Consumer
+signatures use `KAI-KOIN-FUNDED-RESERVATION-REHEARSAL-V1`, binding the chain,
+contract, bytecode, policy, domain, action, session, job and quote hash. Existing
+shadow approvals and reserve signatures cannot authorize cancellation. Prompt
+text is never persisted: the ledger stores quoted counts/commitments, signatures
+and financial evidence. The test-only byte tokenizer is not a production tariff.
+
+Reservations use `BEGIN IMMEDIATE` with WAL and `synchronous=FULL`, checking
+per-job limits, total outstanding holds and remaining job slots together.
+Repeated identical requests return the existing hold; changing a job's terms
+is refused. Signed cancellation releases an undispatched hold. Once marked
+dispatched, no cancellation, timeout or restart releases it automatically.
+`markDispatched` records an accounting transition only and sends no job.
+
+Any change to the session's on-chain remaining amount, nonce, owner, limits or
+expiry after adoption persistently freezes that session for reconciliation.
+The freeze commits before the operation returns an error. This intentionally
+does not guess which local job a chain charge represents or reset a balance.
+There is no unfreeze, settlement, transfer or broadcast path in this iteration.
+Status is explicitly the last verified accounting snapshot, not a live balance.
+
+All processes serving a deployment must share one operator-owned database.
+Independent databases/hosts are **not** coordinated; cross-host ownership and
+failover fencing remain activation gates. The ledger is not wired to public
+routes, live workers, the desktop signer or a settlement keeper. Every returned
+reservation is `funded-rehearsal` with `paymentsEnabled: false`. No fund movement
+occurs. The existing consumer harness still uses the separate shadow protocol;
+its signature must not be reused as funded approval.
+
+Run `node scripts/probe-koin-funded-reservations.js`. Tests use the real observer
+against ABI-serialized fixture RPC responses and cover duplicate requests,
+competing database writers, forged prices, signed cancellations, dispatch-time
+revocation, abrupt process exit, deployment identity and persistent freezes.
+
 ### Funded-session evidence
 
 `FundedSessionObserver` is a read-only component. An operator can provide an
@@ -291,10 +337,10 @@ Run `node scripts/probe-koin-calibration.js` for the offline accounting checks.
 - Measure hardware costs, model tariffs and SLA/challenge rules; extend the
   reference/pinned-tokenizer coverage beyond Koinos Fast. The implemented Qwen
   adapter verifies artifacts and token IDs, but supplies no production prices.
-- Connect the read-only funded-session evidence to a distinct durable funded
-  reservation ledger, with current dispatch-time revocation checks and exclusive
-  session ownership across verifier replicas. The current synthetic grant API
-  must never become remote spending authorization.
+- Complete explicit funded-ledger reconciliation against individual finalized
+  charges and exclusive ownership/failover fencing across verifier hosts. The
+  durable rehearsal now enforces funding checks but sends no work. Synthetic
+  grants must never become remote spending authorization.
 - Implement reviewed consumer quote acceptance and funded-session controls in
   the desktop UI. The worker/scheduler shadow protocol is connected, but existing
   `jobId|output` signatures and provider-reported usage remain ineligible for
