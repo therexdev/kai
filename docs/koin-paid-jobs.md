@@ -176,6 +176,42 @@ verification and control all ledger mutations behind the trusted service boundar
 
 ## Remaining integration and activation gates
 
+### Offline tariff calibration
+
+`node scripts/calibrate-koin-tariff.js TOKENIZER_DIRECTORY EVIDENCE.json` writes
+a shadow-only report to stdout. This reads the pinned Qwen pack locally and
+never contacts a scheduler, installs prices, qualifies workers or submits funds.
+Keep the input private: it contains benchmark prompts and outputs. Reports omit
+those texts. The evidence hash binds sanitized measurements, not raw transcripts.
+
+The evidence object contains `tariff` (the exact Meter tariff schema), `samples`,
+and optional `minimumSamples` (default 20), `providerCostCoverageBps` (10000),
+`workCapBps` (8000), `rewardRevenueBps` (6000). Each sample requires a unique
+SHA-256 `id`, the tariff's `modelHash`, `tokenizerHash`, `templateHash`, positive
+`elapsedMs`, positive integer-string `costAtoms`, and boolean `accepted`.
+Accepted samples additionally require literal `messages`, `output`, and
+`maxOutput`. Counts are recomputed locally; supplied token counts are ignored.
+Accepted jobs must fit the proposed context/output/deadline limits. Failed jobs
+contribute costs but zero revenue. Duplicate IDs and mismatched pins are refused.
+
+Operators must measure costs consistently, including electricity and allocated
+hardware/hosting costs, and document the timestamp and KOIN conversion assumptions
+separately. Costs and acceptance verdicts are operator assertions, not proofs.
+Use representative hardware, prompt lengths, cold starts and failure cases;
+twenty accepted examples alone do not establish representative performance.
+
+The report compares total costs with revenue under the proposed tariff and
+calculates a conservative candidate keeping the proposed input/output rate ratio.
+Required revenue covers cost under both the work-reward cap and the reward
+replenishment fraction. Availability subsidies are deliberately excluded.
+Integer rounding and uint64 bounds are enforced. The candidate is a planning
+estimate: work rewards remain limited by the daily pool, and competing providers
+can change actual payouts. It never guarantees cost recovery. With no accepted
+samples there is no candidate. All reports keep `productionApproved: false`;
+prices, service thresholds and live activation still require separate review.
+
+Run `node scripts/probe-koin-calibration.js` for the offline accounting checks.
+
 - Measure hardware costs, model tariffs and SLA/challenge rules; extend the
   reference/pinned-tokenizer coverage beyond Koinos Fast. The implemented Qwen
   adapter verifies artifacts and token IDs, but supplies no production prices.
