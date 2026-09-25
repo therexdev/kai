@@ -15,6 +15,7 @@ existing availability shadow router remains independent.
 | `lib/koin-network/settlement-monitor.js` | Encodes the Test credits ABI; reconciles the exact pending intent against a pinned contract |
 | `lib/koin-network/tokenizer.js` | Hash-verified local Hugging Face tokenizer and Jinja chat template, checked against reference vectors |
 | `lib/koin-network/work-router.js` | Operator-controlled experiment routes, qualified worker dispatch and bound receipts |
+| `lib/koin-network/consumer-review.js` | In-process customer review harness, exact signed approval, retry and session revocation |
 | `lib/koin-network/job-protocol.js` | Shared Test/master quote and receipt validation; canonical copy in `kaiapp/core/lib/koin-network` |
 | `scripts/probe-koin-paid-jobs.js` | Financial invariants, multiple writers, abrupt exit, replay and fork recovery tests |
 
@@ -97,6 +98,8 @@ required. The client cannot supply either decision.
 | POST route | Access | Effect |
 | --- | --- | --- |
 | `/koin/shadow/jobs/grant` | Operator secret | Create a synthetic bounded grant |
+| `/koin/shadow/jobs/session` | Operator secret | Read synthetic session limits, holds, expiry and revocation |
+| `/koin/shadow/jobs/revoke` | Operator secret | Stop new work; retain holds for accepted or uncertain work |
 | `/koin/shadow/jobs/quote` | Operator secret | Count and quote literal messages |
 | `/koin/shadow/jobs/reserve` | Operator secret plus consumer signature | Reserve the quote; verify original messages; hold transient prompt |
 | `/koin/shadow/jobs/status` | Operator secret | Read state and counted usage, never plaintext output |
@@ -119,6 +122,37 @@ context cannot be accepted and eventually expire. This is deliberately not yet
 a production job retry/outbox system. No consumer purchase UI is enabled.
 
 ## Reservations and result validation
+
+The `ShadowConsumerReview` harness exercises the consumer side against these
+operator-only routes. It requires a pinned shadow domain, owner and tariff policy,
+an in-process signing callback and a trusted transport. The transport maps each
+short route name to `/koin/shadow/jobs/<name>` and returns its JSON response;
+operator credentials must never be bundled into a customer app.
+
+`review(...)` returns an exact eight-decimal simulated KOIN maximum, model,
+input/output limits, session availability, per-job limit and expiry. It validates
+the request and quote commitments and does not sign. `reject(reviewId)` drops
+the pending prompt. Only `approve(reviewId, quoteHash)` invokes the signer,
+after refreshing session limits and checking expiry. The signed message is
+domain-separated shadow authorization, never a blockchain transaction.
+Concurrent approvals cannot invoke the signer twice. A lost acknowledgment
+retains the original request for `retry(reviewId)` with the same ID/signature;
+it never generates another job or assumes the server released the hold.
+
+`revoke(sessionId)` remains available for exhausted, expired and already-revoked
+sessions. The server removes undispatched work on its next sweep but retains
+dispatched work until its deadline and preserves verified/uncertain holds.
+Revocation is not a refund. Session routes require the operator secret and are
+absent when the shadow service is disabled.
+
+This is an isolated integration harness, not a desktop approval UI or funded
+session verifier. Pending/uncertain consumer payloads are bounded to 32 and
+retained only in process memory. After a consumer restart, the master ledger
+still owns the durable holds; automatic consumer retry recovery remains a
+separate requirement. Before production, transport authentication must be
+consumer-scoped, on-chain funding and revocation must be verified, and the
+desktop must connect its private per-request approval/signing boundary. No
+operator secret or network-accessible signer may be used to bypass that work.
 
 1. Create a quote using the configured adapter. The consumer signs a hash binding
    the shadow domain, session, unique job ID and exact quote.
