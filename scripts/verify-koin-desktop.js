@@ -84,3 +84,30 @@ test("desktop chat -> real account grant -> master -> desktop worker -> verified
   const retry = await post(desktopUrl + "/v1/chat/completions", { ...body, stream: true });
   assert.equal(retry.status, 200); assert.match(await retry.text(), /no KOIN was spent/); assert.equal(generations, 1);
 });
+
+test("native desktop session approval -> authenticated funded ledger -> bounded reservations and recovery", async t => {
+  const { setup, sign } = require("./helpers/koin-delegation-fixture"), { nextId } = require("./helpers/koin-funding-fixture");
+  const { EventEmitter } = require("events");
+  const { FundedSessionClient } = require(path.join(appRoot, "electron/koin-session-client"));
+  const { createSessionReview } = require(path.join(appRoot, "electron/koin-session-review"));
+  const f = await setup(t);
+  f.head.last_irreversible_block = "101"; f.block.block_id = nextId; f.block.block_height = "101";
+  f.block.block.id = nextId; f.block.block.header.height = "101";
+  const config = { ...f.proposal, schedulerUrl: f.base, target: f.target, session: f.id };
+  let signatures = 0;
+  const options = { config, file: path.join(f.dir, "desktop-approval.json"), clock: f.config.koinFundedSessions.clock,
+    authorize: async () => ({ accountId: f.account.id, grantId: f.grant.id, owner: f.owner, sessionToken: f.token }),
+    sign: async bytes => { signatures++; return sign(bytes); } };
+  const client = new FundedSessionClient(options), window = new EventEmitter();
+  Object.assign(window, { isDestroyed: () => false, isVisible: () => true, isMinimized: () => false });
+  window.webContents = new EventEmitter();
+  const run = createSessionReview({ client, dialog: { showMessageBox: async () => ({ response: 1 }) } });
+  const approved = await run(window, "review"); assert.equal(approved.state, "active", JSON.stringify(approved)); assert.equal(signatures, 1);
+  const saved = JSON.parse(fs.readFileSync(options.file)), approval = { delegationId: approved.id };
+  for (const n of ["one", "two"]) await f.ledger.reserveDelegated({ ...f.request(approval, n), observationId: saved.observationId });
+  const reopened = new FundedSessionClient(options);
+  assert.equal((await reopened.status()).remainingJobs, 1); assert.equal((await reopened.retry()).id, approved.id); assert.equal(signatures, 1);
+  assert.equal((await reopened.revoke()).state, "revoked"); await f.restart();
+  assert.equal((await new FundedSessionClient(options).retry()).state, "revoked"); assert.equal(signatures, 1);
+  assert.equal(f.accounts.spendableGrant(f.account.id, f.grant.id).remainingMicro, 1000000);
+});

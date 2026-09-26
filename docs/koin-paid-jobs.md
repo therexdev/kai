@@ -406,6 +406,72 @@ routes, master and desktop Worker over local HTTP with fixture inference.
 These tests establish protocol integration, not live service activation,
 production pricing, measured provider performance or funded authorization.
 
+### Funded sessions with one account-bound approval
+
+`FundedReservations` now supports `reviewDelegation`, `authorizeDelegation`,
+`reserveDelegated`, `delegationStatus` and `revokeDelegation`, using the existing
+AccountService. The owner signs the canonical `session-delegation.js` certificate
+once. It binds deployment pins, session/owner, account/grant, model/version,
+output ceiling, lifetime amount, per-request cap, request count and expiry.
+Review returns the canonical tariff registry (at most 64 entries). The desktop
+checks its policy commitment before displaying input/output prices per million
+tokens, so those displayed prices cannot silently differ from the pinned policy.
+Its signature domain explicitly names funded **rehearsal** and is never live
+payment, a chain transaction or legacy USD authority.
+
+Admission and dispatch still require fresh, irreversible funding evidence from
+the pinned observer. The certificate cannot exceed that funded session's limits.
+Each session has one durable certificate in the same SQLite database as its
+holds. A second certificate cannot reset the budget. Reservations check current
+linked-wallet/grant authority, both caps and job counts in the same transaction.
+Settled charges remain in the lifetime cap after reconciliation/restart. Multiple
+processes must share the database; cross-host fencing remains unimplemented.
+
+Revocation permanently records a tombstone and cancels only undispatched holds.
+Dispatched/verified/submitted holds keep their liability; work authorized before
+revocation may still complete and reconcile. Replaying the old certificate stays
+revoked. Historical status/revocation is account-scoped and remains available
+after grant revocation/unlinking. Revocation does not refund or revoke anything
+on-chain. Starting again requires a new funded session and a fresh approval.
+
+An isolated `Scheduler` may explicitly configure
+`koinFundedSessions: { observer, target, meter, accept, clock }`, alongside
+`accounts`. `target` is the funded ledger's pinned chain, credits, bytecode,
+policy and shadow domain. Production `server.js` still does not enable this.
+The following POST routes are relative to the scheduler URL; all require an
+existing `sessionToken` in the body and return `paymentsEnabled: false`:
+
+| Route under `/koin/funded/rehearsal/` | Additional body fields | Effect |
+| --- | --- | --- |
+| `observe` | `grantId`, `session` | Read that linked wallet's session; retain private funding observation |
+| `review` | `grantId`, `observationId`, `proposal` | Verify finality and return exact unsigned certificate terms |
+| `authorize` | `grantId`, `observationId`, `terms`, `signature` | Verify owner signature and register one bounded delegation |
+| `status` | `id` | Return only this account's delegation and last accounted budget |
+| `revoke` | `id` | Stop new use and release only undispatched holds |
+
+`proposal` has exactly `model`, `version`, `maxOutput`, `amount`, `perJob`,
+`maxJobs`, `expires`. Amounts are decimal atom strings; expiry is UTC epoch
+milliseconds. Review may return `state: "reversible"`; retry the same observation
+after finality. Observations expire and do not survive restart. There is no HTTP
+funded reservation, dispatch or settlement endpoint in this increment.
+
+The desktop's opt-in native controls use
+`KAI_KOIN_FUNDED_REHEARSAL_CONFIG`; see its `docs/koin-network/STATUS.md` for the
+exact configuration schema. Terms come from pinned main-process configuration,
+not renderer arguments. The wallet signs only after native confirmation. The
+certificate is saved before transmission, without tokens or private keys.
+Lost acknowledgments recover by querying the same delegation first, then
+resending identical signed terms only if it was not registered. This preserves
+one approval per session, with no per-message signing requirement.
+
+Run `node scripts/probe-koin-session-delegation.js`, the existing funded probes,
+and `node scripts/verify-koin-desktop.js ../kaiapp`. Coverage includes altered
+terms, signatures/deployments/accounts, cumulative limits, concurrent writers,
+revocation/replay, expiry, settled-charge accounting and desktop recovery.
+Funding RPC and inference remain fixtures. The ordinary chat bridge continues
+to use synthetic sessions; connecting funded dispatch and the settlement keeper
+is subsequent work, before any real-payment activation.
+
 ### Offline tariff calibration
 
 `node scripts/calibrate-koin-tariff.js TOKENIZER_DIRECTORY EVIDENCE.json` writes
@@ -449,7 +515,9 @@ Run `node scripts/probe-koin-calibration.js` for the offline accounting checks.
   recovery for reverted/expired submissions, released balances and unexplained
   charges. Exact successful single-charge reconciliation is implemented; the
   rehearsal still sends no work and synthetic grants are never spending authority.
-- Implement funded-session controls and durable delivery in the desktop UI.
+- Complete credit purchase/session opening/refund controls and durable delivery
+  in the desktop UI. Private one-time session approval/retry/revocation is now
+  implemented for funded accounting rehearsal.
   Existing account grants now support normal chat inside synthetic session
   limits, without per-message review. Real KOIN spending still needs its own
   bounded authority. The worker/scheduler shadow protocol is connected, but existing

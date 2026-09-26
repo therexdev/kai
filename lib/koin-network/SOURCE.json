@@ -1,13 +1,14 @@
 {
   "source": "therexdev/kaiapp/core/lib/koin-network",
-  "mode": "shadow-only",
+  "mode": "rehearsal-only",
   "sha256": {
     "policy.js": "510cf4df51b720ccdd8688eb8a6f627ae67b38e50aac225bca2c7d124973549c",
     "presence.js": "c72b18edb144c1da28470b4ff5b55c38403b92b16aca7edf021b96c08d586ce7",
     "shadow.js": "df2c8571cf0141cffa0491d9cc339de7c6382cb982c1dc49be24057f8686da78",
     "shadow-router.js": "970b44bf5ac7dcb65b4f515fab61926f3874bc49eec5a9e6881418896212a8a0",
     "credits-abi.json": "674a05f13354c0b820d0643a11a3bfeb0128a497db0ea3ca226dc8dd218f3b2b",
-    "job-protocol.js": "070f95a4076e4520153eff36f69d5e3ef2770995a69d4ba0c6d2d7df11546d4d"
+    "job-protocol.js": "070f95a4076e4520153eff36f69d5e3ef2770995a69d4ba0c6d2d7df11546d4d",
+    "session-delegation.js": "df4c3bc4f7b9de651628619b17194676260ed17a372fb05a101e7b0289283b31"
   },
-  "sourceCommit": "417853ab6d6e2af5304756c546c2d07f2e7c6a47"
+  "sourceCommit": "692b9f844608f21025854c7c7ad4c58c041eb420"
 }
