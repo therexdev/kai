@@ -106,6 +106,33 @@ configuration/recovery; policy changes do not silently rewrite local pins.
 
 ## Verification and remaining activation work
 
+The [2026-09-26 isolated-chain run](https://github.com/therexdev/kai/actions/runs/36260927761)
+passed all 12 checks using desktop contract commit
+`3537631fae4790efcbb971f6ba4f55ccfd670be6` and master commit
+`f404b40a1b376318bd5e01515065e9fb9e8a114d`. Two providers received
+5 KOIN and 0.5 KOIN in fixture native tokens, with two sponsor signatures,
+two submissions and no provider signatures. Restart after a deliberately lost
+inclusion response recovered the exact transaction through irreversible
+finality without another signature or payment. The run also checked native
+deposits, the 60/25/15 settlement split, the full review hold, empty-Mana and
+insufficient-RC rejection, duplicate rejection, and refunds while paused.
+
+The successful claim receipts used 12,005,376 and 11,855,739 resource credits,
+each below its signed ceiling of 10,000,000,000. Sponsor Mana fell while the
+sponsor's native-token balance stayed unchanged. These are isolated fixture
+measurements, **not production fees, capacity calibration or recommended
+limits**: the fixture uses a two-leaf proof tree and generously funded test
+accounts. [The saved results](koin-isolated-results.json) retain the exact
+receipts, measured resources, chain/bytecode pins and workflow/artifact provenance.
+
+Testing exposed and corrected differences hidden by mocks: canonical omitted
+zero protobuf fields, omitted empty RPC results, SDK traps on empty native-token
+or void contract replies, and treasury caller authorization during day sealing.
+Native deposits also require an exact allowance to the custody contract;
+the harness submits that approval and the custody deposit in one transaction
+and verifies no allowance remains. Before live funding, the wallet review and
+signing path must validate this entire two-operation bundle.
+
 Run `node --test scripts/probe-koin-automatic-claims.js` on Node 22 or newer.
 The probe uses fixture-only keys, ABI encoding and local SQLite; it covers
 automatic fixed-recipient claims, review/finality/custody gates, signatures,
@@ -120,6 +147,7 @@ production Mana costs. A manifest signature authenticates the allocation issuer;
 prove telemetry accuracy or that its evidence hash came from reconciled work.
 Production ingestion must generate manifests only from approved availability
 evidence and irreversibly reconciled charges. Epoch opening/root submission/
-finalization, production signing/transport/monitoring, isolated-chain transfer
-and resource tests, contract review and the owner's concrete deployment and
-funding approval remain required. The app's live network and prices are intact.
+finalization, production signing/transport/monitoring, broader proof-size/load
+testing and resource calibration, contract review and the owner's concrete
+deployment and funding approval remain required. The app's live network and
+prices are intact.

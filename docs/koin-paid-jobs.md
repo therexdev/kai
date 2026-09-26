@@ -679,10 +679,14 @@ Run `node scripts/probe-koin-calibration.js` for the offline accounting checks.
   never broadcast before the full signed envelope and hold binding are durable.
 - Publish signed reward manifests only from reconciled real paid charges.
   Add retention, rate/admission limits and load testing before service exposure.
-- Complete isolated-chain transfer/resource testing and contract review,
+- The first isolated native-transfer/resource run passed all 12 checks; see
+  [the saved results](koin-isolated-results.json) and
+  [automatic claim verification](koin-automatic-claims.md#verification-and-remaining-activation-work).
+  Complete broader proof-size/load and Mana calibration, contract review,
   seven-day real shadow validation, deployment pins and the owner's concrete
-  funding/deployment review. Existing mainnet balances and reburn policy remain
-  unchanged.
+  funding/deployment review. The native allowance and custody deposit must be
+  reviewed as one exact transaction bundle. Existing mainnet balances and
+  reburn policy remain unchanged.
 
 Run `node scripts/probe-koin-paid-jobs.js` and
 `node scripts/probe-koin-work-flow.js` on Node 22. The normal CI probe glob
