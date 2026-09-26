@@ -11,9 +11,14 @@ refunds. Reports include full transaction receipts and sponsor resource measurem
 An isolated measurement is not a production Mana budget or permission to activate payments.
 
 Funding uses an exact native-token allowance and the custody deposit in one
-atomic signed transaction, then checks that the allowance is zero. A deposit
-without approval must revert. Production funding review/signing still needs to
-validate this complete two-operation bundle before activation.
+atomic signed transaction, then checks that the allowance is zero. These bundles
+are now prepared, validated and submitted through the pinned desktop `KoinChain`
+client with fixture-only signatures. The report pins that client's source hash.
+A deposit without approval must revert. A deposit prepared before a pause must
+roll back its approval and leave both customer and custody balances unchanged;
+the desktop submitter itself refuses to broadcast while paused.
+Production funding still needs wallet confirmation, durable signed-envelope
+recovery and irreversible credit reconciliation before activation.
 
 The native-token WASM is an official integration fixture with minting enabled
 for bootstrap. Custody contracts have ordinary user privileges. The harness

@@ -36,6 +36,7 @@ class IsolatedChain {
         hash(fs.readFileSync(path.join(this.directory, "genesis.json"))) !== m.genesisHash) throw Error("Disposable genesis manifest required");
     for (const [name, digest] of Object.entries(upstream.sha256)) if (hash(fs.readFileSync(path.join(m.upstreamDir, name))) !== digest) throw Error("Changed isolated bootstrap artifact");
     for (const a of Object.values(m.artifacts)) if (hash(fs.readFileSync(a.wasm)) !== a.sha256) throw Error("Custody WASM changed after preparation");
+    if (!m.walletClient || hash(fs.readFileSync(m.walletClient.file)) !== m.walletClient.sha256) throw Error("Pinned desktop wallet client required");
     this.provider = new LocalProvider(m.endpoint); this.records = []; this.resourceEnabled = false;
     this.now = Math.floor(Date.now() / DAY) * DAY - 4 * DAY + 10000;
     this.serializer = new Serializer(require("../../lib/koin-network/credits-abi.json").types);
@@ -127,16 +128,36 @@ class IsolatedChain {
     const result = await this.provider.readContract({ contract_id: this.keys.Koin.getAddress(), entry_point: 0x5c721497, args });
     return (await this.bootstrapSerializer.deserialize(result.result ?? "", "amount")).value ?? "0";
   }
-  async deposit(kind, method, actor, amount) {
+  async walletClient() {
+    const { KoinChain } = require(this.manifest.walletClient.file);
+    const deployment = { schema: 1, network: "isolated", decimals: 8, rpc: [this.manifest.endpoint],
+      chainId: this.chainId, token: this.keys.Koin.getAddress(),
+      tokenHash: (await this.provider.invokeGetContractMetadata(this.keys.Koin.getAddress())).value.hash };
+    for (const kind of ["credits", "rewards", "admin", "verifier", "mining", "operations"]) deployment[kind] = this.address(kind);
+    for (const kind of ["credits", "rewards"]) deployment[kind + "Hash"] = "0x1220" + this.manifest.artifacts[kind].sha256;
+    return new KoinChain(deployment, this.provider);
+  }
+  async allowance(kind, actor) {
     const request = { owner: bytes(actor.getAddress()), spender: bytes(this.address(kind)) };
-    const approval = { call_contract: { contract_id: this.keys.Koin.getAddress(), entry_point: 0x74e21680,
-      args: enc(await this.bootstrapSerializer.serialize({ ...request, value: amount }, "approve")) } };
-    // One signed atomic transaction grants exactly this deposit and consumes it.
-    const result = await this.send(method, [approval, await this.operation(kind, method, { account: request.owner, amount })], actor);
     const response = await this.provider.readContract({ contract_id: this.keys.Koin.getAddress(), entry_point: 0x32f09fa1,
       args: enc(await this.bootstrapSerializer.serialize(request, "allowance")) });
-    assert.equal((await this.bootstrapSerializer.deserialize(response.result ?? "", "amount")).value, "0", "Deposit must consume the entire allowance");
-    return result;
+    return (await this.bootstrapSerializer.deserialize(response.result ?? "", "amount")).value ?? "0";
+  }
+  async deposit(kind, method, actor, amount) {
+    const client = await this.walletClient(), args = { account: bytes(actor.getAddress()), amount };
+    const intent = { kind, method, args, actor: actor.getAddress(), maxRc: "10000000000" };
+    const transaction = await client.prepare(kind, method, args, { actor: intent.actor, rcLimit: intent.maxRc });
+    await client.verifyTransaction(transaction, intent);
+    // Exercise the actual desktop encoder/validator, using only a public fixture key.
+    assert.equal(transaction.operations.length, 2);
+    assert.deepEqual(await this.bootstrapSerializer.deserialize(transaction.operations[0].call_contract.args, "approve"),
+      { owner: args.account, spender: bytes(this.address(kind)), value: amount });
+    await actor.signTransaction(transaction);
+    await client.submit(transaction, intent);
+    const receipt = await this.include(method, transaction);
+    assert.notEqual(receipt.reverted, true, JSON.stringify(receipt.logs));
+    assert.equal(await this.allowance(kind, actor), "0", "Deposit must consume the entire allowance");
+    return { transaction, receipt };
   }
   async bootstrap() {
     const syscall = (call_id, signer, entry_point) => ({ set_system_call: { call_id, target: { system_call_bundle: { contract_id: signer.getAddress(), entry_point } } } });

@@ -130,8 +130,11 @@ zero protobuf fields, omitted empty RPC results, SDK traps on empty native-token
 or void contract replies, and treasury caller authorization during day sealing.
 Native deposits also require an exact allowance to the custody contract;
 the harness submits that approval and the custody deposit in one transaction
-and verifies no allowance remains. Before live funding, the wallet review and
-signing path must validate this entire two-operation bundle.
+and verifies no allowance remains. The desktop client now prepares and validates
+this entire two-operation bundle, with an in-process native review rehearsal.
+The isolated workflow exercises that same client and paused-deposit approval
+rollback. Production wallet confirmation, durable funding recovery and finality
+reconciliation remain disconnected; no purchase control has been enabled.
 
 Run `node --test scripts/probe-koin-automatic-claims.js` on Node 22 or newer.
 The probe uses fixture-only keys, ABI encoding and local SQLite; it covers

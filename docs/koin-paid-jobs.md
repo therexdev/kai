@@ -684,8 +684,10 @@ Run `node scripts/probe-koin-calibration.js` for the offline accounting checks.
   [automatic claim verification](koin-automatic-claims.md#verification-and-remaining-activation-work).
   Complete broader proof-size/load and Mana calibration, contract review,
   seven-day real shadow validation, deployment pins and the owner's concrete
-  funding/deployment review. The native allowance and custody deposit must be
-  reviewed as one exact transaction bundle. Existing mainnet balances and
+  funding/deployment review. The desktop now validates the native allowance
+  and custody deposit as one exact transaction bundle and offers an in-process
+  review rehearsal; production signing/recovery and credit finality remain
+  disconnected. Existing mainnet balances and
   reburn policy remain unchanged.
 
 Run `node scripts/probe-koin-paid-jobs.js` and

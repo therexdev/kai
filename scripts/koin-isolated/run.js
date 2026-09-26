@@ -21,6 +21,7 @@ async function run(directory) {
     await chain.deposit("rewards", "fund", chain.actors.admin, "100000000000");
     await chain.deposit("credits", "purchase", chain.actors.buyer, "10000000000");
     check("deposits require an exact native allowance and consume it atomically with no residual approval");
+    check("the pinned desktop wallet prepares, validates and submits both exact funding bundles");
     assert.equal(await chain.balance(chain.address("credits")), "10000000000");
     assert.equal((await chain.read("credits", "balances", { account: bytes(chain.address("buyer")) })).liabilities, "10000000000");
     check("native deposit funds customer custody independently of the seeded rewards pool");
@@ -122,8 +123,21 @@ async function run(directory) {
     await assert.rejects(chain.provider.call("chain.submit_transaction", { transaction: low, broadcast: false }), /bandwidth|resource|rc|limit/i);
     assert.equal(await chain.balance(target.credits), creditBalance);
     check("an insufficient transaction RC limit cannot move customer funds");
-    // Finalized claims have consumed only reward liabilities; customer principal remains refundable.
+    // A pause between review and inclusion must roll back the preceding approval.
+    const wallet = await chain.walletClient(), fundingArgs = { account: bytes(chain.address("buyer")), amount: "100000000" };
+    const fundingIntent = { kind: "credits", method: "purchase", args: fundingArgs, actor: chain.address("buyer"), maxRc: "10000000000" };
+    const pausedFunding = await wallet.prepare("credits", "purchase", fundingArgs, { actor: fundingIntent.actor, rcLimit: fundingIntent.maxRc });
+    await chain.actors.buyer.signTransaction(pausedFunding);
+    const buyerBefore = await chain.balance(fundingIntent.actor), custodyBefore = await chain.balance(target.credits);
     await call("credits", "set_paused", { paused: true }, chain.actors.admin);
+    await assert.rejects(wallet.submit(pausedFunding, fundingIntent), /paused/i);
+    assert.equal((await chain.include("paused-funding-rollback", pausedFunding)).reverted, true);
+    assert.equal(await chain.allowance("credits", chain.actors.buyer), "0");
+    assert.equal(await chain.balance(fundingIntent.actor), buyerBefore);
+    assert.equal(await chain.balance(target.credits), custodyBefore);
+    assert.equal((await chain.read("credits", "balances", { account: fundingArgs.account })).liabilities, custodyBefore);
+    check("a paused deposit rolls back its native approval and moves no customer funds");
+    // Finalized claims have consumed only reward liabilities; customer principal remains refundable.
     await call("credits", "refund", { account: bytes(chain.address("buyer")), amount: "1000000000" }, chain.actors.buyer);
     assert.equal(await chain.balance(target.credits), "8500000000");
     check("customer refund transfers native tokens while new spending is paused");
