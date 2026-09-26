@@ -20,6 +20,8 @@ existing availability shadow router remains independent.
 | `lib/koin-network/funded-reservations.js` | Durable funded rehearsal holds, atomic signed settlement outbox and bounded sponsorship journal |
 | `lib/koin-network/settlement-outbox.js` | Strict validation of the exact pre-signed operation, deployment, verifier/sponsor, nonce and resource limit |
 | `lib/koin-network/settlement-recovery.js` | Read-only recovery decisions; exact-envelope retry or next-intent preparation after finality |
+| `lib/koin-network/rehearsal-submitter.js` | Bounded injected submission driver for staged settlements and automatic reward claims |
+| `lib/koin-network/reward-claims.js` | Signed manifests, irreversible reward observation and durable sponsored claim recovery |
 | `lib/koin-network/job-protocol.js` | Shared Test/master quote and receipt validation; canonical copy in `kaiapp/core/lib/koin-network` |
 | `scripts/probe-koin-paid-jobs.js` | Financial invariants, multiple writers, abrupt exit, replay and fork recovery tests |
 
@@ -296,8 +298,9 @@ rejected by reservation/dispatch admission. An account release or extra charge
 that changes more than the single expected delta still requires a separate
 recovery procedure; no residual balance is assumed or discarded.
 
-This remains an in-process rehearsal: no consumer endpoints, worker dispatch,
-live transaction signer, keeper, or reward manifest is connected. Fixture tests
+This ledger remains a rehearsal. The later sections describe its opt-in account
+and worker integration and the isolated submission/claim driver; no live
+transaction signer or keeper is connected. Fixture tests
 exercise exact ABI operations, transaction commitments, restart, duplicate
 confirmation, revocation/expiry, unknown transactions and write rollback.
 
@@ -596,7 +599,7 @@ kill/reopen checkpoints, simultaneous handles, lost acknowledgments, signature
 and operation tampering, resource budgets, finality/forks, revocation timing,
 unknown-window expiry, damaged storage and next-session-nonce advancement.
 
-### Automatic provider payouts: intended default
+### Automatic provider payouts: rehearsal implementation
 
 The owner confirmed automatic sponsored claims as the default user experience.
 After daily rewards finalize and the 24-hour review hold ends, the master should
@@ -604,9 +607,15 @@ relay valid claims to each provider's committed KOIN wallet and cover Mana.
 Providers should not need to click Claim or sign each reward payment. A manual
 claim remains a recovery option. The rewards contract already permits any caller
 to relay a valid proof while fixing the recipient; it cannot redirect earnings.
-The automatic claim runner, sponsored reward outbox and signed reward manifests
-are still unconnected. This settlement outbox concerns customer usage charges;
-it does not itself pay provider rewards or shorten the review period.
+The master now has a separate sponsored reward outbox, signed rehearsal reward
+manifests and a bounded automatic claim driver. It verifies the finalized root,
+fixed-recipient Merkle proof, irreversible claimed state and funded paid-work
+caps. Signing fences and full envelopes survive restart; retries preserve the
+same transaction and reserve bounded daily Mana. The driver also accepts the
+customer settlement outbox's exact-envelope recovery decisions. Both paths use
+injected fixture signing/submission; neither shortens the review period or
+enables live payments. See [automatic claim rehearsal](koin-automatic-claims.md)
+for the interface, tests and remaining production work.
 
 ### Offline tariff calibration
 
@@ -660,9 +669,12 @@ Run `node scripts/probe-koin-calibration.js` for the offline accounting checks.
   KOIN spending still needs separate activation and live authority. Existing
   `jobId|output` signatures and provider-reported usage remain ineligible for
   KOIN charges. Add durable delivery/retry without persisting private plaintext.
-- Connect a restricted settlement signer/submitter and automatic sponsored
-  provider claims after review. The durable signed-envelope outbox, bounded Mana
-  journal and read-only recovery decisions are implemented for rehearsal.
+- Connect production settlement signing/transport and automatic sponsored
+  provider claims after review. The durable signed-envelope outbox and bounded
+  Mana journal now feed an explicit rehearsal submission driver. Signed reward
+  manifests, irreversible claim observation and the automatic claim queue are
+  implemented with injected fixture signing/transport; see
+  [automatic claim rehearsal](koin-automatic-claims.md). No live keeper is enabled.
   Complete reverted/expired-intent repair, key rotation and backup recovery;
   never broadcast before the full signed envelope and hold binding are durable.
 - Publish signed reward manifests only from reconciled real paid charges.

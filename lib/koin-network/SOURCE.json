@@ -9,7 +9,9 @@
     "credits-abi.json": "674a05f13354c0b820d0643a11a3bfeb0128a497db0ea3ca226dc8dd218f3b2b",
     "job-protocol.js": "070f95a4076e4520153eff36f69d5e3ef2770995a69d4ba0c6d2d7df11546d4d",
     "session-delegation.js": "df4c3bc4f7b9de651628619b17194676260ed17a372fb05a101e7b0289283b31",
-    "funded-protocol.js": "3db78c7832b143d30676a242adccd3cf6447a206ba77086411d81eee5b1b5359"
+    "funded-protocol.js": "3db78c7832b143d30676a242adccd3cf6447a206ba77086411d81eee5b1b5359",
+    "merkle.js": "ad2739fbd78427309cec8b47c2aad2e2b6b2fb484efc6896cbae802446cc1a96",
+    "rewards-abi.json": "a3c4270351910ecd8b027d98f6f4f374435ea7838dfc46f036016094c2cde249"
   },
-  "sourceCommit": "bd7e33e6b08c133eb4c47d6c86614ca4cfe49b18"
+  "sourceCommit": "1a81c8a9fb99bdf61ddaf864fc33c8ac09d08ed8"
 }
