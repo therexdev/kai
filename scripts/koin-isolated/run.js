@@ -98,7 +98,7 @@ async function run(directory) {
     const delayedOpen = await chain.signed([await chain.operation("rewards", "open_epoch", { epoch })], chain.actors.manual);
     await chain.block([], (Number(epoch) + 1) * DAY + 1);
     assert.equal((await chain.include("delayed-cycle-open", delayedOpen)).reverted, true);
-    assert.equal((await chain.read("rewards", "get_epoch", { epoch: String(BigInt(epoch) + 1n) })).epoch, null);
+    assert.equal((await chain.read("rewards", "get_epoch", { epoch: String(BigInt(epoch) + 1n) })).epoch ?? null, null);
     check("a delayed budget-opening transaction cannot open a different reward day");
     await cycleUntil("propose_root");
     const review = (await chain.read("rewards", "get_epoch", { epoch })).epoch;
