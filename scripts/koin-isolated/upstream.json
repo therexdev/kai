@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "upstream": "koinos/koinos-integration-tests",
+  "commit": "74b64d739a98045630cb61557e1f141c04cd1eb1",
+  "sha256": {
+    "node_config/genesis_data.json": "bc0be1517c37d53eac27b3108ef705a4449ce876cfc35b25f8373490d2a449eb",
+    "node_config/koinos_descriptors.pb": "3166738b2213d5c36594eaa0fcc9a9fe0059b0bc1cadcb2e7fe30a5bef1530dc",
+    "contracts/name_service.wasm": "236f3c2f89febd7625d8a1f381bb2e0ca7b4e541cbbe6683a63869ccfb959fe8",
+    "contracts/get_contract_metadata.wasm": "2fa8758a67fb9d17476e191c1c8496dd443703490cf3098f9bda0cdb89d94c79",
+    "contracts/koin.wasm": "fa14735d855b8ac3500b8ad1a3f22b0b352fe4ea469d74dbe98a0fa51ae40bcb",
+    "contracts/resources.wasm": "d4ce891cbb0d61adc24697da162f047607099030f921615574f74e195297e869",
+    "integration/integration.go": "13f0e08f7e46ce6a96f9b87cca5620df155bdd8d9d0916315cc8a2b8f46dcede"
+  }
+}

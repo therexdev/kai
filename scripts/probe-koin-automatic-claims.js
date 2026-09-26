@@ -54,6 +54,22 @@ test("signed manifests reject altered allocations, evidence, domain, signer, ord
   assert.equal(f.ledger.status(f.ids[0]).state, "queued");
 });
 
+test("zero-valued reward categories and epoch zero use the contract's canonical protobuf bytes", async t => {
+  const f = await fixture(t), Tree = require("../lib/koin-network/merkle"), ser = new Serializer(ABI.types);
+  const allocations = f.envelope.manifest.allocations.map((r, i) => ({ ...r, availability: i ? "0" : "10", work: i ? "8" : "0" }));
+  const tree = Tree.build({ chainId: f.target.chainId, contract: f.target.rewards, epoch: "0", version: "1" }, allocations);
+  const manifest = { ...f.envelope.manifest, epoch: "0", allocations, root: tree.root };
+  const ids = f.ledger.importManifest({ manifest, signature: Buffer.from(await verifier.signHash(M.signingHash(manifest))).toString("base64") });
+  for (const id of ids) {
+    const op = await f.ledger.operation(id), type = ser.root.lookupType("koin.Request");
+    const args = type.decode(utils.decodeBase64url(op.args));
+    assert.equal(Object.hasOwn(args, "epoch"), false);
+    assert.equal(Object.hasOwn(args, "availability") && Object.hasOwn(args, "work"), false);
+    for (const node of args.proof) assert.equal(Object.hasOwn(node, "availability") && Object.hasOwn(node, "work"), false);
+    assert.equal(utils.encodeBase64url(type.encode(args).finish()), op.args);
+  }
+});
+
 test("the review hold, irreversible root, custody, bytecode, native token and per-provider paid cap gate signing", async t => {
   for (const kind of ["review", "reversible", "custody", "code", "native", "cap", "root", "hold", "policy"]) {
     const f = await fixture(t);

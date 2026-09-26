@@ -1,0 +1,71 @@
+name: KOIN isolated transfers
+on:
+  push:
+    branches: [claude/koin-shadow-integration]
+    paths: ["lib/koin-network/**", "scripts/koin-isolated/**", ".github/workflows/koin-isolated.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  custody-and-mana:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      KAI_ISOLATED_DIR: ${{ runner.temp }}/kai-isolated
+      COMPOSE_PROJECT_NAME: kai-isolated-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - uses: actions/checkout@v4
+        with:
+          repository: koinos/koinos-integration-tests
+          ref: 74b64d739a98045630cb61557e1f141c04cd1eb1
+          path: isolated-upstream
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: therexdev/kaiapp
+          ref: 1a81c8a9fb99bdf61ddaf864fc33c8ac09d08ed8
+          path: isolated-desktop
+          persist-credentials: false
+      - name: Build pinned custody contracts
+        run: |
+          npm ci --ignore-scripts --prefix isolated-desktop/contracts/koin-network
+          npm run build --prefix isolated-desktop/contracts/koin-network
+      - name: Prepare fresh peerless chain
+        run: node scripts/koin-isolated/prepare.js isolated-upstream isolated-desktop "$KAI_ISOLATED_DIR"
+      - name: Start isolated node
+        run: |
+          docker compose -f "$KAI_ISOLATED_DIR/compose.json" up -d
+          docker compose -f "$KAI_ISOLATED_DIR/compose.json" images --format json > "$KAI_ISOLATED_DIR/images.json"
+      - name: Verify native transfers, recovery and Mana
+        run: node scripts/koin-isolated/run.js "$KAI_ISOLATED_DIR"
+      - name: Collect node diagnostics
+        if: always()
+        run: |
+          if [ -f "$KAI_ISOLATED_DIR/compose.json" ]; then
+            docker compose -f "$KAI_ISOLATED_DIR/compose.json" logs --no-color > "$KAI_ISOLATED_DIR/node.log" 2>&1
+            tail -100 "$KAI_ISOLATED_DIR/node.log"
+          fi
+      - name: Save isolated result and measured receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: koin-isolated-transfer-mana
+          path: |
+            ${{ runner.temp }}/kai-isolated/report.json
+            ${{ runner.temp }}/kai-isolated/manifest.json
+            ${{ runner.temp }}/kai-isolated/images.json
+            ${{ runner.temp }}/kai-isolated/node.log
+          if-no-files-found: warn
+      - name: Remove only this disposable chain
+        if: always()
+        run: |
+          if [ -f "$KAI_ISOLATED_DIR/compose.json" ]; then
+            docker compose -f "$KAI_ISOLATED_DIR/compose.json" down --volumes
+          fi
