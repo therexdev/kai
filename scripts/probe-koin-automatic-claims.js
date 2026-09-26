@@ -35,6 +35,19 @@ test("automatic claims need only sponsor signatures and keep the proof's exact r
   f.reopen(); assert.equal(f.ledger.status(f.ids[0]).state, "paid"); assert.equal(f.ledger.next(), f.ids[1]);
 });
 
+test("omitted empty protobuf reads mean unclaimed; malformed responses and missing identity cannot authorize signing", async t => {
+  const f = await fixture(t), read = f.rpc.readContract;
+  f.rpc.readContract = async op => op.entry_point === ABI.methods.claimed.entry_point ? {} : read(op);
+  assert.equal((await tick(f)).action, "await_finality"); assert.equal(f.signed.length, 1);
+  for (const invalid of [null, [], { result: null }, { result: 42 }, { rpc_error: "unavailable" }]) {
+    const g = await fixture(t), prior = g.rpc.readContract;
+    g.rpc.readContract = async op => op.entry_point === ABI.methods.claimed.entry_point ? invalid : prior(op);
+    await assert.rejects(tick(g), /Invalid reward contract read/); assert.equal(g.signed.length, 0);
+  }
+  const g = await fixture(t); g.rpc.readContract = async () => ({});
+  await assert.rejects(tick(g), /policy mismatch/); assert.equal(g.signed.length, 0);
+});
+
 test("signed manifests reject altered allocations, evidence, domain, signer, ordering and duplicate days", async t => {
   const f = await fixture(t);
   for (const change of [

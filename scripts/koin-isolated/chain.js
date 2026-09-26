@@ -118,12 +118,12 @@ class IsolatedChain {
   }
   async read(kind, method, args = {}) {
     const { call_contract } = await this.operation(kind, method, args);
-    return this.serializer.deserialize((await this.provider.readContract(call_contract)).result, "koin.Result");
+    return this.serializer.deserialize((await this.provider.readContract(call_contract)).result ?? "", "koin.Result");
   }
   async balance(address) {
     const args = enc(await this.bootstrapSerializer.serialize({ owner: bytes(address) }, "balance"));
     const result = await this.provider.readContract({ contract_id: this.keys.Koin.getAddress(), entry_point: 0x5c721497, args });
-    return (await this.bootstrapSerializer.deserialize(result.result, "amount")).value ?? "0";
+    return (await this.bootstrapSerializer.deserialize(result.result ?? "", "amount")).value ?? "0";
   }
   async bootstrap() {
     const syscall = (call_id, signer, entry_point) => ({ set_system_call: { call_id, target: { system_call_bundle: { contract_id: signer.getAddress(), entry_point } } } });
