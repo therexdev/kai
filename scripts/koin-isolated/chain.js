@@ -101,7 +101,7 @@ class IsolatedChain {
   }
   async finalize(height) {
     for (let n = 0; ; n++) {
-      if (BigInt((await this.provider.getHeadInfo()).last_irreversible_block) >= BigInt(height)) break;
+      if (BigInt((await this.provider.getHeadInfo()).last_irreversible_block ?? "0") >= BigInt(height)) break;
       if (n >= 400) throw Error("Isolated chain did not reach finality");
       await this.block();
     }

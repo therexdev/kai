@@ -10,6 +10,16 @@ claims, recovery after a lost response, duplicate protection, Mana rejection and
 refunds. Reports include full transaction receipts and sponsor resource measurements.
 An isolated measurement is not a production Mana budget or permission to activate payments.
 
+Funding uses an exact native-token allowance and the custody deposit in one
+atomic signed transaction, then checks that the allowance is zero. A deposit
+without approval must revert. Production funding review/signing still needs to
+validate this complete two-operation bundle before activation.
+
+The native-token WASM is an official integration fixture with minting enabled
+for bootstrap. Custody contracts have ordinary user privileges. The harness
+produces blocks with a published genesis key and advances controlled historical
+timestamps across the review period; it does not test public consensus or load.
+
 Requirements: Linux with `sudo nsenter`, Node 22, Docker Compose, the master dependencies, and clean checkouts
 of the upstream and desktop commits pinned by `upstream.json` and
 `lib/koin-network/SOURCE.json`. Build the desktop contracts first. The workflow gives
