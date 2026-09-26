@@ -17,7 +17,9 @@ existing availability shadow router remains independent.
 | `lib/koin-network/work-router.js` | Operator-controlled experiment routes, qualified worker dispatch and bound receipts |
 | `lib/koin-network/consumer-review.js` | In-process customer review harness, exact signed approval, retry and session revocation |
 | `lib/koin-network/funded-session.js` | Read-only custody/session evidence tied to a subsequently irreversible observed block |
-| `lib/koin-network/funded-reservations.js` | Separate durable funded-accounting rehearsal; verified observations, approved quotes and atomic holds |
+| `lib/koin-network/funded-reservations.js` | Durable funded rehearsal holds, atomic signed settlement outbox and bounded sponsorship journal |
+| `lib/koin-network/settlement-outbox.js` | Strict validation of the exact pre-signed operation, deployment, verifier/sponsor, nonce and resource limit |
+| `lib/koin-network/settlement-recovery.js` | Read-only recovery decisions; exact-envelope retry or next-intent preparation after finality |
 | `lib/koin-network/job-protocol.js` | Shared Test/master quote and receipt validation; canonical copy in `kaiapp/core/lib/koin-network` |
 | `scripts/probe-koin-paid-jobs.js` | Financial invariants, multiple writers, abrupt exit, replay and fork recovery tests |
 
@@ -529,6 +531,83 @@ restart/replay. The cross-repository check drives real desktop Core/account
 routes and the Worker with fixture inference and read-only fixture chain RPC.
 All responses remain `paymentsEnabled: false`; no real funds are used.
 
+### Durable settlement outbox and recovery decisions
+
+An isolated funded ledger may now take `settlementPolicy` with exactly
+`verifier`, `payer`, `maxRcPerTransaction`, `maxRcPerDay`, `maxAttempts` and
+`minRetryMs`. Both resource ceilings are positive decimal strings. The verifier
+must match the observer's pinned contract role. The payer is the designated
+sponsor. This immutable local policy is stored with the deployment identity;
+reopening without it, or with changed values, fails closed. Production has no
+outbox configuration, signer, submitter or background recovery loop.
+
+`stageSettlement({id, transaction, observationId})` accepts an already-signed
+transaction only after fresh irreversible **reconciliation** evidence confirms
+that the prepared charge remains eligible. It validates the exact chain,
+credits call/ABI arguments, operation commitment, canonical transaction nonce,
+resource limit and signatures. Separate payer/verifier roles require both
+signatures with the verifier as payee; a single role requires its one signature.
+Extra operations, headers, signer substitutions and altered amounts are refused.
+There is no key loader or signing method in the outbox.
+
+The full signed envelope and its transaction ID are committed atomically with
+the hold in the **same SQLite transaction**, using WAL and FULL synchronous mode.
+`submitted` means potentially submitted, never confirmed paid. A lost response,
+restart, fork or retry cannot replace the saved envelope, advance its nonce,
+re-sign it or release the charge. Legacy ID-only recording is rejected when the
+outbox policy is enabled. Only one verifier transaction can remain unresolved;
+its permanent nonce history prevents reuse or backwards movement. All processes
+must share this database; cross-host failover fencing remains a launch gate.
+
+`SettlementRecovery.step({id, observationId})` checks the exact transaction via
+the pinned read-only observer and returns one of these decisions:
+
+| Decision | Effect |
+| --- | --- |
+| `submit_exact_transaction` | Return the stored envelope after durable attempt/Mana checkpoints; the caller must not replace it |
+| `wait` | Pending/reversible transaction, cooldown or daily sponsorship cap; retain its hold |
+| `review` | Finalized revert or exhausted retry allowance; retain the envelope, nonce and hold |
+| `done` | Exact successful finality and matching session delta; clear the hold once and prepare the next waiting intent if eligible |
+
+The helper **does not submit the returned transaction**. Only the offline probe
+driver simulates submissions in this increment, using deterministic fixture
+signers and fixture RPC. No signing key, transport or public HTTP route is
+connected to the live master, desktop signer or worker. Installing Test does
+not activate this path or any payment.
+
+Each distinct transaction reserves its entire signed `rc_limit` against that
+UTC day's configured sponsorship ceiling before the first attempt. Repeated
+attempts that day share the same reservation because they use the same ID; a
+retry on a later day reserves that day's allowance too. No resource refund is
+assumed, even after a revert. The maximum attempt count, retry delay and journal
+survive restart. A missing journal or damaged saved envelope fails closed.
+Actual Mana estimation and sponsor capacity still require deployment tests.
+
+An unknown transaction past its settlement window is never automatically
+replaced or refunded: it may already have executed before the deadline. Recovery
+continues to permit exact finality/accounting reconciliation. Unexplained
+balance/nonce changes freeze new use. A confirmed earlier charge remains
+confirmed even when a later accepted charge's window has closed. Reverted or
+expired intent replacement, abandoned-job resolution, key rotation, encrypted
+backups and cross-host recovery still need a separately reviewed repair path.
+
+Run `node scripts/probe-koin-settlement-outbox.js`. It includes actual process
+kill/reopen checkpoints, simultaneous handles, lost acknowledgments, signature
+and operation tampering, resource budgets, finality/forks, revocation timing,
+unknown-window expiry, damaged storage and next-session-nonce advancement.
+
+### Automatic provider payouts: intended default
+
+The owner confirmed automatic sponsored claims as the default user experience.
+After daily rewards finalize and the 24-hour review hold ends, the master should
+relay valid claims to each provider's committed KOIN wallet and cover Mana.
+Providers should not need to click Claim or sign each reward payment. A manual
+claim remains a recovery option. The rewards contract already permits any caller
+to relay a valid proof while fixing the recipient; it cannot redirect earnings.
+The automatic claim runner, sponsored reward outbox and signed reward manifests
+are still unconnected. This settlement outbox concerns customer usage charges;
+it does not itself pay provider rewards or shorten the review period.
+
 ### Offline tariff calibration
 
 `node scripts/calibrate-koin-tariff.js TOKENIZER_DIRECTORY EVIDENCE.json` writes
@@ -581,9 +660,11 @@ Run `node scripts/probe-koin-calibration.js` for the offline accounting checks.
   KOIN spending still needs separate activation and live authority. Existing
   `jobId|output` signatures and provider-reported usage remain ineligible for
   KOIN charges. Add durable delivery/retry without persisting private plaintext.
-- Add the restricted settlement keeper, sponsored Mana budget, durable signed
-  transaction outbox, explicit reverted/expired-intent repair and backup recovery.
-  The transaction ID must be recorded before a future submitter broadcasts it.
+- Connect a restricted settlement signer/submitter and automatic sponsored
+  provider claims after review. The durable signed-envelope outbox, bounded Mana
+  journal and read-only recovery decisions are implemented for rehearsal.
+  Complete reverted/expired-intent repair, key rotation and backup recovery;
+  never broadcast before the full signed envelope and hold binding are durable.
 - Publish signed reward manifests only from reconciled real paid charges.
   Add retention, rate/admission limits and load testing before service exposure.
 - Complete isolated-chain transfer/resource testing and contract review,
