@@ -338,6 +338,74 @@ responses and scheduler HTTP requests, not deployed/funded contracts.
 Run `node scripts/probe-koin-funded-session.js`. RPC field reference:
 [Koinos chain RPC definitions](https://pkg.go.dev/github.com/koinos/koinos-proto-golang/v2@v2.6.0/koinos/rpc/chain#ReadContractRequest).
 
+### Existing account-grant chat rehearsal
+
+`Scheduler({ accounts, koinWork: { ...existingWorkConfig, consumerBindings } })`
+can expose an explicitly selected synthetic session through the existing
+`POST /consume/chat/completions` route. `server.js` does not activate this
+configuration. Each binding has exactly these fields:
+
+```js
+{
+  accountId, grantId, // existing AccountService account and signed spend grant
+  session,           // operator-created simulation session ID (SHA-256 hex)
+  model: "koinos-fast", version: 1, maxOutput: 16
+}
+```
+
+Use a deliberately configured isolated service. Bindings are limited to 32,
+unique per account/grant and per simulation session. They pin one Meter tariff
+and an output ceiling. The session separately bounds per-job amount, total
+amount, job count and expiry. The account must still own a live grant and its
+linked wallet must own that session. Reordering config fields across restart
+does not change the binding; changing its values invalidates old authority.
+
+Requests supply `billing: "koin-shadow"`, `sessionToken`, `grantId`, a unique
+SHA-256 `requestId`, literal `messages`, `model` (`auto` or the bound model),
+optional `max_tokens` within the binding and optional boolean `stream`. The
+server creates the exact quote and reserves against the synthetic session.
+Existing wallet signatures and `trustedAccountId` in JSON are not accepted as
+substitute authentication. No operator secret or per-message signature is
+required. Durable jobs record delegated account/grant authority, never a
+server-forged consumer signature. The old USD grant is used only for identity
+and current authorization state; neither its balance nor KOIN funds are spent.
+
+Opted-in workers receive the existing committed shadow job and return its
+signed result. The master independently meters and accepts it, then returns the
+answer with quote, receipt, usage, `costUsd: 0` and `paymentsEnabled: false`.
+`stream: true` uses the existing scheduler SSE envelope after verification;
+generation itself is buffered. Normal requests without `billing` use the
+existing network and pricing path. Unknown billing modes fail closed.
+
+Replies are account-scoped and held in memory for at most five minutes and 32
+results. Prompt/output plaintext is not persisted by this bridge. Reusing a
+request ID with the same grant and terms retrieves its result without another
+reservation or dispatch. A changed prompt/cap or different owner is refused.
+Concurrent duplicates are refused; cancelled requests stay cancelled. After a
+restart/eviction an accepted job reports that its answer is unavailable and
+keeps its hold, rather than running again. An exact signed worker retry can
+restore its transient result. Durable encrypted delivery is not implemented.
+
+Revocation, unlinking, grant expiry, sign-out, disconnect and timeout stop
+pending delivery. Revoked grants cannot admit queued work or accept newly
+arriving results. Only unaccepted reservations are released; accepted or
+uncertain jobs keep their hold. The default HTTP wait is three minutes, bounded
+to five; admission is limited to 32 waiting jobs. General rate limits, ledger
+retention and deployment hardening remain pre-exposure work.
+
+Desktop developer opt-in is `KAI_KOIN_SHADOW_CONSUMER_URL`, which must match its
+configured scheduler. It reads the existing account session and linked-wallet
+grant privately, refuses redirects, validates returned commitments and labels
+the reply as a rehearsal with no KOIN spent. Local-Only and Stop cancel requests;
+errors never fall back to a separately billed legacy request. The native review
+preview is illustrative, not a mandatory per-prompt step in this session flow.
+
+Run `node scripts/probe-koin-grant-chat.js`. With both checkouts installed, run
+`node scripts/verify-koin-desktop.js ../kaiapp` for real desktop Core, account
+routes, master and desktop Worker over local HTTP with fixture inference.
+These tests establish protocol integration, not live service activation,
+production pricing, measured provider performance or funded authorization.
+
 ### Offline tariff calibration
 
 `node scripts/calibrate-koin-tariff.js TOKENIZER_DIRECTORY EVIDENCE.json` writes
@@ -381,8 +449,10 @@ Run `node scripts/probe-koin-calibration.js` for the offline accounting checks.
   recovery for reverted/expired submissions, released balances and unexplained
   charges. Exact successful single-charge reconciliation is implemented; the
   rehearsal still sends no work and synthetic grants are never spending authority.
-- Implement reviewed consumer quote acceptance and funded-session controls in
-  the desktop UI. The worker/scheduler shadow protocol is connected, but existing
+- Implement funded-session controls and durable delivery in the desktop UI.
+  Existing account grants now support normal chat inside synthetic session
+  limits, without per-message review. Real KOIN spending still needs its own
+  bounded authority. The worker/scheduler shadow protocol is connected, but existing
   `jobId|output` signatures and provider-reported usage remain ineligible for
   KOIN charges. Add durable delivery/retry without persisting private plaintext.
 - Add the restricted settlement keeper, sponsored Mana budget, durable signed
