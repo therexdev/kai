@@ -1,0 +1,342 @@
+{
+  "schema": 1,
+  "mode": "isolated-chain",
+  "paymentsEnabled": false,
+  "productionManaCalibration": false,
+  "passed": true,
+  "checks": [
+    "fresh peerless chain bootstrapped with native token and enabled resource accounting",
+    "deposits require an exact native allowance and consume it atomically with no residual approval",
+    "native deposit funds customer custody independently of the seeded rewards pool",
+    "authorized usage moves the exact 60/25/15 native-token split and records provider paid work",
+    "real contract enforces the full 24-hour review before finalization",
+    "a sponsor with no Mana cannot consume a valid unpaid entitlement",
+    "automatic claims pay exact native amounts to providers with no provider signatures",
+    "restart after a lost inclusion response recovers finality without signing or paying twice",
+    "both claim receipts charge real sponsor Mana within their signed limits",
+    "duplicate native payout reverts without changing provider or treasury balances",
+    "an insufficient transaction RC limit cannot move customer funds",
+    "customer refund transfers native tokens while new spending is paused"
+  ],
+  "measurements": [
+    {
+      "txId": "0x1220e89c8d64c9f14985cdbfb6696040322979ad2596568ae44f406e89bb83861b2b",
+      "rcBefore": "100000000000000",
+      "rcAfter": "99999987994624",
+      "rcLimit": "10000000000",
+      "rcUsed": "12005376",
+      "disk": "188",
+      "network": "336",
+      "compute": "2076456"
+    },
+    {
+      "txId": "0x1220e31dae5e1fda36082e7a60d9158e1b7902ebdc787c2c7acf6533e567ad454370",
+      "rcBefore": "100000000000000",
+      "rcAfter": "99999988144261",
+      "rcLimit": "10000000000",
+      "rcUsed": "11855739",
+      "disk": "146",
+      "network": "338",
+      "compute": "2103221"
+    }
+  ],
+  "chainId": "EiA2alKMcKbboiWfc8lTop309xZvCvw5VcIWWdDMtH4BqA==",
+  "signatures": 2,
+  "submissions": 2,
+  "target": {
+    "chainId": "EiA2alKMcKbboiWfc8lTop309xZvCvw5VcIWWdDMtH4BqA==",
+    "rewards": "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg",
+    "rewardsHash": "0x1220637d652aad06e7588921f8dc028c0e41331c03c4d13946d8593f87d973a76d9e",
+    "credits": "166F2N3wEaARqWUobV43oQLspwksFRifEK",
+    "creditsHash": "0x122047c29f20757a1f7fc82c60278a428a55a33bab2a6595fc237c75b25ab21754e2",
+    "token": "1BRmrUgtSQVUggoeE9weG4f7nidyydnYfQ",
+    "tokenHash": "0x1220fa14735d855b8ac3500b8ad1a3f22b0b352fe4ea469d74dbe98a0fa51ae40bcb",
+    "verifier": "1GqMqotyBpt2GRnYdZGMRwA33zYj2KpMmA",
+    "version": "1",
+    "workCapBps": 8000
+  },
+  "maxObservedClaimRc": "12005376",
+  "run": {
+    "url": "https://github.com/therexdev/kai/actions/runs/36260927761",
+    "masterCommit": "f404b40a1b376318bd5e01515065e9fb9e8a114d",
+    "desktopCommit": "3537631fae4790efcbb971f6ba4f55ccfd670be6",
+    "upstreamCommit": "74b64d739a98045630cb61557e1f141c04cd1eb1",
+    "artifactId": 10911988924,
+    "artifactSha256": "30e9770e30a92a283890464014ce01acb925e8049c22a621642efaafb5b224aa",
+    "genesisSha256": "5ae5fd8ba9b5b42cdd8c878c1605d7868341fa9ab53883ace6fb9fa6d82ec7db"
+  },
+  "images": [
+    {
+      "Repository": "koinos/koinos-block-store",
+      "Tag": "v1.1.0",
+      "ID": "sha256:17316db88cc28e2013c503013cab208f8f30fb0a9c2aca16176488796a453c2c",
+      "Platform": "linux/amd64"
+    },
+    {
+      "Repository": "koinos/koinos-jsonrpc",
+      "Tag": "v1.2.0",
+      "ID": "sha256:d9257017afd24a516d228252dbfd84044987ed7071a351263d0ed8dc03b54e35",
+      "Platform": "linux/amd64"
+    },
+    {
+      "Repository": "rabbitmq",
+      "Tag": "3.13-alpine",
+      "ID": "sha256:5f3394787e6c8e30dbe74334e06fca9426943d21dbf1e5abd38b234c5ec1a5cd",
+      "Platform": "linux/amd64"
+    },
+    {
+      "Repository": "koinos/koinos-mempool",
+      "Tag": "v1.5.0",
+      "ID": "sha256:c72afd9284304caa64fe30ab588960f25709d3215e2e6bb5c6ffc9c339c0949a",
+      "Platform": "linux/amd64"
+    },
+    {
+      "Repository": "koinos/koinos-transaction-store",
+      "Tag": "v1.1.0",
+      "ID": "sha256:21109ed0c5d9efbd34dbe968ce1a277edebb70f539c47ae87e51b0ffe5504a11",
+      "Platform": "linux/amd64"
+    },
+    {
+      "Repository": "koinos/koinos-chain",
+      "Tag": "v1.5.2",
+      "ID": "sha256:4dd9ac3c288f964574ef03e8fc66b3179eb27ee34e77ee70c8ba135e75175ed6",
+      "Platform": "linux/amd64"
+    }
+  ],
+  "claims": [
+    {
+      "label": "automatic-claim",
+      "resourceEnabled": true,
+      "blockId": "0x122050539d96ab6659e13bbd2360ff49db5d3504a79a0e29d46ff9224c7d0f593eda",
+      "height": "150",
+      "transaction": {
+        "id": "0x1220e89c8d64c9f14985cdbfb6696040322979ad2596568ae44f406e89bb83861b2b",
+        "header": {
+          "chain_id": "EiA2alKMcKbboiWfc8lTop309xZvCvw5VcIWWdDMtH4BqA==",
+          "rc_limit": "10000000000",
+          "nonce": "KAE=",
+          "operation_merkle_root": "EiAUQv_EvzPYru51vbzte9xjZSkwtsrl_io8IC_m1XCOnA==",
+          "payer": "18jfLfKbUy2mktus1c7JiZER9XEdVTM81o"
+        },
+        "operations": [
+          {
+            "call_contract": {
+              "contract_id": "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg",
+              "entry_point": 3709549617,
+              "args": "EhkAt4T6iFWa4HJMZj6IQFrt5d4mWi8vbumuOO6hAUiA4esXWi0KIMyvslOF4-bUk2y9VqImkBKe9f5lCxt6brxCSAaLJ-mFEIDC1y8YgIjevgE="
+            }
+          }
+        ],
+        "signatures": [
+          "IHo9oLkbH3HqFgRRxyPP4_NYRouJOAKgAegpvgD3sL44HFeOsqT26rMpswL1Ex5gEqIJzNdQflZFOXdyNFM7hu8="
+        ]
+      },
+      "receipt": {
+        "id": "0x1220e89c8d64c9f14985cdbfb6696040322979ad2596568ae44f406e89bb83861b2b",
+        "payer": "18jfLfKbUy2mktus1c7JiZER9XEdVTM81o",
+        "max_payer_rc": "100000000000000",
+        "rc_limit": "10000000000",
+        "rc_used": "12005376",
+        "disk_storage_used": "188",
+        "network_bandwidth_used": "336",
+        "compute_bandwidth_used": "2076456",
+        "events": [
+          {
+            "source": "1BRmrUgtSQVUggoeE9weG4f7nidyydnYfQ",
+            "name": "token.transfer_event",
+            "data": "ChkAgNhlN88_-bc6A76qtX03Biu5ZJCQblCDEhkAt4T6iFWa4HJMZj6IQFrt5d4mWi8vbumuGIDh6xc=",
+            "impacted": [
+              "1HjMxd8w9NR6kxK4PNvPiM4JFtk28jkm9w",
+              "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg"
+            ]
+          }
+        ],
+        "state_delta_entries": [
+          {
+            "object_space": {
+              "system": true
+            },
+            "key": "EiDIiXqmJH5E-r9zJwsyZAAqmy-mZUrXRH47P4AmqzkbTA==",
+            "value": "CiISIFBTnZarZlnhO70jYP9J2101BKeaDinUb_kiTH0PWT7aEpEBCiISIJ3pP29zkvVbMdbzUhn9B_M3x5iCM6Gu6_zHIkcIaarfEJYBGP2A2YWNNCIiEiDLND4UWBsWuOkXF3MINdneInBWWcn1i38pnW4pevlMPioiEiDY_lJ7aP6EKRBF5TUGhmibFLu-aGNovCZz7wYIHypOijIZALZ7lxNJgjY_Rod3bETbnpIXxRZNdo6kTxrQAgoiEiDonI1kyfFJhc2_tmlgQDIpea0lllaK5E9Abom7g4YbKxJtCiISIDZqUoxwptuiJZ9zyVOinfT3Fm8K_DlVwhZZ0My0fgGoEIDIr6AlGgIoASIiEiAUQv_EvzPYru51vbzte9xjZSkwtsrl_io8IC_m1XCOnCoZAFTaWso8gl2vuY2uoI23hAZ9ln3nmBVX6hp4EnYKGQCA2GU3zz_5tzoDvqq1fTcGK7lkkJBuUIMQsfjs6A0aUxIZALeE-ohVmuByTGY-iEBa7eXeJlovL27prjjuoQFIgOHrF1otCiDMr7JThePm1JNsvVaiJpASnvX-ZQsbem68QkgGiyfphRCAwtcvGICI3r4BIkEgej2guRsfceoWBFHHI8_j81hGi4k4AqAB6Cm-APewvjgcV46ypPbqsymzAvUTHmASognM11B-VkU5d3I0UzuG7yJBH84nzxU35dhkUnqEo9kBE8yunJ_VW6SEcvJ6GDRnIefvFKLAfopWMTslcPFAUN3IW1QIS8SNoHioWSZrv8pRd9M="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "id": 4
+            },
+            "key": "AFTaWso8gl2vuY2uoI23hAZ9ln3nmBVX6g==",
+            "value": "KAE="
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 1
+            },
+            "key": "djE=",
+            "value": "CIDKte4B"
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 2
+            },
+            "key": "MjA3MTg=",
+            "value": "CO6hARCl3qazjDQYASCxsfTPEijIot6EDTDpjpbLBTjAPkIZADfWajqCM5XKbNzSd0MNLH3-wb-T9yTXBEoZAK2vQCQ87WluGJxnjRSm5hq-3CQ9GcSn6VItCiBalSmhn15O2UlyVrLqYCr3Inv49tr9pX0c3mWFruuUzRCAo8NHGICI3r4BWIKA2YWNNGABcIDh6xc="
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 3
+            },
+            "key": "AAAAAAAAUO4At4T6iFWa4HJMZj6IQFrt5d4mWi8vbumu",
+            "value": "CIDh6xc="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "AFTaWso8gl2vuY2uoI23hAZ9ln3nmBVX6g==",
+            "value": "CICA6YOx3hYQgKCM_rDeFhj9gNmFjTQ="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+            "value": "CIC19rr1AhCAtfa69QIY_YDZhY00"
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "ALeE-ohVmuByTGY-iEBa7eXeJlovL27prg==",
+            "value": "CIDh6xcQgOHrFxj9gNmFjTQ="
+          }
+        ]
+      }
+    },
+    {
+      "label": "automatic-claim",
+      "resourceEnabled": true,
+      "blockId": "0x1220436a89b122bc2bedd97b87a6e1032039d0fcb906f6129d21f30d5fc3315b1ee4",
+      "height": "391",
+      "transaction": {
+        "id": "0x1220e31dae5e1fda36082e7a60d9158e1b7902ebdc787c2c7acf6533e567ad454370",
+        "header": {
+          "chain_id": "EiA2alKMcKbboiWfc8lTop309xZvCvw5VcIWWdDMtH4BqA==",
+          "rc_limit": "10000000000",
+          "nonce": "KAI=",
+          "operation_merkle_root": "EiBmS86Q0ApwMCo8dEEOv2HKxsGdcJ5M1kcLBWH3hg8Ygg==",
+          "payer": "18jfLfKbUy2mktus1c7JiZER9XEdVTM81o"
+        },
+        "operations": [
+          {
+            "call_contract": {
+              "contract_id": "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg",
+              "entry_point": 3709549617,
+              "args": "EhkA_PZwltP-U57-JDMMHZWCZBCMp4bau6PqOO6hAUiAwtcvUICI3r4BWikKIK96h1PQVC56UPW0dtKEZaHAVCpsmLEVz5yWl8De-UvBEIDh6xcgAQ=="
+            }
+          }
+        ],
+        "signatures": [
+          "H0EPbKyr8VIJf8ENAd3BVagoIeGFGYsNI-uVtVhzJL2OeL2ziTIotXea64h-YSZAIFE8tH9n9K8bN9kjU4iRMt8="
+        ]
+      },
+      "receipt": {
+        "id": "0x1220e31dae5e1fda36082e7a60d9158e1b7902ebdc787c2c7acf6533e567ad454370",
+        "payer": "18jfLfKbUy2mktus1c7JiZER9XEdVTM81o",
+        "max_payer_rc": "100000000000000",
+        "rc_limit": "10000000000",
+        "rc_used": "11855739",
+        "disk_storage_used": "146",
+        "network_bandwidth_used": "338",
+        "compute_bandwidth_used": "2103221",
+        "events": [
+          {
+            "source": "1BRmrUgtSQVUggoeE9weG4f7nidyydnYfQ",
+            "name": "token.transfer_event",
+            "data": "ChkAgNhlN88_-bc6A76qtX03Biu5ZJCQblCDEhkA_PZwltP-U57-JDMMHZWCZBCMp4bau6PqGIDKte4B",
+            "impacted": [
+              "1Q4YWHB5AJPbTLneBzSyr1oDyZ9vfKj91T",
+              "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg"
+            ]
+          }
+        ],
+        "state_delta_entries": [
+          {
+            "object_space": {
+              "system": true
+            },
+            "key": "EiDIiXqmJH5E-r9zJwsyZAAqmy-mZUrXRH47P4AmqzkbTA==",
+            "value": "CiISIENqibEivCvt2XuHpuEDIDnQ_LkG9hKdIfMNX8MxWx7kEpEBCiISIAeW91aqDcnbdnHrHLYCQ9chAtwysJG5vYLu8kQaZ6-JEIcDGO6C2YWNNCIiEiApaylNRoXG5SEZhCCp11_DaWSR1TLfwcDZRHcS3h62BioiEiAHiAtwnV_JXEP1gpCk2A2yvpX6aJ-ZuM6tI4-N57nlWjIZALZ7lxNJgjY_Rod3bETbnpIXxRZNdo6kTxrSAgoiEiDjHa5eH9o2CC56YNkVjht5AuvceHwses9lM-VnrUVDcBJtCiISIDZqUoxwptuiJZ9zyVOinfT3Fm8K_DlVwhZZ0My0fgGoEIDIr6AlGgIoAiIiEiBmS86Q0ApwMCo8dEEOv2HKxsGdcJ5M1kcLBWH3hg8YgioZAFTaWso8gl2vuY2uoI23hAZ9ln3nmBVX6hp6EngKGQCA2GU3zz_5tzoDvqq1fTcGK7lkkJBuUIMQsfjs6A0aVRIZAPz2cJbT_lOe_iQzDB2VgmQQjKeG2ruj6jjuoQFIgMLXL1CAiN6-AVopCiCveodT0FQuelD1tHbShGWhwFQqbJixFc-clpfA3vlLwRCA4esXIAEiQR9BD2ysq_FSCX_BDQHdwVWoKCHhhRmLDSPrlbVYcyS9jni9s4kyKLV3muuIfmEmQCBRPLR_Z_SvGzfZI1OIkTLfIkEfhKZCf8G5zjaqxlU1UUvfZLof4vEc8l1ZeN8j57FhVfJu6OFK2SaB8UuBv9cbftijJGVo2tNTyMDIJHL7Bn-yFQ=="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "id": 4
+            },
+            "key": "AFTaWso8gl2vuY2uoI23hAZ9ln3nmBVX6g==",
+            "value": "KAI="
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 1
+            },
+            "key": "djE=",
+            "value": ""
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 2
+            },
+            "key": "MjA3MTg=",
+            "value": "CO6hARCl3qazjDQYASCxsfTPEijIot6EDTDpjpbLBTjAPkIZADfWajqCM5XKbNzSd0MNLH3-wb-T9yTXBEoZAK2vQCQ87WluGJxnjRSm5hq-3CQ9GcSn6VItCiBalSmhn15O2UlyVrLqYCr3Inv49tr9pX0c3mWFruuUzRCAo8NHGICI3r4BWIKA2YWNNGABcICroYYC"
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 3
+            },
+            "key": "AAAAAAAAUO4A_PZwltP-U57-JDMMHZWCZBCMp4bau6Pq",
+            "value": "CIDKte4B"
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "AFTaWso8gl2vuY2uoI23hAZ9ln3nmBVX6g==",
+            "value": "CICA6YOx3hYQhbGV_rDeFhjugtmFjTQ="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+            "value": "CIDrwMzzAhCA68DM8wIY7oLZhY00"
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "APz2cJbT_lOe_iQzDB2VgmQQjKeG2ruj6g==",
+            "value": "CIDKte4BEIDKte4BGO6C2YWNNA=="
+          }
+        ]
+      }
+    }
+  ]
+}
