@@ -11,9 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      KAI_ISOLATED_DIR: ${{ runner.temp }}/kai-isolated
       COMPOSE_PROJECT_NAME: kai-isolated-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
+      - name: Choose disposable runner directory
+        run: echo "KAI_ISOLATED_DIR=$RUNNER_TEMP/kai-isolated" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
