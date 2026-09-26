@@ -452,8 +452,9 @@ existing `sessionToken` in the body and return `paymentsEnabled: false`:
 `proposal` has exactly `model`, `version`, `maxOutput`, `amount`, `perJob`,
 `maxJobs`, `expires`. Amounts are decimal atom strings; expiry is UTC epoch
 milliseconds. Review may return `state: "reversible"`; retry the same observation
-after finality. Observations expire and do not survive restart. There is no HTTP
-funded reservation, dispatch or settlement endpoint in this increment.
+after finality. Observations expire and do not survive restart. Funded chat uses
+the separate opt-in work integration below; there is no settlement broadcast
+endpoint.
 
 The desktop's opt-in native controls use
 `KAI_KOIN_FUNDED_REHEARSAL_CONFIG`; see its `docs/koin-network/STATUS.md` for the
@@ -468,9 +469,65 @@ Run `node scripts/probe-koin-session-delegation.js`, the existing funded probes,
 and `node scripts/verify-koin-desktop.js ../kaiapp`. Coverage includes altered
 terms, signatures/deployments/accounts, cumulative limits, concurrent writers,
 revocation/replay, expiry, settled-charge accounting and desktop recovery.
-Funding RPC and inference remain fixtures. The ordinary chat bridge continues
-to use synthetic sessions; connecting funded dispatch and the settlement keeper
-is subsequent work, before any real-payment activation.
+Funding RPC and inference remain fixtures. The funded chat integration below
+is tested with the same accounts and ledger. A restricted settlement keeper
+remains subsequent work before any real-payment activation.
+
+### Funded rehearsal chat, workers and unsigned settlement preparation
+
+Set `koinFundedSessions.work: { qualify, waitMs }` on the isolated Scheduler and
+supply `accept` as an independent acceptance policy. Neither callback is
+provided by a consumer or worker. `qualify(address, model, modelHash, now)` must
+return true both at dispatch and acceptance. The acceptance callback receives
+the ledger job, original messages and output. Production `server.js` has no
+activation switch for this work router.
+
+Normal `/consume/chat/completions` accepts `billing: "koin-funded-rehearsal"`,
+`sessionToken`, `grantId`, `delegationId`, `observationId`, `requestId`, literal
+`messages`, optional `model`, `max_tokens` and `stream`. No request signature or
+certificate is needed after the session approval. The authenticated account
+must own the certificate. Each new reservation and dispatch rechecks the
+linked grant, approved scope, fresh irreversible funding and SQLite caps.
+Repeated IDs cannot change intent or create another hold. Simultaneous requests
+for the same ID return a conflict while the first is running.
+
+Only signed workers advertising `koinFundedRehearsalJobs: 1` receive
+`koin-funded-rehearsal-chat` jobs through the existing worker poll. Desktop
+opt-in is `KAI_KOIN_FUNDED_REHEARSAL_JOBS=1`, separate from synthetic jobs.
+Jobs contain public target/session IDs and the committed prompt/quote, never
+account tokens or delegation signatures. The public model hash and local
+llama.cpp input token IDs must match. The result signature uses
+`KAI-KOIN-FUNDED-RESULT-REHEARSAL-V1`. The worker posts to
+`/koin/funded/rehearsal/result` using its existing worker token. Legacy result
+signatures and client-reported token counts are insufficient.
+
+The master verifies the assigned provider, signature, deadline, qualification,
+acceptance and independently counted tokens. The desktop also checks the
+approved tariff-policy proof, request, signed output and usage arithmetic before
+delivery. Responses are buffered, including SSE delivery. Accepted jobs call
+`prepare()` to persist an unsigned settlement intent; a previous unresolved
+nonce leaves later jobs verified/waiting. No transaction is constructed,
+signed or broadcast by this integration. `settlementOperation()` remains an
+in-process inspection method for the future restricted keeper.
+
+Stop/disconnect can release only queued work. Dispatched work retains its
+liability through timeout, revocation and restart, and never requeues
+automatically. Prompts and answers are memory-only, capped at 32 each; accepted
+answers expire after five minutes. Identical accepted worker-result replay
+can restore an answer after eviction/restart without changing its receipt or
+charge. Unaccepted output cannot be verified after losing its challenge context.
+Durable encrypted answer delivery and automatic desktop retry UI remain open.
+Callers preserve `koin_request_id`; errors never fall back to legacy billing.
+The Electron configuration selects the saved session privately; missing or
+invalid approval fails closed. Local-Only and Stop retain their egress boundary.
+
+Run `node scripts/probe-koin-funded-work.js` and the cross-repository check
+alongside the funded ledger and delegation probes. These cover account
+isolation, concurrent polls/duplicate intent, changed funding, revocation,
+Stop before/after dispatch, wrong signature domains, acceptance failure and
+restart/replay. The cross-repository check drives real desktop Core/account
+routes and the Worker with fixture inference and read-only fixture chain RPC.
+All responses remain `paymentsEnabled: false`; no real funds are used.
 
 ### Offline tariff calibration
 
@@ -514,13 +571,14 @@ Run `node scripts/probe-koin-calibration.js` for the offline accounting checks.
 - Add exclusive ownership/failover fencing across verifier hosts and reviewed
   recovery for reverted/expired submissions, released balances and unexplained
   charges. Exact successful single-charge reconciliation is implemented; the
-  rehearsal still sends no work and synthetic grants are never spending authority.
+  funded rehearsal now dispatches work but never broadcasts, and synthetic
+  grants are never spending authority.
 - Complete credit purchase/session opening/refund controls and durable delivery
   in the desktop UI. Private one-time session approval/retry/revocation is now
   implemented for funded accounting rehearsal.
-  Existing account grants now support normal chat inside synthetic session
-  limits, without per-message review. Real KOIN spending still needs its own
-  bounded authority. The worker/scheduler shadow protocol is connected, but existing
+  Existing account grants now support normal chat inside synthetic or explicitly
+  approved funded-rehearsal session limits, without per-message review. Real
+  KOIN spending still needs separate activation and live authority. Existing
   `jobId|output` signatures and provider-reported usage remain ineligible for
   KOIN charges. Add durable delivery/retry without persisting private plaintext.
 - Add the restricted settlement keeper, sponsored Mana budget, durable signed

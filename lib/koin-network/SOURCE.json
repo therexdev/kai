@@ -8,7 +8,8 @@
     "shadow-router.js": "970b44bf5ac7dcb65b4f515fab61926f3874bc49eec5a9e6881418896212a8a0",
     "credits-abi.json": "674a05f13354c0b820d0643a11a3bfeb0128a497db0ea3ca226dc8dd218f3b2b",
     "job-protocol.js": "070f95a4076e4520153eff36f69d5e3ef2770995a69d4ba0c6d2d7df11546d4d",
-    "session-delegation.js": "df4c3bc4f7b9de651628619b17194676260ed17a372fb05a101e7b0289283b31"
+    "session-delegation.js": "df4c3bc4f7b9de651628619b17194676260ed17a372fb05a101e7b0289283b31",
+    "funded-protocol.js": "3db78c7832b143d30676a242adccd3cf6447a206ba77086411d81eee5b1b5359"
   },
-  "sourceCommit": "692b9f844608f21025854c7c7ad4c58c041eb420"
+  "sourceCommit": "bd7e33e6b08c133eb4c47d6c86614ca4cfe49b18"
 }

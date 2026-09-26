@@ -111,3 +111,70 @@ test("native desktop session approval -> authenticated funded ledger -> bounded 
   assert.equal((await new FundedSessionClient(options).retry()).state, "revoked"); assert.equal(signatures, 1);
   assert.equal(f.accounts.spendableGrant(f.account.id, f.grant.id).remainingMicro, 1000000);
 });
+
+test("approved funded session -> real desktop chat -> signed worker -> verified response and prepared settlement", { timeout: 20000 }, async t => {
+  const { setup, owner } = require("./helpers/koin-delegation-fixture"), { nextId } = require("./helpers/koin-funding-fixture");
+  const { FundedSessionClient } = require(path.join(appRoot, "electron/koin-session-client"));
+  const signer = Signer.fromSeed("funded-cross-provider"), address = signer.getAddress();
+  const f = await setup(t, { realClock: true, model: "koinos-fast", work: { qualify: a => a === address, waitMs: 8000 } });
+  f.head.last_irreversible_block = "101"; f.block.block_id = nextId; f.block.block_height = "101";
+  f.block.block.id = nextId; f.block.block.header.height = "101";
+  const site = express(), routes = createAccounts({ stateDir: path.join(f.dir, "accounts") });
+  site.use((req, res, next) => req.path.startsWith("/scheduler/") ? next() : express.json()(req, res, next));
+  site.use(routes.router); site.use("/scheduler", (req, res) => f.scheduler.handle(req, res).catch(e => res.status(500).json({ error: e.message })));
+  const server = http.createServer(site); await new Promise(r => server.listen(0, "127.0.0.1", r));
+  const schedulerUrl = `http://127.0.0.1:${server.address().port}/scheduler`;
+  let core, worker, engine, signatures = 0, generations = 0;
+  t.after(async () => {
+    await worker?.stop(); await core?.stop();
+    server.closeAllConnections(); await new Promise(r => server.close(r)); routes.service.db.close();
+    engine?.closeAllConnections(); if (engine) await new Promise(r => engine.close(r));
+  });
+  core = await createCore({ dataDir: path.join(f.dir, "desktop"), port: 0, onEvent() {} });
+  core.account.wallet.importWif({ wif: owner.getPrivateKey("wif"), password: "isolated fixture" });
+  core.account._saveToken(f.token); core.settings.set("earn.schedulerUrl", schedulerUrl);
+  core.settings.set("network.privacyMode", "network");
+  const config = { ...f.proposal, schedulerUrl, target: f.target, session: f.id };
+  const options = { config, file: path.join(f.dir, "desktop-approval.json"),
+    authorize: (pin, signal, opts) => core.account.shadowAuthorization(pin, signal, opts),
+    sign: bytes => { signatures++; return core.account.wallet.signHash(bytes); } };
+  const client = new FundedSessionClient(options); await client.approve(await client.prepare());
+  core.gateway.koinFundedConsume = request => client.consume(request);
+  core.account.wallet.signHash = () => { throw Error("A chat request cannot ask for another wallet signature"); };
+  const encode = text => [...Buffer.from(text)];
+  engine = http.createServer(async (req, res) => {
+    let raw = ""; for await (const chunk of req) raw += chunk;
+    const b = JSON.parse(raw); res.setHeader("content-type", "application/json");
+    if (req.url === "/tokenize") res.end(JSON.stringify({ tokens: encode(b.content) }));
+    else { generations++; res.end(JSON.stringify({ content: "4" })); }
+  });
+  await new Promise(r => engine.listen(0, "127.0.0.1", r));
+  const sign = async bytes => Buffer.from(await signer.signHash(bytes)).toString("base64");
+  const catalog = { aliases: { "koinos-fast": { package: "fixture" } }, packages: { fixture: { sha256: P.hash("model") } } };
+  worker = new Worker({ schedulerUrl, wallet: { address, signHash: sign }, models: { catalog }, koinFundedRehearsalJobs: true,
+    runtime: { status: () => ({ runtime: { kind: "llamacpp" } }), acquireFor: async () => ({ endpoint: `http://127.0.0.1:${engine.address().port}`, release() {} }) },
+    onEvent: e => { if (["worker:funded-rehearsal-job-done", "worker:job-failed"].includes(e.type)) worker.running = false; } });
+  const post = (url, body) => fetch(url, { method: "POST", headers: { "content-type": "application/json", connection: "close" }, body: JSON.stringify(body) });
+  const at = Date.now(), registration = await post(schedulerUrl + "/worker/register", { address, ts: at,
+    signature: await sign(Buffer.from(P.hash(`register|${address}|${at}`), "hex")), models: ["koinos-fast"], capabilities: { ramGb: 8, koinFundedRehearsalJobs: 1 } });
+  const registered = await registration.json(); worker.token = registered.token; assert.ok(worker.token, JSON.stringify(registered));
+  const desktopUrl = `http://127.0.0.1:${await core.start()}`;
+  for (const n of ["first", "second"]) {
+    const id = P.hash("funded-cross-" + n), body = { model: "koinos-network", messages: [{ role: "user", content: "2+2?" }], max_tokens: 16, koin_request_id: id };
+    const pending = post(desktopUrl + "/v1/chat/completions", body);
+    for (let i = 0; i < 300 && !f.ledger.job(id); i++) await new Promise(r => setTimeout(r, 5));
+    assert.ok(f.ledger.job(id), "desktop must reserve before worker polling");
+    worker.running = true; await worker._run();
+    const response = await pending, answer = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(answer)); assert.equal(answer.choices[0].message.content, "4");
+    assert.equal(answer.koin.state, n === "first" ? "prepared" : "verified"); assert.match(answer.warning, /no KOIN was spent/);
+    const retry = await post(desktopUrl + "/v1/chat/completions", { ...body, stream: true });
+    assert.equal(retry.status, 200); assert.match(await retry.text(), /data: \[DONE\]/);
+  }
+  assert.equal(generations, 2); assert.equal(signatures, 1); assert.equal(worker.stats.fundedRehearsalJobsDone, 2);
+  assert.equal(worker.stats.jobsDone, 0); assert.deepEqual(f.scheduler.usage, {});
+  assert.equal(f.accounts.spendableGrant(f.account.id, f.grant.id).remainingMicro, 1000000);
+  await client.revoke();
+  const rejected = await post(desktopUrl + "/v1/chat/completions", { model: "koinos-network", messages: [{ role: "user", content: "new" }] });
+  assert.equal(rejected.status, 502); assert.equal(generations, 2); assert.equal(signatures, 1);
+});
