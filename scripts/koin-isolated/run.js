@@ -70,22 +70,24 @@ async function run(directory) {
     await assert.rejects(chain.provider.call("chain.submit_transaction", { transaction: empty, broadcast: false }), /mana|resource|rc|payer/i);
     assert.notEqual((await chain.read("rewards", "claimed", { epoch, account: bytes(ledger.status(ids[0]).account) })).claimed, true);
     check("a sponsor with no Mana cannot consume a valid unpaid entitlement");
-    let signatures = 0, submissions = 0, lostResponse = false;
+    let signatures = 0, submissions = 0, lostResponse = false, submissionError;
     const runner = () => new RehearsalSubmitter({ mode: "isolated-rehearsal", claims: ledger,
       prepareClaim: async decision => {
         assert.equal(decision.chainId, chain.chainId); assert.equal(decision.payer, sponsor); signatures++;
         return chain.signed([{ call_contract: decision.operation }], chain.actors.sponsor, { rcLimit: decision.maxRc });
       }, submit: async transaction => {
-        submissions++; const rcBefore = await chain.provider.getAccountRc(sponsor), balanceBefore = await chain.balance(sponsor);
-        // Exercise the real RPC admission path, then produce exactly this tx.
-        await chain.provider.call("chain.submit_transaction", { transaction, broadcast: true });
-        const receipt = await chain.include("automatic-claim", transaction);
-        assert.notEqual(receipt.reverted, true, JSON.stringify(receipt.logs));
-        const rcAfter = await chain.provider.getAccountRc(sponsor);
-        assert.equal(receipt.payer, sponsor); assert.ok(BigInt(receipt.rc_used) > 0n && BigInt(receipt.rc_used) <= BigInt(transaction.header.rc_limit));
-        assert.ok(BigInt(rcAfter) < BigInt(rcBefore)); assert.equal(await chain.balance(sponsor), balanceBefore);
-        report.measurements.push({ txId: transaction.id, rcBefore, rcAfter, rcLimit: transaction.header.rc_limit, rcUsed: receipt.rc_used,
-          disk: receipt.disk_storage_used ?? "0", network: receipt.network_bandwidth_used ?? "0", compute: receipt.compute_bandwidth_used ?? "0" });
+        try {
+          submissions++; const rcBefore = await chain.provider.getAccountRc(sponsor), balanceBefore = await chain.balance(sponsor);
+          // Exercise the real RPC admission path, then produce exactly this tx.
+          await chain.provider.call("chain.submit_transaction", { transaction, broadcast: true });
+          const receipt = await chain.include("automatic-claim", transaction);
+          assert.notEqual(receipt.reverted, true, JSON.stringify(receipt.logs));
+          const rcAfter = await chain.provider.getAccountRc(sponsor);
+          assert.equal(receipt.payer, sponsor); assert.ok(BigInt(receipt.rc_used) > 0n && BigInt(receipt.rc_used) <= BigInt(transaction.header.rc_limit));
+          assert.ok(BigInt(rcAfter) < BigInt(rcBefore)); assert.equal(await chain.balance(sponsor), balanceBefore);
+          report.measurements.push({ txId: transaction.id, rcBefore, rcAfter, rcLimit: transaction.header.rc_limit, rcUsed: receipt.rc_used,
+            disk: receipt.disk_storage_used ?? "0", network: receipt.network_bandwidth_used ?? "0", compute: receipt.compute_bandwidth_used ?? "0" });
+        } catch (e) { submissionError = e; throw e; }
         if (!lostResponse) { lostResponse = true; throw Error("Deliberately lost acknowledgment after real block inclusion"); }
         return { txId: transaction.id };
       } });
@@ -93,12 +95,14 @@ async function run(directory) {
     for (let attempts = 0; ledger.next(); attempts++) {
       if (attempts >= 24) throw Error("Automatic claim queue did not resolve");
       const result = await runner().tick(); console.log(JSON.stringify({ claim: result.results[0]?.id, action: result.results[0]?.action, reason: result.results[0]?.reason }));
+      if (submissionError) throw submissionError;
       if (lostResponse && !restarted) {
         assert.equal(ledger.status(ids[0]).state, "unknown"); ledger.close(); open(); restarted = true;
       }
       await chain.finalize((await chain.provider.getHeadInfo()).head_topology.height); await pause(100);
     }
     assert.equal(signatures, 2); assert.equal(submissions, 2); assert.equal(restarted, true);
+    assert.equal(report.measurements.length, 2, "Every claim must pass the actual Mana assertions");
     for (const row of tree.claims) assert.equal(BigInt(await chain.balance(row.address)) - BigInt(before[row.address]), BigInt(row.availability) + BigInt(row.work));
     for (const id of ids) assert.equal(ledger.status(id).state, "paid");
     assert.equal((await chain.read("rewards", "get_epoch", { epoch })).epoch.paid, "550000000");

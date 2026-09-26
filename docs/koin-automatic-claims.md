@@ -27,6 +27,8 @@ The Merkle implementation and generated rewards ABI are copied from the desktop
 contract prototype and pinned in `lib/koin-network/SOURCE.json`.
 Claim encoding omits zero-valued categories, epoch zero and false proof flags,
 matching the compiled contract's canonical protobuf requirements.
+The observer also accepts omitted empty protobuf results for unclaimed/zero-spend
+reads, while rejecting malformed responses and missing required deployment state.
 
 ## Rehearsal interface
 

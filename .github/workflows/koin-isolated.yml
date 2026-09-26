@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: therexdev/kaiapp
-          ref: 1a81c8a9fb99bdf61ddaf864fc33c8ac09d08ed8
+          ref: f513d4339d300839748ded5d8a128e13084f33a6
           path: isolated-desktop
           persist-credentials: false
       - name: Build pinned custody contracts
