@@ -243,8 +243,9 @@ Any change to the session's on-chain remaining amount, nonce, owner, limits or
 expiry after adoption persistently freezes that session for reconciliation.
 The freeze commits before the operation returns an error. This intentionally
 does not guess which local job a chain charge represents or reset a balance.
-There is no unfreeze, settlement, transfer or broadcast path in this iteration.
-Status is explicitly the last verified accounting snapshot, not a live balance.
+Only exact-charge reconciliation described below can clear a freeze and advance
+the recorded chain balance. There is no administrative balance reset, transfer
+or broadcast path. Status is the last verified accounting snapshot, not a live balance.
 
 All processes serving a deployment must share one operator-owned database.
 Independent databases/hosts are **not** coordinated; cross-host ownership and
@@ -258,6 +259,45 @@ Run `node scripts/probe-koin-funded-reservations.js`. Tests use the real observe
 against ABI-serialized fixture RPC responses and cover duplicate requests,
 competing database writers, forged prices, signed cancellations, dispatch-time
 revocation, abrupt process exit, deployment identity and persistent freezes.
+
+### Accepted charges and funded reconciliation
+
+The funded rehearsal now supports the accounting sequence `dispatched →
+verified → prepared → submitted → settled`. Dispatch records a random attempt
+and result deadline. `complete` verifies a provider signature with the distinct
+`KAI-KOIN-FUNDED-RESULT-REHEARSAL-V1` domain, requires the configured in-process
+acceptance policy, and recounts output with the pinned meter. Only accepted
+usage reduces the maximum hold to the actual charge. Prompt/output text is not
+persisted. A signature alone cannot override rejection or a missed deadline.
+
+`prepare` freezes the exact charge, provider, receipt hash, dispatch time,
+policy and next session nonce. Only one unresolved settlement per session may
+be prepared. `settlementOperation` encodes that stored intent using the generated
+credits ABI; it does not create or sign a transaction. `recordTransaction` binds
+one transaction ID permanently before any future submitter broadcasts it.
+Unknown transactions cannot be replaced automatically with a new nonce or ID.
+
+`reconcile` asks the trusted observer to verify the exact contract operation,
+successful receipt and canonical irreversible inclusion. It then requires a
+fresh, separately observed reconciliation snapshot at or after the transaction
+height. The session nonce must advance by one, its remaining balance must fall
+by exactly the stored charge, and its remaining job count must fall by one.
+Only then does one database transaction release the hold, advance local chain
+accounting and retain finality evidence. Repeated reconciliation is idempotent.
+Unexpected deltas persist a freeze; unknown, reversible, reverted and mismatched
+transactions retain the hold. Failed database writes roll back both changes.
+
+Observations explicitly distinguish `admission` (default) from `reconciliation`.
+The latter can inspect expired, revoked, exhausted or paused sessions, since
+earlier accepted work may already have settled. Reconciliation evidence is
+rejected by reservation/dispatch admission. An account release or extra charge
+that changes more than the single expected delta still requires a separate
+recovery procedure; no residual balance is assumed or discarded.
+
+This remains an in-process rehearsal: no consumer endpoints, worker dispatch,
+live transaction signer, keeper, or reward manifest is connected. Fixture tests
+exercise exact ABI operations, transaction commitments, restart, duplicate
+confirmation, revocation/expiry, unknown transactions and write rollback.
 
 ### Funded-session evidence
 
@@ -337,10 +377,10 @@ Run `node scripts/probe-koin-calibration.js` for the offline accounting checks.
 - Measure hardware costs, model tariffs and SLA/challenge rules; extend the
   reference/pinned-tokenizer coverage beyond Koinos Fast. The implemented Qwen
   adapter verifies artifacts and token IDs, but supplies no production prices.
-- Complete explicit funded-ledger reconciliation against individual finalized
-  charges and exclusive ownership/failover fencing across verifier hosts. The
-  durable rehearsal now enforces funding checks but sends no work. Synthetic
-  grants must never become remote spending authorization.
+- Add exclusive ownership/failover fencing across verifier hosts and reviewed
+  recovery for reverted/expired submissions, released balances and unexplained
+  charges. Exact successful single-charge reconciliation is implemented; the
+  rehearsal still sends no work and synthetic grants are never spending authority.
 - Implement reviewed consumer quote acceptance and funded-session controls in
   the desktop UI. The worker/scheduler shadow protocol is connected, but existing
   `jobId|output` signatures and provider-reported usage remain ineligible for
