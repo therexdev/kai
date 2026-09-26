@@ -65,8 +65,9 @@ class IsolatedChain {
     }));
   }
   address(name) { return this.actors[name].getAddress(); }
-  async signed(operations, actor, { payer = actor, rcLimit = "10000000000" } = {}) {
+  async signed(operations, actor, { payer = actor, rcLimit } = {}) {
     assert.equal(await this.provider.getChainId(), this.chainId);
+    rcLimit ??= this.resourceEnabled ? "10000000000" : await this.provider.getAccountRc(payer.getAddress());
     const transaction = await Transaction.prepareTransaction({ header: { chain_id: this.chainId, payer: payer.getAddress(),
       ...(payer.getAddress() !== actor.getAddress() && { payee: actor.getAddress() }), rc_limit: rcLimit }, operations, signatures: [] }, this.provider);
     await actor.signTransaction(transaction); if (payer.getAddress() !== actor.getAddress()) await payer.signTransaction(transaction);
