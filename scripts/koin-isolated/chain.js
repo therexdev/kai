@@ -74,7 +74,10 @@ class IsolatedChain {
   }
   async block(transactions = [], timestamp = this.now + 1) {
     this.now = timestamp;
-    const block = await this.keys.Genesis.prepareBlock({ header: { timestamp: String(timestamp) }, transactions });
+    // Protobuf JSON omits height at genesis. koilib otherwise computes NaN.
+    const head = await this.provider.getHeadInfo();
+    const block = await this.keys.Genesis.prepareBlock({ header: { timestamp: String(timestamp),
+      height: String(BigInt(head.head_topology.height ?? "0") + 1n) }, transactions });
     await this.keys.Genesis.signBlock(block);
     const result = await this.provider.submitBlock(block);
     assert.equal(result.receipt?.id, block.id); return result.receipt;
@@ -90,6 +93,7 @@ class IsolatedChain {
     const block = await this.block([transaction]), receipt = block.transaction_receipts?.find(r => r.id === transaction.id);
     assert.ok(receipt && !receipt.rpc_error, label + " needs a real receipt");
     this.records.push({ label, resourceEnabled: this.resourceEnabled, blockId: block.id, height: block.height, transaction, receipt });
+    console.log(JSON.stringify({ step: label, height: block.height, reverted: receipt.reverted === true }));
     return receipt;
   }
   async finalize(height) {
