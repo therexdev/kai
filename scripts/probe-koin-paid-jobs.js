@@ -280,6 +280,21 @@ if (process.argv[2] === "--reserve-child") {
     await assert.rejects(inspectFinality({ ...f.rpc, getHeadInfo: async () => { throw Error("offline"); } }, f.intent), /offline/);
   });
 
+  test("native omitted empty lookup fields preserve unknown or pending outcomes without proving finality", async () => {
+    const f = await chainFixture();
+    assert.equal((await inspectFinality({ ...f.rpc, getTransactionsById: async () => ({}) }, f.intent)).state, "unknown");
+    assert.equal((await inspectFinality({ ...f.rpc, getBlocksById: async () => ({}) }, f.intent)).state, "unknown");
+    delete f.head.last_irreversible_block;
+    assert.equal((await inspectFinality(f.rpc, f.intent)).state, "reversible");
+    delete f.lookup.transactions[0].containing_blocks;
+    assert.equal((await inspectFinality(f.rpc, f.intent)).state, "pending");
+    f.lookup.transactions[0].containing_blocks = null;
+    await assert.rejects(inspectFinality(f.rpc, f.intent), /Invalid containing blocks/);
+    for (const response of [null, [], { transactions: null }, { transactions: {} }, { rpc_error: "offline" }]) {
+      await assert.rejects(inspectFinality({ ...f.rpc, getTransactionsById: async () => response }, f.intent), /lookup result/);
+    }
+  });
+
   test("monitor binds the generated settlement ABI and exact target, confirming only finalized intent", async (t) => {
     const f = fixture(t), j = await f.finish();
     f.ledger.prepare(j.id);
