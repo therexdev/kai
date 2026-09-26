@@ -58,7 +58,7 @@ class IsolatedChain {
     this.chainId = await this.provider.getChainId(); this.provider.pinnedChain = this.chainId;
     // Published upstream test fixtures, never environment or wallet secrets.
     const source = fs.readFileSync(path.join(this.manifest.upstreamDir, "integration/integration.go"), "utf8");
-    this.keys = Object.fromEntries(["Genesis", "NameService", "GetContractMetadata", "Koin", "Resources"].map(name => {
+    this.keys = Object.fromEntries(["Genesis", "NameService", "GetContractMetadata", "Koin", "Resources", "Governance"].map(name => {
       const match = source.match(new RegExp("\\b" + name + ':\\s+"([^"\\n]+)"'));
       if (!match) throw Error("Missing upstream fixture identity");
       const signer = Signer.fromWif(match[1]); signer.provider = this.provider; return [name, signer];
@@ -140,6 +140,10 @@ class IsolatedChain {
     await upload("GetContractMetadata", "get_contract_metadata", "get_contract_metadata");
     await this.send("bootstrap-metadata-system-call", [syscall(112, this.keys.GetContractMetadata, 0x784faa08)], this.keys.Genesis);
     await upload("Koin", "koin", "koin"); await upload("Resources", "resources", "resources");
+    // Native Mana looks up the exempt governance identity even for ordinary
+    // accounts. Register the upstream fixture; none of our payers uses it.
+    await this.send("bootstrap-governance-name", [{ call_contract: { contract_id: this.keys.NameService.getAddress(), entry_point: 0xe248c73a,
+      args: enc(await this.bootstrapSerializer.serialize({ name: "governance", address: bytes(this.keys.Governance.getAddress()) }, "record")) } }], this.keys.Genesis);
     const recipients = [this.keys.Genesis.getAddress(), this.keys.Koin.getAddress(),
       ...["admin", "verifier", "buyer", "sponsor", "manual"].map(name => this.address(name))];
     const mint = [];
