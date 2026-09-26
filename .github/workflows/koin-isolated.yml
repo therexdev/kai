@@ -45,13 +45,13 @@ jobs:
           docker compose -f "$KAI_ISOLATED_DIR/compose.json" up -d
           docker compose -f "$KAI_ISOLATED_DIR/compose.json" images --format json > "$KAI_ISOLATED_DIR/images.json"
       - name: Verify native transfers, recovery and Mana
-        run: node scripts/koin-isolated/run.js "$KAI_ISOLATED_DIR"
+        run: bash scripts/koin-isolated/run-in-network.sh "$KAI_ISOLATED_DIR"
       - name: Collect node diagnostics
         if: always()
         run: |
           if [ -f "$KAI_ISOLATED_DIR/compose.json" ]; then
             docker compose -f "$KAI_ISOLATED_DIR/compose.json" logs --no-color > "$KAI_ISOLATED_DIR/node.log" 2>&1
-            tail -100 "$KAI_ISOLATED_DIR/node.log"
+            docker compose -f "$KAI_ISOLATED_DIR/compose.json" logs --no-color --tail 30 chain jsonrpc
           fi
       - name: Save isolated result and measured receipts
         if: always()

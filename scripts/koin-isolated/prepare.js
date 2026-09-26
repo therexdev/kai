@@ -42,7 +42,9 @@ function prepare(upstreamDir, desktopDir, directory) {
   }
   services.chain.volumes = [genesisPath + ":/koinos/chain/genesis_data.json:ro"];
   services.jsonrpc.volumes = [path.join(upstreamDir, "node_config/koinos_descriptors.pb") + ":/koinos/jsonrpc/descriptors/koinos_descriptors.pb:ro"];
-  services.jsonrpc.command.push("-L", "/tcp/8080"); services.jsonrpc.ports = ["127.0.0.1:48080:8080"];
+  // The runner enters only this container's network namespace. No published
+  // ports are needed, and the internal network has no route to public chains.
+  services.jsonrpc.command.push("-L", "/tcp/48080");
   const compose = { services, networks: { default: { internal: true } } };
   fs.writeFileSync(path.join(directory, "compose.json"), JSON.stringify(compose, null, 2) + "\n");
   const manifest = { schema: 1, mode: "isolated-chain", upstreamDir, upstreamCommit: upstream.commit, desktopCommit: desktopPin,

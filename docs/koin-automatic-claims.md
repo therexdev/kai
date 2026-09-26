@@ -7,8 +7,9 @@ transaction. A manual claim remains a recovery option. The daily root must be
 finalized after its 24-hour review hold, and the keeper must observe that state
 on the irreversible chain before signing.
 
-This branch now exercises that path with deterministic fixture keys and an
-in-memory RPC. It does **not** enable payments on the live master. Nothing in
+This branch exercises that path with deterministic fixture keys and an
+in-memory RPC, and includes a separate disposable-chain CI harness using the
+compiled custody contracts and native token. It does **not** enable payments on the live master. Nothing in
 `server.js`, scheduler routes, legacy payouts, desktop signing or the live
 pricing configuration imports the new driver. There is no new HTTP endpoint,
 production key loader, RPC write transport, timer or deployment switch.
@@ -24,6 +25,8 @@ production key loader, RPC write transport, timer or deployment switch.
 
 The Merkle implementation and generated rewards ABI are copied from the desktop
 contract prototype and pinned in `lib/koin-network/SOURCE.json`.
+Claim encoding omits zero-valued categories, epoch zero and false proof flags,
+matching the compiled contract's canonical protobuf requirements.
 
 ## Rehearsal interface
 
@@ -107,8 +110,11 @@ automatic fixed-recipient claims, review/finality/custody gates, signatures,
 manual races, exact-envelope retry, resource budgets, concurrent handles,
 timeouts, process death, journal damage, forks and settlement integration.
 
-These fixtures do not establish actual native transfers or production Mana
-costs. A manifest signature authenticates the allocation issuer; it does not
+See [`scripts/koin-isolated/README.md`](../scripts/koin-isolated/README.md) for
+the fresh peerless chain workflow and its native-transfer/receipt report. Only
+a completed passing report establishes those isolated transfer checks; neither
+the in-memory fixtures nor an isolated resource measurement establishes
+production Mana costs. A manifest signature authenticates the allocation issuer; it does not
 prove telemetry accuracy or that its evidence hash came from reconciled work.
 Production ingestion must generate manifests only from approved availability
 evidence and irreversibly reconciled charges. Epoch opening/root submission/
