@@ -89,3 +89,29 @@ Run `node --test scripts/probe-koin-reward-cycle.js` for isolated fixture tests.
 The [disposable-node workflow](../scripts/koin-isolated/README.md) exercises this
 same runner through actual opening, proposal, finalization and automatic claims,
 including lost proposal acknowledgment/restart and the contract timing guards.
+
+## Verified disposable-chain result
+
+The [2026-09-26 run](https://github.com/therexdev/kai/actions/runs/36272024877)
+passed all **18 checks** at master
+`e2ca016425d7b37357096d2c299be607a04aaa74` and desktop
+`1d72cec02f9ed409fde527129ec2cf6b2d45135a`. The runner completed all three
+lifecycle transactions with one attempt each and four signatures in total
+(the root proposal requires both payer and verifier). It recovered the lost
+proposal acknowledgment after restart without another signature or submission.
+The finalized manifest reached the automatic claim queue, and two sponsor-only
+claims transferred 5 KOIN and 0.5 KOIN in fixture tokens to their fixed providers.
+
+The chain rejected the delayed opening, premature finalization and changed-root
+finalization with their expected contract errors. The full 24-hour review was
+preserved using controlled chain time. The [saved results](koin-cycle-results.json)
+retain workflow/artifact provenance, source and bytecode pins, all three lifecycle
+transactions, both claim transactions, and the three rejected guard transactions
+with their full receipts. Claim RC use was 14,528,476 and 14,153,718; these fixture
+measurements are not production Mana calibration or recommended limits.
+
+Local verification also passed 11 cycle regression tests, 130 related master
+checks, 20 contract tests and five compiled-WASM runtime checks. The initial
+node run correctly rejected the delayed opening but exposed an assertion that
+expected `null` instead of an omitted protobuf epoch. The corrected harness
+accepts either empty representation; it still rejects any created epoch.

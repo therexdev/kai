@@ -1,0 +1,829 @@
+{
+  "schema": 1,
+  "mode": "isolated-chain",
+  "paymentsEnabled": false,
+  "productionManaCalibration": false,
+  "passed": true,
+  "checks": [
+    "fresh peerless chain bootstrapped with native token and enabled resource accounting",
+    "deposits require an exact native allowance and consume it atomically with no residual approval",
+    "the pinned desktop wallet prepares, validates and submits both exact funding bundles",
+    "native deposit funds customer custody independently of the seeded rewards pool",
+    "authorized usage moves the exact 60/25/15 native-token split and records provider paid work",
+    "a delayed budget-opening transaction cannot open a different reward day",
+    "finalization is bound to the exact reviewed root and category totals",
+    "real contract enforces the full 24-hour review before finalization",
+    "the daily runner opens, proposes, finalizes and durably hands rewards to automatic claims",
+    "lifecycle restart after a lost root acknowledgment does not sign or submit twice",
+    "a sponsor with no Mana cannot consume a valid unpaid entitlement",
+    "automatic claims pay exact native amounts to providers with no provider signatures",
+    "restart after a lost inclusion response recovers finality without signing or paying twice",
+    "both claim receipts charge real sponsor Mana within their signed limits",
+    "duplicate native payout reverts without changing provider or treasury balances",
+    "an insufficient transaction RC limit cannot move customer funds",
+    "a paused deposit rolls back its native approval and moves no customer funds",
+    "customer refund transfers native tokens while new spending is paused"
+  ],
+  "measurements": [
+    {
+      "txId": "0x12201bae27f54ad74af1b101cfbd40e4e1a50dc14f43a11f984ce01fbcdecfbdd49c",
+      "rcBefore": "100000000000000",
+      "rcAfter": "99999985471524",
+      "rcLimit": "10000000000",
+      "rcUsed": "14528476",
+      "disk": "188",
+      "network": "336",
+      "compute": "2112240"
+    },
+    {
+      "txId": "0x1220c36c2ba89873adee44480e7b925a551c65c1717128fcae56f59a5fbada6ea7aa",
+      "rcBefore": "100000000000000",
+      "rcAfter": "99999985846282",
+      "rcLimit": "10000000000",
+      "rcUsed": "14153718",
+      "disk": "146",
+      "network": "338",
+      "compute": "2103772"
+    }
+  ],
+  "chainId": "EiD0F--pJFUnfR9wrWXDhy43Z3svhb0_tl7XgpT3q-apwQ==",
+  "lifecycle": {
+    "signatures": 4,
+    "submissions": 3,
+    "restarted": true,
+    "status": {
+      "epoch": "20718",
+      "mode": "reward-cycle-rehearsal",
+      "paymentsEnabled": false,
+      "complete": true,
+      "steps": [
+        {
+          "method": "open_epoch",
+          "state": "complete",
+          "reason": null,
+          "txId": "0x12200c79abdc9c3f6caa1dae58bfa57342a0d4e05651b143c2f2afb1895f1601da2b",
+          "attempts": 1
+        },
+        {
+          "method": "propose_root",
+          "state": "complete",
+          "reason": null,
+          "txId": "0x1220b0f281226256a5f7da99b897ba24ada726e214a697184996dd07d888a6f82f72",
+          "attempts": 1
+        },
+        {
+          "method": "finalize_root",
+          "state": "complete",
+          "reason": null,
+          "txId": "0x122070e7f73f03e6861a23d76c70eda12563ee09a0ebceef640f49a4898bef599845",
+          "attempts": 1
+        }
+      ]
+    }
+  },
+  "signatures": 2,
+  "submissions": 2,
+  "target": {
+    "chainId": "EiD0F--pJFUnfR9wrWXDhy43Z3svhb0_tl7XgpT3q-apwQ==",
+    "rewards": "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg",
+    "rewardsHash": "0x12202a63d536dae76621807947bc39bc039c92badce44eb3a9766ca182fdbf645911",
+    "credits": "166F2N3wEaARqWUobV43oQLspwksFRifEK",
+    "creditsHash": "0x122047c29f20757a1f7fc82c60278a428a55a33bab2a6595fc237c75b25ab21754e2",
+    "token": "1BRmrUgtSQVUggoeE9weG4f7nidyydnYfQ",
+    "tokenHash": "0x1220fa14735d855b8ac3500b8ad1a3f22b0b352fe4ea469d74dbe98a0fa51ae40bcb",
+    "verifier": "1GqMqotyBpt2GRnYdZGMRwA33zYj2KpMmA",
+    "version": "1",
+    "workCapBps": 8000
+  },
+  "maxObservedClaimRc": "14528476",
+  "run": {
+    "url": "https://github.com/therexdev/kai/actions/runs/36272024877",
+    "masterCommit": "e2ca016425d7b37357096d2c299be607a04aaa74",
+    "desktopCommit": "1d72cec02f9ed409fde527129ec2cf6b2d45135a",
+    "upstreamCommit": "74b64d739a98045630cb61557e1f141c04cd1eb1",
+    "artifactId": 10915877862,
+    "artifactSha256": "de8d6926e889cb35724052e58aee9cc182d0cfa0eec204f4016dc9b830189a4e",
+    "genesisSha256": "ba3166640b080bf9c76daad120b7fa0fdbe639aff23fba76c44aa1ff3bc03ce9",
+    "walletClientSha256": "45d17c23eab0e78ea1cb6a79b1a700d8789d9411971643494367e8f948b29528"
+  },
+  "images": [
+    {
+      "ID": "sha256:21109ed0c5d9efbd34dbe968ce1a277edebb70f539c47ae87e51b0ffe5504a11",
+      "Repository": "koinos/koinos-transaction-store",
+      "Tag": "v1.1.0",
+      "Platform": "linux/amd64"
+    },
+    {
+      "ID": "sha256:c72afd9284304caa64fe30ab588960f25709d3215e2e6bb5c6ffc9c339c0949a",
+      "Repository": "koinos/koinos-mempool",
+      "Tag": "v1.5.0",
+      "Platform": "linux/amd64"
+    },
+    {
+      "ID": "sha256:4dd9ac3c288f964574ef03e8fc66b3179eb27ee34e77ee70c8ba135e75175ed6",
+      "Repository": "koinos/koinos-chain",
+      "Tag": "v1.5.2",
+      "Platform": "linux/amd64"
+    },
+    {
+      "ID": "sha256:d9257017afd24a516d228252dbfd84044987ed7071a351263d0ed8dc03b54e35",
+      "Repository": "koinos/koinos-jsonrpc",
+      "Tag": "v1.2.0",
+      "Platform": "linux/amd64"
+    },
+    {
+      "ID": "sha256:5f3394787e6c8e30dbe74334e06fca9426943d21dbf1e5abd38b234c5ec1a5cd",
+      "Repository": "rabbitmq",
+      "Tag": "3.13-alpine",
+      "Platform": "linux/amd64"
+    },
+    {
+      "ID": "sha256:17316db88cc28e2013c503013cab208f8f30fb0a9c2aca16176488796a453c2c",
+      "Repository": "koinos/koinos-block-store",
+      "Tag": "v1.1.0",
+      "Platform": "linux/amd64"
+    }
+  ],
+  "cycleTransactions": [
+    {
+      "label": "cycle-open_epoch",
+      "resourceEnabled": true,
+      "blockId": "0x122083808fcd2d616b942b41183398679ae893253f2bced8698d14f4c0df60524e17",
+      "height": "81",
+      "transaction": {
+        "id": "0x12200c79abdc9c3f6caa1dae58bfa57342a0d4e05651b143c2f2afb1895f1601da2b",
+        "header": {
+          "chain_id": "EiD0F--pJFUnfR9wrWXDhy43Z3svhb0_tl7XgpT3q-apwQ==",
+          "rc_limit": "10000000000",
+          "nonce": "KAE=",
+          "operation_merkle_root": "EiDKW6Rj33l1h5e-kAWOF0EF1CnRHCxUx95siZvAQqpX2Q==",
+          "payer": "19GS5ge2gfnGLndpZ2Rmme7aAbjtZiWmHZ"
+        },
+        "operations": [
+          {
+            "call_contract": {
+              "contract_id": "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg",
+              "entry_point": 4169187395,
+              "args": "OO6hAQ=="
+            }
+          }
+        ],
+        "signatures": [
+          "IC99CONw1Vms5wYl06_pUhHrvVAGZ_mS-oojtoZgamdGKVo5PEPbe6jVBc_YShSg_2SfP1tjfHDxaFlrTbomYt0="
+        ]
+      },
+      "receipt": {
+        "id": "0x12200c79abdc9c3f6caa1dae58bfa57342a0d4e05651b143c2f2afb1895f1601da2b",
+        "payer": "19GS5ge2gfnGLndpZ2Rmme7aAbjtZiWmHZ",
+        "max_payer_rc": "100000000000000",
+        "rc_limit": "10000000000",
+        "rc_used": "6742048",
+        "disk_storage_used": "202",
+        "network_bandwidth_used": "257",
+        "compute_bandwidth_used": "811832",
+        "state_delta_entries": [
+          {
+            "object_space": {
+              "system": true
+            },
+            "key": "EiDIiXqmJH5E-r9zJwsyZAAqmy-mZUrXRH47P4AmqzkbTA==",
+            "value": "CiISIIOAj80tYWuUK0EYM5hnmuiTJT8rzthpjRT0wN9gUk4XEpABCiISIOlo0xdRUHwbLnL3JYVOH9VC_eCfUM1CCMmmNqjHtAT5EFEY4d6ms4w0IiISIPGFaduRljEClEEMZ6ywLIACjFbNjsMX-18XHfscnOH3KiISINzlh7WKgLma1sa0Guzj9xW6DoahJQRCGe4WF7bBCHsXMhkAtnuXE0mCNj9Gh3dsRNuekhfFFk12jqRPGoECCiISIAx5q9ycP2yqHa5Yv6VzQqDU4FZRsUPC8q-xiV8WAdorEm0KIhIg9BfvqSRVJ30fcK1lw4cuN2d7L4W9P7Ze14KU96vmqcEQgMivoCUaAigBIiISIMpbpGPfeXWHl76QBY4XQQXUKdEcLFTH3myJm8BCqlfZKhkAWqwumvBXBXe-IJDPCylVOISKPhrGui_IGikSJwoZAIDYZTfPP_m3OgO-qrV9NwYruWSQkG5QgxDDgIPEDxoEOO6hASJBIC99CONw1Vms5wYl06_pUhHrvVAGZ_mS-oojtoZgamdGKVo5PEPbe6jVBc_YShSg_2SfP1tjfHDxaFlrTbomYt0iQR9mDGiYIJPB50iHHo02bXRNW-a70MWD3yXHHsr7RzdWBCAjhdiWOPyDcymZCBM7cPfO91bZ7hR-qgvn20fByRY3"
+          },
+          {
+            "object_space": {
+              "system": true,
+              "id": 4
+            },
+            "key": "AFqsLprwVwV3viCQzwspVTiEij4axrovyA==",
+            "value": "KAE="
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 1
+            },
+            "key": "djE=",
+            "value": "CKCW9M8S"
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 2
+            },
+            "key": "MjA3MTg=",
+            "value": "CO6hARDh3qazjDQYASCglvTPEijJj96EDTDXhpbLBTjAPkIZADfWajqCM5XKbNzSd0MNLH3-wb-T9yTXBEoZAK2vQCQ87WluGJxnjRSm5hq-3CQ9GcSn6Q=="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "AFqsLprwVwV3viCQzwspVTiEij4axrovyA==",
+            "value": "CICA6YOx3hYQ4L_NgLHeFhjh3qazjDQ="
+          }
+        ]
+      }
+    },
+    {
+      "label": "cycle-propose_root",
+      "resourceEnabled": true,
+      "blockId": "0x1220c2886bd21e8fafb79b4ebcc80fc62e7c43b9f8c3d44991e7e221ba25d88b5487",
+      "height": "267",
+      "transaction": {
+        "id": "0x1220b0f281226256a5f7da99b897ba24ada726e214a697184996dd07d888a6f82f72",
+        "header": {
+          "chain_id": "EiD0F--pJFUnfR9wrWXDhy43Z3svhb0_tl7XgpT3q-apwQ==",
+          "rc_limit": "10000000000",
+          "nonce": "KAI=",
+          "operation_merkle_root": "EiAYeuHe1zhBaTm1bHxn7q6F-Ki0U75kZPF1pVINdQK_Yg==",
+          "payer": "19GS5ge2gfnGLndpZ2Rmme7aAbjtZiWmHZ"
+        },
+        "operations": [
+          {
+            "call_contract": {
+              "contract_id": "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg",
+              "entry_point": 651685114,
+              "args": "OO6hAUItCiDtxfDPgUjTwxQnOiohvYJ3bL61OfaCexu6xsAHAnq3hxCAo8NHGICI3r4B"
+            }
+          }
+        ],
+        "signatures": [
+          "H5OUpDmFc5xHOocXJLvpSFhjXMkUv1rQMETBpMKbO2tFcvLgpKQbrAsw_BYmfefVJp-1qAOHzUYlPolQiwWxDvs=",
+          "INjryGJ_tos4_rWgujV-KCy93gQ94eOL_f2C5FJcRoJmaBZYxJtPjeDXj5JvoGAF_EZQRS__GjwYk0HaA7pdYl0="
+        ]
+      },
+      "receipt": {
+        "id": "0x1220b0f281226256a5f7da99b897ba24ada726e214a697184996dd07d888a6f82f72",
+        "payer": "19GS5ge2gfnGLndpZ2Rmme7aAbjtZiWmHZ",
+        "max_payer_rc": "100000000000000",
+        "rc_limit": "10000000000",
+        "rc_used": "12089032",
+        "disk_storage_used": "94",
+        "network_bandwidth_used": "371",
+        "compute_bandwidth_used": "1820532",
+        "state_delta_entries": [
+          {
+            "object_space": {
+              "system": true
+            },
+            "key": "EiDIiXqmJH5E-r9zJwsyZAAqmy-mZUrXRH47P4AmqzkbTA==",
+            "value": "CiISIMKIa9Iej6-3m068yA_GLnxDufjD1EmR5-IhuiXYi1SHEpEBCiISIFCwFFhLYTeKaCRHz49v5PWr8B3lBW-seuC5CRDO94zBEIsCGL_Iv9yMNCIiEiBu6pyCMQ3ucltxc7di0ZGPRYVWXwlFb5wzr49XN_qeNSoiEiAhrUAYWxJ3tlQBYY5Gl5j8gxrCy_xfMUZsidC-NVEfIDIZALZ7lxNJgjY_Rod3bETbnpIXxRZNdo6kTxrzAgoiEiCw8oEiYlal99qZuJe6JK2nJuIUppcYSZbdB9iIpvgvchJtCiISIPQX76kkVSd9H3CtZcOHLjdney-FvT-2XteClPer5qnBEIDIr6AlGgIoAiIiEiAYeuHe1zhBaTm1bHxn7q6F-Ki0U75kZPF1pVINdQK_YioZAFqsLprwVwV3viCQzwspVTiEij4axrovyBpYElYKGQCA2GU3zz_5tzoDvqq1fTcGK7lkkJBuUIMQ-tnftgIaMzjuoQFCLQog7cXwz4FI08MUJzoqIb2Cd2y-tTn2gnsbusbABwJ6t4cQgKPDRxiAiN6-ASJBH5OUpDmFc5xHOocXJLvpSFhjXMkUv1rQMETBpMKbO2tFcvLgpKQbrAsw_BYmfefVJp-1qAOHzUYlPolQiwWxDvsiQSDY68hif7aLOP61oLo1figsvd4EPeHji_39guRSXEaCZmgWWMSbT43g14-Sb6BgBfxGUEUv_xo8GJNB2gO6XWJdIkEgeFgTWU4euldAnNI07NI1r-ZndosGt6vKMVUPKTkAjWZmxHWypZIXrSzvhV4YSR7hGC90GCniNMookth5cNAI9Q=="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "id": 4
+            },
+            "key": "AFqsLprwVwV3viCQzwspVTiEij4axrovyA==",
+            "value": "KAI="
+          },
+          {
+            "object_space": {
+              "zone": "ADfWajqCM5XKbNzSd0MNLH3-wb-T9yTXBA==",
+              "id": 6
+            },
+            "key": "MjA3MTg=",
+            "value": "CAE="
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 2
+            },
+            "key": "MjA3MTg=",
+            "value": "CO6hARDh3qazjDQYASCglvTPEijJj96EDTDXhpbLBTjAPkIZADfWajqCM5XKbNzSd0MNLH3-wb-T9yTXBEoZAK2vQCQ87WluGJxnjRSm5hq-3CQ9GcSn6VItCiDtxfDPgUjTwxQnOiohvYJ3bL61OfaCexu6xsAHAnq3hxCAo8NHGICI3r4BWL-A2YWNNA=="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "AFqsLprwVwV3viCQzwspVTiEij4axrovyA==",
+            "value": "CICA6YOx3hYQuJKH_rDeFhi_yL_cjDQ="
+          }
+        ]
+      }
+    },
+    {
+      "label": "cycle-finalize_root",
+      "resourceEnabled": true,
+      "blockId": "0x1220499cb21e44976d52df79341af55a59db786dbe5d43742085df29210d4b6a567e",
+      "height": "451",
+      "transaction": {
+        "id": "0x122070e7f73f03e6861a23d76c70eda12563ee09a0ebceef640f49a4898bef599845",
+        "header": {
+          "chain_id": "EiD0F--pJFUnfR9wrWXDhy43Z3svhb0_tl7XgpT3q-apwQ==",
+          "rc_limit": "10000000000",
+          "nonce": "KAM=",
+          "operation_merkle_root": "EiBKPujb0DgqlVq6JI1FNve6fpo9fk7cLFh3E26wCAL4kQ==",
+          "payer": "19GS5ge2gfnGLndpZ2Rmme7aAbjtZiWmHZ"
+        },
+        "operations": [
+          {
+            "call_contract": {
+              "contract_id": "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg",
+              "entry_point": 2340412777,
+              "args": "OO6hAUItCiDtxfDPgUjTwxQnOiohvYJ3bL61OfaCexu6xsAHAnq3hxCAo8NHGICI3r4B"
+            }
+          }
+        ],
+        "signatures": [
+          "H2AfX4sCq1PSFqRLWuMjfxmfTMID3r9QRS1jdU2sbhvSAcSjV0nbivjFzkp5ojeBcV-z3VD6nPgEvoS5MCS5g_I="
+        ]
+      },
+      "receipt": {
+        "id": "0x122070e7f73f03e6861a23d76c70eda12563ee09a0ebceef640f49a4898bef599845",
+        "payer": "19GS5ge2gfnGLndpZ2Rmme7aAbjtZiWmHZ",
+        "max_payer_rc": "100000000000000",
+        "rc_limit": "10000000000",
+        "rc_used": "7920296",
+        "disk_storage_used": "2",
+        "network_bandwidth_used": "304",
+        "compute_bandwidth_used": "1257977",
+        "state_delta_entries": [
+          {
+            "object_space": {
+              "system": true
+            },
+            "key": "EiDIiXqmJH5E-r9zJwsyZAAqmy-mZUrXRH47P4AmqzkbTA==",
+            "value": "CiISIEmcsh5El21S33k0GvVaWdt4bb5dQ3Qghd8pIQ1LalZ-EpEBCiISIE28qLbcgZjkL2W7KGr_wi-eAWt17WvSEoQtvfdWxJi-EMMDGP6A2YWNNCIiEiCt4bT5ccktRsBTxglqLsVzMmqZJLZAB1uMd2AqWcwKrSoiEiCVNGa9U5ta_3ya0rAjdqTlaWCCZzX-a7BJlH05bH47qTIZALZ7lxNJgjY_Rod3bETbnpIXxRZNdo6kTxqwAgoiEiBw5_c_A-aGGiPXbHDtoSVj7gmg687vZA9JpImL71mYRRJtCiISIPQX76kkVSd9H3CtZcOHLjdney-FvT-2XteClPer5qnBEIDIr6AlGgIoAyIiEiBKPujb0DgqlVq6JI1FNve6fpo9fk7cLFh3E26wCAL4kSoZAFqsLprwVwV3viCQzwspVTiEij4axrovyBpYElYKGQCA2GU3zz_5tzoDvqq1fTcGK7lkkJBuUIMQ6br_2wgaMzjuoQFCLQog7cXwz4FI08MUJzoqIb2Cd2y-tTn2gnsbusbABwJ6t4cQgKPDRxiAiN6-ASJBH2AfX4sCq1PSFqRLWuMjfxmfTMID3r9QRS1jdU2sbhvSAcSjV0nbivjFzkp5ojeBcV-z3VD6nPgEvoS5MCS5g_IiQSDH4bea-_KaFSVDPbR0esLeLscKdiXD-PZVaNJzFr-ilze9lzXTPqi769w6ULWEKyl5GkCdi8kfbVOlLpp_1HtM"
+          },
+          {
+            "object_space": {
+              "system": true,
+              "id": 4
+            },
+            "key": "AFqsLprwVwV3viCQzwspVTiEij4axrovyA==",
+            "value": "KAM="
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 1
+            },
+            "key": "djE=",
+            "value": "CICroYYC"
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 2
+            },
+            "key": "MjA3MTg=",
+            "value": "CO6hARDh3qazjDQYASCglvTPEijJj96EDTDXhpbLBTjAPkIZADfWajqCM5XKbNzSd0MNLH3-wb-T9yTXBEoZAK2vQCQ87WluGJxnjRSm5hq-3CQ9GcSn6VItCiDtxfDPgUjTwxQnOiohvYJ3bL61OfaCexu6xsAHAnq3hxCAo8NHGICI3r4BWL-A2YWNNGAB"
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "AFqsLprwVwV3viCQzwspVTiEij4axrovyA==",
+            "value": "CICA6YOx3hYQ2MqFgLHeFhj-gNmFjTQ="
+          }
+        ]
+      }
+    }
+  ],
+  "claims": [
+    {
+      "label": "automatic-claim",
+      "resourceEnabled": true,
+      "blockId": "0x1220b164ace12b99817578a7b08feb0e05ad6a934e2270cb2b03ebd260baa1e79c22",
+      "height": "632",
+      "transaction": {
+        "id": "0x12201bae27f54ad74af1b101cfbd40e4e1a50dc14f43a11f984ce01fbcdecfbdd49c",
+        "header": {
+          "chain_id": "EiD0F--pJFUnfR9wrWXDhy43Z3svhb0_tl7XgpT3q-apwQ==",
+          "rc_limit": "10000000000",
+          "nonce": "KAE=",
+          "operation_merkle_root": "EiDYi7Brji3uAvW8KvB_t0jwqKCFTmukc2Q1TUbXRP_H9g==",
+          "payer": "18jfLfKbUy2mktus1c7JiZER9XEdVTM81o"
+        },
+        "operations": [
+          {
+            "call_contract": {
+              "contract_id": "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg",
+              "entry_point": 3709549617,
+              "args": "EhkAt4T6iFWa4HJMZj6IQFrt5d4mWi8vbumuOO6hAUiA4esXWi0KIDkKfmhAeGTZJKWB-YL-nHeyHaSy_18aWJ6XEAb_1tb-EIDC1y8YgIjevgE="
+            }
+          }
+        ],
+        "signatures": [
+          "IP_5SsgVKqvnTYBFifL3dk0I203AFECMSDPM_NBVC7mPEzux8X-ClQSRwkRntvZCd8T0ejsAzV9SfKxuuVAolu8="
+        ]
+      },
+      "receipt": {
+        "id": "0x12201bae27f54ad74af1b101cfbd40e4e1a50dc14f43a11f984ce01fbcdecfbdd49c",
+        "payer": "18jfLfKbUy2mktus1c7JiZER9XEdVTM81o",
+        "max_payer_rc": "100000000000000",
+        "rc_limit": "10000000000",
+        "rc_used": "14528476",
+        "disk_storage_used": "188",
+        "network_bandwidth_used": "336",
+        "compute_bandwidth_used": "2112240",
+        "events": [
+          {
+            "source": "1BRmrUgtSQVUggoeE9weG4f7nidyydnYfQ",
+            "name": "token.transfer_event",
+            "data": "ChkAgNhlN88_-bc6A76qtX03Biu5ZJCQblCDEhkAt4T6iFWa4HJMZj6IQFrt5d4mWi8vbumuGIDh6xc=",
+            "impacted": [
+              "1HjMxd8w9NR6kxK4PNvPiM4JFtk28jkm9w",
+              "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg"
+            ]
+          }
+        ],
+        "state_delta_entries": [
+          {
+            "object_space": {
+              "system": true
+            },
+            "key": "EiDIiXqmJH5E-r9zJwsyZAAqmy-mZUrXRH47P4AmqzkbTA==",
+            "value": "CiISILFkrOErmYF1eKewj-sOBa1qk04icMsrA-vSYLqh55wiEpEBCiISIBZ7w1OMI2iDzfJjGYqXNNik-QRs5ZVo4viqetls4Eh8EPgEGLOC2YWNNCIiEiBrfr2Z1uM8IWL5uk6Nqqf4nFqmSyF12bd1XJsktUQBEyoiEiAAUJNZ0r2xOnxWthNU9y-PqtlazEg4Bwhnnd21xfGNrzIZALZ7lxNJgjY_Rod3bETbnpIXxRZNdo6kTxrQAgoiEiAbrif1StdK8bEBz71A5OGlDcFPQ6EfmEzgH7zez73UnBJtCiISIPQX76kkVSd9H3CtZcOHLjdney-FvT-2XteClPer5qnBEIDIr6AlGgIoASIiEiDYi7Brji3uAvW8KvB_t0jwqKCFTmukc2Q1TUbXRP_H9ioZAFTaWso8gl2vuY2uoI23hAZ9ln3nmBVX6hp4EnYKGQCA2GU3zz_5tzoDvqq1fTcGK7lkkJBuUIMQsfjs6A0aUxIZALeE-ohVmuByTGY-iEBa7eXeJlovL27prjjuoQFIgOHrF1otCiA5Cn5oQHhk2SSlgfmC_px3sh2ksv9fGlielxAG_9bW_hCAwtcvGICI3r4BIkEg__lKyBUqq-dNgEWJ8vd2TQjbTcAUQIxIM8z80FULuY8TO7Hxf4KVBJHCRGe29kJ3xPR6OwDNX1J8rG65UCiW7yJBH1sdrprep4AZjDeGqh9M0VJVQd3bvbt3yXHZYkWfA7oPIQmQhcARrL-5Vmu_TKCHaeNAsj5c3NFRFq84_aO5OJM="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "id": 4
+            },
+            "key": "AFTaWso8gl2vuY2uoI23hAZ9ln3nmBVX6g==",
+            "value": "KAE="
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 1
+            },
+            "key": "djE=",
+            "value": "CIDKte4B"
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 2
+            },
+            "key": "MjA3MTg=",
+            "value": "CO6hARDh3qazjDQYASCglvTPEijJj96EDTDXhpbLBTjAPkIZADfWajqCM5XKbNzSd0MNLH3-wb-T9yTXBEoZAK2vQCQ87WluGJxnjRSm5hq-3CQ9GcSn6VItCiDtxfDPgUjTwxQnOiohvYJ3bL61OfaCexu6xsAHAnq3hxCAo8NHGICI3r4BWL-A2YWNNGABcIDh6xc="
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 3
+            },
+            "key": "AAAAAAAAUO4At4T6iFWa4HJMZj6IQFrt5d4mWi8vbumu",
+            "value": "CIDh6xc="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "AFTaWso8gl2vuY2uoI23hAZ9ln3nmBVX6g==",
+            "value": "CICA6YOx3hYQpKDy_LDeFhizgtmFjTQ="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+            "value": "CIC19rr1AhCAtfa69QIYs4LZhY00"
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "ALeE-ohVmuByTGY-iEBa7eXeJlovL27prg==",
+            "value": "CIDh6xcQgOHrFxizgtmFjTQ="
+          }
+        ]
+      }
+    },
+    {
+      "label": "automatic-claim",
+      "resourceEnabled": true,
+      "blockId": "0x1220e699cf624903dfcd0184ee53cfcdecccf98eb1c56cbc71dc55bab2fbf8623d05",
+      "height": "873",
+      "transaction": {
+        "id": "0x1220c36c2ba89873adee44480e7b925a551c65c1717128fcae56f59a5fbada6ea7aa",
+        "header": {
+          "chain_id": "EiD0F--pJFUnfR9wrWXDhy43Z3svhb0_tl7XgpT3q-apwQ==",
+          "rc_limit": "10000000000",
+          "nonce": "KAI=",
+          "operation_merkle_root": "EiBXR57mJmkHxVoN0N7NzegDONF-4yvryV2Fd803xJMnVA==",
+          "payer": "18jfLfKbUy2mktus1c7JiZER9XEdVTM81o"
+        },
+        "operations": [
+          {
+            "call_contract": {
+              "contract_id": "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg",
+              "entry_point": 3709549617,
+              "args": "EhkA_PZwltP-U57-JDMMHZWCZBCMp4bau6PqOO6hAUiAwtcvUICI3r4BWikKINafi7g7ORI7KXcAeobVAESYF00My05-lXdCccLNFU8tEIDh6xcgAQ=="
+            }
+          }
+        ],
+        "signatures": [
+          "H3KdbVlRAjB18alV48CmqJiT5ZcNEkghZ7zt05UmOGM6c_YHin1JCjd3ZiTaVbKm5GIWaSQ96P0szTtFHoIj8d4="
+        ]
+      },
+      "receipt": {
+        "id": "0x1220c36c2ba89873adee44480e7b925a551c65c1717128fcae56f59a5fbada6ea7aa",
+        "payer": "18jfLfKbUy2mktus1c7JiZER9XEdVTM81o",
+        "max_payer_rc": "100000000000000",
+        "rc_limit": "10000000000",
+        "rc_used": "14153718",
+        "disk_storage_used": "146",
+        "network_bandwidth_used": "338",
+        "compute_bandwidth_used": "2103772",
+        "events": [
+          {
+            "source": "1BRmrUgtSQVUggoeE9weG4f7nidyydnYfQ",
+            "name": "token.transfer_event",
+            "data": "ChkAgNhlN88_-bc6A76qtX03Biu5ZJCQblCDEhkA_PZwltP-U57-JDMMHZWCZBCMp4bau6PqGIDKte4B",
+            "impacted": [
+              "1Q4YWHB5AJPbTLneBzSyr1oDyZ9vfKj91T",
+              "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg"
+            ]
+          }
+        ],
+        "state_delta_entries": [
+          {
+            "object_space": {
+              "system": true
+            },
+            "key": "EiDIiXqmJH5E-r9zJwsyZAAqmy-mZUrXRH47P4AmqzkbTA==",
+            "value": "CiISIOaZz2JJA9_NAYTuU8_N7Mz5jrHFbLxx3FW6svv4Yj0FEpEBCiISIL14LEOYF_qYGlVMLfYABr5d8-aPyhaMqzUcPmbt-ghlEOkGGKSE2YWNNCIiEiDXiY5Ff9iLXwRK4B_6h2uni6CX8_wyIyR37E38c4tu3yoiEiBe7AFZUnwf0MFjKAX1GhhCgUD3nvv8MBccIW6JLnaeWTIZALZ7lxNJgjY_Rod3bETbnpIXxRZNdo6kTxrSAgoiEiDDbCuomHOt7kRIDnuSWlUcZcFxcSj8rlb1ml-62m6nqhJtCiISIPQX76kkVSd9H3CtZcOHLjdney-FvT-2XteClPer5qnBEIDIr6AlGgIoAiIiEiBXR57mJmkHxVoN0N7NzegDONF-4yvryV2Fd803xJMnVCoZAFTaWso8gl2vuY2uoI23hAZ9ln3nmBVX6hp6EngKGQCA2GU3zz_5tzoDvqq1fTcGK7lkkJBuUIMQsfjs6A0aVRIZAPz2cJbT_lOe_iQzDB2VgmQQjKeG2ruj6jjuoQFIgMLXL1CAiN6-AVopCiDWn4u4OzkSOyl3AHqG1QBEmBdNDMtOfpV3QnHCzRVPLRCA4esXIAEiQR9ynW1ZUQIwdfGpVePApqiYk-WXDRJIIWe87dOVJjhjOnP2B4p9SQo3d2Yk2lWypuRiFmkkPej9LM07RR6CI_HeIkEgNrnhCusyRiJi0ZbjGhhfBjBKGC2aEQ7rNWF0Xs7Z9O4w__gh01nWX54Jg_dzWQ_pO2q23Q-ou2flNM1sdZ5QCQ=="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "id": 4
+            },
+            "key": "AFTaWso8gl2vuY2uoI23hAZ9ln3nmBVX6g==",
+            "value": "KAI="
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 1
+            },
+            "key": "djE=",
+            "value": ""
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 2
+            },
+            "key": "MjA3MTg=",
+            "value": "CO6hARDh3qazjDQYASCglvTPEijJj96EDTDXhpbLBTjAPkIZADfWajqCM5XKbNzSd0MNLH3-wb-T9yTXBEoZAK2vQCQ87WluGJxnjRSm5hq-3CQ9GcSn6VItCiDtxfDPgUjTwxQnOiohvYJ3bL61OfaCexu6xsAHAnq3hxCAo8NHGICI3r4BWL-A2YWNNGABcICroYYC"
+          },
+          {
+            "object_space": {
+              "zone": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+              "id": 3
+            },
+            "key": "AAAAAAAAUO4A_PZwltP-U57-JDMMHZWCZBCMp4bau6Pq",
+            "value": "CIDKte4B"
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "AFTaWso8gl2vuY2uoI23hAZ9ln3nmBVX6g==",
+            "value": "CICA6YOx3hYQipCJ_bDeFhikhNmFjTQ="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "AIDYZTfPP_m3OgO-qrV9NwYruWSQkG5Qgw==",
+            "value": "CIDrwMzzAhCA68DM8wIYpITZhY00"
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "APz2cJbT_lOe_iQzDB2VgmQQjKeG2ruj6g==",
+            "value": "CIDKte4BEIDKte4BGKSE2YWNNA=="
+          }
+        ]
+      }
+    }
+  ],
+  "guardRejections": [
+    {
+      "label": "delayed-cycle-open",
+      "resourceEnabled": true,
+      "blockId": "0x122059aa6b341132c414de6085bfd85494726367d30b59e3a9fa26e4fb0190beca3d",
+      "height": "206",
+      "transaction": {
+        "header": {
+          "chain_id": "EiD0F--pJFUnfR9wrWXDhy43Z3svhb0_tl7XgpT3q-apwQ==",
+          "rc_limit": "10000000000",
+          "nonce": "KAI=",
+          "operation_merkle_root": "EiDKW6Rj33l1h5e-kAWOF0EF1CnRHCxUx95siZvAQqpX2Q==",
+          "payer": "1BQDgCcVQVK67g1CRcoeQNpckSKri5ukgC"
+        },
+        "operations": [
+          {
+            "call_contract": {
+              "contract_id": "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg",
+              "entry_point": 4169187395,
+              "args": "OO6hAQ=="
+            }
+          }
+        ],
+        "signatures": [
+          "H-RtX5Sewn3-bQgI3X-S6dGZ1TPRrg15bYZL62-sbqVkYEoNNfLDEsoX4NvREn38fLPOc70UNFuSNo1rdd0ElU0="
+        ],
+        "id": "0x1220adfe4aacecacfcd696281a690ade0e3e25be3ca521aac63bac6aac1fa2487cd6"
+      },
+      "receipt": {
+        "id": "0x1220adfe4aacecacfcd696281a690ade0e3e25be3ca521aac63bac6aac1fa2487cd6",
+        "payer": "1BQDgCcVQVK67g1CRcoeQNpckSKri5ukgC",
+        "max_payer_rc": "100000000000000",
+        "rc_limit": "10000000000",
+        "rc_used": "5017508",
+        "network_bandwidth_used": "257",
+        "compute_bandwidth_used": "785965",
+        "reverted": true,
+        "logs": [
+          "transaction reverted: reward day changed"
+        ],
+        "state_delta_entries": [
+          {
+            "object_space": {
+              "system": true
+            },
+            "key": "EiDIiXqmJH5E-r9zJwsyZAAqmy-mZUrXRH47P4AmqzkbTA==",
+            "value": "CiISIFmqazQRMsQU3mCFv9hUlHJjZ9MLWeOp-ibk-wGQvso9EpEBCiISIA_FOYd4HTfG3l-8erUfLdG7iKbCVnCKyHMJz_wdiuufEM4BGILIv9yMNCIiEiAhamYAkkcXjyy17JZTJvO05pCugUqcJJnZ6qWZi5c0QSoiEiAC-C4ItjZwfZxkdTcEIO7_vyDJpMY_K6mUMtDo3DxynjIZALZ7lxNJgjY_Rod3bETbnpIXxRZNdo6kTxqBAgoiEiCt_kqs7Kz81pYoGmkK3g4-Jb48pSGqxjusaqwfokh81hJtCiISIPQX76kkVSd9H3CtZcOHLjdney-FvT-2XteClPer5qnBEIDIr6AlGgIoAiIiEiDKW6Rj33l1h5e-kAWOF0EF1CnRHCxUx95siZvAQqpX2SoZAHIVZ_9B2XuAdFNN7w3DxjHrkQSBsB2TLRopEicKGQCA2GU3zz_5tzoDvqq1fTcGK7lkkJBuUIMQw4CDxA8aBDjuoQEiQR_kbV-UnsJ9_m0ICN1_kunRmdUz0a4NeW2GS-tvrG6lZGBKDTXywxLKF-Db0RJ9_HyzznO9FDRbkjaNa3XdBJVNIkEgL4m8p8DLEJmISFfkAjK4hJ2YHrx29ZBRcSu0D8xOIRwtWhmUpnSYzCMvleJtoszxqBy5q-gwJPwTXQZJQg2Hzw=="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "id": 4
+            },
+            "key": "AHIVZ_9B2XuAdFNN7w3DxjHrkQSBsB2TLQ==",
+            "value": "KAI="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "AHIVZ_9B2XuAdFNN7w3DxjHrkQSBsB2TLQ==",
+            "value": "CICA6YOx3hYQ3OC2gbHeFhiCyL_cjDQ="
+          }
+        ]
+      }
+    },
+    {
+      "label": "finalize_root",
+      "resourceEnabled": true,
+      "blockId": "0x12203aaa691ae828603082a2849b48f40d48e2da88f65eae2ea8844fe8a20fa8b52d",
+      "height": "388",
+      "transaction": {
+        "header": {
+          "chain_id": "EiD0F--pJFUnfR9wrWXDhy43Z3svhb0_tl7XgpT3q-apwQ==",
+          "rc_limit": "10000000000",
+          "nonce": "KAM=",
+          "operation_merkle_root": "EiBKPujb0DgqlVq6JI1FNve6fpo9fk7cLFh3E26wCAL4kQ==",
+          "payer": "1L1c9YpneghDBbNWc951tZjsRf6Pthjd6S"
+        },
+        "operations": [
+          {
+            "call_contract": {
+              "contract_id": "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg",
+              "entry_point": 2340412777,
+              "args": "OO6hAUItCiDtxfDPgUjTwxQnOiohvYJ3bL61OfaCexu6xsAHAnq3hxCAo8NHGICI3r4B"
+            }
+          }
+        ],
+        "signatures": [
+          "IElE8pW0nGiGfMBVePY8TOVQPxIP3gAkshEp5xIlpXKgK0P3HPXf7ngIikggxtH8rHJU0nf3mOx4jz_g4AxxYUM="
+        ],
+        "id": "0x12201470b67d12dd8c122cc629776aafe3bc319dc7f06dbee15c4caaeae47811ec15"
+      },
+      "receipt": {
+        "id": "0x12201470b67d12dd8c122cc629776aafe3bc319dc7f06dbee15c4caaeae47811ec15",
+        "payer": "1L1c9YpneghDBbNWc951tZjsRf6Pthjd6S",
+        "max_payer_rc": "99900000000000",
+        "rc_limit": "10000000000",
+        "rc_used": "5019574",
+        "network_bandwidth_used": "304",
+        "compute_bandwidth_used": "777113",
+        "reverted": true,
+        "logs": [
+          "transaction reverted: root not ready"
+        ],
+        "state_delta_entries": [
+          {
+            "object_space": {
+              "system": true
+            },
+            "key": "EiDIiXqmJH5E-r9zJwsyZAAqmy-mZUrXRH47P4AmqzkbTA==",
+            "value": "CiISIDqqaRroKGAwgqKEm0j0DUji2oj2Xq4uqIRP6KIPqLUtEpEBCiISIEVNRuaexlvdjpErYzj3H-lK_7uT1KaiO4rC-7Wf7ZHSEIQDGLjJv9yMNCIiEiDa2G41lz9Jn8Dkt1FEFys6FiNrkVhim2s4Ck9M1cauPSoiEiDmto0qSNflIAtK9pMd3qNHxvxtGuywQyq8XFdzS4g9wTIZALZ7lxNJgjY_Rod3bETbnpIXxRZNdo6kTxqwAgoiEiAUcLZ9Et2MEizGKXdqr-O8MZ3H8G2-4VxMqurkeBHsFRJtCiISIPQX76kkVSd9H3CtZcOHLjdney-FvT-2XteClPer5qnBEIDIr6AlGgIoAyIiEiBKPujb0DgqlVq6JI1FNve6fpo9fk7cLFh3E26wCAL4kSoZANCHur2njaSUziabt_EcQYW-FW6gcgsKOxpYElYKGQCA2GU3zz_5tzoDvqq1fTcGK7lkkJBuUIMQ6br_2wgaMzjuoQFCLQog7cXwz4FI08MUJzoqIb2Cd2y-tTn2gnsbusbABwJ6t4cQgKPDRxiAiN6-ASJBIElE8pW0nGiGfMBVePY8TOVQPxIP3gAkshEp5xIlpXKgK0P3HPXf7ngIikggxtH8rHJU0nf3mOx4jz_g4AxxYUMiQR8EOCrpCreSLwLsSWDTPW0gGqxNsFF1GEl5j96BhoDMJ33m6BCsGWqarbdc9gu3-PotivmmnyMY7Nc0_q691GqL"
+          },
+          {
+            "object_space": {
+              "system": true,
+              "id": 4
+            },
+            "key": "ANCHur2njaSUziabt_EcQYW-FW6gcgsKOw==",
+            "value": "KAM="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "ANCHur2njaSUziabt_EcQYW-FW6gcgsKOw==",
+            "value": "CICwjcC82xYQyoDbvbzbFhi4yb_cjDQ="
+          }
+        ]
+      }
+    },
+    {
+      "label": "finalize_root",
+      "resourceEnabled": true,
+      "blockId": "0x122054258f570c5b8cac97b23b4db6e7f699d71c9b59853548911d6223f03b9a8ba3",
+      "height": "390",
+      "transaction": {
+        "header": {
+          "chain_id": "EiD0F--pJFUnfR9wrWXDhy43Z3svhb0_tl7XgpT3q-apwQ==",
+          "rc_limit": "10000000000",
+          "nonce": "KAQ=",
+          "operation_merkle_root": "EiApE0lBcjHBii7b-TWuXeIZx6HZgnke49uvKvv5lZ17aA==",
+          "payer": "1L1c9YpneghDBbNWc951tZjsRf6Pthjd6S"
+        },
+        "operations": [
+          {
+            "call_contract": {
+              "contract_id": "1CkGiyCzUPD8g94BMmh8oiMAM3Le6TP6Dg",
+              "entry_point": 2340412777,
+              "args": "OO6hAUItCiDtxfDPgUjTwxQnOiohvYJ3bL61OfaCexu6xsAHAnq3hxCBo8NHGICI3r4B"
+            }
+          }
+        ],
+        "signatures": [
+          "H0hzrW0isye26TDPpBxPsmw5rZzTfp8-RruWc8V0LJHyWdc8SYioDl13k5XXI5rIyzHXi7EoKWR6C1uFNYJOla4="
+        ],
+        "id": "0x1220966f2c4dc1ccf5c4b45187fe1de71eeb6a3f54583f71d230782f487734784207"
+      },
+      "receipt": {
+        "id": "0x1220966f2c4dc1ccf5c4b45187fe1de71eeb6a3f54583f71d230782f487734784207",
+        "payer": "1L1c9YpneghDBbNWc951tZjsRf6Pthjd6S",
+        "max_payer_rc": "99900000000000",
+        "rc_limit": "10000000000",
+        "rc_used": "5004010",
+        "network_bandwidth_used": "304",
+        "compute_bandwidth_used": "774519",
+        "reverted": true,
+        "logs": [
+          "transaction reverted: reward root changed"
+        ],
+        "state_delta_entries": [
+          {
+            "object_space": {
+              "system": true
+            },
+            "key": "EiDIiXqmJH5E-r9zJwsyZAAqmy-mZUrXRH47P4AmqzkbTA==",
+            "value": "CiISIFQlj1cMW4ysl7I7Tbbn9pnXHJtZhTVIkR1iI_A7moujEpEBCiISIDGtfx_3WP23YeOQEvtNAtMZnHqzfTpAFBuwKG08kxluEIYDGMGA2YWNNCIiEiC86IxhIMRL3U73vHIZEuhr-5CSpP011bp0-fBxX3JfnSoiEiBNjgHPT4U3BViXKR1sWZ3UugWuFzJqNBoKZWH6i2yDUTIZALZ7lxNJgjY_Rod3bETbnpIXxRZNdo6kTxqwAgoiEiCWbyxNwcz1xLRRh_4d5x7raj9UWD9x0jB4L0h3NHhCBxJtCiISIPQX76kkVSd9H3CtZcOHLjdney-FvT-2XteClPer5qnBEIDIr6AlGgIoBCIiEiApE0lBcjHBii7b-TWuXeIZx6HZgnke49uvKvv5lZ17aCoZANCHur2njaSUziabt_EcQYW-FW6gcgsKOxpYElYKGQCA2GU3zz_5tzoDvqq1fTcGK7lkkJBuUIMQ6br_2wgaMzjuoQFCLQog7cXwz4FI08MUJzoqIb2Cd2y-tTn2gnsbusbABwJ6t4cQgaPDRxiAiN6-ASJBH0hzrW0isye26TDPpBxPsmw5rZzTfp8-RruWc8V0LJHyWdc8SYioDl13k5XXI5rIyzHXi7EoKWR6C1uFNYJOla4iQR90Siwu13_AWvOnevZ_zfWST4fqhF3LkPn5ZOFDs0-8n3Xg7ozRxIhxJcJxl6iF4rhXFTJWDsNNpvWzq_XmpGYu"
+          },
+          {
+            "object_space": {
+              "system": true,
+              "id": 4
+            },
+            "key": "ANCHur2njaSUziabt_EcQYW-FW6gcgsKOw==",
+            "value": "KAQ="
+          },
+          {
+            "object_space": {
+              "system": true,
+              "zone": "AJ_lH9WcjJMQmBCDCX0CXh1NdTgPLp-Z_A==",
+              "id": 1
+            },
+            "key": "ANCHur2njaSUziabt_EcQYW-FW6gcgsKOw==",
+            "value": "CICwjcC82xYQlvrbvbzbFhjBgNmFjTQ="
+          }
+        ]
+      }
+    }
+  ]
+}

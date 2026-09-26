@@ -20,6 +20,7 @@ production key loader, RPC write transport, timer or deployment switch.
 | --- | --- |
 | `reward-manifest.js` | Verify a canonical, verifier-signed rehearsal allocation list; regenerate its Merkle-sum root and proofs |
 | `reward-observer.js` | Read pinned native token/contracts, epoch, claimed flag, liabilities and finalized paid-work totals; require stable reads and irreversible snapshots |
+| `reward-cycle.js` / `reward-cycle-runner.js` | Persist daily opening, root proposal and finalization; recover exact envelopes and hand finalized manifests to the claim queue |
 | `reward-claims.js` | Persist manifests, entitlements, signing fences, exact signed envelopes, attempts and daily Mana reservations in one SQLite database |
 | `rehearsal-submitter.js` | Run bounded claim/settlement recovery, invoke a restricted injected claim signer, and hand only durably checkpointed envelopes to the injected transport |
 
@@ -145,6 +146,15 @@ liabilities stay unchanged on rejection. Automatic sponsor-only claims and
 restart recovery still pass. [The funding results](koin-funding-results.json)
 save the full funding/claim transactions and receipts, source hashes and
 artifact provenance. The same isolated-fixture limitations apply.
+
+The [daily-cycle run](https://github.com/therexdev/kai/actions/runs/36272024877)
+then passed **18 checks**, including automatic budget opening, root proposal,
+full review, exact-root finalization and durable handoff to this claim queue.
+Restart after a lost proposal acknowledgment used the original transaction;
+both providers were paid automatically without provider signatures.
+[Cycle results](koin-cycle-results.json) retain the lifecycle, claim and rejected
+guard receipts. See the [cycle verification](koin-reward-cycle.md#verified-disposable-chain-result)
+for pinned revisions, signing counts and fixture resource measurements.
 
 Run `node --test scripts/probe-koin-automatic-claims.js` on Node 22 or newer.
 The probe uses fixture-only keys, ABI encoding and local SQLite; it covers
