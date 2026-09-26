@@ -159,8 +159,9 @@ the in-memory fixtures nor an isolated resource measurement establishes
 production Mana costs. A manifest signature authenticates the allocation issuer; it does not
 prove telemetry accuracy or that its evidence hash came from reconciled work.
 Production ingestion must generate manifests only from approved availability
-evidence and irreversibly reconciled charges. Epoch opening/root submission/
-finalization, production signing/transport/monitoring, broader proof-size/load
+evidence and irreversibly reconciled charges. The [daily-cycle rehearsal](koin-reward-cycle.md)
+now connects budget opening, root submission and finalization to this claim queue
+with durable exact-envelope recovery. Production signing/transport/monitoring, broader proof-size/load
 testing and resource calibration, contract review and the owner's concrete
 deployment and funding approval remain required. The app's live network and
 prices are intact.

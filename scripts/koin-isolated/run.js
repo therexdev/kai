@@ -5,11 +5,13 @@ const { DAY } = require("../../lib/koin-network/policy"), P = require("../../lib
 const Tree = require("../../lib/koin-network/merkle"), Manifest = require("../../lib/koin-network/reward-manifest");
 const { RewardObserver } = require("../../lib/koin-network/reward-observer"), { RewardClaims } = require("../../lib/koin-network/reward-claims");
 const { RehearsalSubmitter } = require("../../lib/koin-network/rehearsal-submitter");
+const { RewardCycle } = require("../../lib/koin-network/reward-cycle"), { RewardCycleRunner } = require("../../lib/koin-network/reward-cycle-runner");
+const ABI = require("../../lib/koin-network/rewards-abi.json");
 const enc = utils.encodeBase64url, digest = text => enc(Buffer.from(P.hash(text), "hex"));
 async function run(directory) {
   const chain = new IsolatedChain(directory), report = { schema: 1, mode: "isolated-chain", paymentsEnabled: false,
     productionManaCalibration: false, passed: false, checks: [], measurements: [] };
-  let ledger;
+  let ledger, cycle;
   const check = name => { report.checks.push(name); console.log("PASS " + name); };
   const call = async (kind, method, args, actor, options) => chain.send(method, [await chain.operation(kind, method, args)], actor, options);
   try {
@@ -25,7 +27,48 @@ async function run(directory) {
     assert.equal(await chain.balance(chain.address("credits")), "10000000000");
     assert.equal((await chain.read("credits", "balances", { account: bytes(chain.address("buyer")) })).liabilities, "10000000000");
     check("native deposit funds customer custody independently of the seeded rewards pool");
-    const epoch = String(Math.floor(chain.now / DAY)); await call("rewards", "open_epoch", {}, chain.actors.admin);
+    const target = { chainId: chain.chainId, rewards: chain.address("rewards"), rewardsHash: "0x1220" + chain.manifest.artifacts.rewards.sha256,
+      credits: chain.address("credits"), creditsHash: "0x1220" + chain.manifest.artifacts.credits.sha256,
+      token: chain.keys.Koin.getAddress(), tokenHash: (await chain.provider.invokeGetContractMetadata(chain.keys.Koin.getAddress())).value.hash,
+      verifier: chain.address("verifier"), version: "1", workCapBps: 8000 };
+    const sponsor = chain.address("sponsor"), policy = { verifier: sponsor, payer: sponsor, maxRcPerTransaction: "10000000000", maxRcPerDay: "20000000000", maxAttempts: 3, minRetryMs: 1000 };
+    const open = () => { ledger = new RewardClaims(path.join(directory, "claims"), { target, policy,
+      observer: new RewardObserver(chain.provider, { target, clock: () => chain.now }), clock: () => chain.now }); };
+    open();
+    const epoch = String(Math.floor(chain.now / DAY)), lifecyclePayer = chain.address("lifecycle");
+    const openCycle = () => { cycle = new RewardCycle(path.join(directory, "cycle"), { mode: "isolated-rehearsal", target,
+      policy: { ...policy, verifier: target.verifier, payer: lifecyclePayer, maxRcPerDay: "30000000000" },
+      budgetPolicy: { dailyBps: 500, availabilityBps: 7000 }, observer: new RewardObserver(chain.provider, { target, clock: () => chain.now }), clock: () => chain.now }); };
+    openCycle(); cycle.queueDay(epoch);
+    let cycleSignatures = 0, cycleSubmissions = 0, cycleLost = false, cycleRestarted = false, cycleError;
+    const cycleRunner = () => new RewardCycleRunner({ mode: "isolated-rehearsal", cycle, claims: ledger,
+      prepare: async d => {
+        assert.equal(d.payer, lifecyclePayer); const tx = await chain.signed([{ call_contract: d.operation }], chain.actors.lifecycle, { rcLimit: d.maxRc });
+        cycleSignatures++;
+        if (d.method === "propose_root") { await chain.actors.verifier.signTransaction(tx); cycleSignatures++; }
+        assert.equal(tx.header.payee, undefined); return tx;
+      }, submit: async tx => {
+        const method = ["open_epoch", "propose_root", "finalize_root"].find(k => ABI.methods[k].entry_point === tx.operations[0].call_contract.entry_point);
+        try {
+          cycleSubmissions++; await chain.provider.call("chain.submit_transaction", { transaction: tx, broadcast: true });
+          const receipt = await chain.include("cycle-" + method, tx);
+          assert.notEqual(receipt.reverted, true, JSON.stringify(receipt.logs));
+        } catch (e) { cycleError = e; throw e; }
+        if (method === "propose_root" && !cycleLost) { cycleLost = true; throw Error("Lost lifecycle acknowledgment after inclusion"); }
+        return { txId: tx.id };
+      } });
+    const cycleUntil = async method => {
+      for (let i = 0; i < 24; i++) {
+        const result = await cycleRunner().tick({ openCurrentDay: false });
+        if (cycleError) throw cycleError;
+        console.log(JSON.stringify({ cycle: result.results[0] }));
+        if (cycleLost && !cycleRestarted) { cycle.close(); openCycle(); cycleRestarted = true; }
+        if (cycle.status(epoch).steps.find(s => s.method === method).state === "complete") return;
+        await chain.finalize((await chain.provider.getHeadInfo()).head_topology.height);
+      }
+      throw Error("Daily cycle did not resolve " + method);
+    };
+    await cycleUntil("open_epoch");
     const opened = (await chain.read("rewards", "get_epoch", { epoch })).epoch;
     assert.ok(BigInt(opened.budget) <= 5000000000n && BigInt(opened.budget) > 4900000000n);
     const sessionId = digest("isolated-paid-session"), policyHash = digest("isolated-tariff");
@@ -43,31 +86,37 @@ async function run(directory) {
     assert.equal(await chain.balance(chain.address("operations")), "75000000");
     assert.equal((await chain.read("credits", "get_spend", { epoch, account: bytes(chain.address("alice")) })).amount, charge.amount);
     check("authorized usage moves the exact 60/25/15 native-token split and records provider paid work");
-    const target = { chainId: chain.chainId, rewards: chain.address("rewards"), rewardsHash: "0x1220" + chain.manifest.artifacts.rewards.sha256,
-      credits: chain.address("credits"), creditsHash: "0x1220" + chain.manifest.artifacts.credits.sha256,
-      token: chain.keys.Koin.getAddress(), tokenHash: (await chain.provider.invokeGetContractMetadata(chain.keys.Koin.getAddress())).value.hash,
-      verifier: chain.address("verifier"), version: "1", workCapBps: 8000 };
     const tree = Tree.build({ chainId: target.chainId, contract: target.rewards, epoch, version: "1" }, [
       { address: chain.address("alice"), availability: "100000000", work: "400000000" },
       { address: chain.address("bob"), availability: "50000000", work: "0" },
     ]);
     const node = n => ({ ...n, hash: enc(Buffer.from(n.hash, "hex")) });
-    await chain.block([], (Number(epoch) + 1) * DAY + 1);
-    await call("rewards", "propose_root", { epoch, root: node(tree.root) }, chain.actors.verifier);
-    const review = (await chain.read("rewards", "get_epoch", { epoch })).epoch;
-    await call("rewards", "finalize_root", { epoch }, chain.actors.admin, { reverted: true });
-    assert.notEqual((await chain.read("rewards", "get_epoch", { epoch })).epoch.finalized, true);
-    await chain.block([], Number(review.review_until) + 1);
-    await call("rewards", "finalize_root", { epoch }, chain.actors.admin);
-    await chain.finalize((await chain.provider.getHeadInfo()).head_topology.height);
-    check("real contract enforces the full 24-hour review before finalization");
-    const sponsor = chain.address("sponsor"), policy = { verifier: sponsor, payer: sponsor, maxRcPerTransaction: "10000000000", maxRcPerDay: "20000000000", maxAttempts: 3, minRetryMs: 1000 };
     const envelope = { manifest: { schema: 1, mode: "reward-rehearsal", target, epoch, evidenceHash: P.hash(JSON.stringify(chain.records.map(r => r.transaction.id))),
       root: tree.root, allocations: tree.claims.map(({ address, availability, work }) => ({ address, availability, work })) } };
     envelope.signature = Buffer.from(await chain.actors.verifier.signHash(Manifest.signingHash(envelope.manifest))).toString("base64");
-    const open = () => { ledger = new RewardClaims(path.join(directory, "claims"), { target, policy,
-      observer: new RewardObserver(chain.provider, { target, clock: () => chain.now }), clock: () => chain.now }); };
-    open(); const ids = ledger.importManifest(envelope), before = {};
+    cycle.importManifest(envelope);
+    const delayedOpen = await chain.signed([await chain.operation("rewards", "open_epoch", { epoch })], chain.actors.manual);
+    await chain.block([], (Number(epoch) + 1) * DAY + 1);
+    assert.equal((await chain.include("delayed-cycle-open", delayedOpen)).reverted, true);
+    assert.equal((await chain.read("rewards", "get_epoch", { epoch: String(BigInt(epoch) + 1n) })).epoch, null);
+    check("a delayed budget-opening transaction cannot open a different reward day");
+    await cycleUntil("propose_root");
+    const review = (await chain.read("rewards", "get_epoch", { epoch })).epoch;
+    await call("rewards", "finalize_root", { epoch, root: node(tree.root) }, chain.actors.admin, { reverted: true });
+    assert.notEqual((await chain.read("rewards", "get_epoch", { epoch })).epoch.finalized, true);
+    const held = await cycleRunner().tick({ openCurrentDay: false });
+    assert.equal(held.results[0].reason, "root_under_review"); assert.equal(cycleSignatures, 3);
+    await chain.block([], Number(review.review_until) + 1);
+    await call("rewards", "finalize_root", { epoch, root: { ...node(tree.root), availability: String(BigInt(tree.root.availability) + 1n) } }, chain.actors.admin, { reverted: true });
+    check("finalization is bound to the exact reviewed root and category totals");
+    await cycleUntil("finalize_root");
+    check("real contract enforces the full 24-hour review before finalization");
+    assert.equal(cycleSubmissions, 3); assert.equal(cycleSignatures, 4); assert.equal(cycleRestarted, true);
+    assert.deepEqual(cycle.readyDays(), []); assert.ok(ledger.next());
+    check("the daily runner opens, proposes, finalizes and durably hands rewards to automatic claims");
+    check("lifecycle restart after a lost root acknowledgment does not sign or submit twice");
+    report.lifecycle = { signatures: cycleSignatures, submissions: cycleSubmissions, restarted: cycleRestarted, status: cycle.status(epoch) };
+    const ids = tree.claims.map(c => P.hash(Manifest.signingHash(envelope.manifest).toString("hex") + ":" + c.address)), before = {};
     for (const row of tree.claims) { before[row.address] = await chain.balance(row.address); assert.equal(before[row.address], "0"); }
     const unpaidOp = await ledger.operation(ids[0]);
     const empty = await chain.signed([{ call_contract: unpaidOp }], chain.actors.empty);
@@ -146,7 +195,7 @@ async function run(directory) {
     return report;
   } catch (e) { report.error = e.message; throw e; }
   finally {
-    ledger?.close(); report.records = chain.records; report.manifest = chain.manifest;
+    ledger?.close(); cycle?.close(); report.records = chain.records; report.manifest = chain.manifest;
     fs.writeFileSync(path.join(directory, "report.json"), JSON.stringify(report, null, 2) + "\n");
     console.log(JSON.stringify({ passed: report.passed, checks: report.checks.length, maxObservedClaimRc: report.maxObservedClaimRc, productionManaCalibration: false }));
   }

@@ -48,7 +48,7 @@ class IsolatedChain {
       allowance: { fields: { owner: { type: "bytes", id: 1 }, spender: { type: "bytes", id: 2 } } },
       approve: { fields: { owner: { type: "bytes", id: 1 }, spender: { type: "bytes", id: 2 }, value: { type: "uint64", id: 3 } } },
     } });
-    this.actors = Object.fromEntries(["credits", "rewards", "admin", "verifier", "buyer", "sponsor", "manual", "alice", "bob", "mining", "operations", "empty"]
+    this.actors = Object.fromEntries(["credits", "rewards", "admin", "verifier", "buyer", "sponsor", "lifecycle", "manual", "alice", "bob", "mining", "operations", "empty"]
       .map(name => [name, Signer.fromSeed("kai-isolated-only-v1-" + name)]));
   }
   async connect() {
@@ -179,7 +179,7 @@ class IsolatedChain {
     await this.send("bootstrap-governance-name", [{ call_contract: { contract_id: this.keys.NameService.getAddress(), entry_point: 0xe248c73a,
       args: enc(await this.bootstrapSerializer.serialize({ name: "governance", address: bytes(this.keys.Governance.getAddress()) }, "record")) } }], this.keys.Genesis);
     const recipients = [this.keys.Genesis.getAddress(), this.keys.Koin.getAddress(),
-      ...["admin", "verifier", "buyer", "sponsor", "manual"].map(name => this.address(name))];
+      ...["admin", "verifier", "buyer", "sponsor", "lifecycle", "manual"].map(name => this.address(name))];
     const mint = [];
     for (const to of recipients) mint.push({ call_contract: { contract_id: this.keys.Koin.getAddress(), entry_point: 0xdc6f17bb,
       args: enc(await this.bootstrapSerializer.serialize({ to: bytes(to), value: "100000000000000" }, "mint")) } });

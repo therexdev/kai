@@ -10,6 +10,13 @@ claims, recovery after a lost response, duplicate protection, Mana rejection and
 refunds. Reports include full transaction receipts and sponsor resource measurements.
 An isolated measurement is not a production Mana budget or permission to activate payments.
 
+The daily-cycle runner now performs budget opening, root proposal and finalization,
+then hands the signed manifest to the automatic claim queue. The harness loses a
+proposal acknowledgment after inclusion and restarts the journal before recovery.
+It also checks that delayed openings cannot open another day and finalization
+cannot change the reviewed root. All review deadlines use controlled chain time;
+none are shortened in the contracts or application code.
+
 Funding uses an exact native-token allowance and the custody deposit in one
 atomic signed transaction, then checks that the allowance is zero. These bundles
 are now prepared, validated and submitted through the pinned desktop `KoinChain`
