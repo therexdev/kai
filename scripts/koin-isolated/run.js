@@ -16,8 +16,11 @@ async function run(directory) {
     await chain.connect(); report.chainId = chain.chainId;
     await chain.bootstrap(); check("fresh peerless chain bootstrapped with native token and enabled resource accounting");
     assert.equal(await chain.balance(chain.address("credits")), "0"); assert.equal(await chain.balance(chain.address("rewards")), "0");
-    await call("rewards", "fund", { account: bytes(chain.address("admin")), amount: "100000000000" }, chain.actors.admin);
-    await call("credits", "purchase", { account: bytes(chain.address("buyer")), amount: "10000000000" }, chain.actors.buyer);
+    await call("rewards", "fund", { account: bytes(chain.address("admin")), amount: "100000000000" }, chain.actors.admin, { reverted: true });
+    assert.equal(await chain.balance(chain.address("rewards")), "0");
+    await chain.deposit("rewards", "fund", chain.actors.admin, "100000000000");
+    await chain.deposit("credits", "purchase", chain.actors.buyer, "10000000000");
+    check("deposits require an exact native allowance and consume it atomically with no residual approval");
     assert.equal(await chain.balance(chain.address("credits")), "10000000000");
     assert.equal((await chain.read("credits", "balances", { account: bytes(chain.address("buyer")) })).liabilities, "10000000000");
     check("native deposit funds customer custody independently of the seeded rewards pool");

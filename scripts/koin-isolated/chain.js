@@ -44,6 +44,8 @@ class IsolatedChain {
       mint: { fields: { to: { type: "bytes", id: 1 }, value: { type: "uint64", id: 2 } } },
       balance: { fields: { owner: { type: "bytes", id: 1 } } },
       amount: { fields: { value: { type: "uint64", id: 1 } } },
+      allowance: { fields: { owner: { type: "bytes", id: 1 }, spender: { type: "bytes", id: 2 } } },
+      approve: { fields: { owner: { type: "bytes", id: 1 }, spender: { type: "bytes", id: 2 }, value: { type: "uint64", id: 3 } } },
     } });
     this.actors = Object.fromEntries(["credits", "rewards", "admin", "verifier", "buyer", "sponsor", "manual", "alice", "bob", "mining", "operations", "empty"]
       .map(name => [name, Signer.fromSeed("kai-isolated-only-v1-" + name)]));
@@ -124,6 +126,17 @@ class IsolatedChain {
     const args = enc(await this.bootstrapSerializer.serialize({ owner: bytes(address) }, "balance"));
     const result = await this.provider.readContract({ contract_id: this.keys.Koin.getAddress(), entry_point: 0x5c721497, args });
     return (await this.bootstrapSerializer.deserialize(result.result ?? "", "amount")).value ?? "0";
+  }
+  async deposit(kind, method, actor, amount) {
+    const request = { owner: bytes(actor.getAddress()), spender: bytes(this.address(kind)) };
+    const approval = { call_contract: { contract_id: this.keys.Koin.getAddress(), entry_point: 0x74e21680,
+      args: enc(await this.bootstrapSerializer.serialize({ ...request, value: amount }, "approve")) } };
+    // One signed atomic transaction grants exactly this deposit and consumes it.
+    const result = await this.send(method, [approval, await this.operation(kind, method, { account: request.owner, amount })], actor);
+    const response = await this.provider.readContract({ contract_id: this.keys.Koin.getAddress(), entry_point: 0x32f09fa1,
+      args: enc(await this.bootstrapSerializer.serialize(request, "allowance")) });
+    assert.equal((await this.bootstrapSerializer.deserialize(response.result ?? "", "amount")).value, "0", "Deposit must consume the entire allowance");
+    return result;
   }
   async bootstrap() {
     const syscall = (call_id, signer, entry_point) => ({ set_system_call: { call_id, target: { system_call_bundle: { contract_id: signer.getAddress(), entry_point } } } });
