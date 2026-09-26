@@ -682,6 +682,8 @@ Run `node scripts/probe-koin-calibration.js` for the offline accounting checks.
 - The first isolated native-transfer/resource run passed all 12 checks; see
   [the saved results](koin-isolated-results.json) and
   [automatic claim verification](koin-automatic-claims.md#verification-and-remaining-activation-work).
+  The follow-up [desktop funding run](koin-funding-results.json) passed 14 checks,
+  adding actual desktop bundle submission and paused-deposit approval rollback.
   Complete broader proof-size/load and Mana calibration, contract review,
   seven-day real shadow validation, deployment pins and the owner's concrete
   funding/deployment review. The desktop now validates the native allowance

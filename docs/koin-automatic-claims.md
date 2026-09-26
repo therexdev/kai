@@ -136,6 +136,16 @@ The isolated workflow exercises that same client and paused-deposit approval
 rollback. Production wallet confirmation, durable funding recovery and finality
 reconciliation remain disconnected; no purchase control has been enabled.
 
+The [subsequent desktop-funding run](https://github.com/therexdev/kai/actions/runs/36262517451)
+passed **14 checks** at master `3c1027de9ceda033cb717697538a3aaffa35981d`
+and desktop `72510618f407374c2c96ed53db01e32fb5f96744`. It uses the actual
+desktop client for both native funding bundles and confirms approval rollback
+when a deposit is paused after preparation. Customer/custody balances and
+liabilities stay unchanged on rejection. Automatic sponsor-only claims and
+restart recovery still pass. [The funding results](koin-funding-results.json)
+save the full funding/claim transactions and receipts, source hashes and
+artifact provenance. The same isolated-fixture limitations apply.
+
 Run `node --test scripts/probe-koin-automatic-claims.js` on Node 22 or newer.
 The probe uses fixture-only keys, ABI encoding and local SQLite; it covers
 automatic fixed-recipient claims, review/finality/custody gates, signatures,
