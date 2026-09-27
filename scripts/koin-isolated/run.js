@@ -29,6 +29,8 @@ async function run(directory) {
     await chain.deposit("credits", "purchase", chain.actors.buyer, "10000000000");
     check("deposits require an exact native allowance and consume it atomically with no residual approval");
     check("the pinned desktop wallet prepares, validates and submits both exact funding bundles");
+    check("native funding approval binds the exact transaction and Stop saves late signatures without broadcasting");
+    check("stopped deposits survive restart and require a new review to resume the same signed envelope");
     check("desktop deposit journals recover lost inclusion responses without signing or depositing twice");
     check("credit and reward deposits require exact native receipts and irreversible backed custody before confirmation");
     report.fundingRecovery = chain.fundingStats;

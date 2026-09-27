@@ -50,9 +50,11 @@ function prepare(upstreamDir, desktopDir, directory) {
   const walletFile = path.join(desktopDir, "core/lib/koin-network/chain.js");
   const recoveryFile = path.join(desktopDir, "electron/koin-funding-recovery.js");
   const observerFile = path.join(desktopDir, "core/lib/koin-network/funding-observer.js");
+  const approvalFile = path.join(desktopDir, "electron/koin-funding-approval.js");
   const manifest = { schema: 1, mode: "isolated-chain", upstreamDir, upstreamCommit: upstream.commit, desktopCommit: desktopPin,
     endpoint: "http://127.0.0.1:48080", marker, images, artifacts, genesisHash: hash(fs.readFileSync(genesisPath)),
     walletClient: { file: walletFile, sha256: hash(fs.readFileSync(walletFile)) },
+    fundingApproval: { file: approvalFile, sha256: hash(fs.readFileSync(approvalFile)) },
     fundingRecovery: { file: recoveryFile, sha256: hash(fs.readFileSync(recoveryFile)), observerFile, observerSha256: hash(fs.readFileSync(observerFile)) } };
   fs.writeFileSync(path.join(directory, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n", { mode: 0o600 });
   return manifest;

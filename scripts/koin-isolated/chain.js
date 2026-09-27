@@ -3,6 +3,7 @@ const fs = require("fs"), path = require("path"), assert = require("node:assert/
 const { Provider, Signer, Serializer, Transaction, utils } = require("koilib");
 const { hash } = require("./prepare"), upstream = require("./upstream.json");
 const { DAY } = require("../../lib/koin-network/policy");
+const { EventEmitter } = require("node:events");
 const enc = utils.encodeBase64url, bytes = address => enc(utils.decodeBase58(address));
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 function canonical(v) {
@@ -39,6 +40,7 @@ class IsolatedChain {
     if (!m.walletClient || hash(fs.readFileSync(m.walletClient.file)) !== m.walletClient.sha256) throw Error("Pinned desktop wallet client required");
     if (!m.fundingRecovery || hash(fs.readFileSync(m.fundingRecovery.file)) !== m.fundingRecovery.sha256 ||
         hash(fs.readFileSync(m.fundingRecovery.observerFile)) !== m.fundingRecovery.observerSha256) throw Error("Pinned desktop funding recovery required");
+    if (!m.fundingApproval || hash(fs.readFileSync(m.fundingApproval.file)) !== m.fundingApproval.sha256) throw Error("Pinned desktop funding approval required");
     this.fundingStats = [];
     this.provider = new LocalProvider(m.endpoint); this.records = []; this.resourceEnabled = false;
     this.now = Math.floor(Date.now() / DAY) * DAY - 4 * DAY + 10000;
@@ -149,17 +151,30 @@ class IsolatedChain {
   async deposit(kind, method, actor, amount) {
     const client = await this.walletClient(), args = { account: bytes(actor.getAddress()), amount };
     const intent = { kind, method, args, actor: actor.getAddress(), maxRc: "10000000000" };
-    const { FundingRecoveryRunner } = require(this.manifest.fundingRecovery.file);
+    const { createFundingApproval } = require(this.manifest.fundingApproval.file);
     const id = hash("isolated-funding:" + kind); let journal = this.fundingJournal(client), lost = false, restarted = false, failure;
-    let signatures = 0, submissions = 0;
-    const runner = () => new FundingRecoveryRunner({ mode: "isolated-rehearsal", journal,
+    let signatures = 0, submissions = 0, reviews = 0, reviewedId, original, approval;
+    const window = Object.assign(new EventEmitter(), { isDestroyed: () => false, isVisible: () => true, isMinimized: () => false, webContents: new EventEmitter() });
+    const controller = () => createFundingApproval({ mode: "isolated-rehearsal", client, journal, clock: () => this.now, timeoutMs: 30000,
+      dialog: { showMessageBox: async (_window, options) => {
+        reviews++; assert.equal(options.defaultId, 0); assert.ok(options.detail.includes(client.d.chainId));
+        assert.ok(options.detail.includes(client.d[kind]));
+        const txId = options.detail.match(/Transaction: (0x1220[0-9a-f]{64})/)[1];
+        if (reviewedId) assert.equal(txId, reviewedId); else reviewedId = txId;
+        return { response: 1 };
+      } },
       sign: async d => {
         signatures++; const tx = d.transaction; assert.equal(tx.operations.length, 2);
+        assert.equal(tx.id, reviewedId);
         assert.deepEqual(await this.bootstrapSerializer.deserialize(tx.operations[0].call_contract.args, "approve"),
           { owner: args.account, spender: bytes(this.address(kind)), value: amount });
-        await actor.signTransaction(tx); return tx;
+        await actor.signTransaction(tx); original = structuredClone(tx);
+        // Stop before the signing response is delivered. The coordinator must
+        // retain these late bytes while preventing the first broadcast.
+        approval.cancel(); return tx;
       }, submit: async d => {
         try {
+          assert.deepEqual(d.transaction, original);
           submissions++; await client.submit(d.transaction, d.intent);
           const receipt = await this.include(method, d.transaction);
           assert.notEqual(receipt.reverted, true, JSON.stringify(receipt.logs));
@@ -167,22 +182,33 @@ class IsolatedChain {
         lost = true; throw Error("Lost funding acknowledgment after inclusion");
       } });
     try {
-      await runner().start(id, intent);
+      approval = controller();
+      assert.equal((await approval.approve(window, id, () => intent)).status, "stopped");
+      for (let i = 0; !journal.saved(id).signed; i++) { if (i >= 50) throw Error("Late fixture signature was not saved"); await pause(10); }
+      assert.equal(journal.status(id).held, true); assert.equal(submissions, 0); assert.equal(signatures, 1);
+      journal.close(); journal = this.fundingJournal(client); approval = controller();
+      assert.equal(journal.status(id).held, true);
+      const stopped = await approval.check(id); assert.ok(["wait", "review"].includes(stopped.action));
+      assert.equal(journal.status(id).attempts, 0); assert.equal(submissions, 0);
+      await this.finalize((await this.provider.getHeadInfo()).head_topology.height);
+      const resumed = await approval.resume(window, id, () => intent);
+      assert.equal(resumed.status, "await_finality", JSON.stringify(resumed));
       for (let i = 0; ; i++) {
         if (failure) throw failure;
         if (lost && !restarted) {
-          assert.equal(journal.status(id).state, "unknown"); journal.close(); journal = this.fundingJournal(client); restarted = true;
+          assert.equal(journal.status(id).state, "unknown"); journal.close(); journal = this.fundingJournal(client); approval = controller(); restarted = true;
         }
         if (journal.status(id).state === "funded") break;
         if (i >= 24) throw Error("Funding recovery did not resolve");
         await this.finalize((await this.provider.getHeadInfo()).head_topology.height);
-        console.log(JSON.stringify({ funding: method, decision: await runner().tick(id) }));
+        console.log(JSON.stringify({ funding: method, decision: await approval.check(id) }));
       }
-      assert.equal(signatures, 1); assert.equal(submissions, 1); assert.equal(restarted, true);
+      assert.equal(reviews, 2); assert.equal(signatures, 1); assert.equal(submissions, 1); assert.equal(restarted, true);
       assert.equal(await this.allowance(kind, actor), "0", "Deposit must consume the entire allowance");
-      const before = this.records.length; assert.equal((await runner().start(id, intent)).state, "funded");
+      const before = this.records.length; assert.equal((await approval.approve(window, id, () => intent)).deposit.state, "funded");
       assert.equal(this.records.length, before); assert.equal(signatures, 1); assert.equal(submissions, 1);
-      this.fundingStats.push({ kind, signatures, submissions, restarted, status: journal.status(id) });
+      this.fundingStats.push({ kind, reviews, reviewedId, signatures, submissions, stoppedBeforeBroadcast: true, resumedAfterRestart: true,
+        sameSignedEnvelope: true, restarted, status: journal.status(id) });
       const record = this.records.find(r => r.label === method && !r.receipt.reverted); return { transaction: record.transaction, receipt: record.receipt };
     } finally { journal.close(); }
   }
