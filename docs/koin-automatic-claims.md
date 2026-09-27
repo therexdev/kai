@@ -184,3 +184,10 @@ with durable exact-envelope recovery. Production signing/transport/monitoring, b
 testing and resource calibration, contract review and the owner's concrete
 deployment and funding approval remain required. The app's live network and
 prices are intact.
+
+The subsequent [native funding approval run](https://github.com/therexdev/kai/actions/runs/36330663437)
+passed **23 checks**, including Stop before broadcast, durable restart and a fresh
+review of the original saved funding signature. Each deposit still required one
+signature and one submission. The daily cycle and automatic payouts remained
+successful with no provider signatures. Exact receipts and source pins are in
+[koin-funding-recovery-results.json](koin-funding-recovery-results.json).
