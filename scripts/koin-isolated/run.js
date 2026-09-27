@@ -11,7 +11,7 @@ const enc = utils.encodeBase64url, digest = text => enc(Buffer.from(P.hash(text)
 async function run(directory) {
   const chain = new IsolatedChain(directory), report = { schema: 1, mode: "isolated-chain", paymentsEnabled: false,
     productionManaCalibration: false, passed: false, checks: [], measurements: [] };
-  let ledger, cycle;
+  let ledger, cycle, fundingRollback;
   const check = name => { report.checks.push(name); console.log("PASS " + name); };
   const call = async (kind, method, args, actor, options) => chain.send(method, [await chain.operation(kind, method, args)], actor, options);
   try {
@@ -24,6 +24,9 @@ async function run(directory) {
     await chain.deposit("credits", "purchase", chain.actors.buyer, "10000000000");
     check("deposits require an exact native allowance and consume it atomically with no residual approval");
     check("the pinned desktop wallet prepares, validates and submits both exact funding bundles");
+    check("desktop deposit journals recover lost inclusion responses without signing or depositing twice");
+    check("credit and reward deposits require exact native receipts and irreversible backed custody before confirmation");
+    report.fundingRecovery = chain.fundingStats;
     assert.equal(await chain.balance(chain.address("credits")), "10000000000");
     assert.equal((await chain.read("credits", "balances", { account: bytes(chain.address("buyer")) })).liabilities, "10000000000");
     check("native deposit funds customer custody independently of the seeded rewards pool");
@@ -175,8 +178,11 @@ async function run(directory) {
     // A pause between review and inclusion must roll back the preceding approval.
     const wallet = await chain.walletClient(), fundingArgs = { account: bytes(chain.address("buyer")), amount: "100000000" };
     const fundingIntent = { kind: "credits", method: "purchase", args: fundingArgs, actor: chain.address("buyer"), maxRc: "10000000000" };
-    const pausedFunding = await wallet.prepare("credits", "purchase", fundingArgs, { actor: fundingIntent.actor, rcLimit: fundingIntent.maxRc });
+    fundingRollback = chain.fundingJournal(wallet);
+    const rollbackId = P.hash("isolated-paused-funding");
+    const pausedFunding = (await fundingRollback.begin(rollbackId, fundingIntent)).transaction;
     await chain.actors.buyer.signTransaction(pausedFunding);
+    await fundingRollback.stage(rollbackId, pausedFunding);
     const buyerBefore = await chain.balance(fundingIntent.actor), custodyBefore = await chain.balance(target.credits);
     await call("credits", "set_paused", { paused: true }, chain.actors.admin);
     await assert.rejects(wallet.submit(pausedFunding, fundingIntent), /paused/i);
@@ -186,6 +192,14 @@ async function run(directory) {
     assert.equal(await chain.balance(target.credits), custodyBefore);
     assert.equal((await chain.read("credits", "balances", { account: fundingArgs.account })).liabilities, custodyBefore);
     check("a paused deposit rolls back its native approval and moves no customer funds");
+    fundingRollback.close(); fundingRollback = chain.fundingJournal(wallet);
+    for (let attempts = 0; fundingRollback.status(rollbackId).state !== "reverted"; attempts++) {
+      if (attempts >= 12) throw Error("Paused funding recovery did not resolve");
+      await chain.finalize((await chain.provider.getHeadInfo()).head_topology.height);
+      await fundingRollback.advance(rollbackId);
+    }
+    report.fundingRevert = fundingRollback.status(rollbackId);
+    check("a saved externally included deposit is recovered as reverted after irreversible approval rollback");
     // Finalized claims have consumed only reward liabilities; customer principal remains refundable.
     await call("credits", "refund", { account: bytes(chain.address("buyer")), amount: "1000000000" }, chain.actors.buyer);
     assert.equal(await chain.balance(target.credits), "8500000000");
@@ -195,7 +209,7 @@ async function run(directory) {
     return report;
   } catch (e) { report.error = e.message; throw e; }
   finally {
-    ledger?.close(); cycle?.close(); report.records = chain.records; report.manifest = chain.manifest;
+    ledger?.close(); cycle?.close(); fundingRollback?.close(); report.records = chain.records; report.manifest = chain.manifest;
     fs.writeFileSync(path.join(directory, "report.json"), JSON.stringify(report, null, 2) + "\n");
     console.log(JSON.stringify({ passed: report.passed, checks: report.checks.length, maxObservedClaimRc: report.maxObservedClaimRc, productionManaCalibration: false }));
   }

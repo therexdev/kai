@@ -25,7 +25,12 @@ A deposit without approval must revert. A deposit prepared before a pause must
 roll back its approval and leave both customer and custody balances unchanged;
 the desktop submitter itself refuses to broadcast while paused.
 Production funding still needs wallet confirmation, durable signed-envelope
-recovery and irreversible credit reconciliation before activation.
+recovery and irreversible credit reconciliation wired into the actual wallet
+before activation. The isolated harness now uses the desktop's durable funding
+journal and finality observer. Both deposit purposes lose their inclusion response,
+restart and confirm the saved transaction with one signature and one submission.
+A separately staged deposit that reverts after a pause is also recovered from its
+irreversible receipt. The report pins the journal and observer source hashes.
 
 The native-token WASM is an official integration fixture with minting enabled
 for bootstrap. Custody contracts have ordinary user privileges. The harness

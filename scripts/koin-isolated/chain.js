@@ -37,6 +37,9 @@ class IsolatedChain {
     for (const [name, digest] of Object.entries(upstream.sha256)) if (hash(fs.readFileSync(path.join(m.upstreamDir, name))) !== digest) throw Error("Changed isolated bootstrap artifact");
     for (const a of Object.values(m.artifacts)) if (hash(fs.readFileSync(a.wasm)) !== a.sha256) throw Error("Custody WASM changed after preparation");
     if (!m.walletClient || hash(fs.readFileSync(m.walletClient.file)) !== m.walletClient.sha256) throw Error("Pinned desktop wallet client required");
+    if (!m.fundingRecovery || hash(fs.readFileSync(m.fundingRecovery.file)) !== m.fundingRecovery.sha256 ||
+        hash(fs.readFileSync(m.fundingRecovery.observerFile)) !== m.fundingRecovery.observerSha256) throw Error("Pinned desktop funding recovery required");
+    this.fundingStats = [];
     this.provider = new LocalProvider(m.endpoint); this.records = []; this.resourceEnabled = false;
     this.now = Math.floor(Date.now() / DAY) * DAY - 4 * DAY + 10000;
     this.serializer = new Serializer(require("../../lib/koin-network/credits-abi.json").types);
@@ -146,18 +149,47 @@ class IsolatedChain {
   async deposit(kind, method, actor, amount) {
     const client = await this.walletClient(), args = { account: bytes(actor.getAddress()), amount };
     const intent = { kind, method, args, actor: actor.getAddress(), maxRc: "10000000000" };
-    const transaction = await client.prepare(kind, method, args, { actor: intent.actor, rcLimit: intent.maxRc });
-    await client.verifyTransaction(transaction, intent);
-    // Exercise the actual desktop encoder/validator, using only a public fixture key.
-    assert.equal(transaction.operations.length, 2);
-    assert.deepEqual(await this.bootstrapSerializer.deserialize(transaction.operations[0].call_contract.args, "approve"),
-      { owner: args.account, spender: bytes(this.address(kind)), value: amount });
-    await actor.signTransaction(transaction);
-    await client.submit(transaction, intent);
-    const receipt = await this.include(method, transaction);
-    assert.notEqual(receipt.reverted, true, JSON.stringify(receipt.logs));
-    assert.equal(await this.allowance(kind, actor), "0", "Deposit must consume the entire allowance");
-    return { transaction, receipt };
+    const { FundingRecoveryRunner } = require(this.manifest.fundingRecovery.file);
+    const id = hash("isolated-funding:" + kind); let journal = this.fundingJournal(client), lost = false, restarted = false, failure;
+    let signatures = 0, submissions = 0;
+    const runner = () => new FundingRecoveryRunner({ mode: "isolated-rehearsal", journal,
+      sign: async d => {
+        signatures++; const tx = d.transaction; assert.equal(tx.operations.length, 2);
+        assert.deepEqual(await this.bootstrapSerializer.deserialize(tx.operations[0].call_contract.args, "approve"),
+          { owner: args.account, spender: bytes(this.address(kind)), value: amount });
+        await actor.signTransaction(tx); return tx;
+      }, submit: async d => {
+        try {
+          submissions++; await client.submit(d.transaction, d.intent);
+          const receipt = await this.include(method, d.transaction);
+          assert.notEqual(receipt.reverted, true, JSON.stringify(receipt.logs));
+        } catch (e) { failure = e; throw e; }
+        lost = true; throw Error("Lost funding acknowledgment after inclusion");
+      } });
+    try {
+      await runner().start(id, intent);
+      for (let i = 0; ; i++) {
+        if (failure) throw failure;
+        if (lost && !restarted) {
+          assert.equal(journal.status(id).state, "unknown"); journal.close(); journal = this.fundingJournal(client); restarted = true;
+        }
+        if (journal.status(id).state === "funded") break;
+        if (i >= 24) throw Error("Funding recovery did not resolve");
+        await this.finalize((await this.provider.getHeadInfo()).head_topology.height);
+        console.log(JSON.stringify({ funding: method, decision: await runner().tick(id) }));
+      }
+      assert.equal(signatures, 1); assert.equal(submissions, 1); assert.equal(restarted, true);
+      assert.equal(await this.allowance(kind, actor), "0", "Deposit must consume the entire allowance");
+      const before = this.records.length; assert.equal((await runner().start(id, intent)).state, "funded");
+      assert.equal(this.records.length, before); assert.equal(signatures, 1); assert.equal(submissions, 1);
+      this.fundingStats.push({ kind, signatures, submissions, restarted, status: journal.status(id) });
+      const record = this.records.find(r => r.label === method && !r.receipt.reverted); return { transaction: record.transaction, receipt: record.receipt };
+    } finally { journal.close(); }
+  }
+  fundingJournal(client) {
+    const { FundingRecovery } = require(this.manifest.fundingRecovery.file);
+    return new FundingRecovery(path.join(this.directory, "funding"), { mode: "isolated-rehearsal", client,
+      clock: () => this.now, maxRcPerDay: "30000000000" });
   }
   async bootstrap() {
     const syscall = (call_id, signer, entry_point) => ({ set_system_call: { call_id, target: { system_call_bundle: { contract_id: signer.getAddress(), entry_point } } } });
