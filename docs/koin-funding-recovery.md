@@ -23,7 +23,7 @@ lost-response recovery, Mana checks, duplicate protection and paused refund
 checks continue to run. `report.json` retains the funding recovery statuses,
 signing/submission counts, lifecycle status and full transaction receipts.
 
-The desktop's [funding recovery documentation](https://github.com/therexdev/kaiapp/blob/a07fbaf0cacd8f900587ce287999d4f12ae10784/docs/koin-network/FUNDING_RECOVERY.md)
+The desktop's [funding recovery documentation](https://github.com/therexdev/kaiapp/blob/90ae03efa7726efc0b53615e3108f28ff7c30fbe/docs/koin-network/FUNDING_RECOVERY.md)
 describes the interface and remaining limits. Production wallet approval,
 coordination with other wallet nonces, reviewed repair, durable backup/failover
 and activation remain separate work. No actual user wallet or live payment flow

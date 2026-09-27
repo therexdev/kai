@@ -20,11 +20,10 @@ async function run(directory) {
     assert.equal(await chain.balance(chain.address("credits")), "0"); assert.equal(await chain.balance(chain.address("rewards")), "0");
     await call("rewards", "fund", { account: bytes(chain.address("admin")), amount: "100000000000" }, chain.actors.admin, { reverted: true });
     assert.equal(await chain.balance(chain.address("rewards")), "0");
-    // Keep empty-custody diagnostics: mocks cannot reproduce every native SDK
-    // read-context behavior. Never interpret an RPC trap as a zero balance.
-    for (const kind of ["credits", "rewards"]) for (const account of [null, bytes(chain.address("admin"))]) {
-      try { console.log(JSON.stringify({ emptyCustody: kind, account: !!account, result: await chain.read(kind, "balances", account ? { account } : {}) })); }
-      catch (e) { console.log(JSON.stringify({ emptyCustody: kind, account: !!account, error: e.message })); }
+    // Customer balances belong to credits; rewards expose aggregate custody.
+    for (const kind of ["credits", "rewards"]) {
+      const empty = await chain.read(kind, "balances", kind === "credits" ? { account: bytes(chain.address("buyer")) } : {});
+      assert.equal(empty.liquid ?? "0", "0"); assert.equal(empty.liabilities ?? "0", "0");
     }
     await chain.deposit("rewards", "fund", chain.actors.admin, "100000000000");
     await chain.deposit("credits", "purchase", chain.actors.buyer, "10000000000");
