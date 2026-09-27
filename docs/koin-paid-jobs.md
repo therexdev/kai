@@ -688,8 +688,10 @@ Run `node scripts/probe-koin-calibration.js` for the offline accounting checks.
   seven-day real shadow validation, deployment pins and the owner's concrete
   funding/deployment review. The desktop now validates the native allowance
   and custody deposit as one exact transaction bundle and offers an in-process
-  review rehearsal; production signing/recovery and credit finality remain
-  disconnected. Existing mainnet balances and
+  review rehearsal. The [durable funding rehearsal](koin-funding-recovery.md)
+  adds original-envelope recovery and irreversible native receipt/backing checks;
+  production signing/recovery and credit activation remain disconnected.
+  Existing mainnet balances and
   reburn policy remain unchanged.
 
 Run `node scripts/probe-koin-paid-jobs.js` and

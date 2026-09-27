@@ -135,7 +135,9 @@ and verifies no allowance remains. The desktop client now prepares and validates
 this entire two-operation bundle, with an in-process native review rehearsal.
 The isolated workflow exercises that same client and paused-deposit approval
 rollback. Production wallet confirmation, durable funding recovery and finality
-reconciliation remain disconnected; no purchase control has been enabled.
+reconciliation remain disconnected from the live wallet; no purchase control has
+been enabled. The [funding recovery rehearsal](koin-funding-recovery.md) now connects
+the desktop journal and finality/backing observer inside the isolated harness.
 
 The [subsequent desktop-funding run](https://github.com/therexdev/kai/actions/runs/36262517451)
 passed **14 checks** at master `3c1027de9ceda033cb717697538a3aaffa35981d`
@@ -155,6 +157,13 @@ both providers were paid automatically without provider signatures.
 [Cycle results](koin-cycle-results.json) retain the lifecycle, claim and rejected
 guard receipts. See the [cycle verification](koin-reward-cycle.md#verified-disposable-chain-result)
 for pinned revisions, signing counts and fixture resource measurements.
+
+The [funding-recovery run](https://github.com/therexdev/kai/actions/runs/36327541297)
+passed **21 checks**, preserving the daily cycle and automatic claims while adding
+durable desktop deposit recovery. Both deposit purposes resumed after a lost
+inclusion response without another signature or transfer; a staged paused deposit
+recovered as an irreversible revert. [The saved recovery results](koin-funding-recovery-results.json)
+include all funding, lifecycle and claim receipts with source/artifact pins.
 
 Run `node --test scripts/probe-koin-automatic-claims.js` on Node 22 or newer.
 The probe uses fixture-only keys, ABI encoding and local SQLite; it covers

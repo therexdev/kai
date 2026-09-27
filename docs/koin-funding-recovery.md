@@ -29,3 +29,34 @@ coordination with other wallet nonces, reviewed repair, durable backup/failover
 and activation remain separate work. No actual user wallet or live payment flow
 imports this isolated driver. Fixture resource measurements are not production
 Mana costs or a capacity benchmark.
+
+## Verified result
+
+The [2026-09-27 isolated run](https://github.com/therexdev/kai/actions/runs/36327541297)
+passed all **21 checks** at master
+`eed7d3b1782924347b83547b8b0721afa4265fb3` and desktop
+`90ae03efa7726efc0b53615e3108f28ff7c30fbe`. Both funding journals recovered
+lost inclusion responses after restart, with one signature, one submission and
+one attempt each. Both reached `funded` only after irreversible confirmation.
+The saved paused deposit reached `reverted` without a replacement transaction.
+The daily cycle and both automatic provider payouts also completed.
+
+[Saved results](koin-funding-recovery-results.json) preserve the exact funding,
+lifecycle and claim transactions/receipts, journal outcomes, source hashes,
+chain/bytecode pins and artifact digest. Claim resource use was 14,528,476 and
+14,153,718 RC; the fixture limitations above apply.
+
+The initial native run trapped when the observer sent an irrelevant customer
+account parameter to the aggregate reward-pool balance read. Native diagnostics
+confirmed empty aggregate reward custody and per-account credit custody reads
+work. The observer now uses those separate request shapes; errors are never
+interpreted as zero balances. The final run checks both empty pools before funding.
+The SDK MockVM did not expose this request-shape difference, reinforcing the need
+for the native-node gate and independent contract review before activation.
+
+Desktop verification passed 20 focused funding/chain tests plus five compiled
+WASM checks, including empty custody. Three desktop/master integration checks
+also passed. The full local desktop run had 1,019 passes and five missing-Chromium
+failures; Test 154's CI verification and macOS suite passed with Chromium installed.
+Test 155 contains the subsequent aggregate-read correction; publication must be
+checked separately from its successful isolated-chain rehearsal.
