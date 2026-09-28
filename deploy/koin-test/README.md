@@ -125,7 +125,9 @@ its accounting hold.
 3. Reserve a bounded session and approve its spending terms. Send a prompt to
    the qualified second provider; inspect the verified token counts and charge.
 4. Confirm the backend settles that same request once. Close/reopen the app and
-   retry an interrupted request using its original prompt and request ID.
+   retry an interrupted request using its original prompt and request ID. Use
+   **Check pending request** to recover confirmed cancellation or settlement
+   before starting another request. Unknown/dispatched work keeps its hold.
 5. Test Stop, offline mode, locked wallet, expired/revoked invitation, provider
    disconnect, delayed finality and backend restart. Pending is not paid.
 6. Revoke the session. After its settlement window, release the unspent reserve

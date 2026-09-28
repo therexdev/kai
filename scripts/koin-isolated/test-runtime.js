@@ -116,6 +116,8 @@ async function runTestRuntime(chain, check) {
     assert.equal(answer.choices[0].message.content, "4");
     await progress("automatic paid settlement", async () => runtime.ledger.job(id).state === "settled");
     const hold = runtime.ledger.job(id); assert.equal(hold.receipt.usage.amount, "38"); assert.equal(restarts, 1);
+    const recoveredRequest = await desktopSession.requestStatus(id);
+    assert.equal(recoveredRequest.state, "settled"); assert.equal(recoveredRequest.amount, "38");
     check("desktop native review and pinned tokenizer produce a real irreversible 38-atom settlement");
     check("backend restart after lost settlement acknowledgment reuses the original signed envelope");
     const before = BigInt(await chain.balance(workerAddress));

@@ -81,6 +81,8 @@ test("Stop releases queued work but never refunds or repeats dispatched work", a
     for (let i = 0; i < 100 && !dispatched && f.ledger.job(P.hash(n)).state !== "cancelled"; i++) await new Promise(r => setTimeout(r, 5));
     const h = f.ledger.job(P.hash(n)); assert.equal(h.state, dispatched ? "dispatched" : "cancelled");
     assert.equal(h.amount, dispatched ? job.quote.maxCharge : "0");
+    const recovered = await f.post("request-status", { id: f.approval.delegationId, requestId: P.hash(n) });
+    assert.equal(recovered.status, 200); assert.equal(recovered.body.state, h.state); assert.equal(recovered.body.amount, h.amount);
     if (dispatched) {
       await f.result(job); let reply;
       for (let i = 0; i < 100; i++) { reply = await f.chat(n); if (reply.status === 200) break; await new Promise(r => setTimeout(r, 5)); }
