@@ -34,4 +34,20 @@ reviewed repair and backup/recovery controls remain separate work. No production
 wallet, live service, key or payment activation is changed. Native fixture RC
 measurements are not production costs or a capacity benchmark.
 
-Native execution results will be recorded after the pinned workflow completes.
+## Verified native run
+
+The [2026-09-28 UTC native run](https://github.com/therexdev/kai/actions/runs/36368744528)
+passed all **25 checks** at master
+`e6c42d0a64e5f46e35ede5596076abf1d3d9b549` and desktop
+`50e97c1e8ab88cbb863023e8590334b94b001434`. Both conflict directions passed
+for both funding purposes. Each ordinary send used exactly one signature and one
+submission and released its reservation only after irreversible confirmation.
+Both funding deposits also retained one signature and one submission. The daily
+reward cycle and automatic payouts passed with no provider signatures.
+
+[Saved results](koin-wallet-nonce-results.json) contain both ordinary-send
+transactions/receipts, funding/cycle/claim receipts, reservation outcomes,
+source and chain pins, and the verified artifact digest. Both master CI runs
+also passed. Test 157's installer workflow was still running when these results
+were saved; publication is a separate check. Test 156 was previously verified
+published with its full CI suite passing.

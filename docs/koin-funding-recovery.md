@@ -71,3 +71,8 @@ Test 155 was published and its Windows/Linux installer assets verified before
 this increment. The new desktop commit starts Test 156; its installer workflow
 was still running when this result was saved. Publication must be checked
 separately from the successful isolated-chain rehearsal.
+
+The subsequent [shared wallet nonce rehearsal](koin-wallet-nonces.md) passed
+25 native checks, adding durable exclusion between funding and ordinary desktop
+sends across restart. Its separate saved results retain the additional wallet
+transfer receipts and coordinator source hashes.
