@@ -102,6 +102,39 @@ async function tokenizerPack(directory) {
   }
   require("../../lib/koin-network/tokenizer").loadTokenizer(out, tokenizer); console.log("Pinned Test tokenizer verified");
 }
+function invite(directory, owner) {
+  if (!utils.isChecksumAddress(owner || "")) throw Error("A Test participant's public wallet address is required");
+  const c = configuration(JSON.parse(read(path.join(directory, "runtime.json"))));
+  const desktop = JSON.parse(read(path.join(directory, "desktop-manifest.json")));
+  if (JSON.stringify(desktop.deployment) !== JSON.stringify(c.deployment) || desktop.schedulerUrl !== c.schedulerUrl) throw Error("Verified Test deployment manifest required");
+  const file = path.join(directory, "invitations.json"), accounts = new (require("../../lib/koin-network/test-accounts").TestAccounts)(file), rows = accounts.rows();
+  const out = path.join(directory, "invites", owner), accessFile = path.join(out, "test-access.json");
+  let access;
+  if (fs.existsSync(accessFile)) access = JSON.parse(read(accessFile, 16384, true));
+  else {
+    if (rows.some(r => r.owner === owner)) throw Error("This wallet already has a Test invitation; use its original private file");
+    if (rows.length >= 64) throw Error("Test invitation capacity reached");
+    access = { schema: 1, mode: "test-access", owner, schedulerUrl: c.schedulerUrl,
+      accountId: "test_" + crypto.randomBytes(8).toString("hex"), grantId: "grant_" + crypto.randomBytes(8).toString("hex"),
+      expiresAt: Date.now() + 30 * 86400000, token: "test_" + crypto.randomBytes(32).toString("base64url") };
+    fs.mkdirSync(out, { recursive: true, mode: 0o700 }); save(accessFile, access);
+  }
+  if (access.owner !== owner || access.schedulerUrl !== c.schedulerUrl || access.expiresAt <= Date.now() || !/^test_[A-Za-z0-9_-]{43}$/.test(access.token)) throw Error("Existing private invitation differs or expired");
+  const manifest = { ...desktop, owner }, manifestFile = path.join(out, "desktop-manifest.json");
+  if (!fs.existsSync(manifestFile)) save(manifestFile, manifest);
+  else if (JSON.stringify(JSON.parse(read(manifestFile))) !== JSON.stringify(manifest)) throw Error("Participant deployment manifest changed");
+  const row = { accountId: access.accountId, grantId: access.grantId, owner, tokenHash: P.hash(access.token), expiresAt: access.expiresAt, enabled: true };
+  const prior = rows.find(r => r.owner === owner);
+  if (prior && JSON.stringify(prior) !== JSON.stringify(row)) throw Error("Existing Test invitation cannot be replaced by this command");
+  if (!prior) {
+    const temp = file + "." + crypto.randomBytes(8).toString("hex") + ".tmp";
+    save(temp, [...rows, row]); new (require("../../lib/koin-network/test-accounts").TestAccounts)(temp);
+    fs.renameSync(temp, file);
+  }
+  console.log(json({ owner, manifestFile, accessFile, expiresAt: access.expiresAt,
+    next: "Install the updated invitations.json on the separate Test service and transfer only this participant's two files privately. No invitation was sent and no transaction was signed." }));
+  return { owner, manifestFile, accessFile };
+}
 async function main() {
   const [command, ...args] = process.argv.slice(2), options = {};
   for (let i = 0; i < args.length; i += 2) { if (!/^--[a-z-]+$/.test(args[i]) || args[i + 1] === undefined) throw Error("Use --name value arguments"); options[args[i].slice(2)] = args[i + 1]; }
@@ -109,7 +142,8 @@ async function main() {
   if (command === "prepare") return prepare(options.dir, options.settings, options["wasm-dir"]);
   if (command === "deploy") return deploy(options.dir, options["wasm-dir"], options.approve);
   if (command === "tokenizer") return tokenizerPack(options.dir);
-  throw Error("Choose prepare, deploy or tokenizer");
+  if (command === "invite") return invite(options.dir, options.owner);
+  throw Error("Choose prepare, deploy, tokenizer or invite");
 }
 if (require.main === module) main().catch(e => { console.error(String(e.message).slice(0, 240)); process.exitCode = 1; });
-module.exports = { settings, prepare, deploy, tokenizerPack };
+module.exports = { settings, prepare, deploy, tokenizerPack, invite };

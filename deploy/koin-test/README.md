@@ -107,7 +107,22 @@ Set expiry to a reviewed timestamp no more than 24 hours ahead. Install it as
 `/etc/kai-koin-test/qualifications.json`, owned by `kai-koin-test`, mode `0600`.
 Renew only after review; do not fabricate benchmark evidence. The runtime reads
 the file on each qualification check. A buyer cannot serve its own paid request,
-so use a second invited wallet/installation for the provider.
+so use a second invited wallet/installation for the provider. Create that wallet's
+owner-bound files on the operator machine after custody deployment:
+
+```bash
+node deploy/koin-test/setup.js invite --dir /absolute/private/koin-test-bootstrap --owner PROVIDER_PUBLIC_ADDRESS
+```
+
+Transfer the updated `invitations.json` securely to the Test host and install it
+as `/etc/kai-koin-test/invitations.json`, owned by `kai-koin-test`, mode `0600`.
+Replace it atomically; the runtime rereads it for each authorization. Transfer
+only the two files in `invites/PROVIDER_PUBLIC_ADDRESS` to that participant.
+Repeating the command recovers the same invitation; it does not reset a wallet's
+installation binding. Disable a participant by changing its server-side
+invitation's `enabled` field to `false`. No email or message is sent by this tool.
+Keep the first invitations limited to your own test wallets; alpha follows your
+acceptance testing.
 
 Start **Test worker** explicitly in the provider's Test app after importing that
 provider's owner-bound manifest and separate invitation. It uses the actual

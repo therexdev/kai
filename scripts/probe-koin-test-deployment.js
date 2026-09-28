@@ -74,3 +74,23 @@ test("contract deployment saves exact signatures before a lost submission and ca
     provider.getChainId = async () => "wrong"; await assert.rejects(reopened.submit("upload", identity), /identity/);
   } finally { reopened.close(); }
 });
+test("participant invitations bind a separate wallet without printing tokens or re-enabling revoked access", t => {
+  const f = fixture(t), { invite } = require("../deploy/koin-test/setup"), owner = f.owner.getAddress();
+  const schedulerUrl = "https://test.example/scheduler", c = { schema: 1, mode: "test-deployment", deployment: f.client.d,
+    roles: Object.fromEntries(["settlement", "lifecycle", "claims"].map(k => [k, Signer.fromSeed("invite-role-" + k).getAddress()])),
+    schedulerUrl, version: 1, tokenizer: {}, tariff: {}, policyHash: P.hash("invite-policy"), maxRcPerTransaction: "100", maxRcPerDay: "1000" };
+  fs.writeFileSync(path.join(f.directory, "runtime.json"), JSON.stringify(c));
+  fs.writeFileSync(path.join(f.directory, "desktop-manifest.json"), JSON.stringify({ deployment: c.deployment, schedulerUrl, owner }));
+  const file = path.join(f.directory, "invitations.json");
+  fs.writeFileSync(file, JSON.stringify([{ accountId: "test_original", grantId: "grant_original", owner,
+    tokenHash: P.hash("original"), expiresAt: Date.now() + 1000000, enabled: true }]));
+  const participant = Signer.fromSeed("second-owner-for-test").getAddress(), logs = [], original = console.log; let result;
+  try { console.log = value => logs.push(value); result = invite(f.directory, participant); assert.deepEqual(invite(f.directory, participant), result); }
+  finally { console.log = original; }
+  const privateFile = JSON.parse(fs.readFileSync(result.accessFile)), rows = JSON.parse(fs.readFileSync(file));
+  assert.equal(rows.length, 2); assert.equal(rows[1].tokenHash, P.hash(privateFile.token));
+  assert.equal(JSON.parse(fs.readFileSync(result.manifestFile)).owner, participant);
+  assert.equal(JSON.stringify(logs).includes(privateFile.token), false); assert.equal(fs.readFileSync(file, "utf8").includes(privateFile.token), false);
+  rows[1].enabled = false; fs.writeFileSync(file, JSON.stringify(rows));
+  assert.throws(() => invite(f.directory, participant), /cannot be replaced/);
+});
