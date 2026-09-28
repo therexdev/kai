@@ -33,7 +33,10 @@ async function run(directory) {
     check("stopped deposits survive restart and require a new review to resume the same signed envelope");
     check("desktop deposit journals recover lost inclusion responses without signing or depositing twice");
     check("credit and reward deposits require exact native receipts and irreversible backed custody before confirmation");
+    check("held funding deposits block ordinary desktop wallet sends before signing");
+    check("ordinary wallet sends block new deposits across restart until exact irreversible finality");
     report.fundingRecovery = chain.fundingStats;
+    report.walletNonceCoordination = chain.walletNonceStats;
     assert.equal(await chain.balance(chain.address("credits")), "10000000000");
     assert.equal((await chain.read("credits", "balances", { account: bytes(chain.address("buyer")) })).liabilities, "10000000000");
     check("native deposit funds customer custody independently of the seeded rewards pool");

@@ -32,6 +32,14 @@ restart and confirm the saved transaction with one signature and one submission.
 A separately staged deposit that reverts after a pause is also recovered from its
 irreversible receipt. The report pins the journal and observer source hashes.
 
+The shared wallet nonce adapter now reserves the same owner across funding and
+ordinary desktop sends. Each stopped deposit must block a send before signing.
+Once funding finalizes, the actual desktop `ChainService` sends one fixture atom;
+the harness loses its inclusion response. New deposits and sends must stay blocked
+across journal restart until the original send is irreversibly confirmed. The
+report pins both the coordinator and desktop chain-service sources and records
+the two directions of exclusion. No production wallet installs this adapter.
+
 The native-token WASM is an official integration fixture with minting enabled
 for bootstrap. Custody contracts have ordinary user privileges. The harness
 produces blocks with a published genesis key and advances controlled historical

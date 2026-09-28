@@ -41,7 +41,10 @@ class IsolatedChain {
     if (!m.fundingRecovery || hash(fs.readFileSync(m.fundingRecovery.file)) !== m.fundingRecovery.sha256 ||
         hash(fs.readFileSync(m.fundingRecovery.observerFile)) !== m.fundingRecovery.observerSha256) throw Error("Pinned desktop funding recovery required");
     if (!m.fundingApproval || hash(fs.readFileSync(m.fundingApproval.file)) !== m.fundingApproval.sha256) throw Error("Pinned desktop funding approval required");
+    if (!m.walletNonce || hash(fs.readFileSync(m.walletNonce.file)) !== m.walletNonce.sha256 ||
+        hash(fs.readFileSync(m.walletNonce.chainServiceFile)) !== m.walletNonce.chainServiceSha256) throw Error("Pinned shared wallet nonce adapter required");
     this.fundingStats = [];
+    this.walletNonceStats = [];
     this.provider = new LocalProvider(m.endpoint); this.records = []; this.resourceEnabled = false;
     this.now = Math.floor(Date.now() / DAY) * DAY - 4 * DAY + 10000;
     this.serializer = new Serializer(require("../../lib/koin-network/credits-abi.json").types);
@@ -152,9 +155,20 @@ class IsolatedChain {
     const client = await this.walletClient(), args = { account: bytes(actor.getAddress()), amount };
     const intent = { kind, method, args, actor: actor.getAddress(), maxRc: "10000000000" };
     const { createFundingApproval } = require(this.manifest.fundingApproval.file);
+    const { ChainService } = require(this.manifest.walletNonce.chainServiceFile);
     const id = hash("isolated-funding:" + kind); let journal = this.fundingJournal(client), lost = false, restarted = false, failure;
     let signatures = 0, submissions = 0, reviews = 0, reviewedId, original, approval;
     const window = Object.assign(new EventEmitter(), { isDestroyed: () => false, isVisible: () => true, isMinimized: () => false, webContents: new EventEmitter() });
+    let walletSignatures = 0, walletSubmissions = 0, walletTx;
+    const fixtureSigner = { getAddress: () => actor.getAddress(), signTransaction: async tx => { walletSignatures++; return actor.signTransaction(tx); } };
+    const wallet = () => {
+      const service = new ChainService({ get: (_key, fallback) => fallback }, { nonceCoordinator: journal.nonceCoordinator });
+      service.provider = () => this.provider;
+      service.resolveContracts = async () => ({ koin: client.d.token });
+      service.balances = async owner => ({ koin: await this.balance(owner), vhp: "0", mana: await this.provider.getAccountRc(owner) });
+      return service;
+    };
+    const send = () => wallet().transfer(fixtureSigner, { to: this.address("manual"), amountSat: "1", token: "koin" });
     const controller = () => createFundingApproval({ mode: "isolated-rehearsal", client, journal, clock: () => this.now, timeoutMs: 30000,
       dialog: { showMessageBox: async (_window, options) => {
         reviews++; assert.equal(options.defaultId, 0); assert.ok(options.detail.includes(client.d.chainId));
@@ -188,6 +202,7 @@ class IsolatedChain {
       assert.equal(journal.status(id).held, true); assert.equal(submissions, 0); assert.equal(signatures, 1);
       journal.close(); journal = this.fundingJournal(client); approval = controller();
       assert.equal(journal.status(id).held, true);
+      await assert.rejects(send(), /owns this wallet nonce/); assert.equal(walletSignatures, 0);
       const stopped = await approval.check(id); assert.ok(["wait", "review"].includes(stopped.action));
       assert.equal(journal.status(id).attempts, 0); assert.equal(submissions, 0);
       await this.finalize((await this.provider.getHeadInfo()).head_topology.height);
@@ -209,6 +224,27 @@ class IsolatedChain {
       assert.equal(this.records.length, before); assert.equal(signatures, 1); assert.equal(submissions, 1);
       this.fundingStats.push({ kind, reviews, reviewedId, signatures, submissions, stoppedBeforeBroadcast: true, resumedAfterRestart: true,
         sameSignedEnvelope: true, restarted, status: journal.status(id) });
+      assert.equal(journal.nonceCoordinator.status(id).state, "finalized");
+      const transport = this.provider.sendTransaction.bind(this.provider), label = "wallet-send-after-" + kind;
+      this.provider.sendTransaction = async (tx, broadcast) => {
+        walletSubmissions++; walletTx = structuredClone(tx); await transport(tx, broadcast);
+        const receipt = await this.include(label, tx); assert.notEqual(receipt.reverted, true);
+        throw Error("Lost ordinary wallet send response after inclusion");
+      };
+      try { await assert.rejects(send(), /Lost ordinary wallet send response/); }
+      finally { this.provider.sendTransaction = transport; }
+      const sendId = hash("wallet:send:" + walletTx.id);
+      await assert.rejects(journal.begin(hash("blocked-deposit-after-wallet-send:" + kind), intent), /owns this wallet nonce/);
+      journal.close(); journal = this.fundingJournal(client);
+      await assert.rejects(send(), /owns this wallet nonce/);
+      assert.equal(journal.nonceCoordinator.status(sendId).state, "signed");
+      for (let i = 0; (await journal.nonceCoordinator.reconcile(sendId)).state !== "finalized"; i++) {
+        if (i >= 12) throw Error("Shared wallet nonce did not reach irreversible finality");
+        await this.finalize((await this.provider.getHeadInfo()).head_topology.height);
+      }
+      assert.equal(walletSignatures, 1); assert.equal(walletSubmissions, 1);
+      this.walletNonceStats.push({ kind, fundingBlockedSend: true, sendBlockedFunding: true, restarted: true,
+        signatures: walletSignatures, submissions: walletSubmissions, status: journal.nonceCoordinator.status(sendId) });
       const record = this.records.find(r => r.label === method && !r.receipt.reverted); return { transaction: record.transaction, receipt: record.receipt };
     } finally { journal.close(); }
   }
