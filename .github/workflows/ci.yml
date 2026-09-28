@@ -27,6 +27,8 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - name: Verify pinned Qwen tokenizer and reference vectors
+        run: node scripts/verify-koin-tokenizer.js
       - name: Execute the shipped builder contracts
         run: |
           npm ci --prefix contracts/build-app

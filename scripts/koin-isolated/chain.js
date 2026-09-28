@@ -1,0 +1,355 @@
+"use strict";
+const fs = require("fs"), path = require("path"), assert = require("node:assert/strict");
+const { Provider, Signer, Serializer, Transaction, Contract, utils } = require("koilib");
+const { hash } = require("./prepare"), upstream = require("./upstream.json");
+const { DAY } = require("../../lib/koin-network/policy");
+const { EventEmitter } = require("node:events");
+const enc = utils.encodeBase64url, bytes = address => enc(utils.decodeBase58(address));
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+function canonical(v) {
+  if (Array.isArray(v)) return v.map(canonical);
+  if (!v || typeof v !== "object") return v;
+  return Object.fromEntries(Object.entries(v).filter(([, x]) => x !== false && x !== 0 && x !== "0" && x !== "" && x != null)
+    .map(([key, value]) => [key, canonical(value)]));
+}
+class LocalProvider extends Provider {
+  constructor(endpoint) {
+    if (endpoint !== "http://127.0.0.1:48080") throw Error("Isolated loopback endpoint required");
+    super(endpoint); this.endpoint = endpoint; this.pinnedChain = null;
+  }
+  async call(method, params) {
+    if (["chain.submit_transaction", "chain.submit_block"].includes(method)) {
+      if (!this.pinnedChain || (await this.call("chain.get_chain_id", {})).chain_id !== this.pinnedChain) throw Error("Isolated chain identity changed");
+      if (method === "chain.submit_transaction" && params.transaction.header.chain_id !== this.pinnedChain) throw Error("Transaction chain mismatch");
+    }
+    const response = await fetch(this.endpoint, { method: "POST", redirect: "error", signal: AbortSignal.timeout(10000),
+      headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) });
+    if (!response.ok) throw Error("Isolated RPC HTTP " + response.status);
+    const body = await response.json(); if (body.error) throw Error(JSON.stringify(body.error));
+    return body.result;
+  }
+}
+class IsolatedChain {
+  constructor(directory) {
+    this.directory = path.resolve(directory); this.manifest = JSON.parse(fs.readFileSync(path.join(this.directory, "manifest.json")));
+    const m = this.manifest;
+    if (m.schema !== 1 || m.mode !== "isolated-chain" || m.upstreamCommit !== upstream.commit ||
+        hash(fs.readFileSync(path.join(this.directory, "genesis.json"))) !== m.genesisHash) throw Error("Disposable genesis manifest required");
+    for (const [name, digest] of Object.entries(upstream.sha256)) if (hash(fs.readFileSync(path.join(m.upstreamDir, name))) !== digest) throw Error("Changed isolated bootstrap artifact");
+    for (const a of Object.values(m.artifacts)) if (hash(fs.readFileSync(a.wasm)) !== a.sha256) throw Error("Custody WASM changed after preparation");
+    if (!m.walletClient || hash(fs.readFileSync(m.walletClient.file)) !== m.walletClient.sha256) throw Error("Pinned desktop wallet client required");
+    if (!m.fundingRecovery || hash(fs.readFileSync(m.fundingRecovery.file)) !== m.fundingRecovery.sha256 ||
+        hash(fs.readFileSync(m.fundingRecovery.observerFile)) !== m.fundingRecovery.observerSha256) throw Error("Pinned desktop funding recovery required");
+    if (!m.fundingApproval || hash(fs.readFileSync(m.fundingApproval.file)) !== m.fundingApproval.sha256) throw Error("Pinned desktop funding approval required");
+    if (!m.walletNonce || hash(fs.readFileSync(m.walletNonce.file)) !== m.walletNonce.sha256 ||
+        hash(fs.readFileSync(m.walletNonce.chainServiceFile)) !== m.walletNonce.chainServiceSha256) throw Error("Pinned shared wallet nonce adapter required");
+    if (!m.vaultRecovery || hash(fs.readFileSync(m.vaultRecovery.file)) !== m.vaultRecovery.sha256 ||
+        hash(fs.readFileSync(m.vaultRecovery.vaultFile)) !== m.vaultRecovery.vaultSha256) throw Error("Pinned desktop vault recovery required");
+    this.fundingStats = [];
+    this.walletNonceStats = [];
+    this.vaultStats = [];
+    this.provider = new LocalProvider(m.endpoint); this.records = []; this.resourceEnabled = false;
+    this.now = Math.floor(Date.now() / DAY) * DAY - 8 * DAY + 10000;
+    this.serializer = new Serializer(require("../../lib/koin-network/credits-abi.json").types);
+    this.bootstrapSerializer = new Serializer({ nested: {
+      record: { fields: { name: { type: "string", id: 1 }, address: { type: "bytes", id: 2 } } },
+      mint: { fields: { to: { type: "bytes", id: 1 }, value: { type: "uint64", id: 2 } } },
+      balance: { fields: { owner: { type: "bytes", id: 1 } } },
+      amount: { fields: { value: { type: "uint64", id: 1 } } },
+      allowance: { fields: { owner: { type: "bytes", id: 1 }, spender: { type: "bytes", id: 2 } } },
+      approve: { fields: { owner: { type: "bytes", id: 1 }, spender: { type: "bytes", id: 2 }, value: { type: "uint64", id: 3 } } },
+    } });
+    this.actors = Object.fromEntries(["credits", "rewards", "admin", "verifier", "buyer", "sponsor", "lifecycle", "manual", "alice", "bob", "mining", "operations", "empty"]
+      .map(name => [name, Signer.fromSeed("kai-isolated-only-v1-" + name)]));
+  }
+  async connect() {
+    for (let n = 0; ; n++) {
+      try { await this.provider.getHeadInfo(); break; } catch (e) { if (n >= 90) throw e; await pause(1000); }
+    }
+    assert.equal((await this.provider.getHeadInfo()).head_topology.height ?? "0", "0", "Never attach to an existing chain");
+    const marker = this.manifest.marker;
+    assert.equal(await this.provider.invokeGetObject(marker), marker.value, "Fresh genesis marker must match before any signing");
+    this.chainId = await this.provider.getChainId(); this.provider.pinnedChain = this.chainId;
+    // Published upstream test fixtures, never environment or wallet secrets.
+    const source = fs.readFileSync(path.join(this.manifest.upstreamDir, "integration/integration.go"), "utf8");
+    this.keys = Object.fromEntries(["Genesis", "NameService", "GetContractMetadata", "Koin", "Resources", "Governance"].map(name => {
+      const match = source.match(new RegExp("\\b" + name + ':\\s+"([^"\\n]+)"'));
+      if (!match) throw Error("Missing upstream fixture identity");
+      const signer = Signer.fromWif(match[1]); signer.provider = this.provider; return [name, signer];
+    }));
+  }
+  address(name) { return this.actors[name].getAddress(); }
+  async signed(operations, actor, { payer = actor, rcLimit } = {}) {
+    assert.equal(await this.provider.getChainId(), this.chainId);
+    rcLimit ??= this.resourceEnabled ? "10000000000" : await this.provider.getAccountRc(payer.getAddress());
+    const transaction = await Transaction.prepareTransaction({ header: { chain_id: this.chainId, payer: payer.getAddress(),
+      ...(payer.getAddress() !== actor.getAddress() && { payee: actor.getAddress() }), rc_limit: rcLimit }, operations, signatures: [] }, this.provider);
+    await actor.signTransaction(transaction); if (payer.getAddress() !== actor.getAddress()) await payer.signTransaction(transaction);
+    return transaction;
+  }
+  async block(transactions = [], timestamp = this.now + 1) {
+    this.now = timestamp;
+    // Protobuf JSON omits height at genesis. koilib otherwise computes NaN.
+    const head = await this.provider.getHeadInfo();
+    const block = await this.keys.Genesis.prepareBlock({ header: { timestamp: String(timestamp),
+      height: String(BigInt(head.head_topology.height ?? "0") + 1n) }, transactions });
+    await this.keys.Genesis.signBlock(block);
+    const result = await this.provider.submitBlock(block);
+    assert.equal(result.receipt?.id, block.id); return result.receipt;
+  }
+  async send(label, operations, actor, options = {}) {
+    const transaction = await this.signed(operations, actor, options);
+    const receipt = await this.include(label, transaction);
+    if (!options.reverted) assert.notEqual(receipt.reverted, true, label + ": " + JSON.stringify(receipt.logs));
+    else assert.equal(receipt.reverted, true, label + " must revert");
+    return { transaction, receipt };
+  }
+  async include(label, transaction) {
+    const block = await this.block([transaction]), receipt = block.transaction_receipts?.find(r => r.id === transaction.id);
+    assert.ok(receipt && !receipt.rpc_error, label + " needs a real receipt");
+    this.records.push({ label, resourceEnabled: this.resourceEnabled, blockId: block.id, height: block.height, transaction, receipt });
+    console.log(JSON.stringify({ step: label, height: block.height, reverted: receipt.reverted === true }));
+    return receipt;
+  }
+  async finalize(height) {
+    for (let n = 0; ; n++) {
+      if (BigInt((await this.provider.getHeadInfo()).last_irreversible_block ?? "0") >= BigInt(height)) break;
+      if (n >= 400) throw Error("Isolated chain did not reach finality");
+      await this.block();
+    }
+    // Stores consume block broadcasts asynchronously; require the actual record.
+    for (let n = 0; ; n++) {
+      const h = await this.provider.getHeadInfo();
+      const [b] = await this.provider.getBlocks(Number(height), 1, h.head_topology.id, { returnBlock: true, returnReceipt: true });
+      if (b?.block && b?.receipt) return b;
+      if (n >= 40) throw Error("Isolated block store did not catch up"); await pause(100);
+    }
+  }
+  async operation(kind, method, args = {}) {
+    const abi = require("../../lib/koin-network/" + kind + "-abi.json");
+    return { call_contract: { contract_id: this.address(kind), entry_point: abi.methods[method].entry_point,
+      args: enc(await this.serializer.serialize(canonical(args), "koin.Request")) } };
+  }
+  async read(kind, method, args = {}) {
+    const { call_contract } = await this.operation(kind, method, args);
+    return this.serializer.deserialize((await this.provider.readContract(call_contract)).result ?? "", "koin.Result");
+  }
+  async balance(address) {
+    const args = enc(await this.bootstrapSerializer.serialize({ owner: bytes(address) }, "balance"));
+    const result = await this.provider.readContract({ contract_id: this.keys.Koin.getAddress(), entry_point: 0x5c721497, args });
+    return (await this.bootstrapSerializer.deserialize(result.result ?? "", "amount")).value ?? "0";
+  }
+  async walletClient() {
+    const { KoinChain } = require(this.manifest.walletClient.file);
+    const deployment = { schema: 1, network: "isolated", decimals: 8, rpc: [this.manifest.endpoint],
+      chainId: this.chainId, token: this.keys.Koin.getAddress(),
+      tokenHash: (await this.provider.invokeGetContractMetadata(this.keys.Koin.getAddress())).value.hash };
+    for (const kind of ["credits", "rewards", "admin", "verifier", "mining", "operations"]) deployment[kind] = this.address(kind);
+    for (const kind of ["credits", "rewards"]) deployment[kind + "Hash"] = "0x1220" + this.manifest.artifacts[kind].sha256;
+    return new KoinChain(deployment, this.provider);
+  }
+  async allowance(kind, actor) {
+    const request = { owner: bytes(actor.getAddress()), spender: bytes(this.address(kind)) };
+    const response = await this.provider.readContract({ contract_id: this.keys.Koin.getAddress(), entry_point: 0x32f09fa1,
+      args: enc(await this.bootstrapSerializer.serialize(request, "allowance")) });
+    return (await this.bootstrapSerializer.deserialize(response.result ?? "", "amount")).value ?? "0";
+  }
+  async deposit(kind, method, actor, amount) {
+    const client = await this.walletClient(), args = { account: bytes(actor.getAddress()), amount };
+    const intent = { kind, method, args, actor: actor.getAddress(), maxRc: "10000000000" };
+    const { createFundingApproval } = require(this.manifest.fundingApproval.file);
+    const { ChainService } = require(this.manifest.walletNonce.chainServiceFile);
+    const id = hash("isolated-funding:" + kind); let journal = this.fundingJournal(client), lost = false, restarted = false, failure;
+    let signatures = 0, submissions = 0, reviews = 0, reviewedId, original, approval;
+    const window = Object.assign(new EventEmitter(), { isDestroyed: () => false, isVisible: () => true, isMinimized: () => false, webContents: new EventEmitter() });
+    let walletSignatures = 0, walletSubmissions = 0, walletTx;
+    const fixtureSigner = { getAddress: () => actor.getAddress(), signTransaction: async tx => { walletSignatures++; return actor.signTransaction(tx); } };
+    const wallet = () => {
+      const service = new ChainService({ get: (_key, fallback) => fallback }, { nonceCoordinator: journal.nonceCoordinator });
+      service.provider = () => this.provider;
+      service.resolveContracts = async () => ({ koin: client.d.token });
+      service.balances = async owner => ({ koin: await this.balance(owner), vhp: "0", mana: await this.provider.getAccountRc(owner) });
+      return service;
+    };
+    const send = () => wallet().transfer(fixtureSigner, { to: this.address("manual"), amountSat: "1", token: "koin" });
+    const controller = () => createFundingApproval({ mode: "isolated-rehearsal", client, journal, clock: () => this.now, timeoutMs: 30000,
+      dialog: { showMessageBox: async (_window, options) => {
+        reviews++; assert.equal(options.defaultId, 0); assert.ok(options.detail.includes(client.d.chainId));
+        assert.ok(options.detail.includes(client.d[kind]));
+        const txId = options.detail.match(/Transaction: (0x1220[0-9a-f]{64})/)[1];
+        if (reviewedId) assert.equal(txId, reviewedId); else reviewedId = txId;
+        return { response: 1 };
+      } },
+      sign: async d => {
+        signatures++; const tx = d.transaction; assert.equal(tx.operations.length, 2);
+        assert.equal(tx.id, reviewedId);
+        assert.deepEqual(await this.bootstrapSerializer.deserialize(tx.operations[0].call_contract.args, "approve"),
+          { owner: args.account, spender: bytes(this.address(kind)), value: amount });
+        await actor.signTransaction(tx); original = structuredClone(tx);
+        // Stop before the signing response is delivered. The coordinator must
+        // retain these late bytes while preventing the first broadcast.
+        approval.cancel(); return tx;
+      }, submit: async d => {
+        try {
+          assert.deepEqual(d.transaction, original);
+          submissions++; await client.submit(d.transaction, d.intent);
+          const receipt = await this.include(method, d.transaction);
+          assert.notEqual(receipt.reverted, true, JSON.stringify(receipt.logs));
+        } catch (e) { failure = e; throw e; }
+        lost = true; throw Error("Lost funding acknowledgment after inclusion");
+      } });
+    try {
+      approval = controller();
+      assert.equal((await approval.approve(window, id, () => intent)).status, "stopped");
+      for (let i = 0; !journal.saved(id).signed; i++) { if (i >= 50) throw Error("Late fixture signature was not saved"); await pause(10); }
+      assert.equal(journal.status(id).held, true); assert.equal(submissions, 0); assert.equal(signatures, 1);
+      journal.close(); journal = this.fundingJournal(client); approval = controller();
+      assert.equal(journal.status(id).held, true);
+      await assert.rejects(send(), /owns this wallet nonce/); assert.equal(walletSignatures, 0);
+      const stopped = await approval.check(id); assert.ok(["wait", "review"].includes(stopped.action));
+      assert.equal(journal.status(id).attempts, 0); assert.equal(submissions, 0);
+      await this.finalize((await this.provider.getHeadInfo()).head_topology.height);
+      const resumed = await approval.resume(window, id, () => intent);
+      assert.equal(resumed.status, "await_finality", JSON.stringify(resumed));
+      for (let i = 0; ; i++) {
+        if (failure) throw failure;
+        if (lost && !restarted) {
+          assert.equal(journal.status(id).state, "unknown"); journal.close(); journal = this.fundingJournal(client); approval = controller(); restarted = true;
+        }
+        if (journal.status(id).state === "funded") break;
+        if (i >= 24) throw Error("Funding recovery did not resolve");
+        await this.finalize((await this.provider.getHeadInfo()).head_topology.height);
+        console.log(JSON.stringify({ funding: method, decision: await approval.check(id) }));
+      }
+      assert.equal(reviews, 2); assert.equal(signatures, 1); assert.equal(submissions, 1); assert.equal(restarted, true);
+      assert.equal(await this.allowance(kind, actor), "0", "Deposit must consume the entire allowance");
+      const before = this.records.length; assert.equal((await approval.approve(window, id, () => intent)).deposit.state, "funded");
+      assert.equal(this.records.length, before); assert.equal(signatures, 1); assert.equal(submissions, 1);
+      this.fundingStats.push({ kind, reviews, reviewedId, signatures, submissions, stoppedBeforeBroadcast: true, resumedAfterRestart: true,
+        sameSignedEnvelope: true, restarted, status: journal.status(id) });
+      assert.equal(journal.nonceCoordinator.status(id).state, "finalized");
+      const transport = this.provider.sendTransaction.bind(this.provider), label = "wallet-send-after-" + kind;
+      this.provider.sendTransaction = async (tx, broadcast) => {
+        walletSubmissions++; walletTx = structuredClone(tx); await transport(tx, broadcast);
+        const receipt = await this.include(label, tx); assert.notEqual(receipt.reverted, true);
+        throw Error("Lost ordinary wallet send response after inclusion");
+      };
+      try { await assert.rejects(send(), /Lost ordinary wallet send response/); }
+      finally { this.provider.sendTransaction = transport; }
+      const sendId = hash("wallet:send:" + walletTx.id);
+      await assert.rejects(journal.begin(hash("blocked-deposit-after-wallet-send:" + kind), intent), /owns this wallet nonce/);
+      journal.close(); journal = this.fundingJournal(client);
+      await assert.rejects(send(), /owns this wallet nonce/);
+      assert.equal(journal.nonceCoordinator.status(sendId).state, "signed");
+      for (let i = 0; (await journal.nonceCoordinator.reconcile(sendId)).state !== "finalized"; i++) {
+        if (i >= 12) throw Error("Shared wallet nonce did not reach irreversible finality");
+        await this.finalize((await this.provider.getHeadInfo()).head_topology.height);
+      }
+      assert.equal(walletSignatures, 1); assert.equal(walletSubmissions, 1);
+      this.walletNonceStats.push({ kind, fundingBlockedSend: true, sendBlockedFunding: true, restarted: true,
+        signatures: walletSignatures, submissions: walletSubmissions, status: journal.nonceCoordinator.status(sendId) });
+      await this.vaultApproval(client, actor, kind, intent);
+      const record = this.records.find(r => r.label === method && !r.receipt.reverted); return { transaction: record.transaction, receipt: record.receipt };
+    } finally { journal.close(); }
+  }
+  async vaultApproval(client, actor, kind, fundingIntent) {
+    const { ProducerVault } = require(this.manifest.vaultRecovery.vaultFile);
+    const { VaultRecovery } = require(this.manifest.vaultRecovery.file);
+    const { ChainService } = require(this.manifest.walletNonce.chainServiceFile);
+    const { TOKEN_ABI } = require(path.join(path.dirname(this.manifest.vaultRecovery.vaultFile), "constants.js"));
+    const owner = actor.getAddress(), payer = this.address("sponsor"), label = "vault-send-after-" + kind;
+    const { operation } = await new Contract({ id: client.d.token, abi: TOKEN_ABI }).functions.transfer(
+      { from: owner, to: this.address("manual"), value: "1" }, { onlyOperation: true });
+    let journal = this.fundingJournal(client), requests = 0, ownerSignatures = 0, sponsorSignatures = 0, submissions = 0, original, reservation;
+    const custody = { config: () => ({ mode: "external", address: owner }), requireExternal: () => {},
+      operations: async () => ({ operations: [operation], summary: { action: "transfer", producer: owner, network: "isolated" } }) };
+    const chain = { network: () => ({ id: "isolated" }), provider: () => this.provider, isValidAddress: address => address === owner };
+    const request = async (route, body) => {
+      if (route === "config") return { network: "isolated", features: { kaiProducer: true } };
+      if (route === "dapp/create") return { sessionId: "v".repeat(24), secret: "s".repeat(43), expiresAt: this.now + 1800000 };
+      if (route === "dapp/status") return { connected: true, address: owner };
+      if (route === "dapp/disconnect") return {};
+      if (route !== "dapp/request") throw Error("Unexpected isolated wallet route: " + route);
+      requests++; [reservation] = journal.nonceCoordinator.pending(owner, "vault");
+      assert.equal(reservation.state, "signing");
+      await assert.rejects(journal.begin(hash("blocked-deposit-by-vault:" + kind), fundingIntent), /owns this wallet nonce/);
+      assert.deepEqual(body.operations, [operation]);
+      // This is a local wallet-protocol fixture, not the public Koin Vault backend.
+      const tx = new Transaction({ provider: this.provider, options: { payer, payee: owner, rcLimit: "9000000000" } });
+      await tx.pushOperation(operation); await tx.prepare();
+      ownerSignatures++; await actor.signTransaction(tx.transaction);
+      sponsorSignatures++; await this.actors.sponsor.signTransaction(tx.transaction);
+      original = structuredClone(tx.transaction); submissions++; await this.provider.sendTransaction(original);
+      assert.notEqual((await this.include(label, original)).reverted, true);
+      throw Error("Lost external wallet approval response after inclusion");
+    };
+    const open = () => new ProducerVault({ custody, chain, request, now: () => this.now,
+      recovery: new VaultRecovery({ mode: "isolated-rehearsal", nonces: journal.nonceCoordinator, payer, maxRc: "10000000000" }) });
+    try {
+      let vault = open(); await vault.connect(); await vault.status();
+      const d = await vault.prepare({ action: "transfer" });
+      await assert.rejects(vault.send({ confirm: true, draftId: d.id }), /Lost external wallet approval/);
+      assert.equal(vault.hasPending(), true); await vault.disconnect(); assert.equal(vault.hasPending(), true);
+      journal.close(); journal = this.fundingJournal(client); vault = open();
+      assert.equal(vault.session, null); assert.equal(vault.hasPending(), true);
+      await assert.rejects(vault.prepare({ action: "transfer" }), /existing/);
+      const wallet = new ChainService({ get: (_key, fallback) => fallback }, { nonceCoordinator: journal.nonceCoordinator });
+      wallet.provider = () => this.provider; wallet.resolveContracts = async () => ({ koin: client.d.token });
+      wallet.balances = async () => ({ koin: await this.balance(owner), mana: await this.provider.getAccountRc(owner), vhp: "0" });
+      await assert.rejects(wallet.transfer({ getAddress: () => owner, signTransaction: () => { throw Error("Unexpected extra wallet signature"); } },
+        { to: this.address("manual"), amountSat: "1", token: "koin" }), /owns this wallet nonce/);
+      await vault.recover({ reservationId: reservation.id, txId: original.id });
+      assert.equal(vault.hasPending(), true, "Reversible external inclusion must retain the wallet hold");
+      for (let i = 0; vault.hasPending(); i++) {
+        if (i >= 12) throw Error("External wallet recovery did not reach irreversible finality");
+        await this.finalize((await this.provider.getHeadInfo()).head_topology.height); await vault.status();
+      }
+      assert.equal(vault.view().pending.status, "confirmed");
+      assert.equal(requests, 1); assert.equal(ownerSignatures, 1); assert.equal(sponsorSignatures, 1); assert.equal(submissions, 1);
+      this.vaultStats.push({ kind, requests, ownerSignatures, sponsorSignatures, submissions, restarted: true, sessionRestored: false,
+        blockedFunding: true, blockedOrdinarySend: true, disconnectedHold: true, irreversibleOnly: true,
+        status: journal.nonceCoordinator.status(reservation.id) });
+    } finally { journal.close(); }
+  }
+  fundingJournal(client) {
+    const { FundingRecovery } = require(this.manifest.fundingRecovery.file);
+    return new FundingRecovery(path.join(this.directory, "funding"), { mode: "isolated-rehearsal", client,
+      clock: () => this.now, maxRcPerDay: "30000000000" });
+  }
+  async bootstrap() {
+    const syscall = (call_id, signer, entry_point) => ({ set_system_call: { call_id, target: { system_call_bundle: { contract_id: signer.getAddress(), entry_point } } } });
+    const upload = async (name, file, record) => {
+      const signer = this.keys[name], contract_id = signer.getAddress();
+      await this.send("bootstrap-upload-" + name, [{ upload_contract: { contract_id,
+        bytecode: enc(fs.readFileSync(path.join(this.manifest.upstreamDir, "contracts", file + ".wasm"))) } }], signer);
+      const args = enc(await this.bootstrapSerializer.serialize({ name: record, address: bytes(contract_id) }, "record"));
+      await this.send("bootstrap-register-" + name, [{ set_system_contract: { contract_id, system_contract: true } },
+        { call_contract: { contract_id: this.keys.NameService.getAddress(), entry_point: 0xe248c73a, args } }], this.keys.Genesis);
+    };
+    await upload("NameService", "name_service", "name_service");
+    await this.send("bootstrap-name-system-calls", [syscall(10000, this.keys.NameService, 0xe5070a16), syscall(10001, this.keys.NameService, 0xa61ae5e8)], this.keys.Genesis);
+    await upload("GetContractMetadata", "get_contract_metadata", "get_contract_metadata");
+    await this.send("bootstrap-metadata-system-call", [syscall(112, this.keys.GetContractMetadata, 0x784faa08)], this.keys.Genesis);
+    await upload("Koin", "koin", "koin"); await upload("Resources", "resources", "resources");
+    // Native Mana looks up the exempt governance identity even for ordinary
+    // accounts. Register the upstream fixture; none of our payers uses it.
+    await this.send("bootstrap-governance-name", [{ call_contract: { contract_id: this.keys.NameService.getAddress(), entry_point: 0xe248c73a,
+      args: enc(await this.bootstrapSerializer.serialize({ name: "governance", address: bytes(this.keys.Governance.getAddress()) }, "record")) } }], this.keys.Genesis);
+    const recipients = [this.keys.Genesis.getAddress(), this.keys.Koin.getAddress(),
+      ...["admin", "verifier", "buyer", "sponsor", "lifecycle", "manual"].map(name => this.address(name))];
+    const mint = [];
+    for (const to of recipients) mint.push({ call_contract: { contract_id: this.keys.Koin.getAddress(), entry_point: 0xdc6f17bb,
+      args: enc(await this.bootstrapSerializer.serialize({ to: bytes(to), value: "100000000000000" }, "mint")) } });
+    await this.send("bootstrap-fixture-balances", mint, this.keys.Koin);
+    await this.send("bootstrap-enable-real-resource-accounting", [syscall(201, this.keys.Koin, 0x2d464aab), syscall(202, this.keys.Koin, 0x80e3f5c9),
+      syscall(203, this.keys.Resources, 0x427a0394), syscall(204, this.keys.Resources, 0x9850b1fd)], this.keys.Genesis);
+    this.resourceEnabled = true;
+    for (const kind of ["credits", "rewards"]) await this.send("deploy-" + kind, [{ upload_contract: {
+      contract_id: this.address(kind), bytecode: enc(fs.readFileSync(this.manifest.artifacts[kind].wasm)) } }], this.actors[kind], { payer: this.keys.Genesis });
+    this.config = { chain_id: this.chainId, token: bytes(this.keys.Koin.getAddress()), credits: bytes(this.address("credits")), treasury: bytes(this.address("rewards")),
+      admin: bytes(this.address("admin")), verifier: bytes(this.address("verifier")), mining: bytes(this.address("mining")), operations: bytes(this.address("operations")),
+      version: "1", daily_bps: 500, availability_bps: 7000, reward_bps: 6000, mining_bps: 2500, operations_bps: 1500, work_cap_bps: 8000 };
+    for (const kind of ["credits", "rewards"]) await this.send("initialize-" + kind, [await this.operation(kind, "initialize", { config: this.config })], this.actors[kind], { payer: this.keys.Genesis });
+  }
+}
+module.exports = { IsolatedChain, LocalProvider, canonical, bytes, pause };

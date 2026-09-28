@@ -1,0 +1,490 @@
+{
+  "methods": {
+    "initialize": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 1192148610,
+      "read_only": false
+    },
+    "config": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 3080062715,
+      "read_only": true
+    },
+    "schedule_policy": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 1985052401,
+      "read_only": false
+    },
+    "activate_policy": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 2045304900,
+      "read_only": false
+    },
+    "set_paused": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 905688855,
+      "read_only": false
+    },
+    "balances": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 3396675695,
+      "read_only": true
+    },
+    "fund": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 1671395579,
+      "read_only": false
+    },
+    "open_epoch": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 4169187395,
+      "read_only": false
+    },
+    "propose_root": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 651685114,
+      "read_only": false
+    },
+    "finalize_root": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 2340412777,
+      "read_only": false
+    },
+    "cancel_root": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 3048443385,
+      "read_only": false
+    },
+    "expire_epoch": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 997800064,
+      "read_only": false
+    },
+    "claim": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 3709549617,
+      "read_only": false
+    },
+    "get_epoch": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 3407771988,
+      "read_only": true
+    },
+    "claimed": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 3617403992,
+      "read_only": true
+    },
+    "withdraw_free": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 538054530,
+      "read_only": false
+    }
+  },
+  "types": {
+    "nested": {
+      "koin": {
+        "nested": {
+          "Config": {
+            "fields": {
+              "chain_id": {
+                "type": "bytes",
+                "id": 1
+              },
+              "token": {
+                "type": "bytes",
+                "id": 2
+              },
+              "admin": {
+                "type": "bytes",
+                "id": 3
+              },
+              "verifier": {
+                "type": "bytes",
+                "id": 4
+              },
+              "treasury": {
+                "type": "bytes",
+                "id": 5
+              },
+              "credits": {
+                "type": "bytes",
+                "id": 6
+              },
+              "mining": {
+                "type": "bytes",
+                "id": 7
+              },
+              "operations": {
+                "type": "bytes",
+                "id": 8
+              },
+              "version": {
+                "type": "uint64",
+                "id": 9
+              },
+              "daily_bps": {
+                "type": "uint32",
+                "id": 10
+              },
+              "availability_bps": {
+                "type": "uint32",
+                "id": 11
+              },
+              "reward_bps": {
+                "type": "uint32",
+                "id": 12
+              },
+              "mining_bps": {
+                "type": "uint32",
+                "id": 13
+              },
+              "operations_bps": {
+                "type": "uint32",
+                "id": 14
+              },
+              "work_cap_bps": {
+                "type": "uint32",
+                "id": 15
+              },
+              "effective_at": {
+                "type": "uint64",
+                "id": 16
+              }
+            }
+          },
+          "Amount": {
+            "fields": {
+              "value": {
+                "type": "uint64",
+                "id": 1
+              }
+            }
+          },
+          "Balance": {
+            "fields": {
+              "available": {
+                "type": "uint64",
+                "id": 1
+              },
+              "reserved": {
+                "type": "uint64",
+                "id": 2
+              }
+            }
+          },
+          "Session": {
+            "fields": {
+              "id": {
+                "type": "bytes",
+                "id": 1
+              },
+              "owner": {
+                "type": "bytes",
+                "id": 2
+              },
+              "verifier": {
+                "type": "bytes",
+                "id": 3
+              },
+              "policy_hash": {
+                "type": "bytes",
+                "id": 4
+              },
+              "remaining": {
+                "type": "uint64",
+                "id": 5
+              },
+              "per_job": {
+                "type": "uint64",
+                "id": 6
+              },
+              "max_jobs": {
+                "type": "uint64",
+                "id": 7
+              },
+              "jobs": {
+                "type": "uint64",
+                "id": 8
+              },
+              "expires": {
+                "type": "uint64",
+                "id": 9
+              },
+              "settle_until": {
+                "type": "uint64",
+                "id": 10
+              },
+              "revoked_at": {
+                "type": "uint64",
+                "id": 11
+              },
+              "nonce": {
+                "type": "uint64",
+                "id": 12
+              },
+              "closed": {
+                "type": "bool",
+                "id": 13
+              },
+              "treasury": {
+                "type": "bytes",
+                "id": 14
+              },
+              "mining": {
+                "type": "bytes",
+                "id": 15
+              },
+              "operations": {
+                "type": "bytes",
+                "id": 16
+              },
+              "reward_bps": {
+                "type": "uint32",
+                "id": 17
+              },
+              "mining_bps": {
+                "type": "uint32",
+                "id": 18
+              },
+              "version": {
+                "type": "uint64",
+                "id": 19
+              },
+              "opened_at": {
+                "type": "uint64",
+                "id": 20
+              }
+            }
+          },
+          "Charge": {
+            "fields": {
+              "id": {
+                "type": "bytes",
+                "id": 1
+              },
+              "session_id": {
+                "type": "bytes",
+                "id": 2
+              },
+              "provider": {
+                "type": "bytes",
+                "id": 3
+              },
+              "policy_hash": {
+                "type": "bytes",
+                "id": 4
+              },
+              "receipt_hash": {
+                "type": "bytes",
+                "id": 5
+              },
+              "amount": {
+                "type": "uint64",
+                "id": 6
+              },
+              "dispatched_at": {
+                "type": "uint64",
+                "id": 7
+              },
+              "nonce": {
+                "type": "uint64",
+                "id": 8
+              }
+            }
+          },
+          "Node": {
+            "fields": {
+              "hash": {
+                "type": "bytes",
+                "id": 1
+              },
+              "availability": {
+                "type": "uint64",
+                "id": 2
+              },
+              "work": {
+                "type": "uint64",
+                "id": 3
+              },
+              "left": {
+                "type": "bool",
+                "id": 4
+              }
+            }
+          },
+          "Epoch": {
+            "fields": {
+              "id": {
+                "type": "uint64",
+                "id": 1
+              },
+              "opened_at": {
+                "type": "uint64",
+                "id": 2
+              },
+              "version": {
+                "type": "uint64",
+                "id": 3
+              },
+              "budget": {
+                "type": "uint64",
+                "id": 4
+              },
+              "availability_budget": {
+                "type": "uint64",
+                "id": 5
+              },
+              "work_budget": {
+                "type": "uint64",
+                "id": 6
+              },
+              "work_cap_bps": {
+                "type": "uint32",
+                "id": 7
+              },
+              "credits": {
+                "type": "bytes",
+                "id": 8
+              },
+              "verifier": {
+                "type": "bytes",
+                "id": 9
+              },
+              "root": {
+                "type": "Node",
+                "id": 10
+              },
+              "review_until": {
+                "type": "uint64",
+                "id": 11
+              },
+              "finalized": {
+                "type": "bool",
+                "id": 12
+              },
+              "expired": {
+                "type": "bool",
+                "id": 13
+              },
+              "paid": {
+                "type": "uint64",
+                "id": 14
+              }
+            }
+          },
+          "Request": {
+            "fields": {
+              "config": {
+                "type": "Config",
+                "id": 1
+              },
+              "account": {
+                "type": "bytes",
+                "id": 2
+              },
+              "id": {
+                "type": "bytes",
+                "id": 3
+              },
+              "amount": {
+                "type": "uint64",
+                "id": 4
+              },
+              "session": {
+                "type": "Session",
+                "id": 5
+              },
+              "charge": {
+                "type": "Charge",
+                "id": 6
+              },
+              "epoch": {
+                "type": "uint64",
+                "id": 7
+              },
+              "root": {
+                "type": "Node",
+                "id": 8
+              },
+              "availability": {
+                "type": "uint64",
+                "id": 9
+              },
+              "work": {
+                "type": "uint64",
+                "id": 10
+              },
+              "proof": {
+                "rule": "repeated",
+                "type": "Node",
+                "id": 11
+              },
+              "paused": {
+                "type": "bool",
+                "id": 12
+              }
+            }
+          },
+          "Result": {
+            "fields": {
+              "config": {
+                "type": "Config",
+                "id": 1
+              },
+              "balance": {
+                "type": "Balance",
+                "id": 2
+              },
+              "session": {
+                "type": "Session",
+                "id": 3
+              },
+              "epoch": {
+                "type": "Epoch",
+                "id": 4
+              },
+              "amount": {
+                "type": "uint64",
+                "id": 5
+              },
+              "liabilities": {
+                "type": "uint64",
+                "id": 6
+              },
+              "liquid": {
+                "type": "uint64",
+                "id": 7
+              },
+              "paused": {
+                "type": "bool",
+                "id": 8
+              },
+              "claimed": {
+                "type": "bool",
+                "id": 9
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "descriptor": "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"
+}

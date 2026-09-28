@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "mode": "shadow",
+  "model": "koinos-fast",
+  "modelHash": "1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370",
+  "repository": "Qwen/Qwen2.5-1.5B-Instruct",
+  "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+  "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+  "configHash": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+  "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+  "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6",
+  "vectors": [
+    {
+      "text": "Hello, world!",
+      "count": 4,
+      "idsHash": "ac77c278585afdac8b1f2318cf5ec06ac09f9744cf694355f823f428e123c36e"
+    },
+    {
+      "text": "你好，世界！ 🌍 café é",
+      "count": 9,
+      "idsHash": "4f9c2e155957ddd6c2bc7e70829dd58cb9f91a25bb985a6b3379f9c5800024ad"
+    },
+    {
+      "text": "<|im_start|>assistant\n",
+      "count": 3,
+      "idsHash": "ef5941940ee034899cf442aef3e9af7a6c443ade9dd4afaa5d7fa2c4defd9d3f"
+    },
+    {
+      "text": "Line 1\r\n  0023 +\t42\n𝄞👩🏽‍💻",
+      "count": 22,
+      "idsHash": "a10a798b1090be21f2d910b4d86730f45fe2cff9f7a98627767c905b4b1c2f1d"
+    },
+    {
+      "text": "Привет мир! مرحبا بالعالم! नमस्ते दुनिया!",
+      "count": 26,
+      "idsHash": "d5abbe5da1b4394ca6d4853f076a104a0fa764a901f62ffeb650fff1c07a4e70"
+    },
+    {
+      "messages": [
+        {
+          "role": "user",
+          "content": "What is 2 + 2?"
+        }
+      ],
+      "promptHash": "064258bd8097a629ece10515bfbfb3724670172fecd628e94e288d8e2a57fdc2",
+      "count": 37,
+      "idsHash": "972ff6b59f5aac4d32d2c55604150e312d3bda62b441909faa3e82b36e1f93b5"
+    },
+    {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Reply briefly."
+        },
+        {
+          "role": "user",
+          "content": "你好，世界！"
+        },
+        {
+          "role": "assistant",
+          "content": "你好！"
+        },
+        {
+          "role": "user",
+          "content": "Now in English, please."
+        }
+      ],
+      "promptHash": "6f1aa82a3f9282a0005a5e0b8f1d41255d2d8e1dfe0101ed7e25cbdf44d90629",
+      "count": 38,
+      "idsHash": "a9085a8236ad95060fa06bbb045c2b8fa8722b99b429c4f19c218c0725019a12"
+    }
+  ]
+}

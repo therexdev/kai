@@ -540,10 +540,13 @@ async function main() {
     );
     check(r.data.sessions.some((x) => x.label === "probe (two)"), "each session is labelled well enough to recognise");
 
-    const other = r.data.sessions.find((x) => !x.current);
+    // Earlier ceremonies also created sessions. Equal timestamps can reorder
+    // them, so select the exact session whose token this assertion checks.
+    const other = r.data.sessions.find((x) => x.label === "probe (two)" && !x.current);
     r = await call(`/account/sessions/${other.id}`, { method: "DELETE", headers: h1 });
     check(r.status === 200, "one session can be ended by its handle");
-    check(full.service.sessionAccount(t2) === null || full.service.sessionAccount(t1) === null, "…and that token stops working");
+    check(full.service.sessionAccount(t2) === null, "…and that token stops working");
+    check(full.service.sessionAccount(t1)?.id === accountId, "ending the other session preserves the caller's session");
 
     // Sign out everywhere must also kill spending authority — a stolen
     // session whose grant survives is still a live drain.
