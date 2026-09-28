@@ -28,8 +28,9 @@ drafts, two journal handles, partial-write recovery, forked/malformed finality,
 missing journals and concurrent external import. The focused suite has 81 passes
 and two browser skips locally; all three desktop/master integration tests pass.
 
-The adapter remains explicitly isolated and owner-paid. Sponsored bridge/DEX and
-remote Koin Vault nonce allocation, production wiring, cross-host ownership,
+This recorded run exercised owner-paid transfers. The subsequent
+[sponsored and Koin Vault rehearsal](koin-vault-recovery.md) extends coordination
+to payees and remote approvals. Production wiring, cross-host ownership,
 reviewed repair and backup/recovery controls remain separate work. No production
 wallet, live service, key or payment activation is changed. Native fixture RC
 measurements are not production costs or a capacity benchmark.

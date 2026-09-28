@@ -30,9 +30,29 @@ cross-host ownership and recovery UI remain deployment prerequisites.
 
 Local verification passed 91 focused tests with two browser tests skipped and
 three desktop/master integration tests. Test 157 was verified published with all
-release checks successful before this increment. Native results for the new
-adapter will be recorded separately after the pinned workflow completes.
+release checks successful before this increment.
 
 Existing daily reward review and automatic provider payouts remain required in
 the native harness. No provider Claim button, provider signing, real-fund transfer
 or production payment activation is added.
+
+## Verified native result
+
+The [2026-09-28 UTC native run](https://github.com/therexdev/kai/actions/runs/36455879893)
+passed all **28 checks** at master
+`96d4f709036fb95e6ebb983662fdd601ce232d58` and desktop
+`9ea9b8071439792875b525b2b52c316233b0a266`. Both external wallet transfers
+used exactly one approval request, one owner signature, one sponsor signature
+and one submission. Their reservations survived disconnect and restart and
+released only after irreversible confirmation. Both existing funding/send
+conflict directions and the daily cycle with automatic provider payouts passed.
+
+[Saved results](koin-vault-recovery-results.json) preserve the verified artifact
+digest, source hashes, chain and image pins, both sponsored transactions and
+receipts, and funding/cycle/claim receipts. The artifact digest was independently
+checked before saving, and its desktop source hashes match the pushed checkout.
+Both master CI runs passed. Test 158's installer workflow was still running
+when these results were recorded; this is separate from publishing the code.
+
+Next: reviewed journal backup/restore and unresolved-request repair, then recovery
+controls and backend policy agreement before any production activation.
