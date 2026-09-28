@@ -55,6 +55,27 @@ test("a lost inclusion response and restart recover the original lifecycle trans
   assert.equal(f.signed.length, 1); assert.equal(f.sent.length, 1);
   assert.equal((await tick(f)).reason, "await_signed_manifest");
 });
+test("an empty reward day releases its budget after review without creating payout claims", async t => {
+  const f = await fixture(t), claims = f.claims(); await opened(f);
+  const tree = M.build(f.target, "1", []), manifest = { ...f.envelope.manifest, root: tree.root, allocations: [] };
+  const envelope = { manifest, signature: Buffer.from(await verifier.signHash(M.signingHash(manifest))).toString("base64") };
+  f.cycle.importManifest(envelope); f.advance(DAY);
+  assert.equal((await tick(f)).action, "await_finality"); await confirm(f);
+  assert.equal((await tick(f)).reason, "root_under_review"); f.advance(DAY);
+  assert.equal((await tick(f)).action, "await_finality"); await confirm(f);
+  const result = await f.runner({ claims }).tick({ openCurrentDay: false });
+  assert.deepEqual(result.handedOff, [{ epoch: "1", claims: 0 }]); assert.equal(claims.next(), null);
+  assert.equal(f.balances.liabilities, "0"); assert.deepEqual(f.cycle.days(), []);
+  assert.throws(() => M.canonical({ ...manifest, root: { ...tree.root, work: "1" } }), /root or sums/);
+});
+test("a missed unsigned day cannot block finalizing an already proposed reward root", async t => {
+  const f = await fixture(t); await proposed(f);
+  f.cycle.queueDay("2"); f.advance(DAY);
+  assert.equal((await f.cycle.advance("2")).reason, "missed_reward_day");
+  assert.equal(f.cycle.days().includes("2"), false);
+  assert.equal((await tick(f)).action, "await_finality"); await confirm(f);
+  assert.equal(f.cycle.status("1").complete, true);
+});
 
 test("a missing signing response survives restart and concurrent handles elect only one signer", async t => {
   const f = await fixture(t), second = f.open();

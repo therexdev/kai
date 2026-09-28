@@ -77,7 +77,10 @@ the production checkout/environment.
 
 `/operator/status` requires the separate `x-operator-secret` header. Read the
 secret locally without echoing it into logs. It reports signing holds, pending
-settlements, reward cycles and bounded errors. A healthy process alone does not
+settlements, reward cycles, metered token charges, per-request revenue splits,
+native RC usage grouped by payer/day, and bounded errors. An empty reward day
+commits zero entitlements and releases its budget after the same review/finality
+checks. A healthy process alone does not
 prove successful contract verification: check `lastSuccess` and the error list.
 
 ## Enable a reviewed Test provider
