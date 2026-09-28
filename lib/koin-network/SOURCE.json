@@ -13,8 +13,8 @@
     "merkle.js": "ad2739fbd78427309cec8b47c2aad2e2b6b2fb484efc6896cbae802446cc1a96",
     "rewards-abi.json": "a3c4270351910ecd8b027d98f6f4f374435ea7838dfc46f036016094c2cde249",
     "chain.js": "41e457615d1b6986e76d9719a1262da92a2d100f99a69bdbe521a55d562400d7",
-    "journal-set.js": "b933bfabdc36d66564849191a28f1b94cc2b4af5a6953c2a540e32e062961b4d",
+    "journal-set.js": "9132637fac7d22a9977bf7b2f1758a764f6383175ae7dace7f780299912eb338",
     "payment-mode.js": "789706c7e9d1f2f1f2b91db855bf5c4a950c0dfa7d86fb4404d014932e04881e"
   },
-  "sourceCommit": "7fc73ffe3f28b408a24a44eba3ca1a896a1b3b5b"
+  "sourceCommit": "93a7a670219f7bbf54db382b455a89d5113bdaa1"
 }
