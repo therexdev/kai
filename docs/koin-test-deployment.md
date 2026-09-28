@@ -11,6 +11,25 @@ No public Test custody deployment, funded operator keys or server connection was
 available in the implementation workspace. No public transfer or alpha invitation
 was performed. Publishing a Test installer does not activate its payment panel.
 
+## Published desktop Test release
+
+[Test 0.54.12-test.166.1](https://github.com/therexdev/kaiapp/releases/tag/test-build)
+was published by [run 36479914787](https://github.com/therexdev/kaiapp/actions/runs/36479914787).
+All five jobs passed: desktop verification, macOS behavior, Windows packaging,
+Linux packaging and publication. The release metadata identifies source
+`723e3b73d70670a5cc98a3bb55539d3d91231eec`, matching the native run below.
+
+The versioned Windows setup asset is
+`Koinos-AI-Test-Setup-0.54.12-test.166.1-x64.exe`, release asset `596400913`,
+227,867,856 bytes, SHA-256
+`2ae86af2d4d97f03c704fdbc290b9652e685619f950bb3d4f67d013fc71d74ce`.
+Its versioned build JSON, checksums and Windows signature proof are uploaded,
+along with Linux x64/arm64 installers and the Test update feeds.
+
+Quit the running app through its tray menu before installing Test. It uses the
+existing profile and single-instance lock. The Test payment panel still requires
+its separately deployed contracts/backend and imported wallet-bound files.
+
 ## Verified implementation
 
 - Desktop native reviews cover purchase, reward funding, bounded reservations,
