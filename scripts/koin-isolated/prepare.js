@@ -53,7 +53,9 @@ function prepare(upstreamDir, desktopDir, directory) {
   const approvalFile = path.join(desktopDir, "electron/koin-funding-approval.js");
   const nonceFile = path.join(desktopDir, "core/lib/koinos/wallet-nonce.js"), chainServiceFile = path.join(desktopDir, "core/lib/koinos/chain.js");
   const vaultFile = path.join(desktopDir, "core/lib/koinos/producer-vault.js"), vaultRecoveryFile = path.join(desktopDir, "core/lib/koinos/vault-recovery.js");
-  const manifest = { schema: 1, mode: "isolated-chain", upstreamDir, upstreamCommit: upstream.commit, desktopCommit: desktopPin,
+  const tokenizerDir = path.resolve(process.env.KAI_TEST_TOKENIZER_DIR || path.join(directory, "..", "kai-test-tokenizer"));
+  require("../../lib/koin-network/tokenizer").loadTokenizer(tokenizerDir, require("../../lib/koin-network/tokenizers/qwen25-1.5b.json"));
+  const manifest = { schema: 1, mode: "isolated-chain", upstreamDir, upstreamCommit: upstream.commit, desktopCommit: desktopPin, desktopDir, tokenizerDir,
     endpoint: "http://127.0.0.1:48080", marker, images, artifacts, genesisHash: hash(fs.readFileSync(genesisPath)),
     walletClient: { file: walletFile, sha256: hash(fs.readFileSync(walletFile)) },
     fundingApproval: { file: approvalFile, sha256: hash(fs.readFileSync(approvalFile)) },

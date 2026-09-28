@@ -218,6 +218,8 @@ async function run(directory) {
     await call("credits", "refund", { account: bytes(chain.address("buyer")), amount: "1000000000" }, chain.actors.buyer);
     assert.equal(await chain.balance(target.credits), "8500000000");
     check("customer refund transfers native tokens while new spending is paused");
+    fundingRollback.close(); fundingRollback = null;
+    report.testRuntime = await require("./test-runtime").runTestRuntime(chain, check);
     report.passed = true; report.signatures = signatures; report.submissions = submissions; report.target = target;
     report.maxObservedClaimRc = String(report.measurements.reduce((max, m) => BigInt(m.rcUsed) > max ? BigInt(m.rcUsed) : max, 0n));
     return report;

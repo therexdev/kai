@@ -9,7 +9,7 @@ permissions:
 jobs:
   custody-and-mana:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       COMPOSE_PROJECT_NAME: kai-isolated-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
@@ -31,13 +31,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: therexdev/kaiapp
-          ref: 9ea9b8071439792875b525b2b52c316233b0a266
+          ref: b8050a50c567518d4452f31c934573c8430ea693
           path: isolated-desktop
           persist-credentials: false
       - name: Build pinned custody contracts
         run: |
           npm ci --ignore-scripts --prefix isolated-desktop/contracts/koin-network
           npm run build --prefix isolated-desktop/contracts/koin-network
+      - name: Verify pinned tokenizer before network isolation
+        run: node scripts/verify-koin-tokenizer.js "$RUNNER_TEMP/kai-test-tokenizer"
       - name: Prepare fresh peerless chain
         run: node scripts/koin-isolated/prepare.js isolated-upstream isolated-desktop "$KAI_ISOLATED_DIR"
       - name: Start isolated node

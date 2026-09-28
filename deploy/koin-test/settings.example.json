@@ -1,0 +1,20 @@
+{
+  "owner": "REPLACE_WITH_YOUR_TEST_WALLET_PUBLIC_ADDRESS",
+  "schedulerUrl": "https://REPLACE_WITH_TEST_HOST/scheduler",
+  "deployRcLimit": null,
+  "maxRcPerTransaction": null,
+  "maxRcPerDay": null,
+  "limits": {
+    "amount": null,
+    "perJob": null,
+    "maxJobs": 10,
+    "durationMs": 3600000
+  },
+  "tariff": {
+    "inputAtomsPerMillion": null,
+    "outputAtomsPerMillion": null,
+    "contextTokens": 8192,
+    "maxOutputTokens": 256,
+    "maxLatencyMs": 120000
+  }
+}

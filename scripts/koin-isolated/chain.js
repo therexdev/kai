@@ -49,7 +49,7 @@ class IsolatedChain {
     this.walletNonceStats = [];
     this.vaultStats = [];
     this.provider = new LocalProvider(m.endpoint); this.records = []; this.resourceEnabled = false;
-    this.now = Math.floor(Date.now() / DAY) * DAY - 4 * DAY + 10000;
+    this.now = Math.floor(Date.now() / DAY) * DAY - 8 * DAY + 10000;
     this.serializer = new Serializer(require("../../lib/koin-network/credits-abi.json").types);
     this.bootstrapSerializer = new Serializer({ nested: {
       record: { fields: { name: { type: "string", id: 1 }, address: { type: "bytes", id: 2 } } },
