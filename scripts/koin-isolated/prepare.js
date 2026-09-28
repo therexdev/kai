@@ -52,11 +52,13 @@ function prepare(upstreamDir, desktopDir, directory) {
   const observerFile = path.join(desktopDir, "core/lib/koin-network/funding-observer.js");
   const approvalFile = path.join(desktopDir, "electron/koin-funding-approval.js");
   const nonceFile = path.join(desktopDir, "core/lib/koinos/wallet-nonce.js"), chainServiceFile = path.join(desktopDir, "core/lib/koinos/chain.js");
+  const vaultFile = path.join(desktopDir, "core/lib/koinos/producer-vault.js"), vaultRecoveryFile = path.join(desktopDir, "core/lib/koinos/vault-recovery.js");
   const manifest = { schema: 1, mode: "isolated-chain", upstreamDir, upstreamCommit: upstream.commit, desktopCommit: desktopPin,
     endpoint: "http://127.0.0.1:48080", marker, images, artifacts, genesisHash: hash(fs.readFileSync(genesisPath)),
     walletClient: { file: walletFile, sha256: hash(fs.readFileSync(walletFile)) },
     fundingApproval: { file: approvalFile, sha256: hash(fs.readFileSync(approvalFile)) },
     walletNonce: { file: nonceFile, sha256: hash(fs.readFileSync(nonceFile)), chainServiceFile, chainServiceSha256: hash(fs.readFileSync(chainServiceFile)) },
+    vaultRecovery: { file: vaultRecoveryFile, sha256: hash(fs.readFileSync(vaultRecoveryFile)), vaultFile, vaultSha256: hash(fs.readFileSync(vaultFile)) },
     fundingRecovery: { file: recoveryFile, sha256: hash(fs.readFileSync(recoveryFile)), observerFile, observerSha256: hash(fs.readFileSync(observerFile)) } };
   fs.writeFileSync(path.join(directory, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n", { mode: 0o600 });
   return manifest;

@@ -1,6 +1,6 @@
 "use strict";
 const fs = require("fs"), path = require("path"), assert = require("node:assert/strict");
-const { Provider, Signer, Serializer, Transaction, utils } = require("koilib");
+const { Provider, Signer, Serializer, Transaction, Contract, utils } = require("koilib");
 const { hash } = require("./prepare"), upstream = require("./upstream.json");
 const { DAY } = require("../../lib/koin-network/policy");
 const { EventEmitter } = require("node:events");
@@ -43,8 +43,11 @@ class IsolatedChain {
     if (!m.fundingApproval || hash(fs.readFileSync(m.fundingApproval.file)) !== m.fundingApproval.sha256) throw Error("Pinned desktop funding approval required");
     if (!m.walletNonce || hash(fs.readFileSync(m.walletNonce.file)) !== m.walletNonce.sha256 ||
         hash(fs.readFileSync(m.walletNonce.chainServiceFile)) !== m.walletNonce.chainServiceSha256) throw Error("Pinned shared wallet nonce adapter required");
+    if (!m.vaultRecovery || hash(fs.readFileSync(m.vaultRecovery.file)) !== m.vaultRecovery.sha256 ||
+        hash(fs.readFileSync(m.vaultRecovery.vaultFile)) !== m.vaultRecovery.vaultSha256) throw Error("Pinned desktop vault recovery required");
     this.fundingStats = [];
     this.walletNonceStats = [];
+    this.vaultStats = [];
     this.provider = new LocalProvider(m.endpoint); this.records = []; this.resourceEnabled = false;
     this.now = Math.floor(Date.now() / DAY) * DAY - 4 * DAY + 10000;
     this.serializer = new Serializer(require("../../lib/koin-network/credits-abi.json").types);
@@ -245,7 +248,67 @@ class IsolatedChain {
       assert.equal(walletSignatures, 1); assert.equal(walletSubmissions, 1);
       this.walletNonceStats.push({ kind, fundingBlockedSend: true, sendBlockedFunding: true, restarted: true,
         signatures: walletSignatures, submissions: walletSubmissions, status: journal.nonceCoordinator.status(sendId) });
+      await this.vaultApproval(client, actor, kind, intent);
       const record = this.records.find(r => r.label === method && !r.receipt.reverted); return { transaction: record.transaction, receipt: record.receipt };
+    } finally { journal.close(); }
+  }
+  async vaultApproval(client, actor, kind, fundingIntent) {
+    const { ProducerVault } = require(this.manifest.vaultRecovery.vaultFile);
+    const { VaultRecovery } = require(this.manifest.vaultRecovery.file);
+    const { ChainService } = require(this.manifest.walletNonce.chainServiceFile);
+    const { TOKEN_ABI } = require(path.join(path.dirname(this.manifest.vaultRecovery.vaultFile), "constants.js"));
+    const owner = actor.getAddress(), payer = this.address("sponsor"), label = "vault-send-after-" + kind;
+    const { operation } = await new Contract({ id: client.d.token, abi: TOKEN_ABI }).functions.transfer(
+      { from: owner, to: this.address("manual"), value: "1" }, { onlyOperation: true });
+    let journal = this.fundingJournal(client), requests = 0, ownerSignatures = 0, sponsorSignatures = 0, submissions = 0, original, reservation;
+    const custody = { config: () => ({ mode: "external", address: owner }), requireExternal: () => {},
+      operations: async () => ({ operations: [operation], summary: { action: "transfer", producer: owner, network: "isolated" } }) };
+    const chain = { network: () => ({ id: "isolated" }), provider: () => this.provider, isValidAddress: address => address === owner };
+    const request = async (route, body) => {
+      if (route === "config") return { network: "isolated", features: { kaiProducer: true } };
+      if (route === "dapp/create") return { sessionId: "v".repeat(24), secret: "s".repeat(43), expiresAt: this.now + 1800000 };
+      if (route === "dapp/status") return { connected: true, address: owner };
+      if (route === "dapp/disconnect") return {};
+      if (route !== "dapp/request") throw Error("Unexpected isolated wallet route: " + route);
+      requests++; [reservation] = journal.nonceCoordinator.pending(owner, "vault");
+      assert.equal(reservation.state, "signing");
+      await assert.rejects(journal.begin(hash("blocked-deposit-by-vault:" + kind), fundingIntent), /owns this wallet nonce/);
+      assert.deepEqual(body.operations, [operation]);
+      // This is a local wallet-protocol fixture, not the public Koin Vault backend.
+      const tx = new Transaction({ provider: this.provider, options: { payer, payee: owner, rcLimit: "9000000000" } });
+      await tx.pushOperation(operation); await tx.prepare();
+      ownerSignatures++; await actor.signTransaction(tx.transaction);
+      sponsorSignatures++; await this.actors.sponsor.signTransaction(tx.transaction);
+      original = structuredClone(tx.transaction); submissions++; await this.provider.sendTransaction(original);
+      assert.notEqual((await this.include(label, original)).reverted, true);
+      throw Error("Lost external wallet approval response after inclusion");
+    };
+    const open = () => new ProducerVault({ custody, chain, request, now: () => this.now,
+      recovery: new VaultRecovery({ mode: "isolated-rehearsal", nonces: journal.nonceCoordinator, payer, maxRc: "10000000000" }) });
+    try {
+      let vault = open(); await vault.connect(); await vault.status();
+      const d = await vault.prepare({ action: "transfer" });
+      await assert.rejects(vault.send({ confirm: true, draftId: d.id }), /Lost external wallet approval/);
+      assert.equal(vault.hasPending(), true); await vault.disconnect(); assert.equal(vault.hasPending(), true);
+      journal.close(); journal = this.fundingJournal(client); vault = open();
+      assert.equal(vault.session, null); assert.equal(vault.hasPending(), true);
+      await assert.rejects(vault.prepare({ action: "transfer" }), /existing/);
+      const wallet = new ChainService({ get: (_key, fallback) => fallback }, { nonceCoordinator: journal.nonceCoordinator });
+      wallet.provider = () => this.provider; wallet.resolveContracts = async () => ({ koin: client.d.token });
+      wallet.balances = async () => ({ koin: await this.balance(owner), mana: await this.provider.getAccountRc(owner), vhp: "0" });
+      await assert.rejects(wallet.transfer({ getAddress: () => owner, signTransaction: () => { throw Error("Unexpected extra wallet signature"); } },
+        { to: this.address("manual"), amountSat: "1", token: "koin" }), /owns this wallet nonce/);
+      await vault.recover({ reservationId: reservation.id, txId: original.id });
+      assert.equal(vault.hasPending(), true, "Reversible external inclusion must retain the wallet hold");
+      for (let i = 0; vault.hasPending(); i++) {
+        if (i >= 12) throw Error("External wallet recovery did not reach irreversible finality");
+        await this.finalize((await this.provider.getHeadInfo()).head_topology.height); await vault.status();
+      }
+      assert.equal(vault.view().pending.status, "confirmed");
+      assert.equal(requests, 1); assert.equal(ownerSignatures, 1); assert.equal(sponsorSignatures, 1); assert.equal(submissions, 1);
+      this.vaultStats.push({ kind, requests, ownerSignatures, sponsorSignatures, submissions, restarted: true, sessionRestored: false,
+        blockedFunding: true, blockedOrdinarySend: true, disconnectedHold: true, irreversibleOnly: true,
+        status: journal.nonceCoordinator.status(reservation.id) });
     } finally { journal.close(); }
   }
   fundingJournal(client) {

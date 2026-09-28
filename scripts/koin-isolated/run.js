@@ -37,6 +37,10 @@ async function run(directory) {
     check("ordinary wallet sends block new deposits across restart until exact irreversible finality");
     report.fundingRecovery = chain.fundingStats;
     report.walletNonceCoordination = chain.walletNonceStats;
+    check("external wallet exposure reserves the payee before one sponsored fixture transfer");
+    check("lost remote approvals block funding and sends across disconnect and restart without restoring session secrets");
+    check("read-only remote recovery releases only the original sponsored transaction at irreversible finality");
+    report.vaultRecovery = chain.vaultStats;
     assert.equal(await chain.balance(chain.address("credits")), "10000000000");
     assert.equal((await chain.read("credits", "balances", { account: bytes(chain.address("buyer")) })).liabilities, "10000000000");
     check("native deposit funds customer custody independently of the seeded rewards pool");

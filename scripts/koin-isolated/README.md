@@ -40,6 +40,14 @@ across journal restart until the original send is irreversibly confirmed. The
 report pins both the coordinator and desktop chain-service sources and records
 the two directions of exclusion. No production wallet installs this adapter.
 
+The desktop `ProducerVault` also runs against a local wallet-protocol fixture.
+One sponsored transfer per funding owner loses its approval response after
+inclusion. Disconnect and restart must keep funding and sends blocked, without
+restoring wallet sessions. Read-only recovery binds both signatures, exact
+operations, nonce, sponsor and bounded RC, then waits for irreversible finality.
+The report pins both vault module hashes and records one request, owner signature,
+sponsor signature and submission per transfer. No public wallet backend is used.
+
 The native-token WASM is an official integration fixture with minting enabled
 for bootstrap. Custody contracts have ordinary user privileges. The harness
 produces blocks with a published genesis key and advances controlled historical
