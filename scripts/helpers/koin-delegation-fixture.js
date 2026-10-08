@@ -9,8 +9,13 @@ const { FundedSessionObserver } = require("../../lib/koin-network/funded-session
 const P = require("../../lib/koin-network/job-protocol"), D = require("../../lib/koin-network/session-delegation");
 const owner = Signer.fromSeed("funded-probe-owner");
 const sign = async bytes => Buffer.from(await owner.signHash(bytes)).toString("base64");
-async function setup(t, { work = null, realClock = false, model = "fixture", settlementPolicy = null } = {}) {
+async function setup(t, { work = null, realClock = false, model = "fixture", settlementPolicy = null, mainnet = false } = {}) {
   const f = fixture(), dir = fs.mkdtempSync(path.join(os.tmpdir(), "koin-session-delegation-"));
+  if (mainnet) {
+    const { MAINNET_CHAIN, MAINNET_TOKEN } = require("../../lib/koin-network/payment-mode");
+    f.target.chainId = f.config.config.chain_id = MAINNET_CHAIN; f.target.token = MAINNET_TOKEN;
+    f.config.config.token = utils.encodeBase64url(utils.decodeBase58(MAINNET_TOKEN));
+  }
   if (realClock) {
     const now = Date.now(); f.time(now); f.target.clock = Date.now;
     Object.assign(f.session.session, { opened_at: String(now - 1000), expires: String(now + 60000), settle_until: String(now + 60000 + 86400000) });
@@ -28,13 +33,13 @@ async function setup(t, { work = null, realClock = false, model = "fixture", set
   f.target.policyHash = meter.policyHash; f.session.session.policy_hash = utils.encodeBase64url(Buffer.from(meter.policyHash, "hex"));
   f.session.session.per_job = "200";
   const observer = new FundedSessionObserver(f.rpc, f.target), target = { chainId: f.target.chainId, credits: f.target.credits,
-    creditsHash: f.target.creditsHash, policyHash: meter.policyHash, domain: "shadow:funded-account" };
+    creditsHash: f.target.creditsHash, policyHash: meter.policyHash, domain: mainnet ? "shadow:mainnet-pilot-" + P.hash("mainnet-test-host") : "shadow:funded-account" };
   const config = { dataDir: path.join(dir, "scheduler"), accounts, koinFundedSessions: { target, observer, meter, clock: f.target.clock, work, settlementPolicy, accept: ({ output }) => output === "4" } };
   let scheduler = new Scheduler(config), port = await scheduler.listen(0, "127.0.0.1");
   const base = `http://127.0.0.1:${port}`;
   t.after(async () => { await scheduler.close(); accounts.db.close(); fs.rmSync(dir, { recursive: true, force: true }); });
   const post = async (action, body = {}, sessionToken = token) => {
-    const response = await fetch(base + "/koin/funded/rehearsal/" + action, { method: "POST", headers: { "content-type": "application/json", connection: "close" },
+    const response = await fetch(base + require("../../lib/koin-network/payment-network").protocol(target).prefix + action, { method: "POST", headers: { "content-type": "application/json", connection: "close" },
       body: JSON.stringify({ sessionToken, ...body }) });
     return { status: response.status, body: await response.json() };
   };

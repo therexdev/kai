@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 // Operator-machine bootstrap only. No signer is attached to an RPC provider,
-// no transactions are prepared, and the Test runtime remains mainnet-disabled.
+// no transactions are prepared, and this plan alone cannot enable payments.
 const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto");
 const { Provider, Signer } = require("koilib");
 const { boundedRpc } = require("../../lib/payouts");
@@ -69,7 +69,7 @@ async function prepare(directory, settingsFile, wasmDirectory, dependencies = {}
   new KoinChain(deployment); // Validate the complete public deployment shape.
   const plan = { schema: 1, mode: "mainnet-pilot-plan", runtimeReady: false, deployment, settings: c.settings, artifacts,
     funding: { ...c.funding, totalAtoms: total, totalKoin: decimal(total) }, roleAddresses: addresses, identityEvidence: evidence,
-    remaining: ["Implement and verify explicit mainnet signing, worker, session and reward modes", "Confirm server and DNS configuration",
+    remaining: ["Configure the explicit mainnet runtime using this exact reviewed plan hash", "Confirm server and DNS configuration",
       "Review exact custody deployment transactions and measured resource requirements", "Fund reviewed role addresses and pilot balances", "Complete real Test acceptance before Alpha"] };
   const planHash = hash(plan);
   fs.mkdirSync(directory, { mode: 0o700 });

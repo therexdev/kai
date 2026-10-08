@@ -7,18 +7,16 @@ distribution. Legacy KAI continues during the Test pilot.
 
 ## Current implementation status
 
-This change prepares an operator-machine bootstrap, a durable legacy reward
-drain/cutoff, and a read-only earned-KAI export. It **does not enable mainnet
-payments**. The existing Test app and payment service still reject mainnet.
-No mainnet contract has been deployed, no hostname configured, and no wallet
-funded by this change. A draft earnings export cannot send a distribution.
+The Test desktop and dedicated payment backend accept an explicit `mainnet-pilot`
+manifest with pinned mainnet chain/native-token identity. Mainnet sessions,
+worker receipts and reward certificates use separate signature domains. Native
+approvals disclose real KOIN; installing Test alone does not activate payments.
+Role signing, transaction retries and reward claims retain durable recovery
+journals. Mainnet workers require the exact imported deployment and explicit opt-in.
 
-Before runtime activation, implement and verify explicit mainnet modes throughout
-the native payment dialogs, funding/session approvals, worker capabilities and
-job signatures, backend routing, reward certificates, deployment journal and
-status UI. Do not relabel a Foundation testnet manifest or remove one network
-check to force the old rehearsal protocol onto mainnet. Mainnet certificates
-must not accept an old rehearsal signature; the app must disclose real KOIN.
+No mainnet contract has been deployed, no hostname configured, and no wallet
+funded by this code change. The Alpha drain/cutoff and read-only earned-KAI export
+are available separately; a draft earnings export cannot send a distribution.
 
 ## Inputs needed from the owner
 
@@ -58,12 +56,82 @@ Mainnet chain ID reference: [Koinos offline signing](https://docs.koinos.io/exch
 RPC/resource references: [Koilib](https://docs.koinos.io/exchanges/koilib/) and
 [Mana](https://docs.koinos.io/exchanges/mana/).
 
-After mainnet runtime support is implemented, review the exact deployment
-transactions and their measured resource requirements, fund only the reviewed
-fresh addresses, deploy custody, and verify irreversible initialization/code/roles.
-Configure the dedicated host and HTTPS service, then run a small real purchase,
-session, served request, settlement, reward payout and refund/recovery cycle.
-Preserve the exact Test release and evidence before Alpha promotion.
+## Configure and deploy the separate mainnet pilot
+
+The owner approved a maximum **1,000 KOIN** initial pilot budget. Set
+`funding.maxTotalKoinAtoms` to `"100000000000"` in the private settings. The plan
+rejects buyer credits + reward pool + all role balances above this ceiling.
+This is an initial funding-plan check, not an on-chain global deposit limit;
+record actual transfers against the reviewed plan and do not add unplanned funds.
+Choose prices and allocations explicitly; deployment and runtime Mana limits must
+be sufficient for measured costs. Do not substitute KOIN balances for RC units.
+
+After backing up keys, use the printed bootstrap hash:
+
+```bash
+node deploy/koin-mainnet/setup.js configure --dir /absolute/private/mainnet-bootstrap --approve BOOTSTRAP_HASH
+node deploy/koin-mainnet/setup.js tokenizer --dir /absolute/private/mainnet-bootstrap
+```
+
+`configure` is read-only on-chain. It produces a second immutable
+`deployment-plan.json` and its hash, public runtime configuration, four runtime
+role keys and a private owner invitation. It verifies the original budget,
+WASM hashes, role keys and two-RPC native token pins again. Keep the custody/admin
+keys offline; never copy `offline-keys.json` to the running service's config tree.
+
+Review the exact deployment plan and resource limits. Fund only its fresh role
+addresses, then run:
+
+```bash
+node deploy/koin-mainnet/setup.js check-funding --dir /absolute/private/mainnet-bootstrap
+node deploy/koin-mainnet/setup.js deploy --dir /absolute/private/mainnet-bootstrap --wasm-dir /absolute/kaiapp/contracts/koin-network/build/release --approve DEPLOYMENT_PLAN_HASH
+```
+
+The second command signs and broadcasts **real mainnet contract deployment**.
+The journal records each original signature before submission, waits for
+irreversible upload/initialization, and verifies the deployed contracts. If a
+response is lost, rerun the same command and same plan; do not delete its journal,
+change the plan or regenerate keys. Each new mainnet signature checks available
+Mana. The public desktop manifest is written only after verification.
+
+On the server, from a clean checkout of the reviewed backend commit:
+
+```bash
+bash deploy/koin-mainnet/preflight.sh
+sudo bash deploy/koin-mainnet/install.sh /absolute/private/mainnet-bootstrap
+```
+
+The installer creates `kai-koin-mainnet-pilot.service`, listening on loopback
+port 3108, with a separate user, configuration and persistent state. It does not
+modify the existing scheduler or reverse proxy. Configure the confirmed hostname
+as an A record to the selected server. Add a dedicated Caddy virtual host:
+
+```caddyfile
+YOUR_CONFIRMED_TEST_HOST {
+  reverse_proxy 127.0.0.1:3108
+}
+```
+
+Validate Caddy's full config before reloading. Verify HTTPS `/health` reports
+`mode: mainnet-pilot`, the pinned chain ID and `mainnetPaymentsEnabled: true`.
+The configured scheduler URL ends in `/scheduler`. Keep port 3108 private.
+
+Generate a separate provider invitation with `setup.js invite --dir ... --owner
+PROVIDER_PUBLIC_ADDRESS`. Install the reviewed updated invitation list securely;
+the installer refuses silently replacing an existing list. Transfer only that
+participant's public manifest and private invitation to their Test desktop.
+The buyer cannot serve its own paid request. Provider qualification still needs
+a valid reviewed model benchmark and current availability evidence; an invitation
+alone does not qualify hardware or create reward entitlement. This server hosts
+the scheduler/tokenizer; inference runs on the provider's desktop.
+
+Import the verified manifest and invitation into the matching-wallet Test app,
+start with a small reviewed credit deposit and reward-pool deposit, then test a
+session, served request, final settlement, complete daily reward/review period,
+automatic payout, refund and restart recovery. The deployed policy is 5% daily
+reward-pool budget, 70% availability / 30% work, and an 80% provider work cap;
+review these existing contract parameters before deploying. Preserve transaction
+IDs, finality evidence and the exact Test installer before Alpha promotion.
 
 ## Alpha cutoff, only after the mainnet Test pilot passes
 
@@ -154,6 +222,8 @@ node scripts/probe-epoch-resume.js
 node scripts/probe-payout-recovery.js
 node scripts/probe-durable-store.js
 node scripts/probe-koin-test-deployment.js
+node scripts/probe-koin-funded-work.js
+node scripts/probe-koin-reward-cycle.js
 ```
 
 These checks cover preparation/accounting/restart behavior, not a mainnet

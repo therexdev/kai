@@ -54,16 +54,24 @@ test("one Test wallet cannot acquire signing leases on two hosts, including afte
   try { assert.equal(second.claim(owner, device).granted, true); assert.throws(() => second.claim(owner, P.hash("another-os")), /another installation/); }
   finally { second.close(); }
 });
-test("contract deployment saves exact signatures before a lost submission and cannot replace its reviewed plan", async t => {
+for (const mainnet of [false, true]) test((mainnet ? "mainnet" : "testnet") + " contract deployment saves exact signatures before a lost submission and cannot replace its reviewed plan", async t => {
   const { TestDeployer } = require("../lib/koin-network/test-deployer"), f = fixture(t), sent = [], provider = f.client.provider;
-  provider.invokeGetContractAddress = async () => ({ value: { address: FOUNDATION_TOKEN } });
+  const { MAINNET_CHAIN, MAINNET_TOKEN } = require("../lib/koin-network/payment-mode");
+  provider.getChainId = async () => mainnet ? MAINNET_CHAIN : FOUNDATION_CHAIN;
+  provider.getAccountRc = async () => "100000000";
+  provider.invokeGetContractAddress = async () => ({ value: { address: mainnet ? MAINNET_TOKEN : FOUNDATION_TOKEN } });
   provider.invokeGetContractMetadata = async () => ({ value: { hash: f.client.d.tokenHash } });
   provider.getTransactionsById = async () => ({ transactions: [] });
   provider.call = async (_method, body) => { sent.push(body.transaction); throw Error("lost response"); };
-  const identity = P.hash("deployment-plan"), dir = path.join(f.directory, "deployment"), options = { provider, identity, tokenHash: f.client.d.tokenHash };
+  const identity = P.hash("deployment-plan"), dir = path.join(f.directory, "deployment"), options = { provider, identity, tokenHash: f.client.d.tokenHash, mode: mainnet ? "mainnet-pilot" : "test-deployment" };
   const journal = new TestDeployer(dir, options);
   const op = [{ upload_contract: { contract_id: f.owner.getAddress(), bytecode: "AGFzbQEAAAA=" } }];
   let signs = 0; const sign = f.owner.signTransaction.bind(f.owner); f.owner.signTransaction = tx => { signs++; assert.equal(journal.get("upload").state, "signing"); return sign(tx); };
+  if (mainnet) {
+    provider.getAccountRc = async () => "1";
+    await assert.rejects(journal.prepare("upload", op, f.owner, "10000000"), /Insufficient/); assert.equal(signs, 0);
+    provider.getAccountRc = async () => "100000000";
+  }
   const prepared = await journal.prepare("upload", op, f.owner, "10000000");
   await assert.rejects(journal.submit("upload", P.hash("different")), /exact deployment plan/);
   assert.equal(sent.length, 0); await journal.submit("upload", identity); assert.equal(sent.length, 1); assert.deepEqual(sent[0], prepared.transaction);

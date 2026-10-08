@@ -102,6 +102,21 @@ test("bootstrap keeps fresh role keys private and cannot activate payments", asy
   for (const role of ROLES) { assert.equal(Signer.fromWif(keys[role]).getAddress(), result.roleAddresses[role]); assert.ok(!JSON.stringify(result).includes(keys[role])); }
   if (process.platform !== "win32") { assert.equal(fs.statSync(out).mode & 0o777, 0o700); assert.equal(fs.statSync(path.join(out, "offline-keys.json")).mode & 0o777, 0o600); }
   assert.equal(fs.existsSync(path.join(out, "runtime.json")), false);
+  const { configure } = require("../deploy/koin-mainnet/setup");
+  await assert.rejects(configure(out, "wrong", provider), /exact reviewed/);
+  const configured = await configure(out, result.planHash, provider);
+  assert.equal(configured.mode, "mainnet-pilot"); assert.equal(configured.deployed, false);
+  assert.deepEqual(await configure(out, result.planHash, provider), configured);
+  const runtime = JSON.parse(fs.readFileSync(path.join(out, "runtime.json")));
+  assert.equal(runtime.mode, "mainnet-pilot"); assert.equal(runtime.deployment.chainId, MAINNET_CHAIN);
+  const online = JSON.parse(fs.readFileSync(path.join(out, "runtime-keys.json")));
+  assert.equal(Object.keys(online).length, 4);
+  for (const role of ["admin", "credits", "rewards", "mining", "operations"]) assert.ok(!Object.values(online).includes(keys[role]));
+  const deployment = JSON.parse(fs.readFileSync(path.join(out, "deployment-plan.json")));
+  assert.equal(deployment.bootstrapHash, result.planHash); assert.deepEqual(deployment.funding, JSON.parse(fs.readFileSync(path.join(out, "plan.json"))).funding);
+  fs.writeFileSync(path.join(out, "runtime.json"), "{}", { mode: 0o600 });
+  await assert.rejects(configure(out, result.planHash, provider), /configuration changed/);
+
   await assert.rejects(prepare(out, input, d, { providerFactory: provider }), /new absolute/);
 });
 

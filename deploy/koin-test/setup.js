@@ -56,13 +56,13 @@ async function prepare(directory, settingsFile, wasmDir) {
   console.log(json({ planHash, mode: "test-deployment", fundingAddresses: plan.fundingAddresses,
     next: "Review plan.json, fund the custody and runtime role addresses with testnet KOIN, then deploy using this exact plan hash. No transaction has been signed." }));
 }
-async function deploy(directory, wasmDir, approved) {
-  const plan = JSON.parse(read(path.join(directory, "plan.json"))), hash = P.hash(JSON.stringify(plan));
-  if (approved !== hash || read(path.join(directory, "plan.sha256"), 100).trim() !== hash) throw Error("Review plan.json and supply its exact --approve hash");
+async function deploy(directory, wasmDir, approved, { planFile = "plan.json", hashFile = "plan.sha256" } = {}) {
+  const plan = JSON.parse(read(path.join(directory, planFile))), hash = P.hash(JSON.stringify(plan));
+  if (approved !== hash || read(path.join(directory, hashFile), 100).trim() !== hash) throw Error("Review plan.json and supply its exact --approve hash");
   const c = configuration(plan.runtime), keys = JSON.parse(read(path.join(directory, "offline-keys.json"), 16384, true));
-  const provider = new Provider(c.deployment.rpc), serializer = new Serializer(abi.types), journal = new TestDeployer(path.join(directory, "deployment-journal"), { provider, identity: hash, tokenHash: c.deployment.tokenHash });
+  const provider = new Provider(c.deployment.rpc), serializer = new Serializer(abi.types), journal = new TestDeployer(path.join(directory, "deployment-journal"), { provider, identity: hash, tokenHash: c.deployment.tokenHash, mode: c.mode });
   const encoded = role => utils.encodeBase64url(utils.decodeBase58(c.deployment[role]));
-  const config = { chain_id: FOUNDATION_CHAIN, token: encoded("token"), credits: encoded("credits"), treasury: encoded("rewards"),
+  const config = { chain_id: c.deployment.chainId, token: encoded("token"), credits: encoded("credits"), treasury: encoded("rewards"),
     admin: encoded("admin"), verifier: encoded("verifier"), mining: encoded("mining"), operations: encoded("operations"), version: "1",
     daily_bps: 500, availability_bps: 7000, reward_bps: 6000, mining_bps: 2500, operations_bps: 1500, work_cap_bps: 8000 };
   try {
@@ -83,7 +83,7 @@ async function deploy(directory, wasmDir, approved) {
       if (state.state !== "finalized") throw Error("Deployment remains unresolved. Re-run the same reviewed command to recover its original transaction");
     }
     await new KoinChain(c.deployment).verify();
-    const desktop = { schema: 1, mode: "test-deployment", deployment: c.deployment, schedulerUrl: c.schedulerUrl, owner: plan.owner,
+    const desktop = { schema: 1, mode: c.mode, deployment: c.deployment, schedulerUrl: c.schedulerUrl, owner: plan.owner,
       policyHash: c.policyHash, version: c.version, model: c.tariff.model, maxOutput: c.tariff.maxOutputTokens,
       maxRcPerTransaction: c.maxRcPerTransaction, maxRcPerDay: c.maxRcPerDay, limits: plan.limits };
     const file = path.join(directory, "desktop-manifest.json");
