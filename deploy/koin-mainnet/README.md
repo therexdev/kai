@@ -18,7 +18,7 @@ No mainnet contract has been deployed, no hostname configured, and no wallet
 funded by this code change. The Alpha drain/cutoff and read-only earned-KAI export
 are available separately; a draft earnings export cannot send a distribution.
 
-## Inputs needed from the owner
+## Deployment inputs
 
 | Input | Why it is needed |
 | --- | --- |
@@ -27,7 +27,10 @@ are available separately; a draft earnings export cannot send a distribution.
 | Maximum total initial KOIN funding | Bound aggregate role funding, buyer credits and the reward pool |
 | Confirmed prices and per-session/request limits | Make each approval concrete; RC caps also require measured transaction costs |
 
-`test-payments.koinosai.com` is a proposed hostname, not an existing deployment.
+The owner confirmed `payments.koinosai.com` as the final mainnet payment hostname,
+starting with the Test app and later Alpha. Set `settings.schedulerUrl` to
+`https://payments.koinosai.com/scheduler`. Confirmation of the name does not mean
+DNS, HTTPS or the payment service has been deployed.
 Do not send private keys, WIFs or seed phrases in chat. The role keys below are
 created on the operator's machine; transfer runtime secrets only through the
 server's secret-management workflow. The eventual distribution budget is
@@ -107,7 +110,7 @@ modify the existing scheduler or reverse proxy. Configure the confirmed hostname
 as an A record to the selected server. Add a dedicated Caddy virtual host:
 
 ```caddyfile
-YOUR_CONFIRMED_TEST_HOST {
+payments.koinosai.com {
   reverse_proxy 127.0.0.1:3108
 }
 ```
@@ -124,6 +127,13 @@ The buyer cannot serve its own paid request. Provider qualification still needs
 a valid reviewed model benchmark and current availability evidence; an invitation
 alone does not qualify hardware or create reward entitlement. This server hosts
 the scheduler/tokenizer; inference runs on the provider's desktop.
+
+The provider address is an ordinary Koinos wallet controlled by the person
+running the serving Test desktop. That desktop uses it to sign work receipts
+and receive rewards. Use a different wallet from the buyer. It is separate from
+the fresh backend signing/custody role wallets and need not hold the pilot budget.
+Import private keys only through the desktop's wallet controls, never through
+chat or a provider invitation.
 
 Import the verified manifest and invitation into the matching-wallet Test app,
 start with a small reviewed credit deposit and reward-pool deposit, then test a
