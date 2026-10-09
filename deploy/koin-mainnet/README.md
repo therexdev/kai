@@ -97,6 +97,17 @@ node deploy/koin-mainnet/setup.js deploy --dir /absolute/private/mainnet-bootstr
 ```
 
 The second command signs and broadcasts **real mainnet contract deployment**.
+Before the first broadcast of each upload/initialization, it simulates the exact
+journaled signed transaction using `broadcast: false`. The receipt must match
+the transaction and report successful execution with a positive, exact RC cost.
+The measured cost plus 25% and 10,000 RC of headroom must fit the reviewed
+`deployRcLimit`; the command never raises that ceiling. A failed estimate stops
+before broadcast. The accepted estimate is saved with the first broadcast
+attempt, and the final output includes estimated and actual RC usage. RPC calls
+are bounded so an unavailable node releases the deployment process for recovery.
+Previously attempted broadcasts are reconciled and retried with their original
+envelopes, without re-simulating a potentially consumed nonce. These checks
+measure deployment operations, not sustained runtime capacity or model economics.
 The journal records each original signature before submission, waits for
 irreversible upload/initialization, and verifies the deployed contracts. If a
 response is lost, rerun the same command and same plan; do not delete its journal,

@@ -2,6 +2,7 @@
 // Run on the operator's machine. Creates fresh Test keys; prints public pins only.
 const fs = require("fs"), path = require("path"), crypto = require("crypto");
 const { Provider, Signer, Serializer, utils } = require("koilib");
+const { boundedRpc } = require("../../lib/payouts");
 const { KoinChain } = require("../../lib/koin-network/chain"), { TestDeployer } = require("../../lib/koin-network/test-deployer");
 const { FOUNDATION_CHAIN, FOUNDATION_TOKEN } = require("../../lib/koin-network/payment-mode");
 const { read, configuration } = require("../../lib/koin-network/test-config");
@@ -60,7 +61,9 @@ async function deploy(directory, wasmDir, approved, { planFile = "plan.json", ha
   const plan = JSON.parse(read(path.join(directory, planFile))), hash = P.hash(JSON.stringify(plan));
   if (approved !== hash || read(path.join(directory, hashFile), 100).trim() !== hash) throw Error("Review plan.json and supply its exact --approve hash");
   const c = configuration(plan.runtime), keys = JSON.parse(read(path.join(directory, "offline-keys.json"), 16384, true));
-  const provider = new Provider(c.deployment.rpc), serializer = new Serializer(abi.types), journal = new TestDeployer(path.join(directory, "deployment-journal"), { provider, identity: hash, tokenHash: c.deployment.tokenHash, mode: c.mode });
+  const provider = new Provider(c.deployment.rpc);
+  if (c.mode === "mainnet-pilot") provider.call = boundedRpc(c.deployment.rpc[0]);
+  const serializer = new Serializer(abi.types), journal = new TestDeployer(path.join(directory, "deployment-journal"), { provider, identity: hash, tokenHash: c.deployment.tokenHash, mode: c.mode });
   const encoded = role => utils.encodeBase64url(utils.decodeBase58(c.deployment[role]));
   const config = { chain_id: c.deployment.chainId, token: encoded("token"), credits: encoded("credits"), treasury: encoded("rewards"),
     admin: encoded("admin"), verifier: encoded("verifier"), mining: encoded("mining"), operations: encoded("operations"), version: "1",
@@ -79,7 +82,8 @@ async function deploy(directory, wasmDir, approved, { planFile = "plan.json", ha
         const until = Date.now() + 600000;
         while (state.state === "signed" && Date.now() < until) { await new Promise(r => setTimeout(r, 3000)); state = await journal.reconcile(id); }
       }
-      console.log(json({ step: id, state: state.state, txId: state.draft.id, attempts: state.attempts }));
+      console.log(json({ step: id, state: state.state, txId: state.draft.id, attempts: state.attempts,
+        simulation: state.simulation, actualRcUsed: state.finality?.receipt?.rc_used }));
       if (state.state !== "finalized") throw Error("Deployment remains unresolved. Re-run the same reviewed command to recover its original transaction");
     }
     await new KoinChain(c.deployment).verify();
