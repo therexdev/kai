@@ -39,6 +39,12 @@ separate from the pilot budget and is determined by the final reviewed snapshot.
 ## Review the mainnet bootstrap
 
 Use Node 22+ and custody WASM built from the exact reviewed desktop commit.
+Install the reviewed backend lockfile with `npm ci --omit=dev --ignore-scripts`,
+then run `npm audit --omit=dev --audit-level=high` and
+`node scripts/probe-chain-encoding.js` before generating role keys. The backend
+uses Koilib 9.4 with protobufjs 7.6.6; the earlier 7.4.0 Protobuf exception is
+removed. An SDK upgrade must pass the real Contract constructor and transfer
+encoding checks, not just dependency scanning.
 Fill `settings.example.json` in a private operator-controlled directory. Funding
 amounts are strings in KOIN atoms (100,000,000 atoms = 1 KOIN); RC is a different
 resource quantity. Nulls intentionally require an explicit value.
