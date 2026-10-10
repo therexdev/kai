@@ -108,6 +108,39 @@ are bounded so an unavailable node releases the deployment process for recovery.
 Previously attempted broadcasts are reconciled and retried with their original
 envelopes, without re-simulating a potentially consumed nonce. These checks
 measure deployment operations, not sustained runtime capacity or model economics.
+
+### Insufficient Mana before the first upload
+
+A funded wallet alone does not prove its upload fits the transaction ceiling.
+New contract bytecode incurs storage and bandwidth costs; inspect current
+`chain.get_resource_limits` and the built WASM sizes before choosing reserves.
+
+If the first `credits:upload` simulation fails with `insufficient rc`, use the
+resource revision command instead of editing the plan or deleting a journal:
+
+```sh
+node deploy/koin-mainnet/setup.js revise-resources --dir /absolute/private/mainnet-bootstrap \
+  --approve EXACT_ORIGINAL_DEPLOYMENT_PLAN_SHA256 \
+  --deploy-rc-limit REVIEWED_NEW_RC_CEILING --custody-atoms REVIEWED_BALANCE_PER_CUSTODY_WALLET
+```
+
+This command signs and broadcasts nothing. It accepts only the original first
+upload with zero broadcast attempts, verifies both custody accounts are unused
+on two fresh pinned RPCs, and retains the old envelope in its journal. Only the
+deployment ceiling and credits/rewards funding targets change. The total must
+remain within the original pilot budget; all other roles, wallet keys, runtime
+limits, prices, contracts and invitations stay unchanged. The revision is stored
+atomically in the existing recovery journal and returns a new `planHash`. Running
+the identical revision again is idempotent; a second different revision is refused.
+
+Review that hash and funding summary, top up the SAME two custody addresses,
+run `check-funding`, then pass the NEW hash to `deploy`. The replacement upload
+keeps the original operations and nonce; the old approval no longer broadcasts.
+The new ceiling is a maximum: subsequent initialization can use the account's
+remaining Mana, and every first broadcast still requires a successful simulation
+plus headroom. Saved retries retain their exact limit. Keep the existing journal
+and its adjacent recovery anchor; never restore the old backup over them.
+
 The journal records each original signature before submission, waits for
 irreversible upload/initialization, and verifies the deployed contracts. If a
 response is lost, rerun the same command and same plan; do not delete its journal,

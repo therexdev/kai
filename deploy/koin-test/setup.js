@@ -58,8 +58,8 @@ async function prepare(directory, settingsFile, wasmDir) {
     next: "Review plan.json, fund the custody and runtime role addresses with testnet KOIN, then deploy using this exact plan hash. No transaction has been signed." }));
 }
 async function deploy(directory, wasmDir, approved, { planFile = "plan.json", hashFile = "plan.sha256" } = {}) {
-  const plan = JSON.parse(read(path.join(directory, planFile))), hash = P.hash(JSON.stringify(plan));
-  if (approved !== hash || read(path.join(directory, hashFile), 100).trim() !== hash) throw Error("Review plan.json and supply its exact --approve hash");
+  let plan = JSON.parse(read(path.join(directory, planFile))); const hash = P.hash(JSON.stringify(plan));
+  if (read(path.join(directory, hashFile), 100).trim() !== hash) throw Error("Deployment plan hash mismatch");
   const c = configuration(plan.runtime), keys = JSON.parse(read(path.join(directory, "offline-keys.json"), 16384, true));
   const provider = new Provider(c.deployment.rpc);
   if (c.mode === "mainnet-pilot") provider.call = boundedRpc(c.deployment.rpc[0]);
@@ -69,13 +69,20 @@ async function deploy(directory, wasmDir, approved, { planFile = "plan.json", ha
     admin: encoded("admin"), verifier: encoded("verifier"), mining: encoded("mining"), operations: encoded("operations"), version: "1",
     daily_bps: 500, availability_bps: 7000, reward_bps: 6000, mining_bps: 2500, operations_bps: 1500, work_cap_bps: 8000 };
   try {
+    const revision = journal.resourceRevision();
+    if (revision) plan = revision.plan;
+    if (approved !== P.hash(JSON.stringify(plan))) throw Error("Review the current deployment plan and supply its exact --approve hash");
     for (const kind of ["credits", "rewards"]) for (const action of ["upload", "initialize"]) {
       const signer = Signer.fromWif(keys[kind]); if (signer.getAddress() !== c.deployment[kind]) throw Error("Custody key does not match the plan");
       const bytecode = fs.readFileSync(path.join(wasmDir, kind + ".wasm"));
       if (P.hash(bytecode) !== plan.artifacts[kind].sha256) throw Error("Custody build changed after review");
       const operations = action === "upload" ? [{ upload_contract: { contract_id: c.deployment[kind], bytecode: utils.encodeBase64url(bytecode) } }] :
         [{ call_contract: { contract_id: c.deployment[kind], entry_point: abi.methods.initialize.entry_point, args: utils.encodeBase64url(await serializer.serialize({ config }, "koin.Request")) } }];
-      const id = kind + ":" + action; let state = await journal.prepare(id, operations, signer, plan.deployRcLimit);
+      const id = kind + ":" + action;
+      // A revised ceiling can use remaining Mana after upload. Retries retain
+      // the exact saved limit even while the account's Mana regenerates.
+      const rcLimit = await journal.deploymentLimit(id, plan.deployRcLimit, signer.getAddress());
+      let state = await journal.prepare(id, operations, signer, rcLimit);
       state = await journal.reconcile(id);
       if (state.state !== "finalized") {
         state = await journal.submit(id, approved);
