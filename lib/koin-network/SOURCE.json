@@ -1,6 +1,6 @@
 {
   "source": "therexdev/kaiapp/core/lib/koin-network",
-  "mode": "rehearsal-and-explicit-test-deployment",
+  "mode": "rehearsal-and-explicit-test-and-mainnet-pilot",
   "sha256": {
     "policy.js": "510cf4df51b720ccdd8688eb8a6f627ae67b38e50aac225bca2c7d124973549c",
     "presence.js": "c72b18edb144c1da28470b4ff5b55c38403b92b16aca7edf021b96c08d586ce7",
@@ -8,13 +8,14 @@
     "shadow-router.js": "970b44bf5ac7dcb65b4f515fab61926f3874bc49eec5a9e6881418896212a8a0",
     "credits-abi.json": "674a05f13354c0b820d0643a11a3bfeb0128a497db0ea3ca226dc8dd218f3b2b",
     "job-protocol.js": "070f95a4076e4520153eff36f69d5e3ef2770995a69d4ba0c6d2d7df11546d4d",
-    "session-delegation.js": "df4c3bc4f7b9de651628619b17194676260ed17a372fb05a101e7b0289283b31",
-    "funded-protocol.js": "3db78c7832b143d30676a242adccd3cf6447a206ba77086411d81eee5b1b5359",
+    "session-delegation.js": "1e9470acdda2af9b1e49f98c7b7cc53644a4855168966e26ea93ade04d562b42",
+    "funded-protocol.js": "09ebd19a1ddc5fc5167d0c7e0468577d4b7bc98fdb905289f7c0aac84c3a3def",
     "merkle.js": "ad2739fbd78427309cec8b47c2aad2e2b6b2fb484efc6896cbae802446cc1a96",
     "rewards-abi.json": "a3c4270351910ecd8b027d98f6f4f374435ea7838dfc46f036016094c2cde249",
     "chain.js": "41e457615d1b6986e76d9719a1262da92a2d100f99a69bdbe521a55d562400d7",
     "journal-set.js": "9132637fac7d22a9977bf7b2f1758a764f6383175ae7dace7f780299912eb338",
-    "payment-mode.js": "789706c7e9d1f2f1f2b91db855bf5c4a950c0dfa7d86fb4404d014932e04881e"
+    "payment-mode.js": "dfeae0a0de00f358c9e2de2bd35496f2516a7ca95ae0da02fd62d7654b5ebbb2",
+    "payment-network.js": "537bf1551f2d95482e204ef377b5e1218106912bcc47913f59499ee901185fc0"
   },
-  "sourceCommit": "723e3b73d70670a5cc98a3bb55539d3d91231eec"
+  "sourceCommit": "ecca18179797758e55dc74b8408d8ba228937964"
 }

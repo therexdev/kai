@@ -6,6 +6,7 @@ const { TestRuntime } = require("./lib/koin-network/test-runtime");
 async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
   if (!directory || !path.isAbsolute(directory)) throw Error("Absolute KAI_KOIN_TEST_CONFIG_DIR required");
   const config = configuration(JSON.parse(read(path.join(directory, "runtime.json"))));
+  const wire = require("./lib/koin-network/payment-network").protocol({ chainId: config.deployment.chainId, domain: require("./lib/koin-network/payment-mode").testDomain(config.deployment, config.schedulerUrl) });
   const stateDir = process.env.KAI_KOIN_TEST_STATE_DIR;
   if (!stateDir || !path.isAbsolute(stateDir) || /\/\.koinos-ai(\/|$)|\/opt\/koinos\/kai(\/|$)/.test(stateDir)) throw Error("Separate absolute Test state directory required");
   const secret = read(path.join(directory, "operator-secret"), 256, true).trim();
@@ -19,7 +20,7 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
     res.setHeader("X-Content-Type-Options", "nosniff");
     try {
       const url = new URL(req.url, "http://test");
-      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: "test-deployment", chainId: config.deployment.chainId, mainnetPaymentsEnabled: false, lastSuccess: runtime.lastSuccess || null });
+      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, lastSuccess: runtime.lastSuccess || null });
       if (url.pathname === "/operator/status" && req.method === "GET") {
         const presented = crypto.createHash("sha256").update(String(req.headers["x-operator-secret"] || "")).digest();
         if (!crypto.timingSafeEqual(presented, crypto.createHash("sha256").update(secret).digest())) return json(res, 403, { error: "Test operator access required" });
@@ -35,13 +36,13 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
         if (Object.keys(value).join() !== "installation") throw Error("Exact Test installation required");
         const [wallet] = runtime.accounts.accountView(account).wallets;
         if (!wallet) throw Error("Test wallet invitation unavailable");
-        return json(res, 200, { mode: "test-deployment", chainId: config.deployment.chainId, ...runtime.hosts.claim(wallet.address, value.installation) });
+        return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, ...runtime.hosts.claim(wallet.address, value.installation) });
       }
       if (url.pathname === "/scheduler/koin/test/status" && req.method === "GET") {
         const token = String(req.headers.authorization || "").replace(/^Bearer /, ""), account = runtime.accounts.sessionAccount(token);
         if (!account) return json(res, 401, { error: "Test invitation required" });
         const wallets = runtime.accounts.accountView(account).wallets;
-        return json(res, 200, { mode: "test-deployment", mainnetPaymentsEnabled: false, automaticPayouts: true,
+        return json(res, 200, { mode: config.mode, mainnetPaymentsEnabled: wire.paymentsEnabled, automaticPayouts: true,
           payouts: wallets.flatMap(w => runtime.claims.accountStatus(w.address)), lastCycleCheck: runtime.lastSuccess || null });
       }
       if (url.pathname === "/scheduler/consume/chat/completions") {
@@ -49,18 +50,18 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
         const chunks = []; let size = 0;
         for await (const part of req) { size += part.length; if (size > 32768) throw Error("Test request too large"); chunks.push(part); }
         const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-        if (body.billing !== "koin-funded-rehearsal") throw Error("Only approved Test spending sessions are accepted");
+        if (body.billing !== wire.billing) throw Error("Only approved Test spending sessions are accepted");
         return runtime.scheduler.koinFundedSessions.work.chat(req, res, body);
       }
       const route = new URL(req.url, "http://test").pathname;
-      if (!route.startsWith("/koin/funded/rehearsal/") && !["/worker/register", "/worker/heartbeat", "/worker/next-job", "/koin/presence", "/koin/status", "/network/models", "/network/status"].includes(route)) return json(res, 404, { error: "Route is disabled on the Test backend" });
+      if (!route.startsWith(wire.prefix) && !["/worker/register", "/worker/heartbeat", "/worker/next-job", "/koin/presence", "/koin/status", "/network/models", "/network/status"].includes(route)) return json(res, 404, { error: "Route is disabled on the Test backend" });
       await runtime.scheduler.handle(req, res);
     } catch (e) { if (!res.writableEnded && !res.destroyed) json(res, 400, { error: String(e.message).slice(0, 200) }); }
   });
   server.requestTimeout = 190000; server.headersTimeout = 10000;
   const port = Number(process.env.KAI_KOIN_TEST_PORT || 3107); if (!Number.isInteger(port) || port < 1024 || port > 65535) throw Error("Invalid Test port");
   await new Promise(resolve => server.listen(port, "127.0.0.1", resolve)); await runtime.start();
-  console.log(JSON.stringify({ service: "koin-test", port, network: "foundation-testnet", mainnetPaymentsEnabled: false }));
+  console.log(JSON.stringify({ service: "koin-test", port, network: config.deployment.network, mainnetPaymentsEnabled: wire.paymentsEnabled }));
   let closing = false;
   const close = () => {
     if (closing) return; closing = true; runtime.stopped = true; clearInterval(runtime.timer); server.close();

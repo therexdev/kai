@@ -2,6 +2,7 @@
 // Run on the operator's machine. Creates fresh Test keys; prints public pins only.
 const fs = require("fs"), path = require("path"), crypto = require("crypto");
 const { Provider, Signer, Serializer, utils } = require("koilib");
+const { boundedRpc } = require("../../lib/payouts");
 const { KoinChain } = require("../../lib/koin-network/chain"), { TestDeployer } = require("../../lib/koin-network/test-deployer");
 const { FOUNDATION_CHAIN, FOUNDATION_TOKEN } = require("../../lib/koin-network/payment-mode");
 const { read, configuration } = require("../../lib/koin-network/test-config");
@@ -56,34 +57,44 @@ async function prepare(directory, settingsFile, wasmDir) {
   console.log(json({ planHash, mode: "test-deployment", fundingAddresses: plan.fundingAddresses,
     next: "Review plan.json, fund the custody and runtime role addresses with testnet KOIN, then deploy using this exact plan hash. No transaction has been signed." }));
 }
-async function deploy(directory, wasmDir, approved) {
-  const plan = JSON.parse(read(path.join(directory, "plan.json"))), hash = P.hash(JSON.stringify(plan));
-  if (approved !== hash || read(path.join(directory, "plan.sha256"), 100).trim() !== hash) throw Error("Review plan.json and supply its exact --approve hash");
+async function deploy(directory, wasmDir, approved, { planFile = "plan.json", hashFile = "plan.sha256" } = {}) {
+  let plan = JSON.parse(read(path.join(directory, planFile))); const hash = P.hash(JSON.stringify(plan));
+  if (read(path.join(directory, hashFile), 100).trim() !== hash) throw Error("Deployment plan hash mismatch");
   const c = configuration(plan.runtime), keys = JSON.parse(read(path.join(directory, "offline-keys.json"), 16384, true));
-  const provider = new Provider(c.deployment.rpc), serializer = new Serializer(abi.types), journal = new TestDeployer(path.join(directory, "deployment-journal"), { provider, identity: hash, tokenHash: c.deployment.tokenHash });
+  const provider = new Provider(c.deployment.rpc);
+  if (c.mode === "mainnet-pilot") provider.call = boundedRpc(c.deployment.rpc[0]);
+  const serializer = new Serializer(abi.types), journal = new TestDeployer(path.join(directory, "deployment-journal"), { provider, identity: hash, tokenHash: c.deployment.tokenHash, mode: c.mode });
   const encoded = role => utils.encodeBase64url(utils.decodeBase58(c.deployment[role]));
-  const config = { chain_id: FOUNDATION_CHAIN, token: encoded("token"), credits: encoded("credits"), treasury: encoded("rewards"),
+  const config = { chain_id: c.deployment.chainId, token: encoded("token"), credits: encoded("credits"), treasury: encoded("rewards"),
     admin: encoded("admin"), verifier: encoded("verifier"), mining: encoded("mining"), operations: encoded("operations"), version: "1",
     daily_bps: 500, availability_bps: 7000, reward_bps: 6000, mining_bps: 2500, operations_bps: 1500, work_cap_bps: 8000 };
   try {
+    const revision = journal.resourceRevision();
+    if (revision) plan = revision.plan;
+    if (approved !== P.hash(JSON.stringify(plan))) throw Error("Review the current deployment plan and supply its exact --approve hash");
     for (const kind of ["credits", "rewards"]) for (const action of ["upload", "initialize"]) {
       const signer = Signer.fromWif(keys[kind]); if (signer.getAddress() !== c.deployment[kind]) throw Error("Custody key does not match the plan");
       const bytecode = fs.readFileSync(path.join(wasmDir, kind + ".wasm"));
       if (P.hash(bytecode) !== plan.artifacts[kind].sha256) throw Error("Custody build changed after review");
       const operations = action === "upload" ? [{ upload_contract: { contract_id: c.deployment[kind], bytecode: utils.encodeBase64url(bytecode) } }] :
         [{ call_contract: { contract_id: c.deployment[kind], entry_point: abi.methods.initialize.entry_point, args: utils.encodeBase64url(await serializer.serialize({ config }, "koin.Request")) } }];
-      const id = kind + ":" + action; let state = await journal.prepare(id, operations, signer, plan.deployRcLimit);
+      const id = kind + ":" + action;
+      // A revised ceiling can use remaining Mana after upload. Retries retain
+      // the exact saved limit even while the account's Mana regenerates.
+      const rcLimit = await journal.deploymentLimit(id, plan.deployRcLimit, signer.getAddress());
+      let state = await journal.prepare(id, operations, signer, rcLimit);
       state = await journal.reconcile(id);
       if (state.state !== "finalized") {
         state = await journal.submit(id, approved);
         const until = Date.now() + 600000;
         while (state.state === "signed" && Date.now() < until) { await new Promise(r => setTimeout(r, 3000)); state = await journal.reconcile(id); }
       }
-      console.log(json({ step: id, state: state.state, txId: state.draft.id, attempts: state.attempts }));
+      console.log(json({ step: id, state: state.state, txId: state.draft.id, attempts: state.attempts,
+        simulation: state.simulation, actualRcUsed: state.finality?.receipt?.rc_used }));
       if (state.state !== "finalized") throw Error("Deployment remains unresolved. Re-run the same reviewed command to recover its original transaction");
     }
     await new KoinChain(c.deployment).verify();
-    const desktop = { schema: 1, mode: "test-deployment", deployment: c.deployment, schedulerUrl: c.schedulerUrl, owner: plan.owner,
+    const desktop = { schema: 1, mode: c.mode, deployment: c.deployment, schedulerUrl: c.schedulerUrl, owner: plan.owner,
       policyHash: c.policyHash, version: c.version, model: c.tariff.model, maxOutput: c.tariff.maxOutputTokens,
       maxRcPerTransaction: c.maxRcPerTransaction, maxRcPerDay: c.maxRcPerDay, limits: plan.limits };
     const file = path.join(directory, "desktop-manifest.json");

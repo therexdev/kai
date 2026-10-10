@@ -1,9 +1,11 @@
 "use strict";
-const { test } = require("node:test"), assert = require("node:assert/strict"), path = require("path");
+const { test: run } = require("node:test"), assert = require("node:assert/strict"), path = require("path");
 const { DatabaseSync } = require("node:sqlite"), { Transaction, utils } = require("koilib");
-const { fixture, payer, verifier, addr } = require("./helpers/koin-cycle-fixture");
+const { fixture: setup, payer, verifier, addr } = require("./helpers/koin-cycle-fixture");
 const { RewardCycle } = require("../lib/koin-network/reward-cycle"), { RewardCycleRunner } = require("../lib/koin-network/reward-cycle-runner");
 const M = require("../lib/koin-network/reward-manifest"), P = require("../lib/koin-network/job-protocol"), { DAY } = require("../lib/koin-network/policy");
+const test = (name, fn) => { for (const mainnet of [false, true]) run((mainnet ? "mainnet: " : "rehearsal: ") + name, t => fn(t, mainnet)); };
+const fixture = (t, overrides = {}) => setup(t, overrides, t.name.startsWith("mainnet: "));
 const tick = async (f, extra = {}) => (await f.runner(extra).tick({ openCurrentDay: false })).results[0];
 async function decision(f) {
   let d;
@@ -193,4 +195,12 @@ test("damaged journals, backwards time and unbounded day admission fail closed",
   const h = await fixture(t); for (let i = 2; i <= 32; i++) h.cycle.queueDay(String(i));
   assert.throws(() => h.cycle.queueDay("33"), /queue full/);
   assert.throws(() => new RewardCycleRunner({ mode: "production", cycle: h.cycle, prepare: h.prepare, submit: h.submit }), /isolated/);
+});
+
+run("mainnet reward certificates cannot reuse a rehearsal signature tag", async t => {
+  const f = await setup(t, {}, true);
+  const oldHash = Buffer.from(P.hash(JSON.stringify(["KAI-KOIN-REWARD-MANIFEST-REHEARSAL-V1", M.canonical(f.envelope.manifest)])), "hex");
+  const signature = Buffer.from(await verifier.signHash(oldHash)).toString("base64");
+  assert.throws(() => M.verify({ ...f.envelope, signature }, f.target), /signature/i);
+  assert.equal(M.verify(f.envelope, f.target).claims.length, 2);
 });
