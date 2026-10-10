@@ -27,10 +27,22 @@ id kai-koin-mainnet-pilot >/dev/null 2>&1 || useradd --system --home-dir /var/li
 install -d -m 0755 /opt/kai-koin-mainnet-pilot /opt/kai-koin-mainnet-pilot/releases
 release_dir="/opt/kai-koin-mainnet-pilot/releases/$test_sha"
 if [[ ! -d "$release_dir" ]]; then
-  install -d -m 0755 "$release_dir"
-  git -C "$test_repo" archive HEAD | tar -x -C "$release_dir"
-  (cd "$release_dir" && npm ci --omit=dev --ignore-scripts)
+  release_stage=$(mktemp -d "/opt/kai-koin-mainnet-pilot/releases/.$test_sha.XXXXXX")
+  trap 'rm -rf -- "$release_stage"' EXIT
+  chmod 0755 "$release_stage"
+  # Public application code must be readable by the unprivileged service user.
+  # Keep the outer private umask for configuration and keys below.
+  (
+    umask 022
+    git -C "$test_repo" archive HEAD | tar -x -C "$release_stage"
+    cd "$release_stage"
+    npm ci --omit=dev --ignore-scripts
+  )
+  mv -T "$release_stage" "$release_dir"
+  trap - EXIT
 fi
+# Catch incomplete or unreadable dependencies before enabling the service.
+runuser -u kai-koin-mainnet-pilot -- "$test_node" -e 'require(process.argv[1])' "$release_dir/test-server.js"
 install -d -m 0700 -o kai-koin-mainnet-pilot -g kai-koin-mainnet-pilot /etc/kai-koin-mainnet-pilot /etc/kai-koin-mainnet-pilot/tokenizer /var/lib/kai-koin-mainnet-pilot
 # Never copy offline-keys.json or the owner's invitation into the service tree.
 for file in runtime.json runtime-keys.json operator-secret invitations.json qualifications.json; do
