@@ -169,6 +169,15 @@ Validate Caddy's full config before reloading. Verify HTTPS `/health` reports
 `mode: mainnet-pilot`, the pinned chain ID and `mainnetPaymentsEnabled: true`.
 The configured scheduler URL ends in `/scheduler`. Keep port 3108 private.
 
+If **Review limits** reports `Invalid session rehearsal response` after the
+on-chain reservation, update the pilot backend to the reviewed response fix.
+The session router must stamp the HTTP envelope's network mode and payment flag
+after composing the action result. Its private read-only funding evidence still
+has `paymentsEnabled: false` and `spendingAuthorized: false`; observation alone
+never authorizes spending. Run `node scripts/probe-koin-mainnet-session-response.js`
+before reinstalling the existing service, then retry **Review limits** with the
+same reservation. Do not replace the manifest, keys, contracts or payment journals.
+
 Generate a separate provider invitation with `setup.js invite --dir ... --owner
 PROVIDER_PUBLIC_ADDRESS`. Install the reviewed updated invitation list securely;
 the installer refuses silently replacing an existing list. Transfer only that
