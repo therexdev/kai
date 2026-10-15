@@ -1,6 +1,6 @@
 "use strict";
 const { test } = require("node:test"), assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), os = require("node:os"), crypto = require("node:crypto");
-const { recover, attemptStore, simulation, record, TX, SINCE, UNTIL } = require("../deploy/koin-mainnet/recover-reviewed-finalization");
+const { recover, attemptStore, simulation, record, savedPair, TX, SINCE, UNTIL } = require("../deploy/koin-mainnet/recover-reviewed-finalization");
 function fixture(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "kai-reviewed-retry-")); t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const transaction = { id: TX, header: { nonce: "KA8=", rc_limit: "100000000" }, signatures: ["ORIGINAL_SAVED_SIGNATURE"], operations: [{ call_contract: { args: "ORIGINAL_ROOT" } }] };
@@ -92,4 +92,15 @@ test("private retry storage rejects permissive directories and symlink locations
   const f = fixture(t), publicDir = path.join(f.directory, "public"), link = path.join(f.directory, "link");
   fs.mkdirSync(publicDir); fs.chmodSync(publicDir, 0o755); assert.throws(() => attemptStore(publicDir), /Private/);
   fs.symlinkSync(path.join(f.directory, "attempt"), link); assert.throws(() => attemptStore(link), /Private/);
+});
+test("signing and canonical cycle JSON order may differ, but every signed field and each stored hash must match", () => {
+  const tx = { header: { nonce: "KA8=" }, operations: [], signatures: ["saved"], id: TX };
+  const cycleTx = { id: TX, header: tx.header, operations: tx.operations, signatures: tx.signatures };
+  assert.notEqual(JSON.stringify(tx), JSON.stringify(cycleTx));
+  const r = { owner: "17f9wpFZgJLkYgZuS3KZCMjuKPLf4nhxjU", transaction: tx };
+  const step = { epoch: "20739", method: "finalize_root", outbox: { transaction: cycleTx,
+    hash: crypto.createHash("sha256").update(JSON.stringify(cycleTx)).digest("hex") } };
+  savedPair(r, step);
+  assert.throws(() => savedPair(r, { ...step, outbox: { ...step.outbox, hash: "changed" } }), /saved lifecycle/);
+  assert.throws(() => savedPair({ ...r, transaction: { ...tx, signatures: ["different"] } }, step), /saved lifecycle/);
 });

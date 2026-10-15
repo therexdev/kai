@@ -29,6 +29,11 @@ function simulation(receipt) {
       !/^\d+$/.test(receipt.rc_used || "") || BigInt(receipt.rc_used) <= 0n || BigInt(receipt.rc_used) > 100000000n)
     throw Error("The exact saved transaction did not pass its reviewed Mana limit");
 }
+function savedPair(r, step) {
+  if (r.owner !== OWNER || r.transaction?.id !== TX || step.epoch !== EPOCH || step.method !== "finalize_root" ||
+      !equal(r.transaction, step.outbox?.transaction) || step.outbox.hash !== hash(JSON.stringify(step.outbox.transaction)))
+    throw Error("Exact saved lifecycle envelope required");
+}
 // Exclusive creation + file/directory fsync BEFORE network submission. A crash,
 // timeout, partial file, or repeat invocation can never authorize another send.
 function attemptStore(directory) {
@@ -95,8 +100,7 @@ function environment() {
   const read = () => {
     const r = readDb(path.join(STATE, "signing/test-signing.sqlite"), db => record(db.prepare("SELECT * FROM signatures WHERE id=?").get(RECORD)));
     const step = readDb(path.join(STATE, "cycle/reward-cycle.sqlite"), db => record(db.prepare("SELECT * FROM steps WHERE epoch=? AND method='finalize_root'").get(EPOCH)));
-    if (r.owner !== OWNER || r.transaction?.id !== TX || step.epoch !== EPOCH || step.method !== "finalize_root" ||
-        !equal(r.transaction, step.outbox?.transaction) || step.outbox.hash !== hash(JSON.stringify(r.transaction))) throw Error("Exact saved lifecycle envelope required");
+    savedPair(r, step);
     return { r, step };
   };
   const load = async () => {
@@ -189,4 +193,4 @@ if (require.main === module) {
     catch (e) { console.error("Recovery stopped: " + safe(e.message)); process.exitCode = 1; }
   }
 }
-module.exports = { recover, attemptStore, simulation, record, TX, SINCE, UNTIL };
+module.exports = { recover, attemptStore, simulation, record, savedPair, TX, SINCE, UNTIL };
