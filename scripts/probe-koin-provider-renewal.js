@@ -1,14 +1,22 @@
 "use strict";
-const { test } = require("node:test"), assert = require("node:assert/strict");
+const { test, describe } = require("node:test"), assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), os = require("node:os"), vm = require("node:vm"), crypto = require("node:crypto");
-const source = fs.readFileSync(path.join(__dirname, "../deploy/koin-mainnet/reviewed-renewals/2026-10-13.js"), "utf8");
+for (const review of [
+  { date: "2026-10-13", version: "0.54.12-test.177.1", at: 1791929965183, priorExpires: 1791743121324,
+    hash: "b57a896e1bf4d0cfdf7154ddaca6a89ac17687bdf4a379d6eb2a29fbd8650609",
+    priorHash: "730b29967b4397a0251e0a85d50bc5da227941ae5abae7ebbd29f4d87f173b39" },
+  { date: "2026-10-15", version: "0.54.12-test.180.1", at: 1792104188741, priorExpires: 1792016365183, stdin: true,
+    hash: "138e0c777b2abd26a8b146cf4c57289eb9c1eccfc478a6f0534b12e42b4716e5",
+    priorHash: "b57a896e1bf4d0cfdf7154ddaca6a89ac17687bdf4a379d6eb2a29fbd8650609" },
+]) describe(`reviewed provider renewal ${review.date}`, () => {
+const source = fs.readFileSync(path.join(__dirname, `../deploy/koin-mainnet/reviewed-renewals/${review.date}.js`), "utf8");
 const owner = "1H7QvaYveeG4oBM7krKSpEMXwREv1RFjvK", capacityId = "pilot-2592ee13a89f212f";
 const modelHash = "1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370";
-const benchmarkHash = "b57a896e1bf4d0cfdf7154ddaca6a89ac17687bdf4a379d6eb2a29fbd8650609";
-const priorHash = "730b29967b4397a0251e0a85d50bc5da227941ae5abae7ebbd29f4d87f173b39";
-const at = 1791929965183, expires = at + 86400000;
+const benchmarkHash = review.hash;
+const priorHash = review.priorHash;
+const at = review.at, expires = at + 86400000;
 const old = { address: owner, capacityId, model: "koinos-fast", modelHash, benchmarkHash: priorHash,
-  modelWeight: "6124", coverageBps: 10000, expires: 1791743121324 };
+  modelWeight: "6124", coverageBps: 10000, expires: review.priorExpires };
 const renewed = { ...old, benchmarkHash, expires };
 const unrelated = { address: "different-reviewed-provider", capacityId: "different-capacity", note: "preserve this exact record" };
 function fixture(t) {
@@ -36,10 +44,11 @@ function fixture(t) {
   assert.notEqual(script, source);
   for (const [from, to] of Object.entries(paths)) script = script.replaceAll(JSON.stringify(from), JSON.stringify(to));
   assert(!script.includes('"/root/') && !script.includes('"/etc/'));
-  const proof = { wallet: owner, configuredOwner: owner, hardware, privacy: "local-only", version: "0.54.12-test.177.1",
+  const proof = { wallet: owner, configuredOwner: owner, hardware, privacy: "local-only", version: review.version,
     runtime: { activeAlias: "koinos-fast", loading: false, lastLoadError: null, runtime: { kind: "llamacpp", running: true } }, modelHash, benchmarkHash, benchmarkAt: at };
   const writes = [], renames = [], owners = [], output = [];
   const io = Object.create(fs);
+  io.readFileSync = (file, ...args) => file === 0 ? JSON.stringify(proof) : fs.readFileSync(file, ...args);
   io.writeFileSync = (...args) => { writes.push(args[0]); return fs.writeFileSync(...args); };
   io.fchownSync = (fd, uid, gid) => { owners.push({ uid, gid }); return fs.fchownSync(fd, uid, gid); };
   io.renameSync = (from, to) => {
@@ -51,7 +60,7 @@ function fixture(t) {
   const run = ({ now = at + 1000, uid = 0 } = {}) => vm.runInNewContext(script, {
     require: name => { if (name === "node:fs") return io; if (["node:crypto", "node:path"].includes(name)) return require(name); throw Error("Unexpected dependency"); },
     Buffer, Date: class extends Date { static now() { return now; } },
-    process: { argv: ["node", "reviewed-renewal", Buffer.from(JSON.stringify(proof)).toString("base64")], getuid: () => uid, umask: () => 0o077 },
+    process: { argv: ["node", "reviewed-renewal", review.stdin ? "--reviewed-proof-stdin" : Buffer.from(JSON.stringify(proof)).toString("base64")], getuid: () => uid, umask: () => 0o077 },
     console: { log: value => output.push(String(value)) },
   }, { timeout: 1000 });
   return { files, paths, save, config, proof, run, io, writes, renames, owners, output, snapshot: () => files.map(file => fs.readFileSync(file, "utf8")) };
@@ -94,6 +103,12 @@ for (const [name, mutate, options] of [
   ["wrong active wallet", f => { f.proof.wallet = "buyer"; }],
   ["wrong configured wallet", f => { f.proof.configuredOwner = "buyer"; }],
   ["wrong hardware", f => { f.proof.hardware.cpu.cores++; }],
+  ["changed app version", f => { f.proof.version = "0.0.0"; }],
+  ["changed model hash", f => { f.proof.modelHash = "0".repeat(64); }],
+  ["changed active model", f => { f.proof.runtime.activeAlias = "other-model"; }],
+  ["loading model", f => { f.proof.runtime.loading = true; }],
+  ["model load error", f => { f.proof.runtime.lastLoadError = "failed"; }],
+  ["stopped runtime", f => { f.proof.runtime.runtime.running = false; }],
   ["changed benchmark digest", f => { f.proof.benchmarkHash = "0".repeat(64); }],
   ["changed benchmark time", f => { f.proof.benchmarkAt++; }],
   ["network-enabled benchmark", f => { f.proof.privacy = "local-first"; }],
@@ -108,4 +123,5 @@ for (const [name, mutate, options] of [
   const f = fixture(t); mutate(f); const before = f.snapshot();
   assert.throws(() => f.run(options)); assert.deepEqual(f.snapshot(), before);
   assert.deepEqual(f.writes, []); assert.deepEqual(f.renames, []);
+});
 });

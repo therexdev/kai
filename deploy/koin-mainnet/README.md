@@ -187,6 +187,35 @@ a valid reviewed model benchmark and current availability evidence; an invitatio
 alone does not qualify hardware or create reward entitlement. This server hosts
 the scheduler/tokenizer; inference runs on the provider's desktop.
 
+### Reviewed owner-provider renewal, October 15
+
+`reviewed-renewals/2026-10-15.js --reviewed-proof-stdin` applies only the reviewed
+Test 180 benchmark from `2026-10-15T22:43:08.741Z`, with the public desktop proof
+supplied as JSON on stdin. Its fixed expiry is `2026-10-16T22:43:08.741Z`; rerunning
+the helper does not extend it. The raw score remains **7/10**, 6244 ms, 13 calls.
+The supplied report reproduces SHA-256
+`138e0c777b2abd26a8b146cf4c57289eb9c1eccfc478a6f0534b12e42b4716e5`.
+Letter-count (`2`) and parity (`NO`) remain genuine quality limitations. The
+primary-colors response (`Red/Green/Blue`) is valid for light: the existing prompt
+does not specify a color system but expects RYB. Record that ambiguity without
+rewriting the saved report, changing its score, or inventing a passing threshold.
+
+This is a continuation of the invited owner's pilot on the same verified
+provider, hardware fingerprint and native model hash, not a production model
+approval or a general automatic qualification policy. The helper validates both
+existing qualification files before writing, preserves their ownership, mode
+and unrelated records, and creates private backups. It changes only the exact
+provider's benchmark digest and expiry, retaining weight `6124` and coverage
+`10000`. It does not access payment journals, keys or signing state, submit
+transactions, or restart/reinstall the service. The running service reads the
+qualification file when checking readiness; fresh signed provider presence and
+service health are still required for ONLINE.
+
+Validate both dated renewal helpers with
+`node --test scripts/probe-koin-provider-renewal.js`. In-app qualification renewal,
+unambiguous model-quality tests and measured production admission criteria remain
+unfinished work before opening this flow beyond the invited pilot.
+
 The provider address is an ordinary Koinos wallet controlled by the person
 running the serving Test desktop. That desktop uses it to sign work receipts
 and receive rewards. Use a different wallet from the buyer. It is separate from
