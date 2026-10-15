@@ -43,6 +43,7 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
         if (!account) return json(res, 401, { error: "Test invitation required" });
         const wallets = runtime.accounts.accountView(account).wallets;
         return json(res, 200, { mode: config.mode, mainnetPaymentsEnabled: wire.paymentsEnabled, automaticPayouts: true,
+          providers: wallets.map(w => require("./lib/koin-network/provider-readiness").providerReadiness(runtime, w.address)),
           payouts: wallets.flatMap(w => runtime.claims.accountStatus(w.address)), lastCycleCheck: runtime.lastSuccess || null });
       }
       if (url.pathname === "/scheduler/consume/chat/completions") {
