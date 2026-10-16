@@ -79,9 +79,13 @@ async function runPrepaidRuntime(chain, check) {
     const chat = new PrepaidChat({ file: path.join(root, "desktop-chat.json"), config: paymentConfig, payments,
       storage: { isEncryptionAvailable: () => true, encryptString: s => Buffer.from(s).map(b => b ^ 42), decryptString: b => b.map(n => n ^ 42).toString() },
       access: { authorize: () => ({ owner, sessionToken: token }) } });
-    await chat.call("purchase", { txId: bought.deposit.txId }); await runtime.scheduler.koinPrepaid.purchases.tick();
+    await chat.call("purchase", { txId: bought.deposit.txId });
+    assert.equal((await runtime.scheduler.koinPrepaid.purchases.inspect(bought.deposit.txId, owner)).state, "finalized");
+    await runtime.scheduler.koinPrepaid.purchases.tick();
     assert.equal((await chat.status()).balance.available, "10000000");
-    await chat.call("purchase", { txId: bought.deposit.txId }); await runtime.scheduler.koinPrepaid.purchases.tick();
+    await chat.call("purchase", { txId: bought.deposit.txId });
+    assert.equal((await runtime.scheduler.koinPrepaid.purchases.inspect(bought.deposit.txId, owner)).state, "finalized");
+    await runtime.scheduler.koinPrepaid.purchases.tick();
     assert.equal((await chat.status()).balance.available, "10000000");
     check("one native KOIN purchase approval creates prepaid credits once after irreversible confirmation");
     const worker = { address: workerAddress, proof: "signed", models: [tokenizer.model], capabilities: { koinFundedRehearsalJobs: 1 } };
