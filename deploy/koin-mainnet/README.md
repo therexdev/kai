@@ -231,6 +231,21 @@ reward-pool budget, 70% availability / 30% work, and an 80% provider work cap;
 review these existing contract parameters before deploying. Preserve transaction
 IDs, finality evidence and the exact Test installer before Alpha promotion.
 
+### Spending-approval verification
+
+The spending-approval observer must timestamp evidence after verification
+finishes. Previously, six seconds of RPC latency produced newly checked evidence
+that the ledger immediately rejected as more than five seconds old. Independent
+metadata, configuration, session and balance reads now run concurrently between
+unchanged-head checks, and any RPC endpoint-generation change rejects the
+snapshot. Clock rollback, expired sessions, changed state and irreversible-block
+checks remain mandatory. The ledger's five-second freshness limit is unchanged.
+Verify this path with `node --test scripts/probe-koin-funded-session.js
+scripts/probe-koin-mainnet-session-response.js scripts/probe-koin-session-delegation.js
+scripts/probe-koin-funded-reservations.js` before deploying the matching desktop
+approval-wait update. This observer fix does not migrate payment records or sign
+transactions.
+
 ## Alpha cutoff, only after the mainnet Test pilot passes
 
 The transition is operator-authenticated and is never triggered by deploying
