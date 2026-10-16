@@ -3,7 +3,7 @@
 // transaction submission, or restoration of payment databases.
 const fs = require("node:fs"), path = require("node:path"), { execFileSync } = require("node:child_process");
 const { DatabaseSync } = require("node:sqlite");
-const OLD = "07629b24e91f32af8abafc2ebdf0bdca8771e936", TARGET = "b21afe36f988b482d2b7475249d198200139522f";
+const OLD = "07629b24e91f32af8abafc2ebdf0bdca8771e936", TARGET = "b88bbbcce99cd13dead6d3e262cf61fd888de0f1";
 const UNIT = "kai-koin-mainnet-pilot.service", CHAIN = "EiBZK_GGVP0H_fXVAM3j6EAuz3-B-l3ejxRSewi7qIBfSA==";
 const PATHS = { work: "/root", releases: "/opt/kai-koin-mainnet-pilot/releases", bootstrap: "/root/kai-mainnet-bootstrap",
   config: "/etc/kai-koin-mainnet-pilot", state: "/var/lib/kai-koin-mainnet-pilot", unit: "/etc/systemd/system/" + UNIT };

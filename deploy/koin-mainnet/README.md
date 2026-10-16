@@ -247,7 +247,7 @@ approval-wait update. This observer fix does not migrate payment records or sign
 transactions.
 
 For the owner's existing `07629b2` pilot, the pinned
-`update-session-approval.js --apps-stopped` helper installs `b21afe3`. Quit both
+`update-session-approval.js --apps-stopped` helper installs `b88bbbc`. Quit both
 Test apps first. It refuses unresolved signed transactions or paid jobs, backs up
 the stopped service, verifies the funded-session probes, and preserves all
 configuration and current payment records. Failed health rolls back code only.
