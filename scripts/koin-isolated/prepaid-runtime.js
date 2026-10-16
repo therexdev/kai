@@ -113,7 +113,27 @@ async function runPrepaidRuntime(chain, check) {
     assert.ok(BigInt(await chain.balance(deployment.rewards)) > 0n);
     assert.equal(await chain.balance(chain.address("credits")), legacyBalance);
     check("prepaid usage settles once after restart, funds the reward pool, and preserves all legacy KOIN");
-    return { passed: true, nativeReviews, requests: 2, spentAtoms: spent, creditAtoms: onchain.balance.available, submitted: submitted.length };
+    const day = String(Math.floor(chain.now / 86400000)), providerBefore = BigInt(await chain.balance(workerAddress));
+    const progress = async (label, done) => {
+      for (let i = 0; i < 40; i++) {
+        if (await done()) return;
+        await runtime.tick(); if (transportError) throw transportError;
+        await finalize(); await pause(100);
+      }
+      throw Error(label + " did not finish: " + JSON.stringify(runtime.status()));
+    };
+    await progress("prepaid daily opening", async () => !!(await client.read("rewards", "get_epoch", { epoch: day })).epoch?.opened_at);
+    await chain.block([], (Number(day) + 1) * 86400000 + 10000);
+    await progress("prepaid reward proposal", async () => BigInt((await client.read("rewards", "get_epoch", { epoch: day })).epoch?.review_until || "0") > 0n);
+    const rewardDay = (await client.read("rewards", "get_epoch", { epoch: day })).epoch;
+    assert.equal(BigInt(await chain.balance(workerAddress)), providerBefore, "Provider payout must wait through review");
+    await chain.block([], Number(rewardDay.review_until) + 1);
+    await progress("prepaid provider payout", async () => runtime.claims.accountStatus(workerAddress).some(row => row.state === "paid"));
+    const paid = BigInt(await chain.balance(workerAddress)) - providerBefore;
+    assert.ok(paid > 0n); assert.equal(runtime.ledger.balance(owner).spent, spent);
+    assert.equal(await chain.balance(chain.address("credits")), legacyBalance);
+    check("new prepaid contracts pay the provider automatically without changing customer credits or legacy funds");
+    return { passed: true, nativeReviews, requests: 2, spentAtoms: spent, creditAtoms: onchain.balance.available, providerPayoutAtoms: String(paid), submitted: submitted.length };
   } finally {
     chain.provider.call = originalCall; journal?.close(); await runtime?.close(); await new Promise(resolve => server.close(resolve));
   }

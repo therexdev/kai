@@ -80,8 +80,7 @@ async function runTestRuntime(chain, check) {
         const abi = require("../../lib/koin-network/rewards-abi.json");
         const methodName = Object.entries(abi.methods).find(([, value]) => value.entry_point === op?.entry_point)?.[0];
         const decoded = op ? await client.serializer.deserialize(op.args, "koin.Request") : null;
-        const probe = await chain.include("runtime-rejected-probe", args.transaction).catch(error => ({ probeError: error.message }));
-        console.error(JSON.stringify({ blockProbe: { reverted: probe.reverted, logs: probe.logs, error: probe.probeError }, failedRuntimeMethod: methodName, args: decoded, head: await chain.provider.getHeadInfo(), runtime: runtime.status() }));
+        console.error(JSON.stringify({ failedRuntimeMethod: methodName, args: decoded, head: await chain.provider.getHeadInfo(), runtime: runtime.status() }));
         transportError = e;
       }
       throw e;
