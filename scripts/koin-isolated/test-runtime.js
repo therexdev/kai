@@ -74,7 +74,17 @@ async function runTestRuntime(chain, check) {
       const settlement = tx.operations?.[0]?.call_contract?.entry_point === require("../../lib/koin-network/credits-abi.json").methods.settle.entry_point;
       if (settlement && !lostSettlement) { lostSettlement = true; throw Object.assign(Error("Deliberately lost native settlement acknowledgment"), { deliberate: true }); }
       return result;
-    } catch (e) { if (!e.deliberate) transportError = e; throw e; }
+    } catch (e) {
+      if (!e.deliberate) {
+        const op = args.transaction?.operations?.[0]?.call_contract;
+        const abi = require("../../lib/koin-network/rewards-abi.json");
+        const methodName = Object.entries(abi.methods).find(([, value]) => value.entry_point === op?.entry_point)?.[0];
+        const decoded = op ? await client.serializer.deserialize(op.args, "koin.Request") : null;
+        console.error(JSON.stringify({ failedRuntimeMethod: methodName, args: decoded, head: await chain.provider.getHeadInfo(), runtime: runtime.status() }));
+        transportError = e;
+      }
+      throw e;
+    }
   };
   try {
     runtime = create();
@@ -96,7 +106,7 @@ async function runTestRuntime(chain, check) {
     let review;
     for (let i = 0; !review; i++) {
       if (i >= 12) throw Error("Desktop session did not reach finality");
-      try { review = await desktopSession.prepare(); } catch (e) { if (!/awaiting finality/.test(e.message)) throw e; await finalize(); }
+      try { review = await desktopSession.prepare(); } catch (e) { if (e.code !== "koin_session_wait") throw e; await finalize(); }
     }
     assert.equal((await desktopSession.approve(review)).state, "active");
     const id = P.hash("runtime-paid-request"), worker = { address: workerAddress, proof: "signed", models: [tokenizer.model], capabilities: { koinFundedRehearsalJobs: 1 } };

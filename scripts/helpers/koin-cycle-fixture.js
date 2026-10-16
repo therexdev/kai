@@ -8,17 +8,19 @@ const { RewardObserver } = require("../../lib/koin-network/reward-observer"), { 
 const { RewardCycle } = require("../../lib/koin-network/reward-cycle"), { RewardCycleRunner } = require("../../lib/koin-network/reward-cycle-runner");
 const payer = Signer.fromSeed("cycle-fixture-payer"), verifier = Signer.fromSeed("cycle-fixture-verifier");
 const addr = n => Signer.fromSeed("cycle-fixture-" + n).getAddress(), enc = utils.encodeBase64url, bytes = a => enc(utils.decodeBase58(a));
-async function fixture(t, overrides = {}) {
+async function fixture(t, overrides = {}, mainnet = false) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "koin-cycle-")), handles = [];
   let now = DAY + 1000, nonce = 0, cycle;
   const target = { chainId: enc(Buffer.from("1220" + P.hash("cycle-chain"), "hex")),
     rewards: addr("rewards"), rewardsHash: "0x1220" + P.hash("rewards"), credits: addr("credits"), creditsHash: "0x1220" + P.hash("credits"),
     token: addr("token"), tokenHash: "0x1220" + P.hash("token"), verifier: verifier.getAddress(), version: "1", workCapBps: 8000 };
+  if (mainnet) Object.assign(target, { chainId: require("../../lib/koin-network/payment-mode").MAINNET_CHAIN, token: require("../../lib/koin-network/payment-mode").MAINNET_TOKEN });
+  const mode = mainnet ? "mainnet-pilot" : "isolated-rehearsal";
   const policy = { verifier: target.verifier, payer: payer.getAddress(), maxRcPerTransaction: "10000", maxRcPerDay: "30000", maxAttempts: 3, minRetryMs: 1000, ...overrides };
   const budgetPolicy = { dailyBps: 500, availabilityBps: 7000 };
   const tree = Tree.build({ chainId: target.chainId, contract: target.rewards, epoch: "1", version: "1" },
     ["alice", "bob"].map(n => ({ address: addr(n), availability: "10", work: "4" })));
-  const manifest = { schema: 1, mode: "reward-rehearsal", target, epoch: "1", evidenceHash: P.hash("cycle-test-evidence"), root: tree.root,
+  const manifest = { schema: 1, mode: mainnet ? "reward-mainnet-pilot" : "reward-rehearsal", target, epoch: "1", evidenceHash: P.hash("cycle-test-evidence"), root: tree.root,
     allocations: tree.claims.map(({ address, availability, work }) => ({ address, availability, work })) };
   const envelope = { manifest, signature: Buffer.from(await verifier.signHash(M.signingHash(manifest))).toString("base64") };
   const config = { config: { chain_id: target.chainId, token: bytes(target.token), credits: bytes(target.credits), treasury: bytes(target.rewards),
@@ -48,7 +50,7 @@ async function fixture(t, overrides = {}) {
     getTransactionsById: async ids => ({ transactions: ids.flatMap(id => lookups.has(id) ? [structuredClone(lookups.get(id))] : []) }),
   };
   const observer = () => new RewardObserver(rpc, { target, clock: () => now });
-  const options = { mode: "isolated-rehearsal", target, policy, budgetPolicy, clock: () => now };
+  const options = { mode, target, policy, budgetPolicy, clock: () => now };
   const open = (extra = {}) => { const c = new RewardCycle(dir, { ...options, observer: observer(), ...extra }); handles.push(c); return c; };
   cycle = open(); cycle.queueDay("1");
   const signed = [], sent = [];
@@ -59,7 +61,7 @@ async function fixture(t, overrides = {}) {
     signed.push(structuredClone(tx)); return tx;
   };
   const submit = async tx => { sent.push(structuredClone(tx)); return { txId: tx.id }; };
-  const runner = extra => new RewardCycleRunner({ mode: "isolated-rehearsal", cycle, prepare, submit, ...extra });
+  const runner = extra => new RewardCycleRunner({ mode, cycle, prepare, submit, ...extra });
   const advance = ms => { now += ms; const h = Number(head.head_topology.height) + 1;
     head.head_topology = { id: "0x1220" + P.hash("cycle-block-" + h), height: String(h) };
     head.last_irreversible_block = String(h); head.head_block_time = String(now); return saveBlock(); };

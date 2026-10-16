@@ -219,6 +219,8 @@ async function run(directory) {
     assert.equal(await chain.balance(target.credits), "8500000000");
     check("customer refund transfers native tokens while new spending is paused");
     fundingRollback.close(); fundingRollback = null;
+    report.prepaid = await require("./prepaid-runtime").runPrepaidRuntime(chain, check);
+    report.prepaidUsd = await require("./prepaid-runtime").runPrepaidRuntime(chain, check, true);
     report.testRuntime = await require("./test-runtime").runTestRuntime(chain, check);
     report.passed = true; report.signatures = signatures; report.submissions = submissions; report.target = target;
     report.maxObservedClaimRc = String(report.measurements.reduce((max, m) => BigInt(m.rcUsed) > max ? BigInt(m.rcUsed) : max, 0n));

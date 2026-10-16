@@ -1,0 +1,23 @@
+name: KOIN pilot regression tests
+on:
+  push:
+    branches: [codex/koin-mainnet-pilot]
+    paths: ["lib/koin-network/**", "scripts/probe-koin*.js", "scripts/helpers/koin-*.js", "deploy/koin-mainnet/**", ".github/workflows/koin-pilot.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - run: npm audit --omit=dev --audit-level=high
+      - run: node --test --test-concurrency=2 scripts/probe-koin*.js
+      - run: node --check test-server.js

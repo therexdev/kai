@@ -1,0 +1,19 @@
+{
+  "mode": "mainnet-pilot-plan",
+  "rpc": ["https://api.koinosai.com", "https://api.koinos.io"],
+  "settings": {
+    "owner": "YOUR_MAINNET_BUYER_PUBLIC_ADDRESS",
+    "schedulerUrl": "https://YOUR_DEDICATED_TEST_HOST/scheduler",
+    "deployRcLimit": null,
+    "maxRcPerTransaction": null,
+    "maxRcPerDay": null,
+    "limits": {"amount": null, "perJob": null, "maxJobs": 10, "durationMs": 3600000},
+    "tariff": {"inputAtomsPerMillion": null, "outputAtomsPerMillion": null, "contextTokens": 8192, "maxOutputTokens": 256, "maxLatencyMs": 120000}
+  },
+  "funding": {
+    "maxTotalKoinAtoms": "100000000000",
+    "buyerCreditsAtoms": null,
+    "rewardPoolAtoms": null,
+    "roles": {"admin": "0", "credits": null, "rewards": null, "verifier": null, "mining": "0", "operations": "0", "settlement": null, "lifecycle": null, "claims": null}
+  }
+}

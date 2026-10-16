@@ -19,7 +19,7 @@ function prepare(upstreamDir, desktopDir, directory) {
   if (fs.existsSync(directory)) throw Error("Use a new empty rehearsal directory; never reuse node state");
   for (const [name, digest] of Object.entries(upstream.sha256)) if (hash(fs.readFileSync(path.join(upstreamDir, name))) !== digest) throw Error("Upstream artifact pin mismatch: " + name);
   const artifacts = {};
-  for (const kind of ["credits", "rewards"]) {
+  for (const kind of ["credits", "rewards", "prepaid", "prepaid-usd"]) {
     const wasm = path.join(desktopDir, "contracts/koin-network/build/release", kind + ".wasm");
     const abi = path.join(desktopDir, "contracts/koin-network/abi", kind + ".json");
     if (hash(fs.readFileSync(abi)) !== hash(fs.readFileSync(path.join(__dirname, "../../lib/koin-network", kind + "-abi.json")))) throw Error("Desktop/master ABI mismatch");

@@ -14,6 +14,50 @@ test("funded snapshot uses exact ABI reads and requires canonical irreversibilit
   observed.blockId = nextId;
   assert.equal((await f.observer.verify(observed.observationId)).blockId, blockId);
 });
+test("slow verified reads stamp evidence on completion without weakening the five-second ledger gate", async () => {
+  const f = fixture(), o = await f.observer.observe(f.request); f.finalize();
+  let now = Number(f.head.head_block_time);
+  const read = f.rpc.readContract;
+  f.rpc.readContract = async op => { const result = await read(op); now += 2001; f.time(now); return result; };
+  const result = await f.observer.verify(o.observationId);
+  assert.equal(result.state, "verified"); assert.equal(result.checkedAt, now);
+  assert.equal(result.spendingAuthorized, false); assert.equal(result.paymentsEnabled, false);
+  assert.equal(result.blockId, blockId);
+});
+test("parallel reads remain bounded by the same head and RPC endpoint generation", async () => {
+  const f = fixture(); f.rpc.readGeneration = 0;
+  const read = f.rpc.readContract;
+  let pending = 0, maximum = 0;
+  f.rpc.readContract = async op => {
+    pending++; maximum = Math.max(maximum, pending);
+    await new Promise(resolve => setImmediate(resolve));
+    const result = await read(op); pending--; return result;
+  };
+  const o = await f.observer.observe(f.request); assert.equal(maximum, 3); f.finalize();
+  const blocks = f.rpc.getBlocks;
+  f.rpc.getBlocks = async (...args) => { const result = await blocks(...args); f.rpc.readGeneration++; return result; };
+  await assert.rejects(f.observer.verify(o.observationId), /RPC changed/);
+  f.rpc.getBlocks = blocks;
+  f.rpc.readContract = async op => { const result = await read(op); f.rpc.readGeneration++; return result; };
+  await assert.rejects(f.observer.observe(f.request), /RPC changed/);
+});
+test("verification still rejects clock rollback and expiry during slow reads", async () => {
+  for (const rollback of [true, false]) {
+    const f = fixture(), o = await f.observer.observe(f.request); f.finalize();
+    const read = f.rpc.readContract, start = Number(f.head.head_block_time);
+    f.rpc.readContract = async op => { const result = await read(op); f.time(start + (rollback ? -1 : 60000)); return result; };
+    await assert.rejects(f.observer.verify(o.observationId), rollback ? /clock moved backwards/ : /expired/);
+  }
+});
+test("a slow final chain probe cannot hide a later head change behind a fresh completion timestamp", async () => {
+  const f = fixture(), o = await f.observer.observe(f.request); f.finalize();
+  let calls = 0;
+  f.rpc.getChainId = async () => {
+    if (++calls === 3) f.head.head_topology.id = "0x1220" + hash("head-advanced-during-chain-probe");
+    return f.target.chainId;
+  };
+  await assert.rejects(f.observer.verify(o.observationId), /Head changed/);
+});
 test("old fork and inconsistent canonical block do not verify funds", async () => {
   const f = fixture(), o = await f.observer.observe(f.request); f.finalize();
   f.block.block_id = nextId;

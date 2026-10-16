@@ -49,7 +49,9 @@ class IsolatedChain {
     this.walletNonceStats = [];
     this.vaultStats = [];
     this.provider = new LocalProvider(m.endpoint); this.records = []; this.resourceEnabled = false;
-    this.now = Math.floor(Date.now() / DAY) * DAY - 8 * DAY + 10000;
+    // Legacy custody, both prepaid products and the service recovery rehearsal
+    // advance distinct reward days. Keep all fixture blocks in the past.
+    this.now = Math.floor(Date.now() / DAY) * DAY - 14 * DAY + 10000;
     this.serializer = new Serializer(require("../../lib/koin-network/credits-abi.json").types);
     this.bootstrapSerializer = new Serializer({ nested: {
       record: { fields: { name: { type: "string", id: 1 }, address: { type: "bytes", id: 2 } } },

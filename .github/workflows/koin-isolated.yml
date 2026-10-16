@@ -1,7 +1,7 @@
 name: KOIN isolated transfers
 on:
   push:
-    branches: [claude/koin-shadow-integration]
+    branches: [claude/koin-shadow-integration, codex/koin-mainnet-pilot]
     paths: ["lib/koin-network/**", "scripts/koin-isolated/**", ".github/workflows/koin-isolated.yml"]
   workflow_dispatch:
 permissions:
@@ -28,10 +28,14 @@ jobs:
           ref: 74b64d739a98045630cb61557e1f141c04cd1eb1
           path: isolated-upstream
           persist-credentials: false
+      - name: Read the pinned desktop source revision
+        id: desktop_source
+        run: |
+          node -e 'const fs = require("node:fs"), pin = require("./lib/koin-network/SOURCE.json").sourceCommit; if (!/^[a-f0-9]{40}$/.test(pin)) throw Error("Invalid desktop source pin"); fs.appendFileSync(process.env.GITHUB_OUTPUT, "commit=" + pin + "\n");'
       - uses: actions/checkout@v4
         with:
           repository: therexdev/kaiapp
-          ref: 723e3b73d70670a5cc98a3bb55539d3d91231eec
+          ref: ${{ steps.desktop_source.outputs.commit }}
           path: isolated-desktop
           persist-credentials: false
       - name: Build pinned custody contracts

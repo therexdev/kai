@@ -17,6 +17,7 @@ test_node=$(command -v node)
 const path = require("path"), fs = require("fs"), root = process.argv[2];
 const { read, configuration, loadKeys } = require("./lib/koin-network/test-config");
 const c = configuration(JSON.parse(read(path.join(root, "runtime.json"))));
+if (c.mode !== "test-deployment") throw Error("Use the separate mainnet pilot installer for mainnet configuration");
 loadKeys(path.join(root, "runtime-keys.json"), c);
 const d = JSON.parse(read(path.join(root, "desktop-manifest.json")));
 if (JSON.stringify(d.deployment) !== JSON.stringify(c.deployment)) throw Error("Verified desktop manifest required");

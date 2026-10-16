@@ -1,6 +1,6 @@
 {
   "format": "kai-producer-signer-v1",
-  "koilibVersion": "9.3.0",
+  "koilibVersion": "9.4.0",
   "kondorCommit": "e319c5f190ec6d4c3c644270ded85a1256cd8e7c",
   "files": {
     "index.html": "bbd7577c12284b2a504638ed834478e49d1687b3a25f2062d8e27046acb43e73",
