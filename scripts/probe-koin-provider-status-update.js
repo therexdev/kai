@@ -6,10 +6,11 @@ function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "kai-provider-update-")); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const p = { work: path.join(root, "work"), releases: path.join(root, "releases"), config: path.join(root, "config"), bootstrap: path.join(root, "bootstrap"), state: path.join(root, "state"), unit: path.join(root, "pilot.service") };
   for (const key of ["work", "releases", "config", "bootstrap", "state"]) fs.mkdirSync(p[key], { recursive: true });
+  const expiredAt = Date.now() - 1000;
   for (const name of CONFIG) for (const directory of [p.config, p.bootstrap]) {
     const f = path.join(directory, name); fs.mkdirSync(path.dirname(f), { recursive: true });
     const value = name === "runtime.json" ? { mode: "mainnet-pilot", schedulerUrl: "https://payments.koinosai.com/scheduler", deployment: { chainId: CHAIN } }
-      : name === "qualifications.json" ? [{ address: "provider", model: "fast", expires: Date.now() - 1000 }] : { secret: "DO_NOT_PRINT_PRIVATE_VALUE" };
+      : name === "qualifications.json" ? [{ address: "provider", model: "fast", expires: expiredAt }] : { secret: "DO_NOT_PRINT_PRIVATE_VALUE" };
     fs.writeFileSync(f, JSON.stringify(value), { mode: 0o600 });
   }
   const holdFile = path.join(p.state, "scheduler/koin-funded-sessions/funded-reservations.sqlite"), signFile = path.join(p.state, "signing/test-signing.sqlite");
