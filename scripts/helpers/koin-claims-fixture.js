@@ -10,16 +10,17 @@ const { RehearsalSubmitter } = require("../../lib/koin-network/rehearsal-submitt
 const { encodeNonce } = require("../../lib/koin-network/settlement-outbox");
 const verifier = Signer.fromSeed("reward-probe-verifier"), sponsor = Signer.fromSeed("reward-probe-sponsor");
 const addr = name => Signer.fromSeed("reward-probe-" + name).getAddress(), enc = utils.encodeBase64url, bytes = a => enc(utils.decodeBase58(a));
-async function fixture(t, override = {}) {
+async function fixture(t, override = {}, mainnet = false) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "koin-claims-"));
   let now = 3 * DAY + 10000, txNonce = 0, ledger, observer;
   const target = { chainId: enc(Buffer.from("1220" + P.hash("reward-fixture-chain"), "hex")), rewards: addr("rewards"), rewardsHash: "0x1220" + P.hash("rewards-wasm"),
     credits: addr("credits"), creditsHash: "0x1220" + P.hash("credits-wasm"), token: addr("token"), tokenHash: "0x1220" + P.hash("token-wasm"),
     verifier: verifier.getAddress(), version: "1", workCapBps: 8000 };
+  if (mainnet) Object.assign(target, { chainId: require("../../lib/koin-network/payment-mode").MAINNET_CHAIN, token: require("../../lib/koin-network/payment-mode").MAINNET_TOKEN });
   const policy = { verifier: sponsor.getAddress(), payer: sponsor.getAddress(), maxRcPerTransaction: "10000", maxRcPerDay: "15000", maxAttempts: 3, minRetryMs: 1000, ...override };
   const tree = M.build({ chainId: target.chainId, contract: target.rewards, epoch: "1", version: "1" },
     ["alice", "bob"].map(name => ({ address: addr(name), availability: "10", work: "8" })));
-  const manifest = { schema: 1, mode: "reward-rehearsal", target, epoch: "1", evidenceHash: P.hash("fixture-evidence-only"), root: tree.root,
+  const manifest = { schema: 1, mode: mainnet ? "reward-mainnet-pilot" : "reward-rehearsal", target, epoch: "1", evidenceHash: P.hash("fixture-evidence-only"), root: tree.root,
     allocations: tree.claims.map(({ address, availability, work }) => ({ address, availability, work })) };
   const envelope = { manifest, signature: Buffer.from(await verifier.signHash(R.signingHash(manifest))).toString("base64") };
   const config = { config: { chain_id: target.chainId, token: bytes(target.token), credits: bytes(target.credits), treasury: bytes(target.rewards),

@@ -21,16 +21,17 @@ Reproduced defects and fixes:
   Each HTTP call makes one attempt; durable journals remain the only retry owner.
   Runtime preparation/submission now has a 30-second bound. An HTTP response is
   never irreversible confirmation.
-- Save sanitized reward submission outcomes in the existing hashed cycle record.
+- Save sanitized reward submission outcomes in the existing cycle or claim record.
   Original signed bytes, nonces, three-attempt ceilings, daily Mana reservations
-  and journal identities are unchanged. Check lifecycle nonce and available Mana
+  and journal identities are unchanged. Check lifecycle and payout sponsor nonce and available Mana
   before consuming another broadcast attempt; resource outages wait without
   burning the attempt budget.
 
-The compatible updater may carry an already exhausted reward cycle through a
-code update only when the signing and cycle records agree, hashes and original
-signatures validate, the configured lifecycle owner and operation match, and the
-cycle is still `needs_review / attempt_limit` at exactly three attempts. It
+The compatible updater may carry an already exhausted reward cycle or provider payout through a
+code update only when the signing and reward records agree, hashes and original
+signatures validate, the configured sponsor and operation match, and the
+record is still `needs_review / attempt_limit` at exactly three attempts. Payouts
+also require the original signed manifest and exact committed entitlement. It
 backs up stopped state and verifies those same bytes and counters after startup.
 It does not authorize a fourth send. All unfinished paid chat holds, incomplete
 signatures and other unresolved transaction states still block installation.

@@ -3,6 +3,7 @@ const test = require("node:test"), assert = require("node:assert/strict");
 const { provider, withSignal, submitter } = require("../lib/koin-network/rpc-transport");
 const { fixture } = require("./helpers/koin-cycle-fixture");
 const { RewardCycleRunner } = require("../lib/koin-network/reward-cycle-runner");
+const { fixture: claimsFixture } = require("./helpers/koin-claims-fixture");
 const reply = (request, result) => new Response(JSON.stringify({ jsonrpc: "2.0", id: JSON.parse(request.body).id, result }));
 const urls = ["https://one.invalid", "https://two.invalid"];
 test("a cancelled verification never sends a late transaction", async () => {
@@ -73,4 +74,29 @@ test("low Mana and read failures do not consume lifecycle attempts; the same sav
   offline = false; ready = true;
   assert.equal((await runner.tick({ openCurrentDay: false })).results[0].action, "await_finality");
   assert.equal(f.sent.length, 1); assert.equal(f.signed.length, 1); assert.equal(f.sent[0].id, txId);
+});
+test("provider payout waits for Mana without exhausting attempts and retains a rejected submission across restart", async t => {
+  const f = await claimsFixture(t); let ready = false;
+  f.reopen({ preflight: async () => ready ? null : "claim_mana_recharging" });
+  for (let n = 0; n < 4; n++) {
+    assert.equal((await f.runner().tick()).results[0].reason, "claim_mana_recharging");
+    assert.equal(f.ledger.status(f.ids[0]).attempts, 0);
+  }
+  const id = f.ledger.status(f.ids[0]).txId; ready = true;
+  await f.runner({ submit: async () => { throw Error("claim RPC unavailable"); } }).tick();
+  assert.match(f.ledger.status(f.ids[0]).lastSubmission.error, /claim RPC unavailable/);
+  f.reopen();
+  assert.equal(f.ledger.status(f.ids[0]).txId, id); assert.equal(f.ledger.status(f.ids[0]).attempts, 1);
+  assert.match(f.ledger.status(f.ids[0]).lastSubmission.error, /claim RPC unavailable/);
+  assert.equal(f.signed.length, 1); assert.equal(f.sent.length, 0);
+});
+test("resource checks distinguish nonce uncertainty from insufficient Mana without submitting", async () => {
+  const { resourceReadiness } = require("../lib/koin-network/rpc-transport"), { encodeNonce } = require("../lib/koin-network/settlement-outbox");
+  let current = 14, mana = "9999";
+  const client = { provider: { getNonce: async () => current, getAccountRc: async () => mana } };
+  const tx = { header: { payer: "fixture", nonce: encodeNonce("15"), rc_limit: "10000" } };
+  assert.equal(await resourceReadiness(client, tx), "lifecycle_mana_recharging");
+  assert.equal(await resourceReadiness(client, tx, "claim"), "claim_mana_recharging");
+  mana = "10000"; assert.equal(await resourceReadiness(client, tx), null);
+  current = 15; assert.equal(await resourceReadiness(client, tx), "lifecycle_nonce_unavailable");
 });
