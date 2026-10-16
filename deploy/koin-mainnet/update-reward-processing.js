@@ -5,7 +5,7 @@ const fs = require("node:fs"), path = require("node:path"), { execFileSync } = r
 const { DatabaseSync } = require("node:sqlite");
 const crypto = require("node:crypto"), { isDeepStrictEqual: equal } = require("node:util");
 const hash = value => crypto.createHash("sha256").update(value).digest("hex");
-const OLD = "07629b24e91f32af8abafc2ebdf0bdca8771e936", TARGET = "ab9660a1184b17ea637105eb54bf54db1b34cf4d";
+const OLD = "07629b24e91f32af8abafc2ebdf0bdca8771e936", TARGET = "28ee1a81b24c3aad5b55190cfbd7890d4077b763";
 const UNIT = "kai-koin-mainnet-pilot.service", CHAIN = "EiBZK_GGVP0H_fXVAM3j6EAuz3-B-l3ejxRSewi7qIBfSA==";
 const PATHS = { work: "/root", releases: "/opt/kai-koin-mainnet-pilot/releases", bootstrap: "/root/kai-mainnet-bootstrap",
   config: "/etc/kai-koin-mainnet-pilot", state: "/var/lib/kai-koin-mainnet-pilot", unit: "/etc/systemd/system/" + UNIT };
@@ -25,6 +25,13 @@ function readDb(state, file, callback) {
   const db = new DatabaseSync(path.join(state, file), { readOnly: true });
   try { return callback(db); } finally { db.close(); }
 }
+function claimRecord(row) {
+  if (!row) throw Error("Missing saved reward claim");
+  const r = JSON.parse(row.data);
+  if (r.id !== row.id || r.state !== row.state || r.outbox?.transaction.id !== row.tx_id ||
+      r.outbox.hash !== hash(JSON.stringify(r.outbox.transaction))) throw Error("Reward claim journal binding changed");
+  return r;
+}
 function drained(state, config, now = Date.now()) {
   readDb(state, "scheduler/koin-funded-sessions/funded-reservations.sqlite", db => {
     const open = db.prepare("SELECT state, count(*) AS count FROM holds WHERE state NOT IN ('settled','cancelled') GROUP BY state").all();
@@ -38,32 +45,54 @@ function drained(state, config, now = Date.now()) {
   const frozen = [];
   for (const row of rows) {
     const r = record(row), tx = r.transaction;
-    if (r.state !== "signed" || r.owner !== config?.roles?.lifecycle || !tx || tx.operations?.length !== 1)
-      throw Error("Unresolved transaction is not an exhausted reward cycle; no update installed. " + JSON.stringify({ state: r.state, record: r.id, txId: tx?.id ?? null }));
-    const step = readDb(state, "cycle/reward-cycle.sqlite", db => record(db.prepare("SELECT * FROM steps WHERE tx_id=?").get(tx.id)));
+    const kind = r.owner === config?.roles?.lifecycle ? "cycle" : r.owner === config?.roles?.claims ? "claim" : null;
+    if (r.state !== "signed" || !kind || !tx || tx.operations?.length !== 1)
+      throw Error("Unresolved transaction is not an exhausted reward transaction; no update installed. " + JSON.stringify({ state: r.state, record: r.id, txId: tx?.id ?? null }));
+    let manifest = null;
+    const step = kind === "cycle" ? readDb(state, "cycle/reward-cycle.sqlite", db => record(db.prepare("SELECT * FROM steps WHERE tx_id=?").get(tx.id)))
+      : readDb(state, "claims/reward-claims.sqlite", db => {
+        const c = claimRecord(db.prepare("SELECT * FROM claims WHERE tx_id=?").get(tx.id));
+        manifest = db.prepare("SELECT * FROM manifests WHERE epoch=?").get(c.epoch);
+        if (!manifest || manifest.hash !== c.manifestHash || c.id !== hash(c.manifestHash + ":" + c.claim?.address)) throw Error("Reward claim manifest binding changed");
+        return { ...c, method: "claim" };
+      });
     const expectedSigners = step.method === "propose_root" ? [r.owner, config.deployment.verifier] : [r.owner];
     if (step.state !== "needs_review" || step.reason !== "attempt_limit" || step.outbox?.attempts !== 3 ||
-        r.id !== hash(`cycle:${step.epoch}:${step.method}`) || !equal(step.outbox.transaction, tx) ||
-        step.outbox.hash !== hash(JSON.stringify(tx)) || tx.header.chain_id !== CHAIN || tx.header.payer !== r.owner ||
+        r.id !== hash(kind === "cycle" ? `cycle:${step.epoch}:${step.method}` : `claim:${step.id}`) || !equal(step.outbox.transaction, tx) ||
+        step.outbox.hash !== hash(JSON.stringify(step.outbox.transaction)) || tx.header.chain_id !== CHAIN || tx.header.payer !== r.owner ||
         tx.header.payee || tx.header.rc_limit !== config.maxRcPerTransaction ||
         tx.operations[0].call_contract?.contract_id !== config.deployment.rewards ||
-        !["open_epoch", "propose_root", "finalize_root"].includes(step.method) || !Array.isArray(r.signers) ||
+        !(kind === "cycle" ? ["open_epoch", "propose_root", "finalize_root"] : ["claim"]).includes(step.method) || !Array.isArray(r.signers) ||
         !equal([...r.signers].sort(), expectedSigners.sort()))
       throw Error("Unresolved reward transaction is not safely frozen at its existing retry limit. " + JSON.stringify({ txId: tx.id, epoch: step.epoch, method: step.method, state: step.state, reason: step.reason, attempts: step.outbox?.attempts }));
-    frozen.push({ signingId: r.id, owner: r.owner, signers: r.signers, epoch: step.epoch, method: step.method,
-      txId: tx.id, transaction: tx, attempts: step.outbox.attempts });
+    frozen.push({ kind, signingId: r.id, owner: r.owner, signers: r.signers, epoch: step.epoch, method: step.method,
+      txId: tx.id, transaction: tx, attempts: step.outbox.attempts, outbox: step.outbox,
+      ...(kind === "claim" && { claimId: step.id, claim: step.claim, manifest,
+        deployment: { ...config.deployment, version: String(config.version), workCapBps: 8000 } }) });
   }
   return frozen;
 }
 async function verifyFrozen(frozen, base) {
   if (!frozen.length) return;
-  const { Transaction, Signer } = require(path.join(base, "node_modules/koilib"));
+  const { Transaction, Signer, Serializer, utils } = require(path.join(base, "node_modules/koilib"));
   const abi = require(path.join(base, "lib/koin-network/rewards-abi.json"));
   for (const r of frozen) {
     if (r.transaction.operations[0].call_contract.entry_point !== abi.methods[r.method]?.entry_point ||
         (await Transaction.prepareTransaction(structuredClone(r.transaction))).id !== r.txId ||
         !equal((await Signer.recoverAddresses(r.transaction)).sort(), [...r.signers].sort()))
       throw Error("Frozen transaction signature or commitment mismatch");
+    if (r.kind === "claim") {
+      const M = require(path.join(base, "lib/koin-network/reward-manifest"));
+      const keys = ["chainId", "credits", "creditsHash", "rewards", "rewardsHash", "token", "tokenHash", "verifier", "version", "workCapBps"];
+      const result = M.verify(JSON.parse(r.manifest.data), Object.fromEntries(keys.map(k => [k, r.deployment[k]])));
+      if (result.hash !== r.manifest.hash || result.envelope.manifest.epoch !== r.epoch ||
+          !equal(result.claims.find(c => c.address === r.claim.address), r.claim)) throw Error("Frozen claim manifest mismatch");
+      const enc = utils.encodeBase64url, amounts = c => ({ ...(c.availability !== "0" && { availability: c.availability }), ...(c.work !== "0" && { work: c.work }) });
+      const args = { ...(r.epoch !== "0" && { epoch: r.epoch }), account: enc(utils.decodeBase58(r.claim.address)), ...amounts(r.claim),
+        proof: r.claim.proof.map(p => ({ hash: enc(Buffer.from(p.hash, "hex")), ...amounts(p), ...(p.left && { left: true }) })) };
+      if (enc(await new Serializer(abi.types).serialize(args, "koin.Request")) !== r.transaction.operations[0].call_contract.args)
+        throw Error("Frozen claim transaction does not match its entitlement");
+    }
   }
 }
 async function reportFrozen(frozen, config, base, log) {
@@ -85,10 +114,15 @@ async function reportFrozen(frozen, config, base, log) {
 function preserved(frozen, state) {
   for (const prior of frozen) {
     const r = readDb(state, "signing/test-signing.sqlite", db => record(db.prepare("SELECT * FROM signatures WHERE id=?").get(prior.signingId)));
-    const step = readDb(state, "cycle/reward-cycle.sqlite", db => record(db.prepare("SELECT * FROM steps WHERE tx_id=?").get(prior.txId)));
+    const step = prior.kind === "claim" ? readDb(state, "claims/reward-claims.sqlite", db => {
+      const c = claimRecord(db.prepare("SELECT * FROM claims WHERE id=?").get(prior.claimId));
+      if (!equal(c.claim, prior.claim) || c.manifestHash !== prior.manifest.hash ||
+          !equal(db.prepare("SELECT * FROM manifests WHERE epoch=?").get(prior.epoch), prior.manifest)) throw Error("Frozen claim entitlement changed unexpectedly");
+      return c;
+    }) : readDb(state, "cycle/reward-cycle.sqlite", db => record(db.prepare("SELECT * FROM steps WHERE tx_id=?").get(prior.txId)));
     if (!equal(r.transaction, prior.transaction) || !equal(step.outbox.transaction, prior.transaction) ||
         step.outbox.attempts !== prior.attempts || !["signed", "finalized", "reverted"].includes(r.state) ||
-        !["needs_review", "complete"].includes(step.state)) throw Error("Frozen transaction changed unexpectedly; preserve journals for review");
+        !equal(step.outbox, prior.outbox) || !(prior.kind === "claim" ? ["needs_review", "paid", "paid_elsewhere"] : ["needs_review", "complete"]).includes(step.state)) throw Error("Frozen transaction changed unexpectedly; preserve journals for review");
   }
 }
 function configurations(p) {

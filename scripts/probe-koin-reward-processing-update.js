@@ -4,6 +4,7 @@ const { execFileSync } = require("node:child_process"), { DatabaseSync } = requi
 const { update, drained, preserved, verifyFrozen, OLD, TARGET, UNIT, CHAIN, CONFIG } = require("../deploy/koin-mainnet/update-reward-processing");
 const P = require("../lib/koin-network/job-protocol");
 const { fixture: cycleFixture, payer, verifier } = require("./helpers/koin-cycle-fixture");
+const { fixture: claimsFixture, sponsor } = require("./helpers/koin-claims-fixture");
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "kai-session-update-")); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const p = { work: path.join(root, "work"), releases: path.join(root, "releases"), config: path.join(root, "config"), bootstrap: path.join(root, "bootstrap"), state: path.join(root, "state"), unit: path.join(root, "pilot.service") };
@@ -138,4 +139,58 @@ test("post-start frozen-record changes trigger code rollback without restoring a
   assert.equal(f.service.dir, path.join(f.p.releases, OLD));
   const db = new DatabaseSync(f.cycleFile, { readOnly: true });
   assert.equal(JSON.parse(db.prepare("SELECT data FROM steps").get().data).outbox.attempts, 4); db.close();
+});
+async function frozenClaimFixture(t) {
+  const f = fixture(t), claims = await claimsFixture(t, {}, true), id = claims.ids[0];
+  const decision = await claims.ledger.advance(id), tx = await claims.prepare(decision);
+  await claims.ledger.stage(id, tx);
+  for (let n = 0; n < 4; n++) { await claims.ledger.advance(id); claims.advance(1001); }
+  assert.equal(claims.ledger.status(id).reason, "attempt_limit");
+  const file = path.join(f.p.state, "claims/reward-claims.sqlite"); fs.mkdirSync(path.dirname(file), { recursive: true });
+  const source = new DatabaseSync(path.join(claims.dir, "reward-claims.sqlite"));
+  source.prepare("VACUUM INTO ?").run(file); source.close();
+  const r = { id: P.hash("claim:" + id), owner: sponsor.getAddress(), state: "signed", signers: [sponsor.getAddress()], transaction: tx };
+  const signing = new DatabaseSync(f.signFile), data = JSON.stringify(r);
+  signing.prepare("INSERT INTO signatures VALUES(?,?,?,?,?)").run(r.id, r.state, data, r.owner, P.hash(data)); signing.close();
+  const config = JSON.parse(fs.readFileSync(path.join(f.p.config, "runtime.json")));
+  config.roles.claims = r.owner; config.version = "1"; Object.assign(config.deployment, claims.target);
+  for (const root of [f.p.config, f.p.bootstrap]) fs.writeFileSync(path.join(root, "runtime.json"), JSON.stringify(config));
+  return { ...f, config, claimFile: file, transaction: tx, claimId: id };
+}
+test("rollout preserves an exhausted payout, its signed manifest, and the entire sponsorship ledger", async t => {
+  const f = await frozenClaimFixture(t), beforeSign = fs.readFileSync(f.signFile), beforeClaims = fs.readFileSync(f.claimFile);
+  await update(f.options);
+  assert.equal(f.service.dir, path.join(f.p.releases, TARGET));
+  assert.deepEqual(fs.readFileSync(f.signFile), beforeSign); assert.deepEqual(fs.readFileSync(f.claimFile), beforeClaims);
+  assert.match(f.logs.join("\n"), /extraRetriesAuthorized.*false/);
+});
+test("active, altered or differently blocked payouts cannot use the frozen-envelope rollout", async t => {
+  for (const change of ["state", "reason", "attempts", "transaction", "entitlement", "manifest"]) {
+    const f = await frozenClaimFixture(t), db = new DatabaseSync(f.claimFile);
+    const row = db.prepare("SELECT * FROM claims WHERE id=?").get(f.claimId), r = JSON.parse(row.data);
+    if (change === "state") r.state = "unknown";
+    if (change === "reason") r.reason = "expired_epoch";
+    if (change === "attempts") r.outbox.attempts = 2;
+    if (change === "transaction") r.outbox.transaction.header.rc_limit = "20000";
+    if (change === "entitlement") r.claim.work = "9";
+    if (change === "manifest") {
+      const envelope = JSON.parse(db.prepare("SELECT data FROM manifests").get().data);
+      envelope.signature = Buffer.alloc(65).toString("base64"); db.prepare("UPDATE manifests SET data=?").run(JSON.stringify(envelope));
+    }
+    db.prepare("UPDATE claims SET state=?,data=? WHERE id=?").run(r.state, JSON.stringify(r), r.id); db.close();
+    await assert.rejects(update(f.options));
+    assert.equal(f.calls.some(c => c.exe === "bash"), false);
+    assert.equal(f.service.dir, path.join(f.p.releases, OLD)); assert.equal(f.service.active, "active");
+  }
+});
+test("a changed payout attempt count after startup rolls code back without replacing the journal", async t => {
+  const f = await frozenClaimFixture(t);
+  f.options.checkHealth = async () => {
+    const db = new DatabaseSync(f.claimFile), r = JSON.parse(db.prepare("SELECT data FROM claims WHERE id=?").get(f.claimId).data);
+    r.outbox.attempts = 4; db.prepare("UPDATE claims SET data=? WHERE id=?").run(JSON.stringify(r), r.id); db.close();
+  };
+  await assert.rejects(update(f.options), /changed unexpectedly/);
+  assert.equal(f.service.dir, path.join(f.p.releases, OLD));
+  const db = new DatabaseSync(f.claimFile, { readOnly: true });
+  assert.equal(JSON.parse(db.prepare("SELECT data FROM claims WHERE id=?").get(f.claimId).data).outbox.attempts, 4); db.close();
 });
