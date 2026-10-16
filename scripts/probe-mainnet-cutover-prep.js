@@ -150,3 +150,21 @@ test("cutover HTTP actions require the operator secret and refuse unauthenticate
     s._legacyConsumersActive = 1; assert.throws(() => s.closeEpoch(), /drain/); s._legacyConsumersActive = 0;
   } finally { await s.close(); }
 });
+
+test("USD bootstrap pins Master routing, separate WASM, 10,000 KOIN seed and explicit USD tariffs without sending funds", async t => {
+  const d = temp(t), input = path.join(d, "usd-settings.json"), out = path.join(d, "usd-bootstrap"), c = settings();
+  c.mode = "mainnet-prepaid-usd-plan"; c.funding.rewardPoolAtoms = "1000000000000"; c.funding.maxTotalKoinAtoms = "1000000001000";
+  c.settings.tariff.inputAtomsPerMillion = "10000000"; c.settings.tariff.outputAtomsPerMillion = "20000000";
+  c.settings.limits.perJob = "1000000"; // USD limit is not comparable to the KOIN purchase limit.
+  fs.writeFileSync(input, JSON.stringify(c));
+  for (const kind of ["prepaid-usd", "rewards"]) fs.writeFileSync(path.join(d,kind+".wasm"),Buffer.from("0061736d01000000","hex"));
+  const plan = await prepare(out,input,d,{providerFactory:provider}); assert.equal(plan.runtimeReady,false);
+  const configured = await require("../deploy/koin-mainnet/setup").configure(out,plan.planHash,provider); assert.equal(configured.deployed,false);
+  const runtime = JSON.parse(fs.readFileSync(path.join(out,"runtime.json")));
+  assert.equal(runtime.deployment.product,"prepaid-usd-v1"); assert.equal(runtime.deployment.masterNode,"15CM9Qr4GKREDgqnyXJ8tckPj2biERTM1T");
+  assert.equal(runtime.tariff.inputAtomsPerMillion,"10000000");
+  const deployment = JSON.parse(fs.readFileSync(path.join(out,"deployment-plan.json")));
+  assert.equal(deployment.funding.rewardPoolAtoms,"1000000000000");
+  assert.notEqual(runtime.deployment.credits,runtime.deployment.rewards);
+  assert.throws(()=>new (require("../lib/koin-network/chain").KoinChain)({...runtime.deployment,masterNode:A}),/Master/);
+});

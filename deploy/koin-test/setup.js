@@ -11,7 +11,7 @@ const tokenizer = require("../../lib/koin-network/tokenizers/qwen25-1.5b.json"),
 const RPC = "https://testnet.koinosfoundation.org/jsonrpc", roles = ["admin", "credits", "rewards", "verifier", "mining", "operations", "settlement", "lifecycle", "claims"];
 const json = value => JSON.stringify(value, null, 2) + "\n";
 function save(file, value) { const fd = fs.openSync(file, "wx", 0o600); try { fs.writeFileSync(fd, typeof value === "string" || Buffer.isBuffer(value) ? value : json(value)); fs.fsyncSync(fd); } finally { fs.closeSync(fd); } }
-function settings(s) {
+function settings(s, { usd = false } = {}) {
   if (!s || Object.keys(s).sort().join() !== "deployRcLimit,limits,maxRcPerDay,maxRcPerTransaction,owner,schedulerUrl,tariff" || !utils.isChecksumAddress(s.owner)) throw Error("Fill the explicit Test setup settings first");
   for (const key of ["deployRcLimit", "maxRcPerTransaction", "maxRcPerDay"]) amount(s[key]);
   const t = s.tariff;
@@ -19,7 +19,7 @@ function settings(s) {
   amount(t.inputAtomsPerMillion); amount(t.outputAtomsPerMillion); P.integer(t.contextTokens, 1, 32768); P.integer(t.maxOutputTokens, 1, t.contextTokens); P.integer(t.maxLatencyMs, 1, 180000);
   if (!s.limits || Object.keys(s.limits).sort().join() !== "amount,durationMs,maxJobs,perJob") throw Error("Explicit bounded session limits required");
   amount(s.limits.amount); amount(s.limits.perJob); P.integer(s.limits.maxJobs, 1, 10000); P.integer(s.limits.durationMs, 60000, 86400000);
-  if (BigInt(s.limits.perJob) > BigInt(s.limits.amount)) throw Error("Per-request limit exceeds session budget");
+  if (!usd && BigInt(s.limits.perJob) > BigInt(s.limits.amount)) throw Error("Per-request limit exceeds session budget");
   return s;
 }
 async function prepare(directory, settingsFile, wasmDir) {
@@ -67,14 +67,14 @@ async function deploy(directory, wasmDir, approved, { planFile = "plan.json", ha
   const encoded = role => utils.encodeBase64url(utils.decodeBase58(c.deployment[role]));
   const config = { chain_id: c.deployment.chainId, token: encoded("token"), credits: encoded("credits"), treasury: encoded("rewards"),
     admin: encoded("admin"), verifier: encoded("verifier"), mining: encoded("mining"), operations: encoded("operations"), version: "1",
-    daily_bps: 500, availability_bps: 7000, reward_bps: 6000, mining_bps: 2500, operations_bps: 1500, work_cap_bps: 8000 };
+    daily_bps: 500, availability_bps: 7000, reward_bps: 6000, mining_bps: 2500, operations_bps: 1500, work_cap_bps: 8000, ...(c.deployment.product === "prepaid-usd-v1" ? { master_node: encoded("masterNode"), reward_basis: 1 } : {}) };
   try {
     const revision = journal.resourceRevision();
     if (revision) plan = revision.plan;
     if (approved !== P.hash(JSON.stringify(plan))) throw Error("Review the current deployment plan and supply its exact --approve hash");
     for (const kind of ["credits", "rewards"]) for (const action of ["upload", "initialize"]) {
       const signer = Signer.fromWif(keys[kind]); if (signer.getAddress() !== c.deployment[kind]) throw Error("Custody key does not match the plan");
-      const bytecode = fs.readFileSync(path.join(wasmDir, (kind === "credits" && c.deployment.product === "prepaid-v1" ? "prepaid" : kind) + ".wasm"));
+      const bytecode = fs.readFileSync(path.join(wasmDir, (kind === "credits" && c.deployment.product === "prepaid-usd-v1" ? "prepaid-usd" : kind === "credits" && c.deployment.product === "prepaid-v1" ? "prepaid" : kind) + ".wasm"));
       if (P.hash(bytecode) !== plan.artifacts[kind].sha256) throw Error("Custody build changed after review");
       const operations = action === "upload" ? [{ upload_contract: { contract_id: c.deployment[kind], bytecode: utils.encodeBase64url(bytecode) } }] :
         [{ call_contract: { contract_id: c.deployment[kind], entry_point: abi.methods.initialize.entry_point, args: utils.encodeBase64url(await serializer.serialize({ config }, "koin.Request")) } }];
