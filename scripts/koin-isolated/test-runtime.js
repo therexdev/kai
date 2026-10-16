@@ -96,7 +96,7 @@ async function runTestRuntime(chain, check) {
     let review;
     for (let i = 0; !review; i++) {
       if (i >= 12) throw Error("Desktop session did not reach finality");
-      try { review = await desktopSession.prepare(); } catch (e) { if (!/awaiting finality/.test(e.message)) throw e; await finalize(); }
+      try { review = await desktopSession.prepare(); } catch (e) { if (e.code !== "koin_session_wait") throw e; await finalize(); }
     }
     assert.equal((await desktopSession.approve(review)).state, "active");
     const id = P.hash("runtime-paid-request"), worker = { address: workerAddress, proof: "signed", models: [tokenizer.model], capabilities: { koinFundedRehearsalJobs: 1 } };

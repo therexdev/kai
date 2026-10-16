@@ -18,7 +18,7 @@
     "payment-network.js": "537bf1551f2d95482e204ef377b5e1218106912bcc47913f59499ee901185fc0",
     "prepaid-abi.json": "f09df5a6a6c67e2c1bdd25b6daa424914bb8fff2516e56a6972f5c68f84f2733",
     "funding-observer.js": "5a7f0248fddf201adf64c6a151e8b2173498eee422762ba55f2b9cee2be85531",
-    "rpc-provider.js": "4709e052bc3d72345cfc9cabed50947c2127d2f3d5001a80c6ab4a951e4e1500"
+    "rpc-provider.js": "9866705dd85755889eb6c70d6dcca3c2c487b91a635d2d56f4308d10765a2c25"
   },
-  "sourceCommit": "02cd6115ed77066bff4fddb431b5b7d7192b8e8b"
+  "sourceCommit": "4e9f353bc8cc458a37b688aba5af02c1dae83a95"
 }
