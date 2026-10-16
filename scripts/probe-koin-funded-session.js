@@ -49,6 +49,15 @@ test("verification still rejects clock rollback and expiry during slow reads", a
     await assert.rejects(f.observer.verify(o.observationId), rollback ? /clock moved backwards/ : /expired/);
   }
 });
+test("a slow final chain probe cannot hide a later head change behind a fresh completion timestamp", async () => {
+  const f = fixture(), o = await f.observer.observe(f.request); f.finalize();
+  let calls = 0;
+  f.rpc.getChainId = async () => {
+    if (++calls === 3) f.head.head_topology.id = "0x1220" + hash("head-advanced-during-chain-probe");
+    return f.target.chainId;
+  };
+  await assert.rejects(f.observer.verify(o.observationId), /Head changed/);
+});
 test("old fork and inconsistent canonical block do not verify funds", async () => {
   const f = fixture(), o = await f.observer.observe(f.request); f.finalize();
   f.block.block_id = nextId;
