@@ -1,7 +1,7 @@
 name: KOIN isolated transfers
 on:
   push:
-    branches: [claude/koin-shadow-integration]
+    branches: [claude/koin-shadow-integration, codex/koin-mainnet-pilot]
     paths: ["lib/koin-network/**", "scripts/koin-isolated/**", ".github/workflows/koin-isolated.yml"]
   workflow_dispatch:
 permissions:
