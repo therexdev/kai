@@ -25,6 +25,16 @@ async function runPrepaidRuntime(chain, reportCheck, usd = false) {
   for (const [kind, signer] of [["credits", credits], ["rewards", rewards]]) await chain.send("prepaid-initialize-" + kind,
     [{ call_contract: await client.operation(kind, "initialize", { config: contractConfig }) }], signer, { payer: chain.keys.Genesis });
   await client.verify(); check("new prepaid and reward contracts deploy without changing legacy custody");
+  // Exercise both values on each compiled contract with native authority and
+  // storage, before the purchase/settlement/reward flow relies on them.
+  for (const kind of ["credits", "rewards"]) {
+    for (const paused of [true, false, true, false]) {
+      await chain.send(prefix + "-" + kind + "-pause-" + paused,
+        [{ call_contract: await client.operation(kind, "set_paused", { paused }) }], chain.actors.admin);
+      assert.equal(Boolean((await client.read(kind, "config")).paused), paused);
+    }
+  }
+  check("administrator pause and resume execute repeatedly in native prepaid and reward WASM");
   const masterBefore = usd ? BigInt(await chain.balance(deployment.masterNode)) : 0n;
   if (usd) {
     const { operation } = await new Contract({ id: deployment.token, abi: utils.tokenAbi }).functions.transfer({ from: chain.keys.Genesis.getAddress(), to: deployment.rewards, value: "1000000000000" }, { onlyOperation: true });
