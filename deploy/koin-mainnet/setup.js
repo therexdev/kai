@@ -18,7 +18,8 @@ function save(file, value) {
 function reviewedPlan(directory) {
   if (!path.isAbsolute(directory)) throw Error("Absolute private bootstrap directory required");
   const p = JSON.parse(read(path.join(directory, "plan.json"))), hash = P.hash(JSON.stringify(p));
-  if (JSON.parse(read(path.join(directory, "plan-hash.json"))).sha256 !== hash || p.mode !== "mainnet-pilot-plan") throw Error("Original mainnet plan hash mismatch");
+  if (JSON.parse(read(path.join(directory, "plan-hash.json"))).sha256 !== hash || !["mainnet-pilot-plan", "mainnet-prepaid-plan"].includes(p.mode)) throw Error("Original mainnet plan hash mismatch");
+  if ((p.deployment.product === "prepaid-v1") !== (p.mode === "mainnet-prepaid-plan")) throw Error("Mainnet credit product changed");
   const c = budget({ mode: p.mode, rpc: p.deployment.rpc, settings: p.settings,
     funding: Object.fromEntries(["buyerCreditsAtoms", "rewardPoolAtoms", "maxTotalKoinAtoms", "roles"].map(k => [k, p.funding[k]])) });
   if (c.total !== p.funding.totalAtoms) throw Error("Mainnet funding total changed");

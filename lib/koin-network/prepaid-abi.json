@@ -1,0 +1,480 @@
+{
+  "methods": {
+    "initialize": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 1192148610,
+      "read_only": false
+    },
+    "config": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 3080062715,
+      "read_only": true
+    },
+    "schedule_policy": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 1985052401,
+      "read_only": false
+    },
+    "activate_policy": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 2045304900,
+      "read_only": false
+    },
+    "set_paused": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 905688855,
+      "read_only": false
+    },
+    "balances": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 3396675695,
+      "read_only": true
+    },
+    "purchase": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 1883823242,
+      "read_only": false
+    },
+    "settle_usage": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 2073213911,
+      "read_only": false
+    },
+    "get_charge": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 1673795352,
+      "read_only": true
+    },
+    "get_spend": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 3117291801,
+      "read_only": true
+    },
+    "seal_day": {
+      "argument": "koin.Request",
+      "return": "koin.Result",
+      "entry_point": 3642634933,
+      "read_only": false
+    }
+  },
+  "types": {
+    "nested": {
+      "koin": {
+        "nested": {
+          "Config": {
+            "fields": {
+              "chain_id": {
+                "type": "bytes",
+                "id": 1
+              },
+              "token": {
+                "type": "bytes",
+                "id": 2
+              },
+              "admin": {
+                "type": "bytes",
+                "id": 3
+              },
+              "verifier": {
+                "type": "bytes",
+                "id": 4
+              },
+              "treasury": {
+                "type": "bytes",
+                "id": 5
+              },
+              "credits": {
+                "type": "bytes",
+                "id": 6
+              },
+              "mining": {
+                "type": "bytes",
+                "id": 7
+              },
+              "operations": {
+                "type": "bytes",
+                "id": 8
+              },
+              "version": {
+                "type": "uint64",
+                "id": 9
+              },
+              "daily_bps": {
+                "type": "uint32",
+                "id": 10
+              },
+              "availability_bps": {
+                "type": "uint32",
+                "id": 11
+              },
+              "reward_bps": {
+                "type": "uint32",
+                "id": 12
+              },
+              "mining_bps": {
+                "type": "uint32",
+                "id": 13
+              },
+              "operations_bps": {
+                "type": "uint32",
+                "id": 14
+              },
+              "work_cap_bps": {
+                "type": "uint32",
+                "id": 15
+              },
+              "effective_at": {
+                "type": "uint64",
+                "id": 16
+              }
+            }
+          },
+          "Amount": {
+            "fields": {
+              "value": {
+                "type": "uint64",
+                "id": 1
+              }
+            }
+          },
+          "Balance": {
+            "fields": {
+              "available": {
+                "type": "uint64",
+                "id": 1
+              },
+              "reserved": {
+                "type": "uint64",
+                "id": 2
+              }
+            }
+          },
+          "PrepaidAccount": {
+            "fields": {
+              "purchased": {
+                "type": "uint64",
+                "id": 1
+              },
+              "consumed": {
+                "type": "uint64",
+                "id": 2
+              }
+            }
+          },
+          "Session": {
+            "fields": {
+              "id": {
+                "type": "bytes",
+                "id": 1
+              },
+              "owner": {
+                "type": "bytes",
+                "id": 2
+              },
+              "verifier": {
+                "type": "bytes",
+                "id": 3
+              },
+              "policy_hash": {
+                "type": "bytes",
+                "id": 4
+              },
+              "remaining": {
+                "type": "uint64",
+                "id": 5
+              },
+              "per_job": {
+                "type": "uint64",
+                "id": 6
+              },
+              "max_jobs": {
+                "type": "uint64",
+                "id": 7
+              },
+              "jobs": {
+                "type": "uint64",
+                "id": 8
+              },
+              "expires": {
+                "type": "uint64",
+                "id": 9
+              },
+              "settle_until": {
+                "type": "uint64",
+                "id": 10
+              },
+              "revoked_at": {
+                "type": "uint64",
+                "id": 11
+              },
+              "nonce": {
+                "type": "uint64",
+                "id": 12
+              },
+              "closed": {
+                "type": "bool",
+                "id": 13
+              },
+              "treasury": {
+                "type": "bytes",
+                "id": 14
+              },
+              "mining": {
+                "type": "bytes",
+                "id": 15
+              },
+              "operations": {
+                "type": "bytes",
+                "id": 16
+              },
+              "reward_bps": {
+                "type": "uint32",
+                "id": 17
+              },
+              "mining_bps": {
+                "type": "uint32",
+                "id": 18
+              },
+              "version": {
+                "type": "uint64",
+                "id": 19
+              },
+              "opened_at": {
+                "type": "uint64",
+                "id": 20
+              }
+            }
+          },
+          "Charge": {
+            "fields": {
+              "id": {
+                "type": "bytes",
+                "id": 1
+              },
+              "session_id": {
+                "type": "bytes",
+                "id": 2
+              },
+              "provider": {
+                "type": "bytes",
+                "id": 3
+              },
+              "policy_hash": {
+                "type": "bytes",
+                "id": 4
+              },
+              "receipt_hash": {
+                "type": "bytes",
+                "id": 5
+              },
+              "amount": {
+                "type": "uint64",
+                "id": 6
+              },
+              "dispatched_at": {
+                "type": "uint64",
+                "id": 7
+              },
+              "nonce": {
+                "type": "uint64",
+                "id": 8
+              }
+            }
+          },
+          "Node": {
+            "fields": {
+              "hash": {
+                "type": "bytes",
+                "id": 1
+              },
+              "availability": {
+                "type": "uint64",
+                "id": 2
+              },
+              "work": {
+                "type": "uint64",
+                "id": 3
+              },
+              "left": {
+                "type": "bool",
+                "id": 4
+              }
+            }
+          },
+          "Epoch": {
+            "fields": {
+              "id": {
+                "type": "uint64",
+                "id": 1
+              },
+              "opened_at": {
+                "type": "uint64",
+                "id": 2
+              },
+              "version": {
+                "type": "uint64",
+                "id": 3
+              },
+              "budget": {
+                "type": "uint64",
+                "id": 4
+              },
+              "availability_budget": {
+                "type": "uint64",
+                "id": 5
+              },
+              "work_budget": {
+                "type": "uint64",
+                "id": 6
+              },
+              "work_cap_bps": {
+                "type": "uint32",
+                "id": 7
+              },
+              "credits": {
+                "type": "bytes",
+                "id": 8
+              },
+              "verifier": {
+                "type": "bytes",
+                "id": 9
+              },
+              "root": {
+                "type": "Node",
+                "id": 10
+              },
+              "review_until": {
+                "type": "uint64",
+                "id": 11
+              },
+              "finalized": {
+                "type": "bool",
+                "id": 12
+              },
+              "expired": {
+                "type": "bool",
+                "id": 13
+              },
+              "paid": {
+                "type": "uint64",
+                "id": 14
+              }
+            }
+          },
+          "Request": {
+            "fields": {
+              "config": {
+                "type": "Config",
+                "id": 1
+              },
+              "account": {
+                "type": "bytes",
+                "id": 2
+              },
+              "id": {
+                "type": "bytes",
+                "id": 3
+              },
+              "amount": {
+                "type": "uint64",
+                "id": 4
+              },
+              "session": {
+                "type": "Session",
+                "id": 5
+              },
+              "charge": {
+                "type": "Charge",
+                "id": 6
+              },
+              "epoch": {
+                "type": "uint64",
+                "id": 7
+              },
+              "root": {
+                "type": "Node",
+                "id": 8
+              },
+              "availability": {
+                "type": "uint64",
+                "id": 9
+              },
+              "work": {
+                "type": "uint64",
+                "id": 10
+              },
+              "proof": {
+                "rule": "repeated",
+                "type": "Node",
+                "id": 11
+              },
+              "paused": {
+                "type": "bool",
+                "id": 12
+              }
+            }
+          },
+          "Result": {
+            "fields": {
+              "config": {
+                "type": "Config",
+                "id": 1
+              },
+              "balance": {
+                "type": "Balance",
+                "id": 2
+              },
+              "session": {
+                "type": "Session",
+                "id": 3
+              },
+              "epoch": {
+                "type": "Epoch",
+                "id": 4
+              },
+              "amount": {
+                "type": "uint64",
+                "id": 5
+              },
+              "liabilities": {
+                "type": "uint64",
+                "id": 6
+              },
+              "liquid": {
+                "type": "uint64",
+                "id": 7
+              },
+              "paused": {
+                "type": "bool",
+                "id": 8
+              },
+              "claimed": {
+                "type": "bool",
+                "id": 9
+              },
+              "prepaid": {
+                "type": "PrepaidAccount",
+                "id": 10
+              },
+              "product_version": {
+                "type": "uint32",
+                "id": 11
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "descriptor": "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"
+}

@@ -74,7 +74,7 @@ async function deploy(directory, wasmDir, approved, { planFile = "plan.json", ha
     if (approved !== P.hash(JSON.stringify(plan))) throw Error("Review the current deployment plan and supply its exact --approve hash");
     for (const kind of ["credits", "rewards"]) for (const action of ["upload", "initialize"]) {
       const signer = Signer.fromWif(keys[kind]); if (signer.getAddress() !== c.deployment[kind]) throw Error("Custody key does not match the plan");
-      const bytecode = fs.readFileSync(path.join(wasmDir, kind + ".wasm"));
+      const bytecode = fs.readFileSync(path.join(wasmDir, (kind === "credits" && c.deployment.product === "prepaid-v1" ? "prepaid" : kind) + ".wasm"));
       if (P.hash(bytecode) !== plan.artifacts[kind].sha256) throw Error("Custody build changed after review");
       const operations = action === "upload" ? [{ upload_contract: { contract_id: c.deployment[kind], bytecode: utils.encodeBase64url(bytecode) } }] :
         [{ call_contract: { contract_id: c.deployment[kind], entry_point: abi.methods.initialize.entry_point, args: utils.encodeBase64url(await serializer.serialize({ config }, "koin.Request")) } }];

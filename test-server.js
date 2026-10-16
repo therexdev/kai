@@ -20,7 +20,7 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
     res.setHeader("X-Content-Type-Options", "nosniff");
     try {
       const url = new URL(req.url, "http://test");
-      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, lastSuccess: runtime.lastSuccess || null });
+      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, product: runtime.prepaid ? "prepaid-v1" : "legacy-reservations", lastSuccess: (runtime.prepaid ? runtime.lastServing : runtime.lastSuccess) || null, lastSettlementSuccess: runtime.lastSuccess || null });
       if (url.pathname === "/operator/status" && req.method === "GET") {
         const presented = crypto.createHash("sha256").update(String(req.headers["x-operator-secret"] || "")).digest();
         if (!crypto.timingSafeEqual(presented, crypto.createHash("sha256").update(secret).digest())) return json(res, 403, { error: "Test operator access required" });
@@ -51,11 +51,12 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
         const chunks = []; let size = 0;
         for await (const part of req) { size += part.length; if (size > 32768) throw Error("Test request too large"); chunks.push(part); }
         const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-        if (body.billing !== wire.billing) throw Error("Only approved Test spending sessions are accepted");
+        if (runtime.prepaid && body.billing === "koin-prepaid-v1") return runtime.scheduler.koinPrepaid.work.chat(req, res, body);
+        if (runtime.prepaid || body.billing !== wire.billing) throw Error("Only approved Test spending sessions are accepted");
         return runtime.scheduler.koinFundedSessions.work.chat(req, res, body);
       }
       const route = new URL(req.url, "http://test").pathname;
-      if (!route.startsWith(wire.prefix) && !["/worker/register", "/worker/heartbeat", "/worker/next-job", "/koin/presence", "/koin/status", "/network/models", "/network/status"].includes(route)) return json(res, 404, { error: "Route is disabled on the Test backend" });
+      if (!(runtime.prepaid && route.startsWith("/koin/prepaid/")) && !route.startsWith(wire.prefix) && !["/worker/register", "/worker/heartbeat", "/worker/next-job", "/koin/presence", "/koin/status", "/network/models", "/network/status"].includes(route)) return json(res, 404, { error: "Route is disabled on the Test backend" });
       await runtime.scheduler.handle(req, res);
     } catch (e) { if (!res.writableEnded && !res.destroyed) json(res, 400, { error: String(e.message).slice(0, 200) }); }
   });

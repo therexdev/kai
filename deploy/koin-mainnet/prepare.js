@@ -13,7 +13,7 @@ const MAINNET_TOKEN = "19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK";
 const ROLES = ["admin", "credits", "rewards", "verifier", "mining", "operations", "settlement", "lifecycle", "claims"];
 const ACTIVE = ["credits", "rewards", "verifier", "settlement", "lifecycle", "claims"];
 function configuration(c) {
-  if (!c || Object.keys(c).sort().join() !== "funding,mode,rpc,settings" || c.mode !== "mainnet-pilot-plan") throw Error("Explicit mainnet pilot plan required");
+  if (!c || Object.keys(c).sort().join() !== "funding,mode,rpc,settings" || !["mainnet-pilot-plan", "mainnet-prepaid-plan"].includes(c.mode)) throw Error("Explicit mainnet pilot plan required");
   testSettings(c.settings);
   const u = new URL(c.settings.schedulerUrl);
   if (u.protocol !== "https:" || u.pathname !== "/scheduler" || u.username || u.password || u.search || u.hash || u.href !== c.settings.schedulerUrl) throw Error("Dedicated canonical HTTPS scheduler URL required");
@@ -53,7 +53,7 @@ async function prepare(directory, settingsFile, wasmDirectory, dependencies = {}
   const { config: c, total } = configuration(JSON.parse(fs.readFileSync(settingsFile, "utf8")));
   const artifacts = {};
   for (const kind of ["credits", "rewards"]) {
-    const file = path.join(wasmDirectory, kind + ".wasm"), st = fs.lstatSync(file);
+    const file = path.join(wasmDirectory, (kind === "credits" && c.mode === "mainnet-prepaid-plan" ? "prepaid" : kind) + ".wasm"), st = fs.lstatSync(file);
     if (!st.isFile() || st.isSymbolicLink() || st.size > 2000000) throw Error("Built custody WASM required");
     const bytes = fs.readFileSync(file);
     if (bytes.subarray(0, 8).toString("hex") !== "0061736d01000000") throw Error("Valid WASM v1 header required");
@@ -66,8 +66,9 @@ async function prepare(directory, settingsFile, wasmDirectory, dependencies = {}
   const deployment = { schema: 1, network: "mainnet", chainId: MAINNET_CHAIN, decimals: 8, rpc: c.rpc, token: MAINNET_TOKEN,
     ...Object.fromEntries(["admin", "credits", "rewards", "verifier", "mining", "operations"].map(r => [r, addresses[r]])),
     tokenHash: evidence[0].tokenHash, creditsHash: "0x1220" + artifacts.credits.sha256, rewardsHash: "0x1220" + artifacts.rewards.sha256 };
+  if (c.mode === "mainnet-prepaid-plan") deployment.product = "prepaid-v1";
   new KoinChain(deployment); // Validate the complete public deployment shape.
-  const plan = { schema: 1, mode: "mainnet-pilot-plan", runtimeReady: false, deployment, settings: c.settings, artifacts,
+  const plan = { schema: 1, mode: c.mode, runtimeReady: false, deployment, settings: c.settings, artifacts,
     funding: { ...c.funding, totalAtoms: total, totalKoin: decimal(total) }, roleAddresses: addresses, identityEvidence: evidence,
     remaining: ["Configure the explicit mainnet runtime using this exact reviewed plan hash", "Confirm server and DNS configuration",
       "Review exact custody deployment transactions and measured resource requirements", "Fund reviewed role addresses and pilot balances", "Complete real Test acceptance before Alpha"] };
