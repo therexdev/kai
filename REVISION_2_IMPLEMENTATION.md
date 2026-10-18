@@ -24,9 +24,12 @@ settlement. Its contract settlement and provider reward inclusion remain to be
 implemented; do not activate free service as a paid-provider launch yet. No fake
 purchase or wallet balance is created for a daily grant.
 
-The approved Uniswap v4 market is pinned, but its reorg-aware observation and
-validated quotation adapter remains unfinished. The purchase-only guard stays
-unavailable; it never falls back to the old ticker feed or an invented price.
+The approved Uniswap v4 market is pinned. Its archive adapter validates canonical
+finalized histories, time-weighted prices, executable depth, deviation, configured
+USDT/USD rounds and signed wrapped/native parity evidence. Reviewed policies and
+live archive acceptance remain unavailable; no ticker or invented-price fallback
+exists. See V4_PURCHASE_PRICING.md. Exact USD packs round native atoms upward and
+return the actual signed credit amount.
 USD tariffs, the free budget comparable to historical 25,000 AI tokens/day,
 and Master allocation remain commercial decisions. No live entitlement is set.
 
@@ -49,3 +52,5 @@ Added authenticated `/koin/prepaid/network` observations for the secondary Netwo
 ### V4 pricing continuation
 
 Implemented an archive-history reader, integer time-weighted/depth/deviation validator, canonical anchor checks, two-source agreement, a configured USDT/USD oracle reader, and domain-separated signed wrapped/native redemption attestations. Pricing warm-up runs separately from settlement. Missing/invalid pricing configuration or evidence fails only new quotes; quote expiry is bounded by evidence. There is no v3 observe or spot fallback. Dry configuration tooling creates no credentials and performs no RPC or financial action. Full backend suite: 357 passed. See V4_PURCHASE_PRICING.md for trust boundaries and unchosen policy. No mainnet quote, live deployment, funding or transfer was performed.
+
+Public USD admission now rejects missing or legacy billing modes before the old token allowance can run. The HTTP signup/streaming probe exercises this scheduler boundary. Full KOIN suite: 359 passed, zero failures. No production activation or live transaction was performed.

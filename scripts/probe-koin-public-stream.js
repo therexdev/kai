@@ -13,10 +13,12 @@ test("verified public signup reaches real metered HTTP streaming without a walle
   const router = require("../lib/koin-network/prepaid-router").createPrepaidRouter({ dataDir: path.join(f.dir, "service"), accounts: auth.service, client, ...f.options,
     publicAccounts: true, freePolicy: { version: 1, accountDaily: "1000", networkDaily: "2000", originDaily: "1500", accountConcurrent: 2, eligibleModels: ["fixture"] },
     qualify: () => true, accept: ({ output }) => !!output.trim() });
+  // Exercise the production scheduler's admission boundary as well as the
+  // actual router, with only its unrelated worker roster supplied by fixture.
+  const scheduler = Object.assign(Object.create(require("../lib/scheduler").Scheduler.prototype), { koinPrepaid: router, pending: new Map(), workers: new Map(), queue: [], _auth: () => worker });
   const server = http.createServer(async (req, res) => {
     if (req.url.startsWith("/auth/")) return app(req, res);
-    if (req.url === "/consume/chat/completions") { const parts = []; for await (const p of req) parts.push(p); return router.work.chat(req, res, JSON.parse(Buffer.concat(parts))); }
-    if (!await router.handle(req, res, () => worker)) { res.writeHead(404); res.end(); }
+    await scheduler.handle(req, res);
   });
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); router.close(); auth.service.db.close(); });
@@ -32,6 +34,11 @@ test("verified public signup reaches real metered HTTP streaming without a walle
     assert.equal(unavailable.status, 400); assert.match(unavailable.value.error, /Free credits do not require a wallet/);
   }
   const messages = [{ role: "user", content: "Hi" }], model = "fixture", max_tokens = 16;
+  for (const billing of [undefined, "koin-shadow", "koin-prepaid-v1"]) {
+    const blocked = await post("/consume/chat/completions", { messages, model, max_tokens, ...(billing ? { billing } : {}) });
+    assert.equal(blocked.status, 409); assert.equal(blocked.value.error.type, "credit_account_required");
+    assert.equal(router.ledger.jobs().length, 0, "legacy allowance cannot create an unmetered request");
+  }
   const estimate = await post("/koin/prepaid/estimate", { messages, model, max_tokens, freeOnly: true });
   assert.equal(estimate.value.estimate.maxPaid, "0"); assert.equal(estimate.value.estimate.allowed, true);
   const requestId = P.hash("public-stream"), response = await raw("/consume/chat/completions", { sessionToken, billing: "koin-prepaid-usd-v1", requestId, messages, model, max_tokens, freeOnly: true, maxPaid: "0", stream: true });
