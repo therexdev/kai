@@ -52,7 +52,7 @@ test("durable ownership excludes linked-wallet self work after restart and block
 test("32 reverted review obligations do not hide queued settlement 33 or bypass an unresolved signer nonce", async () => {
   const rows = Array.from({ length: 33 }, (_, i) => ({ id: P.hash("settlement-fair-" + i), owner: Signer.fromSeed("customer").getAddress(), provider: Signer.fromSeed("provider").getAddress(), receipt: { usage: { amount: "1" } }, receiptHash: P.hash("receipt"), quote: { policyHash: P.hash("policy") }, settlement: { state: "queued", attempts: 0 } }));
   let fenced = true, prepared = 0;
-  const ledger = { pendingJobs: () => rows, rewardEligible: () => true, settlement: (id, patch) => Object.assign(rows.find(r => r.id === id).settlement, patch) };
+  const ledger = { rotateSettlement: () => {}, pendingJobs: () => rows, rewardEligible: () => true, settlement: (id, patch) => Object.assign(rows.find(r => r.id === id).settlement, patch) };
   const verifier = Signer.fromSeed("verifier").getAddress();
   const signing = { reconcile: async () => {}, statusFor: id => rows.slice(0, 32).some(r => P.hash("prepaid-usage:" + r.id) === id) ? { state: "reverted" } : null,
     status: () => fenced ? [{ id: "unresolved", owner: verifier, state: "signed" }] : [], prepare: async () => { prepared++; throw Error("reached job 33"); } };
@@ -60,4 +60,36 @@ test("32 reverted review obligations do not hide queued settlement 33 or bypass 
   await settle.tick(); assert.equal(prepared, 0); fenced = false;
   await assert.rejects(settle.tick(), /reached job 33/); assert.equal(prepared, 1);
   assert.ok(rows.slice(0, 32).every(r => r.settlement.state === "needs_review"));
+});
+test("32 capacity-wait obligations cannot starve paid job 33 across restart and repeated ticks", async t => {
+  const f = fixture(t, { product: "prepaid-usd-v1", freePolicy: { version: 1, accountDaily: "100000", networkDaily: "100000", originDaily: "100000", accountConcurrent: 2, eligibleModels: ["fixture"] } });
+  f.purchase("paid-capacity", "100000");
+  const identity = { accountId: P.hash("capacity-customer"), origin: P.hash("capacity-origin") }, ids = [];
+  for (let i = 0; i < 33; i++) {
+    const j = f.ledger.reserve({ ...f.request("capacity-" + i), ...(i < 32 ? { identity } : {}) });
+    const ready = await f.complete(j.id); f.ledger.acknowledge(j.id, f.owner, ready.receiptHash); ids.push(j.id);
+  }
+  // Upgrade migration seeds queue order without rewriting existing jobs.
+  f.ledger.write(() => f.ledger.db.exec("DELETE FROM settlement_queue")); f.restart();
+  const before = f.ledger.jobs(), balance = f.ledger.balance(f.owner), verifier = Signer.fromSeed("capacity-verifier").getAddress();
+  let prepared = 0, fenced = false, reads = 0;
+  const signing = { reconcile: async () => {}, statusFor: () => null, status: () => fenced ? [{ id: "unresolved", owner: verifier, state: "signed" }] : [],
+    prepare: async id => { assert.equal(id, P.hash("prepaid-usage:" + ids[32])); prepared++; throw Error("paid candidate reached"); } };
+  const client = { d: { product: "prepaid-usd-v1", verifier }, verify: async () => { reads++; return { credits: { sponsor_daily_limit: "1", sponsor_account_daily_limit: "1" } }; }, read: async () => ({ amount: "0" }), operation: async () => ({}),
+    provider: { getHeadInfo: async () => ({ head_block_time: String(f.ledger.clock()), head_topology: { id: "0x1220" + P.hash("capacity-head"), height: "1" } }) } };
+  const tick = () => new PrepaidSettlement({ client, ledger: f.ledger, signing, clock: f.ledger.clock, config: { roles: { settlement: verifier } } }).tick();
+  await tick(); assert.equal(reads, 32); assert.equal(prepared, 0);
+  f.restart();
+  await assert.rejects(tick(), /paid candidate reached/); assert.equal(prepared, 1);
+  fenced = true; await tick(); assert.equal(prepared, 1, "unresolved nonce still fences paid work"); fenced = false;
+  for (let i = 0; i < 4; i++) { f.restart(); try { await tick(); } catch (e) { assert.match(e.message, /paid candidate reached/); } }
+  assert.ok(prepared >= 3, "repeated retries retain fair selection after restart");
+  assert.deepEqual(f.ledger.balance(f.owner), balance);
+  assert.equal(f.ledger.pendingJobs().length, 33);
+  for (const old of before) {
+    const current = f.ledger.job(old.id);
+    assert.deepEqual({ ...current, settlement: old.settlement }, old, "obligation, usage and receipt stay intact");
+    assert.equal(current.settlement.attempts, 0);
+  }
+  assert.ok(ids.slice(0, 32).every(id => f.ledger.job(id).settlement.state === "capacity_wait"));
 });

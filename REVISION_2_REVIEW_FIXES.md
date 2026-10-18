@@ -23,3 +23,15 @@ The ownership check covers account-linked wallets, not collusion between separat
 Failing-before logs are retained in this executor under `/tmp/kai-purchase-starvation-before.log`, `/tmp/kai-self-work-before.log`, `/tmp/kai-settlement-starvation-before.log`, `/tmp/kai-epoch-blocker-before.log`, `/tmp/kai-rollover-before.log`, `/tmp/kai-availability-order-before.log` and `/tmp/kai-correction-original-before.log`. These paths are not cross-executor file guarantees. Durable regression tests are committed in the repositories. Final full-suite counts and release evidence are reported with the fix commits.
 
 Final local validation: backend 398 passed, zero failed/skipped; desktop 1,334 passed, zero failed, five skipped. Desktop full tests used the documented external-network isolation preload with loopback/browser checks enabled. Changed JavaScript syntax and whitespace checks passed. These are local/fixture checks, not live two-computer or payout acceptance.
+
+## Bounded post-fix recovery review
+
+Three additional residuals were reproduced and corrected before activation:
+
+- Thirty-two sponsored `capacity_wait` rows hid paid row 33 on every pass. A durable FIFO settlement queue now rotates inspected rows before network reads, including waits/errors. The 32-inspection bound, unresolved nonce fence and original obligations remain. Queue migration seeds existing rows without rewriting jobs. Restart/repeated-tick regression reaches the paid candidate while preserving all 33 obligations and customer balances.
+- A first heartbeat after a >180-second outage pruned only that returning provider's historical samples before catch-up. Evidence needed by any unclosed interval is now retained, including the predecessor boundary; sealed/closed intervals remain immutable. A/B arrival permutations at 300 seconds, restart and UTC rollover retain identical earned coverage and award nothing for the outage.
+- Desktop sync could register a losing Mana correction before discovering the original winner, exhausting the last admission slot. Sync now reconciles and reloads durable finality before selecting an ID. The backend additionally verifies registration candidates server-side: an already-finalized, correctly attributed payment can be credited atomically without consuming pending-claim capacity. This recovers winners even if older candidate claims filled the cap. Unknown/outage candidates retain the existing bounded queue; no client-supplied proof or amount is accepted. Cross-wallet rejection, repeat/restart exact-once and preservation of all old pending claims are tested.
+
+Failing-before logs: `/tmp/kai-capacity-wait-before.log`, `/tmp/kai-outage-before.log`, `/tmp/kai-sync-discovery-before.log`. These are local fixtures, not live financial operations. Production activation and independent review remain pending.
+
+Post-fix backend validation: 401 tests passed on Node 22, zero failed/skipped, including purchase recovery, settlement queue migration/restarts, public HTTP usage, availability fairness and cutover preparation. Syntax and whitespace checks passed.

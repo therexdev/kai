@@ -40,3 +40,22 @@ test("old pending claims are seeded without rewriting payments; account admissio
   f.restart(); assert.throws(() => f.ledger.queuePurchase(tx("account-ninth"), wallet(9), accountId), /Account purchase.*full/);
   f.ledger.queuePurchase(tx("unrelated-account"), wallet(9), P.hash("different verified account"));
 });
+test("server-verified winning purchase recovers at a full pending cap without changing old claims or crediting twice", async t => {
+  const f = fixture(t), accountId = P.hash("full-cap-account"), pending = [];
+  for (let i = 0; i < 8; i++) pending.push(f.ledger.queuePurchase(tx("old-candidate-" + i), f.owner, accountId));
+  const winner = tx("same-nonce-winning-purchase");
+  let proof = { state: "pending" };
+  const register = (owner = f.owner) => observer(f, async (_id, selected) => { assert.equal(selected, owner); return proof; }).register(winner, owner, accountId);
+  await assert.rejects(register(), /queue is full/);
+  proof = { state: "finalized", txId: winner, owner: wallet("other"), amount: "123" };
+  await assert.rejects(register(), /attribution/); assert.equal(f.ledger.balance(f.owner).purchased, "0");
+  proof.owner = f.owner;
+  await register(); f.restart(); await register();
+  assert.equal(f.ledger.balance(f.owner).purchased, "123");
+  assert.equal(f.ledger.pendingPurchases().length, 8);
+  for (const p of pending) assert.deepEqual(f.ledger.purchase(p.id, p.owner), p);
+  assert.equal(f.ledger.purchase(winner, f.owner).state, "confirmed");
+  // A different wallet cannot turn this exact tx into another credit.
+  await assert.rejects(register(wallet("other")), /attribution/);
+  assert.equal(f.ledger.balance(wallet("other")).purchased, "0");
+});
