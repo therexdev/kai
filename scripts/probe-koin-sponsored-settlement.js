@@ -9,8 +9,8 @@ for (const mixed of [false, true]) test(`${mixed ? "mixed" : "wallet-free"} usag
   const j = f.ledger.reserve({ ...f.request("sponsored-job"), identity, owner }), ready = await f.complete(j.id), consumed = f.ledger.acknowledge(j.id, owner, ready.receiptHash);
   const before = f.ledger.balance(owner), calls = [], signed = new Map(), submitted = [];
   const verifier = Signer.fromSeed("fixture-verifier").getAddress();
-  const client = { d: { product: "prepaid-usd-v1", verifier }, verify: async () => {}, operation: async (kind, method, args) => { calls.push({ kind, method, args }); return { kind, method, args }; },
-    provider: { getNonce: async () => 0, getAccountRc: async () => "1000", call: async (_method, body) => { submitted.push(body.transaction); throw Error("Lost fixture transport response"); } } };
+  const client = { d: { product: "prepaid-usd-v1", verifier }, verify: async () => ({ credits: { sponsor_daily_limit: "2000", sponsor_account_daily_limit: "1000" } }), read: async () => ({ amount: "0" }), operation: async (kind, method, args) => { calls.push({ kind, method, args }); return { kind, method, args }; },
+    provider: { getHeadInfo: async () => ({ head_block_time: String(f.ledger.clock()), head_topology: { id: "0x1220" + P.hash("head"), height: "1" } }), getNonce: async () => 0, getAccountRc: async () => "1000", call: async (_method, body) => { submitted.push(body.transaction); throw Error("Lost fixture transport response"); } } };
   const signing = { reconcile: async () => {}, statusFor: () => null, status: () => [], prepare: async (id, { operation }) => {
     if (signed.has(id)) { assert.deepEqual(signed.get(id).operations[0].call_contract, operation); return signed.get(id); }
     const tx = { id: "0x1220" + P.hash(id), header: { payer: verifier, rc_limit: "1", nonce: require("../lib/koin-network/settlement-outbox").encodeNonce("1") }, operations: [{ call_contract: operation }] }; signed.set(id, tx); return tx;
@@ -35,4 +35,29 @@ test("finalized sponsored USD work shares only the fixed work pool; legacy free 
   assert.equal(allocation.allocations[0].work, budget.work);
   for (const change of [{ finalized: false }, { verified: false }, { sponsored: false }, { refunded: true }])
     assert.equal(Policy.allocate({ budget, intervals: [], work: [{ ...work[0], ...change }], workBasis: "usd-pool" }).allocations.length, 0);
+});
+test("durable ownership excludes linked-wallet self work after restart and blocks unsafe settlement without changing debits", async t => {
+  const f = fixture(t, { product: "prepaid-usd-v1" }); f.purchase();
+  const blocked = f.ledger.reserve({ ...f.request("self"), ownership: { accountId: "customer", wallets: [f.owner, f.provider] } });
+  assert.throws(() => f.ledger.dispatch(blocked.id, f.provider), /unavailable/);
+  f.restart(); assert.equal(f.ledger.rewardEligible(f.ledger.job(blocked.id), f.provider), false);
+  const j = f.ledger.reserve(f.request("unrelated")), ready = await f.complete(j.id); f.ledger.acknowledge(j.id, f.owner, ready.receiptHash);
+  const before = f.ledger.balance(f.owner); let prepared = 0;
+  f.ledger.ownershipWallets = () => [f.owner, f.provider]; // newly linked before settlement
+  const settle = new PrepaidSettlement({ client: { d: {} }, ledger: f.ledger, config: {}, signing: { reconcile: async () => {}, statusFor: () => null, prepare: async () => { prepared++; } } });
+  await settle.tick(); assert.equal(prepared, 0); assert.equal(f.ledger.job(j.id).settlement.reason, "customer_provider_ownership");
+  assert.deepEqual(f.ledger.balance(f.owner), before); assert.equal(f.ledger.decrypt(j.id, f.ledger.job(j.id).answer), "Private answer");
+  assert.equal(f.ledger.rewardEligible({ owner: f.owner }, f.provider), false, "older USD rows without ownership evidence require review");
+});
+test("32 reverted review obligations do not hide queued settlement 33 or bypass an unresolved signer nonce", async () => {
+  const rows = Array.from({ length: 33 }, (_, i) => ({ id: P.hash("settlement-fair-" + i), owner: Signer.fromSeed("customer").getAddress(), provider: Signer.fromSeed("provider").getAddress(), receipt: { usage: { amount: "1" } }, receiptHash: P.hash("receipt"), quote: { policyHash: P.hash("policy") }, settlement: { state: "queued", attempts: 0 } }));
+  let fenced = true, prepared = 0;
+  const ledger = { pendingJobs: () => rows, rewardEligible: () => true, settlement: (id, patch) => Object.assign(rows.find(r => r.id === id).settlement, patch) };
+  const verifier = Signer.fromSeed("verifier").getAddress();
+  const signing = { reconcile: async () => {}, statusFor: id => rows.slice(0, 32).some(r => P.hash("prepaid-usage:" + r.id) === id) ? { state: "reverted" } : null,
+    status: () => fenced ? [{ id: "unresolved", owner: verifier, state: "signed" }] : [], prepare: async () => { prepared++; throw Error("reached job 33"); } };
+  const settle = new PrepaidSettlement({ ledger, signing, client: { d: { verifier }, operation: async () => ({}) }, config: { roles: { settlement: verifier } } });
+  await settle.tick(); assert.equal(prepared, 0); fenced = false;
+  await assert.rejects(settle.tick(), /reached job 33/); assert.equal(prepared, 1);
+  assert.ok(rows.slice(0, 32).every(r => r.settlement.state === "needs_review"));
 });

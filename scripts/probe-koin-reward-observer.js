@@ -45,3 +45,12 @@ test("reward evidence still rejects a real clock rollback", async t => {
   f.rpc.readContract = async op => { const r = await read(op); now--; return r; };
   await assert.rejects(observer.inspectCycle({ epoch: "1" }), /clock moved backwards/);
 });
+test("closed-epoch proof requires an irreversible observation made after the requested boundary", async t => {
+  const f = await fixture(t), observer = new RewardObserver(f.rpc, { target: f.target, clock: f.clock });
+  const boundary = String(f.clock() + 1000);
+  assert.equal((await observer.inspectCycle({ epoch: "1", minimumTime: boundary })).state, "before_boundary");
+  f.advance(1001); f.head.last_irreversible_block = "0";
+  assert.equal((await observer.inspectCycle({ epoch: "1", minimumTime: boundary })).state, "reversible");
+  f.head.last_irreversible_block = f.head.head_topology.height;
+  assert.equal((await observer.inspectCycle({ epoch: "1", minimumTime: boundary })).state, "verified");
+});

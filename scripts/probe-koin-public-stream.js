@@ -71,6 +71,16 @@ test("verified public signup reaches real metered HTTP streaming without a walle
   assert.equal(recoveredWithSelection.value.completion.choices[0].message.content, output);
   assert.equal((await post("/koin/prepaid/status", { creditWallet: f.provider })).value.balance.spent, "0", "recovering an earlier free answer never debits the selected wallet");
   assert.equal((await post("/koin/prepaid/capabilities", { creditWallet: f.owner })).value.capabilities.advancedRuns, true);
+  // All account-owned wallets are excluded, not merely the selected payer.
+  for (const creditWallet of [null, f.owner]) {
+    const selfId = P.hash("self-work-" + String(creditWallet));
+    const selfResponse = await raw("/consume/chat/completions", { sessionToken, creditWallet, billing: "koin-prepaid-usd-v1", requestId: selfId, messages, model, max_tokens, freeOnly: true, maxPaid: "0", stream: true });
+    assert.equal(await router.work.next(worker), null, "walletless/other-wallet free request must not select the same account's provider");
+    assert.throws(() => router.ledger.dispatch(selfId, f.provider), /unavailable|self|ownership/i);
+    await post("/koin/prepaid/cancel", { creditWallet, requestId: selfId }); await selfResponse.body.cancel();
+  }
+  const outsideSigner = Signer.fromSeed("unrelated-reward-provider"), outsideWorker = { ...worker, address: outsideSigner.getAddress() };
+  scheduler.workers.set("outside-provider", outsideWorker); scheduler._auth = () => outsideWorker;
   const runId = P.hash("public-research-run"), terms = { creditWallet: f.owner, runId, mode: "research", model, maxTotal: estimate.value.estimate.maxCharge, freeOnly: true };
   assert.equal((await post("/koin/prepaid/run-open", terms)).value.run.state, "open");
   const runRequest = { billing: "koin-prepaid-usd-v1", creditWallet: f.owner, runId, requestId: P.hash("run-subcall"), messages, model, max_tokens, freeOnly: true, maxPaid: "0", stream: false };
@@ -78,8 +88,8 @@ test("verified public signup reaches real metered HTTP streaming without a walle
   for (let i = 0; i < 100 && !router.ledger.job(runRequest.requestId); i++) await new Promise(r => setTimeout(r, 5));
   const overBudget = await post("/consume/chat/completions", { ...runRequest, requestId: P.hash("concurrent-run-subcall") });
   assert.equal(overBudget.status, 400); assert.match(overBudget.value.error, /Total run budget/);
-  const runJob = await router.work.next(worker), finalText = "Done";
-  const signed = Buffer.from(await f.worker.signHash(F.fundedResultHash(f.target, runJob, finalText))).toString("base64");
+  const runJob = await router.work.next(outsideWorker), finalText = "Done";
+  const signed = Buffer.from(await outsideSigner.signHash(F.fundedResultHash(f.target, runJob, finalText))).toString("base64");
   assert.equal((await post(wire.prefix + "result", { jobId: runJob.id, output: finalText, signature: signed })).status, 200);
   assert.equal((await runAnswer).value.completion.choices[0].message.content, finalText);
   const runState = await post("/koin/prepaid/run-status", { creditWallet: f.owner, runId }); assert.ok(BigInt(runState.value.run.spent) > 0n);

@@ -55,9 +55,10 @@ test("Stop, provider rejection and restart restore both held funding portions", 
     assert.equal(f.ledger.balance(f.owner).available, "1000");
   }
 });
-test("daily grants survive restart, reset once at UTC midnight and never accumulate", async t => {
+test("settled daily grants survive restart, reset once at UTC midnight and never accumulate", async t => {
   const f = setup(t); const j = f.ledger.reserve(req(f, "today")), ready = await f.complete(j.id);
   f.ledger.acknowledge(j.id, f.owner, ready.receiptHash);
+  f.ledger.settlement(j.id, { state: "finalized", finality: { state: "finalized", blockTime: String(f.ledger.clock()) } });
   const today = f.ledger.creditView(f.owner, identity); f.restart();
   assert.equal(f.ledger.creditView(f.owner, identity).free.available, today.free.available);
   f.time(today.free.resetAt - today.observedAt);

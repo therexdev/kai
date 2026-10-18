@@ -19,7 +19,7 @@ function fixture(t, overrides = {}) {
     const id = "0x1220" + P.hash(name); ledger.queuePurchase(id, owner);
     ledger.confirmPurchase(id, { state: "finalized", txId: id, owner, amount, height: "3", blockId: "0x1220" + P.hash("block") }); return id;
   };
-  const request = name => ({ id: P.hash(name), owner, model: "fixture", version: 1, messages: [{ role: "user", content: "Private question" }], maxOutput: 16 });
+  const request = name => ({ id: P.hash(name), owner, ownership: { accountId: "fixture-customer", wallets: [owner] }, model: "fixture", version: 1, messages: [{ role: "user", content: "Private question" }], maxOutput: 16 });
   const complete = async (id, output = "Private answer") => { const job = ledger.dispatch(id, provider); return ledger.complete(id, {
     output, signature: Buffer.from(await worker.signHash(fundedResultHash(target, job, output))).toString("base64") }, true); };
   return { dir, options, target, owner, provider, buyer, worker, meter, tariff, request, purchase, complete,

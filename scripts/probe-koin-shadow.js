@@ -50,22 +50,22 @@ test("shadow availability requires a complete observed minute, rejects gaps, mod
     now = DAY + i * 25000;
     ledger.observe(address, report(now, i));
   }
-  ledger.tick();
+  now = DAY + 105001; ledger.tick();
   assert.equal(ledger.state.days[1].intervals[0].slots.length, 1);
   assert.ok(BigInt(ledger.status(address).estimate.availability) > 0n);
   assert.equal(ledger.status(address).claimable, null);
-  assert.throws(() => ledger.observe(address, report(now, 3)), /Replay/);
-  now = DAY + 100000;
+  assert.throws(() => ledger.observe(address, report(DAY + 75000, 3)), /Replay/);
+  now = DAY + 110000;
   ledger.observe(address, report(now, 4, false));
-  now = DAY + 125000;
+  now = DAY + 135000;
   ledger.observe(address, report(now, 5));
-  ledger.tick();
+  now = DAY + 165001; ledger.tick();
   assert.equal(
     ledger.state.days[1].intervals[1].slots.length,
     0,
     "a switch invalidates the interval",
   );
-  now = DAY + 200000;
+  now = DAY + 230000;
   ledger.observe(address, report(now, 6));
   ledger.tick();
   assert.equal(
