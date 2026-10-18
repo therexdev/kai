@@ -20,7 +20,8 @@ test("new USD account can use free credits with no purchased balance and no paym
   const after = f.ledger.creditView(owner, identity);
   assert.equal(after.purchased.spent, "0"); assert.equal(after.purchased.purchased, "0");
   assert.equal(BigInt(after.free.available), 100n - BigInt(ready.receipt.usage.amount));
-  assert.equal(f.ledger.pendingJobs().length, 0);
+  assert.equal(f.ledger.pendingJobs().length, 1);
+  assert.equal(f.ledger.pendingJobs()[0].settlement.kind, "unified-usage");
   assert.equal(f.ledger.pendingSponsorship().length, 1);
   assert.equal(f.ledger.purchases(owner).length, 0, "free grants must never manufacture purchases");
 });

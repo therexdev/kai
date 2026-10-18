@@ -43,7 +43,8 @@ async function configure(directory, approved, providerFactory) {
   const runtime = configuration({ schema: 1, mode: "mainnet-pilot", deployment: p.deployment,
     roles: Object.fromEntries(["settlement", "lifecycle", "claims"].map(r => [r, p.roleAddresses[r]])), schedulerUrl: s.schedulerUrl,
     version: 1, tokenizer, tariff, policyHash: P.hash(JSON.stringify(["KAI-KOIN-SHADOW-TARIFFS-V1", tariff])),
-    maxRcPerTransaction: s.maxRcPerTransaction, maxRcPerDay: s.maxRcPerDay });
+    maxRcPerTransaction: s.maxRcPerTransaction, maxRcPerDay: s.maxRcPerDay,
+    ...Object.fromEntries(["freePolicy", "accountMode", "purchasePricing"].filter(key => s[key] !== undefined).map(key => [key, s[key]])) });
   const plan = { schema: 1, mode: runtime.mode, runtime, owner: s.owner, limits: s.limits, deployRcLimit: s.deployRcLimit,
     artifacts: p.artifacts, fundingAddresses: p.roleAddresses, funding: p.funding, bootstrapHash: approved };
   save(path.join(directory, "deployment-plan.json"), plan);
@@ -56,6 +57,7 @@ async function configure(directory, approved, providerFactory) {
   if (!fs.existsSync(secret)) fs.writeFileSync(secret, crypto.randomBytes(32).toString("hex") + "\n", { mode: 0o600, flag: "wx" });
   if (!/^[a-f0-9]{64}$/.test(read(secret, 256, true).trim())) throw Error("Invalid operator secret");
   if (!fs.existsSync(path.join(directory, "qualifications.json"))) save(path.join(directory, "qualifications.json"), []);
+  if (runtime.accountMode !== "public") {
   const accessFile = path.join(directory, "owner-access.json");
   if (!fs.existsSync(accessFile)) save(accessFile, { schema: 1, mode: "test-access", owner: s.owner, schedulerUrl: s.schedulerUrl,
     accountId: "test_" + crypto.randomBytes(8).toString("hex"), grantId: "grant_" + crypto.randomBytes(8).toString("hex"),
@@ -64,6 +66,7 @@ async function configure(directory, approved, providerFactory) {
   if (a.owner !== s.owner || a.schedulerUrl !== s.schedulerUrl || !/^test_[A-Za-z0-9_-]{43}$/.test(a.token)) throw Error("Owner invitation changed");
   const invitations = path.join(directory, "invitations.json");
   if (!fs.existsSync(invitations)) save(invitations, [{ accountId: a.accountId, grantId: a.grantId, owner: a.owner, tokenHash: P.hash(a.token), expiresAt: a.expiresAt, enabled: true }]);
+  }
   return { mode: runtime.mode, planHash, deployed: false, next: "Review deployment-plan.json. Fund the reviewed role addresses, then run check-funding and deploy with this exact deployment plan hash. No transaction was signed." };
 }
 function deploymentJournal(directory, p, provider) {

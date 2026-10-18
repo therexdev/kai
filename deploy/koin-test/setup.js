@@ -12,7 +12,12 @@ const RPC = "https://testnet.koinosfoundation.org/jsonrpc", roles = ["admin", "c
 const json = value => JSON.stringify(value, null, 2) + "\n";
 function save(file, value) { const fd = fs.openSync(file, "wx", 0o600); try { fs.writeFileSync(fd, typeof value === "string" || Buffer.isBuffer(value) ? value : json(value)); fs.fsyncSync(fd); } finally { fs.closeSync(fd); } }
 function settings(s, { usd = false } = {}) {
-  if (!s || Object.keys(s).sort().join() !== "deployRcLimit,limits,maxRcPerDay,maxRcPerTransaction,owner,schedulerUrl,tariff" || !utils.isChecksumAddress(s.owner)) throw Error("Fill the explicit Test setup settings first");
+  const optional = ["freePolicy", "accountMode", "purchasePricing"];
+  if (!s || Object.keys(s).filter(k => !optional.includes(k)).sort().join() !== "deployRcLimit,limits,maxRcPerDay,maxRcPerTransaction,owner,schedulerUrl,tariff" || !utils.isChecksumAddress(s.owner)) throw Error("Fill the explicit Test setup settings first");
+  if (optional.some(k => s[k] !== undefined) && !usd) throw Error("Public USD settings require a fresh USD deployment");
+  if (s.accountMode !== undefined && !["public", "invitations"].includes(s.accountMode)) throw Error("Invalid account mode");
+  require("../../lib/koin-network/free-credits").policy(s.freePolicy);
+  if (s.purchasePricing !== undefined) require("../../lib/koin-network/v4-purchase-oracle").configuration(s.purchasePricing);
   for (const key of ["deployRcLimit", "maxRcPerTransaction", "maxRcPerDay"]) amount(s[key]);
   const t = s.tariff;
   if (!t || Object.keys(t).sort().join() !== "contextTokens,inputAtomsPerMillion,maxLatencyMs,maxOutputTokens,outputAtomsPerMillion") throw Error("Explicit Test tariff and resource limits required");
@@ -67,7 +72,8 @@ async function deploy(directory, wasmDir, approved, { planFile = "plan.json", ha
   const encoded = role => utils.encodeBase64url(utils.decodeBase58(c.deployment[role]));
   const config = { chain_id: c.deployment.chainId, token: encoded("token"), credits: encoded("credits"), treasury: encoded("rewards"),
     admin: encoded("admin"), verifier: encoded("verifier"), mining: encoded("mining"), operations: encoded("operations"), version: "1",
-    daily_bps: 500, availability_bps: 7000, reward_bps: 6000, mining_bps: 2500, operations_bps: 1500, work_cap_bps: 8000, ...(c.deployment.product === "prepaid-usd-v1" ? { master_node: encoded("masterNode"), reward_basis: 1 } : {}) };
+    daily_bps: 500, availability_bps: 7000, reward_bps: 6000, mining_bps: 2500, operations_bps: 1500, work_cap_bps: 8000, ...(c.deployment.product === "prepaid-usd-v1" ? { master_node: encoded("masterNode"), reward_basis: 1,
+      ...(c.freePolicy ? { sponsor_daily_limit: c.freePolicy.networkDaily, sponsor_account_daily_limit: c.freePolicy.accountDaily } : {}) } : {}) };
   try {
     const revision = journal.resourceRevision();
     if (revision) plan = revision.plan;

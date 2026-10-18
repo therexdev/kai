@@ -19,10 +19,15 @@ account service; sessions and credentials are not written to credit journals.
 Reverse-proxy clients conservatively share an origin budget until a separately
 trusted origin adapter is configured; untrusted forwarding headers are ignored.
 
-Sponsored usage is recorded separately and excluded from purchased contract
-settlement. Its contract settlement and provider reward inclusion remain to be
-implemented; do not activate free service as a paid-provider launch yet. No fake
-purchase or wallet balance is created for a daily grant.
+Sponsored usage now settles through one combined USD receipt, with the paid
+portion debited separately and the sponsored portion recorded under explicit
+contract account/day and network/day ceilings. Zero disables sponsorship.
+New free admission requires fresh matching contract ceilings and positive
+uncommitted reward funding. Purchased usage stays independent. Only finalized
+sponsored USD work enters the fixed reward pool. No fake purchase or customer
+balance is created. Earlier mixed receipts already settled under the paid-only
+implementation remain blocked for explicit recovery; their signed intent is never
+rewritten. Do not activate until independent review and real acceptance complete.
 
 The approved Uniswap v4 market is pinned. Its archive adapter validates canonical
 finalized histories, time-weighted prices, executable depth, deviation, configured
@@ -54,3 +59,5 @@ Added authenticated `/koin/prepaid/network` observations for the secondary Netwo
 Implemented an archive-history reader, integer time-weighted/depth/deviation validator, canonical anchor checks, two-source agreement, a configured USDT/USD oracle reader, and domain-separated signed wrapped/native redemption attestations. Pricing warm-up runs separately from settlement. Missing/invalid pricing configuration or evidence fails only new quotes; quote expiry is bounded by evidence. There is no v3 observe or spot fallback. Dry configuration tooling creates no credentials and performs no RPC or financial action. Full backend suite: 357 passed. See V4_PURCHASE_PRICING.md for trust boundaries and unchosen policy. No mainnet quote, live deployment, funding or transfer was performed.
 
 Public USD admission now rejects missing or legacy billing modes before the old token allowance can run. The HTTP signup/streaming probe exercises this scheduler boundary. Full KOIN suite: 359 passed, zero failures. No production activation or live transaction was performed.
+
+Capped sponsorship continuation: 375 backend and cutover-preparation tests pass; matching desktop contracts build, 38 AssemblyScript tests and 12 built-WASM entry-point probes pass. These are isolated tests. Sponsor ceilings use explicit freePolicy values in new deployment plans; no default commercial budget is installed. Existing zero-cap contract responses normalize added zero fields so earlier signed funding policy hashes remain unchanged.
