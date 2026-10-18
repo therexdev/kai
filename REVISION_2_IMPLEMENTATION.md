@@ -30,7 +30,7 @@ unavailable; it never falls back to the old ticker feed or an invented price.
 USD tariffs, the free budget comparable to historical 25,000 AI tokens/day,
 and Master allocation remain commercial decisions. No live entitlement is set.
 
-Local validation: all 343 `scripts/probe-koin-*.js` tests passed, including a real
+Local validation: all 344 `scripts/probe-koin-*.js` tests passed, including a real
 loopback verified signup and HTTP streaming/cancellation. Tests use fixture
 budgets and signatures; they are not mainnet deployment, two-computer earning
 acceptance, or delayed payout verification. This executor uses Node 24.19.0;

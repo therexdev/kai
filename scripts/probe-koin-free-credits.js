@@ -84,3 +84,13 @@ test("missing policy never invents grants and legacy product is never relabelled
   const f = fixture(t); assert.equal(f.ledger.creditView(f.owner, identity).free.state, "unavailable");
   assert.equal(f.ledger.creditView(f.owner, identity).unit, "legacy-KOIN-1e-8");
 });
+test("balance snapshot expires mixed holds and creates the daily view in one transaction", t => {
+  const f = setup(t, { accountDaily: "10" }); f.purchase();
+  const job = f.ledger.reserve(req(f, "expires-during-balance"));
+  f.ledger.clock = () => job.expires;
+  let writes = 0; const write = f.ledger.write.bind(f.ledger);
+  f.ledger.write = fn => { writes++; return write(fn); };
+  const balance = f.ledger.creditView(f.owner, identity);
+  assert.equal(writes, 1); assert.equal(balance.purchased.available, "1000"); assert.equal(balance.free.available, "10");
+  assert.equal(f.ledger.job(job.id).state, "cancelled");
+});
