@@ -2,7 +2,7 @@
 const fs = require("fs"), os = require("os"), path = require("path"), { Signer } = require("koilib");
 const { Meter } = require("../../lib/koin-network/metering"), P = require("../../lib/koin-network/job-protocol");
 const { PrepaidLedger } = require("../../lib/koin-network/prepaid-ledger"), { fundedResultHash } = require("../../lib/koin-network/funded-protocol");
-function fixture(t) {
+function fixture(t, overrides = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kai-prepaid-")), buyer = Signer.fromSeed("prepaid-buyer"), worker = Signer.fromSeed("prepaid-provider");
   const owner = buyer.getAddress(), provider = worker.getAddress(), address = n => Signer.fromSeed("prepaid-" + n).getAddress();
   let now = Date.now(), ledger;
@@ -12,7 +12,7 @@ function fixture(t) {
     input: m => encode(JSON.stringify(m)).length, output: s => encode(s).length } }]);
   const target = { chainId: require("../../lib/koin-network/payment-network").MAINNET_CHAIN, credits: address("contract"),
     creditsHash: "0x1220" + P.hash("prepaid-wasm"), policyHash: meter.policyHash, domain: "shadow:mainnet-pilot-" + P.hash("prepaid-service") };
-  const options = { target, meter, encryptionKey: Buffer.alloc(32, 42), clock: () => now, waitMs: 3000 };
+  const options = { target, meter, encryptionKey: Buffer.alloc(32, 42), clock: () => now, waitMs: 3000, ...overrides };
   const open = () => ledger = new PrepaidLedger(dir, options); open();
   t.after(() => { ledger?.close(); fs.rmSync(dir, { recursive: true, force: true }); for (const suffix of ["", "-wal", "-shm"]) fs.rmSync(dir + ".recovery-anchor.sqlite" + suffix, { force: true }); });
   const purchase = (name = "first", amount = "1000") => {

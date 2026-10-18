@@ -6,8 +6,19 @@ test("prepaid purchase is credited exactly once; pending or failed purchases lea
   assert.equal(f.ledger.balance(f.owner).purchased, "1000");
   f.ledger.queuePurchase("0x1220" + P.hash("pending"), f.owner);
   f.ledger.reserve(f.request("chat")); assert.ok(BigInt(f.ledger.balance(f.owner).available) > 0n);
-  assert.throws(() => f.ledger.queuePurchase(id, f.provider), /another account/);
+  assert.equal(f.ledger.queuePurchase(id, f.provider).state, "pending");
+  assert.equal(f.ledger.balance(f.provider).purchased, "0", "claiming someone else's public transaction never credits its claimant");
   assert.throws(() => f.ledger.confirmPurchase("0x1220" + P.hash("pending"), { state: "reversible", txId: id, amount: "10" }), /Finalized/);
+});
+test("an unrelated claimant cannot squat on a buyer's transaction or cause double attribution", t => {
+  const f = fixture(t), id = "0x1220" + P.hash("squatted");
+  f.ledger.queuePurchase(id, f.provider); f.ledger.queuePurchase(id, f.owner);
+  f.ledger.rejectPurchase(id, "invalid", f.provider);
+  const proof = { state: "finalized", txId: id, owner: f.owner, amount: "100" };
+  f.ledger.confirmPurchase(id, proof); f.restart(); f.ledger.confirmPurchase(id, proof);
+  assert.equal(f.ledger.balance(f.owner).purchased, "100"); assert.equal(f.ledger.balance(f.provider).purchased, "0");
+  assert.throws(() => f.ledger.confirmPurchase(id, { ...proof, owner: f.provider }), /UNIQUE/);
+  assert.equal(f.ledger.balance(f.provider).purchased, "0", "conflicting evidence rolls the entire balance transaction back");
 });
 test("saving an answer does not charge; receipt acknowledgement charges once and releases the unused quote", async t => {
   const f = fixture(t); f.purchase(); const j = f.ledger.reserve(f.request("chat")), ready = await f.complete(j.id);

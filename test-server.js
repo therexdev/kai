@@ -11,7 +11,25 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
   if (!stateDir || !path.isAbsolute(stateDir) || /\/\.koinos-ai(\/|$)|\/opt\/koinos\/kai(\/|$)/.test(stateDir)) throw Error("Separate absolute Test state directory required");
   const secret = read(path.join(directory, "operator-secret"), 256, true).trim();
   if (!/^[a-f0-9]{64}$/.test(secret)) throw Error("Independent Test operator secret required");
+  let publicAccounts, authApp;
+  if (config.accountMode === "public") {
+    // Existing verified sign-in implementation, separate Test state. No new
+    // wallet, invitation or spend grant is required to receive a free grant.
+    const express = require("express"), smtp = process.env.SMTP_HOST ? require("nodemailer").createTransport({
+      host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587), secure: process.env.SMTP_SECURE === "true",
+      ...(process.env.SMTP_USER ? { auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } } : {}),
+    }) : null;
+    publicAccounts = require("./lib/accounts").createAccounts({ stateDir, siteOrigin: new URL(config.schedulerUrl).origin,
+      sendMail: smtp ? m => smtp.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, ...m }) : null,
+      google: process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET } : null });
+    authApp = express(); authApp.disable("x-powered-by"); authApp.use(express.json({ limit: "32kb" })); authApp.use(publicAccounts.router);
+    authApp.get(["/account", "/link"], (_req, res) => res.sendFile(path.join(__dirname, "public/account.html")));
+    authApp.use("/i18n", express.static(path.join(__dirname, "public/i18n")));
+    for (const asset of ["brand-mark.svg", "kai-companion.svg"]) authApp.get("/redesign/" + asset, (_req, res) => res.sendFile(path.join(__dirname, "public/redesign", asset)));
+    authApp.use((_req, res) => res.status(404).json({ error: "Unknown account route" }));
+  }
   const runtime = new TestRuntime({ config, stateDir, signers: loadKeys(path.join(directory, "runtime-keys.json"), config),
+    accountService: publicAccounts?.service,
     accountsFile: path.join(directory, "invitations.json"), tokenizerDir: path.join(directory, "tokenizer"),
     qualificationsFile: path.join(directory, "qualifications.json"), operatorSecret: secret });
   await runtime.client.verify();
@@ -20,7 +38,8 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
     res.setHeader("X-Content-Type-Options", "nosniff");
     try {
       const url = new URL(req.url, "http://test");
-      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, product: runtime.prepaid ? "prepaid-v1" : "legacy-reservations", lastSuccess: (runtime.prepaid ? runtime.lastServing : runtime.lastSuccess) || null, lastSettlementSuccess: runtime.lastSuccess || null });
+      if (authApp && (/^\/(auth|account|i18n)(\/|$)/.test(url.pathname) || url.pathname === "/link" || /^\/redesign\/(brand-mark|kai-companion)\.svg$/.test(url.pathname))) return authApp(req, res);
+      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, product: config.deployment.product || "legacy-reservations", lastSuccess: (runtime.prepaid ? runtime.lastServing : runtime.lastSuccess) || null, lastSettlementSuccess: runtime.lastSuccess || null });
       if (url.pathname === "/operator/status" && req.method === "GET") {
         const presented = crypto.createHash("sha256").update(String(req.headers["x-operator-secret"] || "")).digest();
         if (!crypto.timingSafeEqual(presented, crypto.createHash("sha256").update(secret).digest())) return json(res, 403, { error: "Test operator access required" });
@@ -51,7 +70,7 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
         const chunks = []; let size = 0;
         for await (const part of req) { size += part.length; if (size > 32768) throw Error("Test request too large"); chunks.push(part); }
         const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-        if (runtime.prepaid && body.billing === "koin-prepaid-v1") return runtime.scheduler.koinPrepaid.work.chat(req, res, body);
+        if (runtime.prepaid && body.billing === "koin-" + config.deployment.product) return runtime.scheduler.koinPrepaid.work.chat(req, res, body);
         if (runtime.prepaid || body.billing !== wire.billing) throw Error("Only approved Test spending sessions are accepted");
         return runtime.scheduler.koinFundedSessions.work.chat(req, res, body);
       }
