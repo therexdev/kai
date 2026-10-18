@@ -55,4 +55,19 @@ test("verified public signup reaches real metered HTTP streaming without a walle
   assert.equal((await post(wire.prefix + "chunk", { jobId: job.id, output: "Hello later", sequence: 2, signature })).status, 400);
   const last = await post("/koin/prepaid/status"); assert.equal(last.value.credits.available, after.value.credits.available);
   while (!(await reader.read()).done) {};
+  // Linking more wallets cannot multiply this verified account's free grant
+  // or combine the separately attributed purchased balances.
+  const originalView = auth.service.accountView.bind(auth.service);
+  auth.service.accountView = a => ({ ...originalView(a), wallets: [{ address: f.owner }, { address: f.provider }] });
+  const id = "0x1220" + P.hash("second-wallet-purchase"); router.ledger.queuePurchase(id, f.provider);
+  router.ledger.confirmPurchase(id, { state: "finalized", txId: id, owner: f.provider, amount: "500" });
+  assert.equal((await post("/koin/prepaid/status")).status, 400, "multiple wallets require explicit selection");
+  const selected = await post("/koin/prepaid/status", { creditWallet: f.provider });
+  assert.equal(selected.value.balance.purchased, "500"); assert.equal(selected.value.credits.free.available, last.value.credits.free.available);
+  const firstWallet = await post("/koin/prepaid/status", { creditWallet: f.owner }); assert.equal(firstWallet.value.balance.purchased, "0");
+  assert.equal((await post("/koin/prepaid/status", { creditWallet: address("unlinked") })).status, 400);
+  const walletless = await post("/koin/prepaid/status", { creditWallet: null }); assert.equal(walletless.value.credits.free.available, last.value.credits.free.available);
+  const recoveredWithSelection = await post("/koin/prepaid/result", { requestId, creditWallet: f.provider });
+  assert.equal(recoveredWithSelection.value.completion.choices[0].message.content, output);
+  assert.equal((await post("/koin/prepaid/status", { creditWallet: f.provider })).value.balance.spent, "0", "recovering an earlier free answer never debits the selected wallet");
 });

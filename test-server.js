@@ -52,10 +52,10 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
         if (!account) return json(res, 401, { error: "Test invitation required" });
         const parts = []; let size = 0; for await (const part of req) { size += part.length; if (size > 1024) throw Error("Test host request too large"); parts.push(part); }
         const value = JSON.parse(Buffer.concat(parts).toString("utf8"));
-        if (Object.keys(value).join() !== "installation") throw Error("Exact Test installation required");
-        const [wallet] = runtime.accounts.accountView(account).wallets;
+        if (!Object.hasOwn(value, "installation") || Object.keys(value).some(k => !["installation", "creditWallet"].includes(k))) throw Error("Exact Test installation required");
+        const wallet = require("./lib/koin-network/credit-wallet").select(runtime.accounts.accountView(account).wallets, value);
         if (!wallet) throw Error("Test wallet invitation unavailable");
-        return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, ...runtime.hosts.claim(wallet.address, value.installation) });
+        return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, ...runtime.hosts.claim(wallet, value.installation) });
       }
       if (url.pathname === "/scheduler/koin/test/status" && req.method === "GET") {
         const token = String(req.headers.authorization || "").replace(/^Bearer /, ""), account = runtime.accounts.sessionAccount(token);
