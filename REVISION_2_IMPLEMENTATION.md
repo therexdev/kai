@@ -45,3 +45,7 @@ telemetry days must be resolved before claiming acceptance.
 ### Prototype-backed network overview continuation
 
 Added authenticated `/koin/prepaid/network` observations for the secondary Network page. Counts come from actual provider readiness and queued/delivered ledger state. Duplicate connections count once; future heartbeats and expired qualification never imply readiness. Provider labels are pseudonyms; prompts and wallet addresses are omitted. Observations expire within 15 seconds or earlier qualification expiry. Recent activity includes verified partial replies as delivered work, without claiming a payout. Full backend probes: 345 passed. No deployment or service mutation was performed.
+
+### V4 pricing continuation
+
+Implemented an archive-history reader, integer time-weighted/depth/deviation validator, canonical anchor checks, two-source agreement, a configured USDT/USD oracle reader, and domain-separated signed wrapped/native redemption attestations. Pricing warm-up runs separately from settlement. Missing/invalid pricing configuration or evidence fails only new quotes; quote expiry is bounded by evidence. There is no v3 observe or spot fallback. Dry configuration tooling creates no credentials and performs no RPC or financial action. Full backend suite: 357 passed. See V4_PURCHASE_PRICING.md for trust boundaries and unchosen policy. No mainnet quote, live deployment, funding or transfer was performed.
