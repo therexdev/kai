@@ -43,8 +43,7 @@ loopback verified signup and HTTP streaming/cancellation. Tests use fixture
 budgets and signatures; they are not mainnet deployment, two-computer earning
 acceptance, or delayed payout verification. This executor uses Node 24.19.0;
 deployment declares Node 22. Existing provider qualification expired October 16;
-the changes do not automatically renew eligibility. Automated proof renewal,
-advanced-mode budgets, and the remaining desktop redesign are unfinished.
+the changes do not automatically renew eligibility. That historical checkpoint preceded the qualification and run-budget continuations below.
 
 Fresh contract deployment/funding/credentials and live financial operations
 remain outside this task's authorization. Three closed reward days versus seven
@@ -69,3 +68,11 @@ Automatic qualification is optional and inactive without an explicit reviewed po
 Local backend validation after this continuation: 368 KOIN tests pass, including the real HTTP scheduler poll/result boundary, restart/renewal, forged answers and repeated result submission. These are fixture checks, not model-quality or two-computer acceptance. The earlier 7/10 benchmark artifact and approved pass/latency criteria remain required; no criteria have been silently weakened. No runtime policy was installed and no production service changed.
 
 Multiple linked wallets now require an explicit `creditWallet` selection for spending and the host lease. The server verifies membership; a walletless free request retains the same verified-account allowance. No balances are combined or moved. Recovery continues to use the original account-bound job owner. Full backend/cutover validation: 380 tests, 380 pass, zero failures. These remain isolated/local tests.
+
+### Total run budgets and public earnings
+
+Research/Agents/Teams now use account-bound immutable run approvals in the same SQLite transaction/recovery domain as the credit ledger. A total ceiling covers concurrent model holds and verified delivered usage, including streaming partials, retries and free/paid allocation. Stop cancels unfinished calls without charging them and retains delivered intermediate results; repeated requests and restart never create a second debit. Model, wallet and Free only cannot change mid-run. Public capabilities advertise only supported USD account routes. Local tool execution remains subject to existing desktop permissions.
+
+The authenticated provider status response now supplies its observation time for public account earnings. Payout epoch strings and unresolved review states are preserved; no old reward is reset or submitted.
+
+This is source implementation, not production activation. The reviewed pricing/commercial configuration, benchmark quality/latency criteria, independent financial review, fresh authorized deployment/funding, real two-computer acceptance and delayed payout observation remain outstanding. Three versus seven acceptance days is unresolved. No production services or live financial operations were changed.

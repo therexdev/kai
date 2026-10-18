@@ -61,7 +61,7 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
         const token = String(req.headers.authorization || "").replace(/^Bearer /, ""), account = runtime.accounts.sessionAccount(token);
         if (!account) return json(res, 401, { error: "Test invitation required" });
         const wallets = runtime.accounts.accountView(account).wallets;
-        return json(res, 200, { mode: config.mode, mainnetPaymentsEnabled: wire.paymentsEnabled, automaticPayouts: true,
+        return json(res, 200, { mode: config.mode, mainnetPaymentsEnabled: wire.paymentsEnabled, automaticPayouts: true, observedAt: runtime.clock(),
           providers: wallets.map(w => require("./lib/koin-network/provider-readiness").providerReadiness(runtime, w.address)),
           payouts: wallets.flatMap(w => runtime.claims.accountStatus(w.address)), lastCycleCheck: runtime.lastSuccess || null });
       }
