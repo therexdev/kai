@@ -41,3 +41,7 @@ advanced-mode budgets, and the remaining desktop redesign are unfinished.
 Fresh contract deployment/funding/credentials and live financial operations
 remain outside this task's authorization. Three closed reward days versus seven
 telemetry days must be resolved before claiming acceptance.
+
+### Prototype-backed network overview continuation
+
+Added authenticated `/koin/prepaid/network` observations for the secondary Network page. Counts come from actual provider readiness and queued/delivered ledger state. Duplicate connections count once; future heartbeats and expired qualification never imply readiness. Provider labels are pseudonyms; prompts and wallet addresses are omitted. Observations expire within 15 seconds or earlier qualification expiry. Recent activity includes verified partial replies as delivered work, without claiming a payout. Full backend probes: 345 passed. No deployment or service mutation was performed.
