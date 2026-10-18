@@ -44,7 +44,7 @@ async function configure(directory, approved, providerFactory) {
     roles: Object.fromEntries(["settlement", "lifecycle", "claims"].map(r => [r, p.roleAddresses[r]])), schedulerUrl: s.schedulerUrl,
     version: 1, tokenizer, tariff, policyHash: P.hash(JSON.stringify(["KAI-KOIN-SHADOW-TARIFFS-V1", tariff])),
     maxRcPerTransaction: s.maxRcPerTransaction, maxRcPerDay: s.maxRcPerDay,
-    ...Object.fromEntries(["freePolicy", "accountMode", "purchasePricing"].filter(key => s[key] !== undefined).map(key => [key, s[key]])) });
+    ...Object.fromEntries(["freePolicy", "accountMode", "purchasePricing", "qualificationPolicy"].filter(key => s[key] !== undefined).map(key => [key, s[key]])) });
   const plan = { schema: 1, mode: runtime.mode, runtime, owner: s.owner, limits: s.limits, deployRcLimit: s.deployRcLimit,
     artifacts: p.artifacts, fundingAddresses: p.roleAddresses, funding: p.funding, bootstrapHash: approved };
   save(path.join(directory, "deployment-plan.json"), plan);

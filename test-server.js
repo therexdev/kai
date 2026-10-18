@@ -75,7 +75,7 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
         return runtime.scheduler.koinFundedSessions.work.chat(req, res, body);
       }
       const route = new URL(req.url, "http://test").pathname;
-      if (!(runtime.prepaid && route.startsWith("/koin/prepaid/")) && !route.startsWith(wire.prefix) && !["/worker/register", "/worker/heartbeat", "/worker/next-job", "/koin/presence", "/koin/status", "/network/models", "/network/status"].includes(route)) return json(res, 404, { error: "Route is disabled on the Test backend" });
+      if (!(runtime.prepaid && route.startsWith("/koin/prepaid/")) && !route.startsWith(wire.prefix) && !["/worker/register", "/worker/heartbeat", "/worker/next-job", "/koin/provider/qualification/result", "/koin/presence", "/koin/status", "/network/models", "/network/status"].includes(route)) return json(res, 404, { error: "Route is disabled on the Test backend" });
       await runtime.scheduler.handle(req, res);
     } catch (e) { if (!res.writableEnded && !res.destroyed) json(res, 400, { error: String(e.message).slice(0, 200) }); }
   });

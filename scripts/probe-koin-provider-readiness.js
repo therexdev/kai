@@ -13,7 +13,7 @@ assert.equal(providerReadiness(runtime, address).validUntil, now + 15000);
 approved = false; assert.equal(providerReadiness(runtime, address).state, "qualification-expired"); approved = true;
 for (const [object, key, value, expected] of [[worker, "proof", "unsigned", "update-required"], [worker, "lastSeen", now - 46000, "connecting"],
   [worker, "models", [], "model-required"], [presence, "at", now - 90001, "preparing"], [presence, "ready", false, "preparing"],
-  [presence, "modelHash", "wrong", "preparing"], [runtime, "lastSuccess", now - 60001, "network-paused"]]) {
+  [presence, "at", now + 1, "preparing"], [presence, "modelHash", "wrong", "preparing"], [runtime, "lastSuccess", now + 1, "network-paused"], [runtime, "lastSuccess", now - 60001, "network-paused"]]) {
   const prior = object[key]; object[key] = value; assert.equal(providerReadiness(runtime, address).state, expected); object[key] = prior;
 }
 assert.equal(providerReadiness(runtime, "other-wallet").state, "review-required");

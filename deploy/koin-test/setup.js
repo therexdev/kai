@@ -12,7 +12,7 @@ const RPC = "https://testnet.koinosfoundation.org/jsonrpc", roles = ["admin", "c
 const json = value => JSON.stringify(value, null, 2) + "\n";
 function save(file, value) { const fd = fs.openSync(file, "wx", 0o600); try { fs.writeFileSync(fd, typeof value === "string" || Buffer.isBuffer(value) ? value : json(value)); fs.fsyncSync(fd); } finally { fs.closeSync(fd); } }
 function settings(s, { usd = false } = {}) {
-  const optional = ["freePolicy", "accountMode", "purchasePricing"];
+  const optional = ["freePolicy", "accountMode", "purchasePricing", "qualificationPolicy"];
   if (!s || Object.keys(s).filter(k => !optional.includes(k)).sort().join() !== "deployRcLimit,limits,maxRcPerDay,maxRcPerTransaction,owner,schedulerUrl,tariff" || !utils.isChecksumAddress(s.owner)) throw Error("Fill the explicit Test setup settings first");
   if (optional.some(k => s[k] !== undefined) && !usd) throw Error("Public USD settings require a fresh USD deployment");
   if (s.accountMode !== undefined && !["public", "invitations"].includes(s.accountMode)) throw Error("Invalid account mode");
@@ -22,6 +22,7 @@ function settings(s, { usd = false } = {}) {
   const t = s.tariff;
   if (!t || Object.keys(t).sort().join() !== "contextTokens,inputAtomsPerMillion,maxLatencyMs,maxOutputTokens,outputAtomsPerMillion") throw Error("Explicit Test tariff and resource limits required");
   amount(t.inputAtomsPerMillion); amount(t.outputAtomsPerMillion); P.integer(t.contextTokens, 1, 32768); P.integer(t.maxOutputTokens, 1, t.contextTokens); P.integer(t.maxLatencyMs, 1, 180000);
+  if (s.qualificationPolicy !== undefined) require("../../lib/koin-network/provider-qualification").policy(s.qualificationPolicy, { ...t, model: tokenizer.model, modelHash: tokenizer.modelHash });
   if (!s.limits || Object.keys(s.limits).sort().join() !== "amount,durationMs,maxJobs,perJob") throw Error("Explicit bounded session limits required");
   amount(s.limits.amount); amount(s.limits.perJob); P.integer(s.limits.maxJobs, 1, 10000); P.integer(s.limits.durationMs, 60000, 86400000);
   if (!usd && BigInt(s.limits.perJob) > BigInt(s.limits.amount)) throw Error("Per-request limit exceeds session budget");
