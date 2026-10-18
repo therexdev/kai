@@ -27,6 +27,10 @@ test("verified public signup reaches real metered HTTP streaming without a walle
   const sessionToken = /kai_session=([^;]+)/.exec(login.headers.get("set-cookie"))[1];
   const post = async (route, body = {}) => { const response = await raw(route, { sessionToken, ...body }); return { status: response.status, value: await response.json() }; };
   const initial = await post("/koin/prepaid/status"); assert.equal(initial.value.credits.available, "1000"); assert.equal(initial.value.balance.purchased, "0");
+  for (const [route, body] of [["quote-usd", { dollars: "1" }], ["quote", { amount: "100000000" }]]) {
+    const unavailable = await post("/koin/prepaid/" + route, body);
+    assert.equal(unavailable.status, 400); assert.match(unavailable.value.error, /Free credits do not require a wallet/);
+  }
   const messages = [{ role: "user", content: "Hi" }], model = "fixture", max_tokens = 16;
   const estimate = await post("/koin/prepaid/estimate", { messages, model, max_tokens, freeOnly: true });
   assert.equal(estimate.value.estimate.maxPaid, "0"); assert.equal(estimate.value.estimate.allowed, true);
