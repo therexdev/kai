@@ -65,3 +65,36 @@ test("derived installer rejects full downloads, wrong ranges, corrupt prefixes a
   await assert.rejects(install(f.directory, { ...f.manifest, tokenizerHash: "0".repeat(64) }, { fetchImpl: async () => f.response() }), /hash mismatch/);
   assert.deepEqual(fs.readdirSync(f.directory), []);
 });
+
+// Deliberately tiny byte vocabulary: regression for the real Qwen failure,
+// independent of the full external model download required for native proof.
+test("Qwen GGUF encoding preserves decomposed UTF-8 and native b10423 control overrides", () => {
+  const mapped = Array.from({ length: 256 }, (_, b) => b >= 33 && b <= 126 || b >= 161 && b <= 172 || b >= 174 ? b : null);
+  let next = 256; const tokens = mapped.map(b => String.fromCodePoint(b === null ? next++ : b));
+  tokens.push("</s>", "<s>", "</end>", "<tool_call>");
+  const template = "{{ bos_token }}{% for message in messages %}{{ message.content }}{% endfor %}";
+  const bytes = gguf([["tokenizer.ggml.model", 8, "gpt2"], ["tokenizer.ggml.pre", 8, "qwen2"],
+    ["tokenizer.ggml.tokens", 9, [8, tokens]], ["tokenizer.ggml.token_type", 9, [4, [...Array(257).fill(1), 3, 3, 4]]],
+    ["tokenizer.ggml.merges", 9, [8, []]], ["tokenizer.ggml.bos_token_id", 4, 257],
+    ["tokenizer.ggml.eos_token_id", 4, 258], ["tokenizer.chat_template", 8, template]]);
+  const source = { kind: "gguf-metadata-v1", filename: "qwen.gguf", modelSize: bytes.length + 4096,
+    prefixBytes: bytes.length, prefixHash: hash(bytes), converter: "qwen2-bpe-v1" };
+  const artifacts = G.derive(bytes, source), tokenizer = new (require("@huggingface/tokenizers").Tokenizer)(
+    JSON.parse(artifacts["tokenizer.json"]), JSON.parse(artifacts["tokenizer_config.json"]));
+  const encode = text => tokenizer.encode(text, { add_special_tokens: false }).ids;
+  assert.deepEqual(encode("e\u0301"), [101, 204, 129]);
+  assert.deepEqual(encode("é"), [195, 169]);
+  assert.deepEqual(encode("a</s>b<tool_call>c"), [97, 256, 98, 259, 99]);
+  assert.throws(() => G.derive(bytes, { ...source, configSource: { repository: "fixture/config", revision: "a".repeat(40), sha256: "b".repeat(64) } }), /Unexpected external/);
+});
+
+test("external Mistral chat configuration requires exact immutable source identity", () => {
+  const source = { kind: "gguf-metadata-v1", filename: "mistral.gguf", modelSize: 4096, prefixBytes: 1024,
+    prefixHash: "a".repeat(64), converter: "mistral-spm-bpe-v1",
+    configSource: { repository: "mistralai/Mistral-7B-Instruct-v0.3", revision: "b".repeat(40), sha256: "c".repeat(64) } };
+  assert.equal(G.sourceIdentity(source), source);
+  for (const config of [undefined, { ...source.configSource, repository: "../private/config" },
+    { ...source.configSource, revision: "main" }, { ...source.configSource, extra: true }, { ...source.configSource, sha256: "bad" }]) {
+    assert.throws(() => G.sourceIdentity({ ...source, configSource: config }));
+  }
+});

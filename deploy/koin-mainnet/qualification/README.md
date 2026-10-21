@@ -11,7 +11,10 @@ review-evidence hash. A historical 7/10 benchmark does not approve this suite.
 
 Desktop builds containing the local provider check use **Earn → Check this
 computer**. Open an installed public model in local Chat first if no model is
-running. The check needs no service activation, account sign-in, wallet unlock,
+running. If a local model is already loading, the check waits up to two minutes
+without starting or switching a model. Installed models, current engine state
+and loading failures are recorded separately; selecting a model in Chat alone
+does not prove which engine was running when the check began. The check needs no service activation, account sign-in, wallet unlock,
 credits, manually entered port or file path. It observes only the current managed
 llama.cpp process; it neither downloads nor switches a model. An active request
 must finish before the check starts.
@@ -25,12 +28,16 @@ fixed-test outputs and timing. It excludes prompt text, local endpoints/paths,
 private chats, account tokens, keys and logs. It never changes network ONLINE or
 creates qualification, payment or reward eligibility. The loaded-process claim
 is explicitly `managed-process-observed`, not cryptographic attestation of loaded
-weight bytes; model/process changes invalidate the check.
+weight bytes; model/process changes invalidate the check. An incomplete check
+leaves runtime stability unknown unless a process change was actually observed.
 
 `scripts/prepare-provider-check-pack.js` generates the small desktop evidence pack
 from the approved package table, exact candidate manifests, verified tokenizer
 artifacts and the fixed twelve-case baseline. Each prepared model has its own
-rendered prompts and native token-ID commitments. These are unapproved measurement
+rendered prompts and independently checked native token-ID commitments. In the
+corrected pack, Qwen-family references preserve the native engine's Unicode
+bytes; the former NFC-normalized references were incompatible with that engine.
+These are unapproved measurement
 candidates, not fabricated passing scores or admission thresholds. No tokenizer
 library or dependency installation is needed on the provider computer for this
 guided flow.

@@ -6,13 +6,28 @@ tokenizer/template pins and a freshly qualified provider with that package.
 
 The preparation inventory is
 [`lib/koin-network/tokenizers/candidates/index.json`](../../lib/koin-network/tokenizers/candidates/index.json).
-All 15 packs have passed independent reference vectors against the JavaScript
-adapter. The existing Fast and nine standalone-source candidates retain their
-original pins and 79 Python tokenizers 0.22.1/Jinja2 3.1.6 reference vectors.
-The two Llama and three Gemma candidates add 145 checks against the pinned
-native llama.cpp vocabulary tokenizer: 25 diverse strings and four independently
-rendered chat prompts per package. All original templates also render the 12
-baseline provider-check prompts. These are preparation checks, not paid admission.
+The inventory distinguishes independently prepared references from native
+runtime parity. Python/JavaScript agreement alone is insufficient: the original
+Fast reference applied Unicode NFC normalization while the approved GGUF engine
+preserved the supplied characters. The decomposed-accent regression produced
+nine reference tokens versus ten native tokens. The seven Qwen-family packs now
+derive byte-preserving tokenization from their exact GGUF metadata and carry new
+artifact identities. Existing deployments are not silently repinned or updated.
+The converter also retains b10423's explicit `</s>` control-token override;
+metadata types alone do not describe that native behavior.
+
+Native comparisons cover reference strings and the twelve rendered baseline
+provider-check prompts for each available candidate. Exact token IDs must agree;
+a candidate that cannot demonstrate that agreement remains unavailable. These
+are preparation checks, not paid admission or model-quality results.
+The corrected inventory verifies all 15 models: 427 reference vectors and 180
+actual candidate prompts. Generation now checks each prompt against its pinned
+native evidence, so JavaScript-only regeneration cannot silently change it.
+
+Mistral 7B's separate correction preserves native SentencePiece space prefixes
+around control tokens. Its original system-role-capable chat configuration is
+downloaded from a separately pinned immutable source; its exact config and
+template hashes remain required. The converter rejects unsupported score ties.
 
 Llama and Gemma upstream standalone files require accepted terms/authentication.
 Their candidates instead explicitly identify the public catalog GGUF as their
@@ -117,8 +132,8 @@ quote on the next UTC date; its original prompt commitment remains identical.
 ## What the evidence does and does not establish
 
 Independent reference vectors check the JavaScript implementation against
-separate Python implementations and, for the five derived packs, the pinned
-native vocabulary tokenizer. Local runtime checks compare exact token IDs,
+separate implementations and the pinned native vocabulary tokenizer. Local
+runtime checks compare exact token IDs,
 not merely counts. Every normal network job also rechecks the quoted prompt's
 exact token IDs in the provider runtime before inference proceeds.
 

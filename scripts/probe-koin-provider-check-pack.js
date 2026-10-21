@@ -49,6 +49,21 @@ test("unsupported baseline roles and context limits fail explicitly without rewr
   assert.throws(() => G.prepareModel({ ...supported, approved: { ...supported.approved, catalogContextTokens: 1 } }), /candidate_context_unsupported/);
   assert.equal(baseline.cases.at(-1).messages[0].role, "system");
 });
+test("pack generation requires separately pinned native prompt IDs, not JavaScript agreement alone", t => {
+  const model = G.prepareModel(fixture(t));
+  const proof = { schema: 1, model: model.model, publishedModelSha256: model.modelHash,
+    nativeReference: { version: "b10423", vocabOnly: true }, nativeReferenceVectorsVerified: model.vectors.length,
+    candidateCasePromptsVerified: model.cases.length,
+    candidateCases: model.cases.map(c => ({ id: c.id, promptHash: c.promptHash, count: c.inputTokens, idsHash: c.inputIdsHash })) };
+  const bytes = Buffer.from(JSON.stringify(proof)), indexed = { sourceEvidenceFileSha256: G.hash(bytes) };
+  assert.equal(G.verifyNativeEvidence(model, indexed, bytes), model);
+  const changed = structuredClone(model); changed.cases[0].inputIdsHash = "0".repeat(64);
+  assert.throws(() => G.verifyNativeEvidence(changed, indexed, bytes), /native_prompt_mismatch/);
+  assert.throws(() => G.verifyNativeEvidence(model, { sourceEvidenceFileSha256: "0".repeat(64) }, bytes), /native_evidence_required/);
+  delete proof.nativeReference;
+  const missing = Buffer.from(JSON.stringify(proof));
+  assert.throws(() => G.verifyNativeEvidence(model, { sourceEvidenceFileSha256: G.hash(missing) }, missing), /native_evidence_required/);
+});
 test("missing prepared artifacts remain unavailable and private/unknown aliases cannot enter the mapping", () => {
   const pack = G.generate({ directories: {}, backendCommit: "a".repeat(40) });
   assert.equal(pack.status, "candidate-not-approved"); assert.equal(pack.models.length, 0); assert.equal(pack.unavailable.length, catalog.models.length);

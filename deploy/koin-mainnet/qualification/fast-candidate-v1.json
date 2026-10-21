@@ -4,7 +4,7 @@
   "status": "candidate-not-approved",
   "model": "koinos-fast",
   "modelHash": "1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370",
-  "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+  "tokenizerHash": "5f249ae7d84be6b5b3aced973ff1e82c11cd2c377e81d559070bf8d76c210c2a",
   "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
   "cases": [
     { "id": "multiplication", "messages": [{ "role": "user", "content": "Calculate 17 multiplied by 23. Reply with only the integer answer." }], "expected": ["391"], "maxOutput": 32 },

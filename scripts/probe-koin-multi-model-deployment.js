@@ -10,6 +10,23 @@ const Models = require("../lib/koin-network/model-configuration");
 const approved = require("../deploy/koin-mainnet/model-rates.proposal.json").models;
 const owner = Signer.fromSeed("isolated-multi-model-deployment-owner").getAddress();
 const artifact = Buffer.from("{}"), artifactHash = P.hash(artifact);
+
+test("deployment example retains the exact prepared tokenizer for every approved model", () => {
+  const example = require("../deploy/koin-mainnet/settings.prepaid-usd.models.example.json");
+  const index = require("../lib/koin-network/tokenizers/candidates/index.json");
+  assert.deepEqual(example.settings.models.map(e => e.tariff.model).sort(), approved.map(m => m.model).sort());
+  Models.entries(example.settings);
+  for (const { tariff, tokenizer } of example.settings.models) {
+    const model = approved.find(m => m.model === tariff.model), indexed = index.models.find(m => m.model === tariff.model);
+    const file = path.resolve(__dirname, "../lib/koin-network/tokenizers/candidates", indexed.manifest), bytes = fs.readFileSync(file);
+    assert.equal(P.hash(bytes), indexed.manifestFileSha256, tariff.model + " manifest pin");
+    assert.deepEqual(tokenizer, JSON.parse(bytes), tariff.model + " prepared tokenizer");
+    assert.equal(tariff.modelHash, model.modelHash);
+    assert.equal(tariff.inputAtomsPerMillion, model.usdAtomsPerMillion.input);
+    assert.equal(tariff.outputAtomsPerMillion, model.usdAtomsPerMillion.output);
+  }
+});
+
 function entry(alias) {
   const model = approved.find(m => m.model === alias);
   // Deliberately synthetic tokenizer bytes: these test configuration and staging,

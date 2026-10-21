@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "model": "mistral-7b",
+  "repository": "bartowski/Mistral-7B-Instruct-v0.3-GGUF",
+  "revision": "61fd4167fff3ab01ee1cfe0da183fa27a944db48",
+  "filename": "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf",
+  "metadataUrl": "https://huggingface.co/api/models/bartowski/Mistral-7B-Instruct-v0.3-GGUF/revision/61fd4167fff3ab01ee1cfe0da183fa27a944db48?blobs=true",
+  "publishedModelSha256": "1270d22c0fbb3d092fb725d4d96c457b7b687a5f5a715abe1e818da303e562b6",
+  "publishedModelSize": 4372812000,
+  "publishedHashMatchesCatalog": true,
+  "downloadedFullModelVerified": false,
+  "prefixBytes": 16000000,
+  "prefixSha256": "33abc4f7ad5ee3a0dfb5aa8d01c7b8e5d0eae2fcbfedaf405ab501e8075bb915",
+  "configSource": {
+    "repository": "mistralai/Mistral-7B-Instruct-v0.3",
+    "revision": "c170c708c41dac9275d15a8fff4eca08d52bab71",
+    "sha256": "0533dec9cfe319163801b6618d0f3ec9cfa126b6288e3df5deca6e32acb09cd2"
+  },
+  "nativeReference": {
+    "version": "b10423",
+    "archiveSha256": "664ffbf9134dbc12b2de3281d0404cb8f98a2339580911e5f74035dc320e0e84",
+    "tokenizeBinarySha256": "5f0c1691b78ced63c8a67c1122ffffa820967094295c6d0f36a8a3880de02ec6",
+    "sourceUrl": "https://raw.githubusercontent.com/ggml-org/llama.cpp/b10423/tools/tokenize/tokenize.cpp",
+    "sourceSha256": "db0cd035294b91009250029a1435a1a688d72eb489c406b630d2293b30d6fb34",
+    "vocabOnly": true,
+    "modelWeightsUsed": false
+  },
+  "nativeReferenceVectorsVerified": 42,
+  "nativeAdditionalEdgeCasesVerified": 33,
+  "candidateCasePromptsVerified": 12,
+  "candidateCases": [
+    {
+      "id": "multiplication",
+      "promptHash": "cbc331bd8cb942e60b6093fdb6499329d1e031a6ff5799786f1d5b1d05993625",
+      "count": 24,
+      "idsHash": "a05e2b34fec888aed35647452664c7dc5aa5ffabd1180ccb7f2ec60414a8300b"
+    },
+    {
+      "id": "exact-word",
+      "promptHash": "0952a79effcf33f85404e65c865f9f83baad8e1398ae3da7a6e851e5a2ecfc56",
+      "count": 15,
+      "idsHash": "a4624d1917b2eb09bf3178900f8ee63bbc444e30d013b31000541677f40e6fcf"
+    },
+    {
+      "id": "json-shape",
+      "promptHash": "1c740719069d2c86fb75318fe02e352fc301aeb4cb7fe3103649d5d96de855e2",
+      "count": 44,
+      "idsHash": "122425a5c89736cc8ffd50fd06c5f7fad6f85171a415aeecaf6a209efafd777d"
+    },
+    {
+      "id": "year-extraction",
+      "promptHash": "448672a24eea86d614f3444f203c5e24fb1fda9bb22f1747dcdc26a979cda63c",
+      "count": 47,
+      "idsHash": "f54ba888112659e3ef0f3cb652a929f71be079d5d6b1e7dec7a1ee97c0eec144"
+    },
+    {
+      "id": "letter-count",
+      "promptHash": "bc68e196d642a8db135ec50ad30aee7e880180811b57cc9b7dc9372b289ccecb",
+      "count": 29,
+      "idsHash": "484e20c6b0599db929621263e52964fa8a51935b6100ff71f912e7ff56f6eead"
+    },
+    {
+      "id": "doubling",
+      "promptHash": "7b163817367f927c8f6e7f899e9e6d9b7ddcd3e0b480b0cff0b844bcea0892de",
+      "count": 42,
+      "idsHash": "fff4c5474dab81d6e1e4b2c8cc3a29ec804defb42ccd7072ce7b5f3de049b42a"
+    },
+    {
+      "id": "ryb-colors",
+      "promptHash": "b9824c4aaeb264a83915827465612681247c1f98309752d1d19f0055b45bc30c",
+      "count": 49,
+      "idsHash": "f621a04d1a12925658bd8b71f6bfb272005dd5567f37951f6d26b33749332f92"
+    },
+    {
+      "id": "even-number",
+      "promptHash": "c7469ed8a197bb3449c9a8f5a249279c7605cf8114163982a3efa098724e9de6",
+      "count": 30,
+      "idsHash": "c6a508f9259562c2f83099700485bf65c8ab428902a55b58a6c2e8a1589253a4"
+    },
+    {
+      "id": "numeric-sort",
+      "promptHash": "c9435a7bff1b026501dd6744d55ca68d26f5fc4d6efd1d09408b8600d6ef10cc",
+      "count": 37,
+      "idsHash": "331515ecba348c4ef7e0dbfec7dd7468ca58bca76abb833f4a9049893b4393bd"
+    },
+    {
+      "id": "context-recall",
+      "promptHash": "4a9c301f8ae32d9e057a4f91e61ff6a58439af109cd7cc5199d62dd79b99a3ad",
+      "count": 41,
+      "idsHash": "478cec5e4e63e04a21a2334e2ce966d5a3a756c7a4d151d2aa8d95691d4de1d1"
+    },
+    {
+      "id": "field-extraction",
+      "promptHash": "10c49087bcaba5543fcd563b91247ee6cee7a34f48988aa755cf85d0afb4e8db",
+      "count": 41,
+      "idsHash": "52655bbd52c7b3211d94bbb235586f8005a248a823ab32a35887bab26db86f28"
+    },
+    {
+      "id": "ordered-instructions",
+      "promptHash": "9fa7e9a97b4052b4c6fcc9ea85c371d983f0997d4c68987a3b7e3342208eead3",
+      "count": 30,
+      "idsHash": "d782562fd40779cb5eb060129d2e21c4cea278bd9cdfe18a29494946bc4853a7"
+    }
+  ],
+  "metadataBytes": 740685
+}

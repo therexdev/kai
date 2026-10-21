@@ -2,13 +2,21 @@
   "schema": 1,
   "mode": "shadow",
   "model": "koinos-fast",
-  "modelHash": "1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370",
-  "repository": "Qwen/Qwen2.5-1.5B-Instruct",
-  "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
-  "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
-  "configHash": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+  "repository": "bartowski/Qwen2.5-1.5B-Instruct-GGUF",
+  "revision": "9eadc66189c7641e1ddd226b8267a9119b2ce2d4",
+  "artifactSource": {
+    "kind": "gguf-metadata-v1",
+    "filename": "Qwen2.5-1.5B-Instruct-Q4_K_M.gguf",
+    "modelSize": 986048768,
+    "prefixBytes": 16000000,
+    "prefixHash": "383a2f95ca84a60f08fc7436dd437dacbe807a21643e76ef26c4fd190256b8b2",
+    "converter": "qwen2-bpe-v1"
+  },
+  "tokenizerHash": "5f249ae7d84be6b5b3aced973ff1e82c11cd2c377e81d559070bf8d76c210c2a",
+  "configHash": "f7ad4d4d1d22d4a5125adc51282e6b7819bece91aba888a7ed253cac0c848eb1",
   "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
-  "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6",
+  "reference": "llama.cpp b10423 vocabulary-only native IDs; Python tokenizers 0.22.1/Jinja2 3.1.6 and JavaScript parity. Full weights/inference/qualification not verified.",
+  "modelHash": "1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370",
   "vectors": [
     {
       "text": "Hello, world!",
@@ -17,13 +25,8 @@
     },
     {
       "text": "你好，世界！ 🌍 café é",
-      "count": 9,
-      "idsHash": "4f9c2e155957ddd6c2bc7e70829dd58cb9f91a25bb985a6b3379f9c5800024ad"
-    },
-    {
-      "text": "<|im_start|>assistant\n",
-      "count": 3,
-      "idsHash": "ef5941940ee034899cf442aef3e9af7a6c443ade9dd4afaa5d7fa2c4defd9d3f"
+      "count": 10,
+      "idsHash": "ec96c056f263f7fd352e93f8a0599c7ff2690c522483d2720f568b980d9f6f14"
     },
     {
       "text": "Line 1\r\n  0023 +\t42\n𝄞👩🏽‍💻",
@@ -36,22 +39,124 @@
       "idsHash": "d5abbe5da1b4394ca6d4853f076a104a0fa764a901f62ffeb650fff1c07a4e70"
     },
     {
+      "text": "<|im_start|>assistant\n",
+      "count": 3,
+      "idsHash": "ef5941940ee034899cf442aef3e9af7a6c443ade9dd4afaa5d7fa2c4defd9d3f"
+    },
+    {
+      "text": "1234567890 123 1234 0012345 1.234 1,234",
+      "count": 39,
+      "idsHash": "86119eb23ac0764ac806ed0061d4ae01f39b8bc56727d65279f895cc379f5a20"
+    },
+    {
+      "text": "a  b   c\t\t d\n\n\n",
+      "count": 8,
+      "idsHash": "268db0cc47450c9bdae66a837891803952521dbb7d5f087a7581a5739e7ef138"
+    },
+    {
+      "text": "foo\rbar\r\nbaz\n",
+      "count": 6,
+      "idsHash": "838d09438c2d2dabd4492b61a3c7fa4d95c89377b1db1eb466450e792b953bbd"
+    },
+    {
+      "text": "Hello world again​test",
+      "count": 8,
+      "idsHash": "70f2b0e7ccfde75fec63fcc44e78f445dc9ab6dad6adfe02bead544315b24b09"
+    },
+    {
+      "text": "Café café Å Å ① Ⅳ ﬁ ＡＢＣ",
+      "count": 21,
+      "idsHash": "911e260ee00f87a93a240fb1c7cc83220668a0b38904444d43beef7b57e5ad66"
+    },
+    {
+      "text": "\t\n\r   ",
+      "count": 3,
+      "idsHash": "0e347d6a7b24f3f631f65b28510f79a23bc9bd010e393ad87ebef1fb4a0d370f"
+    },
+    {
+      "text": "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\nHello<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n",
+      "count": 43,
+      "idsHash": "88418a841c7d684365691e6b52a6e4b81944940ae027f296eb2eab2dbd10cd13"
+    },
+    {
+      "text": "<bos><start_of_turn>user\nHello<end_of_turn>\n<start_of_turn>model\n",
+      "count": 22,
+      "idsHash": "42af9cd81f332c20a82f8f56f34e3f9bebbd19508a8095d217503ee8f1747b2d"
+    },
+    {
+      "text": "<eos><end_of_turn><|end_of_text|><|finetune_right_pad_id|>",
+      "count": 22,
+      "idsHash": "b9374e816a5fe1e3e2111342c6cd57eb1444d232e1d657e9ba20da6a5320ff52"
+    },
+    {
+      "text": "I'm WE'RE doesn't won't it's I’M DON’T",
+      "count": 15,
+      "idsHash": "d12ba2f2428a228cdfec5efba3197dca7704707393ef9715cb85788916cfdeb0"
+    },
+    {
+      "text": "a\u0000b\u0001c\u001bd",
+      "count": 7,
+      "idsHash": "971868d5d29a114c8b793765d6ffb5c4651f9d40cb2415cf89b4f4fb61b3f0a9"
+    },
+    {
+      "text": "💻👩🏽‍💻🧑‍🚀🏳️‍🌈👨‍👩‍👧‍👦",
+      "count": 25,
+      "idsHash": "247d0059b2b6cda17ca06721436068a1e378f05ef6def711d9e4a8c1bc44c3ed"
+    },
+    {
+      "text": "αβγ Ελληνικά  русский  العربية हिन्दी 日本語 한국어",
+      "count": 29,
+      "idsHash": "0154e309777d46c393649423a614d0b29556113d8cbaca9a7efeeae2dbae5a2e"
+    },
+    {
+      "text": "<|reserved_special_token_0|><|reserved_special_token_100|>",
+      "count": 19,
+      "idsHash": "0c3710631b227c6780cc52382243ed843a63a4fa893ee3f362b1a1aa4b0566f2"
+    },
+    {
+      "text": "</s><s><unk><pad>",
+      "count": 7,
+      "idsHash": "f6e090232b86383d62bdb10b8519661ae370016ebe2f0d4e60c6741b02dd5659"
+    },
+    {
+      "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "count": 4,
+      "idsHash": "c392e3d3a14a72010bd7635aefa5fae9be12d8fe29f85336763b3565eb3f7d3a"
+    },
+    {
+      "text": "__init__ $0.10 1e-8 → USD",
+      "count": 15,
+      "idsHash": "130c4a2065255edc41d9c1962f550698a193b4c52d9f093196bcb32a2829ffae"
+    },
+    {
+      "text": "A B C",
+      "count": 7,
+      "idsHash": "05a2b73e20aa63850e86d30ed7b8032539b99f433f7def8f7e5520a7eb8a2524"
+    },
+    {
+      "text": "中文123abcかな\n한글",
+      "count": 9,
+      "idsHash": "f2f1fb61bc03db3800bd0a6836404019fa4215d00f155721a3a92ebd1e98ee0d"
+    },
+    {
+      "text": "Good morning.\nHow are you?\nI am fine.",
+      "count": 11,
+      "idsHash": "a5450d8d40bbdd9c50072c93cc166e7a4cbc2fd53a9fc50859c58fe0c92421a2"
+    },
+    {
       "messages": [
         {
           "role": "user",
           "content": "What is 2 + 2?"
         }
       ],
-      "promptHash": "064258bd8097a629ece10515bfbfb3724670172fecd628e94e288d8e2a57fdc2",
+      "at": 1792540800000,
       "count": 37,
-      "idsHash": "972ff6b59f5aac4d32d2c55604150e312d3bda62b441909faa3e82b36e1f93b5"
+      "idsHash": "972ff6b59f5aac4d32d2c55604150e312d3bda62b441909faa3e82b36e1f93b5",
+      "promptHash": "064258bd8097a629ece10515bfbfb3724670172fecd628e94e288d8e2a57fdc2"
     },
     {
       "messages": [
-        {
-          "role": "system",
-          "content": "Reply briefly."
-        },
         {
           "role": "user",
           "content": "你好，世界！"
@@ -65,9 +170,65 @@
           "content": "Now in English, please."
         }
       ],
-      "promptHash": "6f1aa82a3f9282a0005a5e0b8f1d41255d2d8e1dfe0101ed7e25cbdf44d90629",
-      "count": 38,
-      "idsHash": "a9085a8236ad95060fa06bbb045c2b8fa8722b99b429c4f19c218c0725019a12"
+      "at": 1792540800000,
+      "count": 51,
+      "idsHash": "46a189faf09688d219d2d8313338d06826ad650a835e2c90b821171bd2fcbf5a",
+      "promptHash": "a0a07712d75a1cf530dc0d30fbda077725851c03b464d8e80310c13c42eb923c"
+    },
+    {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Reply briefly."
+        },
+        {
+          "role": "user",
+          "content": "What is 2 + 2?"
+        }
+      ],
+      "at": 1792540800000,
+      "count": 24,
+      "idsHash": "685592948b6da0f799406f3685de7ddec9e9b2092645a9cbac70627e922928cd",
+      "promptHash": "a605ca6de347fd2e6cc2dcc747f43454c470ae11b1844bc1db48323d281507d1"
+    },
+    {
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a helpful coding assistant."
+        },
+        {
+          "role": "user",
+          "content": "Write a function: f(x) = x * 1234.\nKeep it concise."
+        },
+        {
+          "role": "assistant",
+          "content": "def f(x):\n    return x * 1234"
+        },
+        {
+          "role": "user",
+          "content": "Explain it in العربية and 日本語."
+        }
+      ],
+      "at": 1792540800000,
+      "count": 73,
+      "idsHash": "6285a907e6e042557bdb8e5738109133491df69a3b9d8509cf3fcf924631122e",
+      "promptHash": "43264a86f709f1a4e64f9890dadbc4553e8c227aa14b05876d21d6619112356c"
+    },
+    {
+      "text": "<|fim_prefix|>first<|fim_middle|>second<|fim_suffix|>",
+      "count": 5,
+      "idsHash": "0e255e25e9e3208185fa4bd9e48dcd384ad6e5dfe640a93805b245ac34f4c808"
+    },
+    {
+      "text": "<|im_start|>user\nCafé café Å Å<|im_end|>\n<|im_start|>assistant\n",
+      "count": 17,
+      "idsHash": "f6bb2e8c414647c63a56d384320a054adea4c022028708578860ea67784e76ac"
+    },
+    {
+      "text": "a<|endoftext|> b <|object_ref_start|>c<|object_ref_end|>",
+      "count": 7,
+      "idsHash": "0efa73a940705df5fd4a46c4e7e5f3b692e7d9f0890366e5004a766d6ad87631"
     }
   ]
 }

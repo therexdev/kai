@@ -20,5 +20,81 @@
     "sourceSha256": "db0cd035294b91009250029a1435a1a688d72eb489c406b630d2293b30d6fb34",
     "vocabOnly": true,
     "modelWeightsUsed": false
-  }
+  },
+  "nativeReferenceVectorsVerified": 29,
+  "candidateCasePromptsVerified": 12,
+  "candidateCases": [
+    {
+      "id": "multiplication",
+      "promptHash": "2af3fa89dda8bb0e96df1b856b8314e8a4d74b9e8bc2b7ffdc50db322ea8c9eb",
+      "count": 50,
+      "idsHash": "54282fc775db50e216ef080602ddefbd84cad92561d17e0146ae6f9b93d5b2f1"
+    },
+    {
+      "id": "exact-word",
+      "promptHash": "979c098cab409160253a80149281313f4ff575fa75f374bd6d2b5368532be2b0",
+      "count": 45,
+      "idsHash": "19cab57005d1e3a1abd01e9786f7ac7cc7272cd8c95a5dc3a55492d8505b5b19"
+    },
+    {
+      "id": "json-shape",
+      "promptHash": "f42cf521744001985a237415de6f8611b9d33d0f1c54c50f1ca962930b2afc99",
+      "count": 74,
+      "idsHash": "4f4e45ff0bdef5aaa748a8e71215771bfb2d705101a365432df46c7cd70a6989"
+    },
+    {
+      "id": "year-extraction",
+      "promptHash": "7c8341a5d0957a5b0f25dbc2f201ebeec593d8256ba0bfb16120f40794f036b1",
+      "count": 70,
+      "idsHash": "f2864b2a05324e8fdba1dc6ad8ce06d0569945f5824758af9782eeaa5a484a71"
+    },
+    {
+      "id": "letter-count",
+      "promptHash": "1c02bbb872e01fbf31bc422a4e8704a3626ff64ad980cb98eeba61d2604f7fa7",
+      "count": 55,
+      "idsHash": "a5668e6c7b451366adffc07d783e8b1dbebbd846fc4a08ac4abdf741f769acf5"
+    },
+    {
+      "id": "doubling",
+      "promptHash": "d442f76203ba98b6f076f0511ce277f00f08a4b1b5627cfe14a0eb1b4f31d7ed",
+      "count": 70,
+      "idsHash": "5eeb288e87d9e3b0508930bc4221946d257e6726e2e6ba8aac54a2ba2a1bef08"
+    },
+    {
+      "id": "ryb-colors",
+      "promptHash": "8e8666fe394bd93864789d313e954ded0e24596dfbccad80323287155f2f24d6",
+      "count": 77,
+      "idsHash": "82e9e25608341ae2fe5134efb5aa40a61ddff8e8465809205d7f9ad52e0e12d1"
+    },
+    {
+      "id": "even-number",
+      "promptHash": "1d38c72f240b1b03966e564154f9cb20e24761c20be4acd9e0f0dca0f771f4f4",
+      "count": 58,
+      "idsHash": "71cac5485ecbc4ae2b6403481c10bce1881e7be6ab93a912547b384ba9879f7e"
+    },
+    {
+      "id": "numeric-sort",
+      "promptHash": "a35c2b265478b8059a80cfc75b2de07e54f04ecb61e65a39a25d75fc5bb46d85",
+      "count": 65,
+      "idsHash": "b8eb2a0b05fd32dac77eccc882a0dc07f16f1f23e0ce186add70be2a3e1c2ea7"
+    },
+    {
+      "id": "context-recall",
+      "promptHash": "ee42796d93f9d624ac911a1b6260005eb589bb2cfd0ed7815b55046f4ef445f6",
+      "count": 76,
+      "idsHash": "4e8bab10424b4e0e1bfd88ff66e38adf26374570f36adc852a654e5ec367fa58"
+    },
+    {
+      "id": "field-extraction",
+      "promptHash": "68ea1ba1aa552853c4dba0ca7e3c38028f90e6104456df2bb55de7c3cd4fc202",
+      "count": 68,
+      "idsHash": "0b43d5ac5804deff89d813eeb7b001a3281846902ef08dc24e0f91f5a6690260"
+    },
+    {
+      "id": "ordered-instructions",
+      "promptHash": "07f7cecdea7a6b96c72ada33ff58daa2e25c1bd17ae5f98ba1432a928108215c",
+      "count": 57,
+      "idsHash": "30ad6b6bdfb3d4d84bea6d28474b2d671a3381d89a0476eb1359451deb197581"
+    }
+  ]
 }

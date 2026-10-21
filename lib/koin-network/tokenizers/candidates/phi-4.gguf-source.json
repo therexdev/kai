@@ -1,0 +1,445 @@
+{
+  "schema": 1,
+  "model": "phi-4",
+  "repository": "bartowski/phi-4-GGUF",
+  "revision": "19cd65f97c2f1712a81c506611d3f9c94b16a1e1",
+  "filename": "phi-4-Q4_K_M.gguf",
+  "metadataUrl": "https://huggingface.co/api/models/bartowski/phi-4-GGUF/revision/19cd65f97c2f1712a81c506611d3f9c94b16a1e1?blobs=true",
+  "publishedModelSha256": "009aba717c09d4a35890c7d35eb59d54e1dba884c7c526e7197d9c13ab5911d9",
+  "publishedModelSize": 9053114816,
+  "publishedHashMatchesCatalog": true,
+  "downloadedFullModelVerified": false,
+  "prefixBytes": 16000000,
+  "prefixSha256": "4adce37f94a3e48125c6a3e046e65c793b71ee09466f7687a0325cec29857977",
+  "metadataBytes": 3541336,
+  "tokenizerSource": {
+    "repository": "microsoft/phi-4",
+    "revision": "2db69c1c3e91a05d2c64a3185acfbaf36f744e25",
+    "tokenizerHash": "9f38d05d9d25756bb2f181ab5a0cebcd59e638df10336fc7ed1010f7296d0298",
+    "configHash": "2b707658c7c2b41580155a45503d7d3b42dc2f530bef678f67a39bf5d10b0510",
+    "templateHash": "fe4120415a3858b873955c92ce3a103a95bc97c2cb00b72e62659aaf0f891ee5"
+  },
+  "nativeReference": {
+    "version": "b10423",
+    "archiveSha256": "664ffbf9134dbc12b2de3281d0404cb8f98a2339580911e5f74035dc320e0e84",
+    "tokenizeBinarySha256": "5f0c1691b78ced63c8a67c1122ffffa820967094295c6d0f36a8a3880de02ec6",
+    "sourceUrl": "https://raw.githubusercontent.com/ggml-org/llama.cpp/b10423/tools/tokenize/tokenize.cpp",
+    "sourceSha256": "db0cd035294b91009250029a1435a1a688d72eb489c406b630d2293b30d6fb34",
+    "vocabOnly": true,
+    "modelWeightsUsed": false
+  },
+  "nativeReferenceVectorsVerified": 8,
+  "nativeAdditionalEdgeCasesVerified": 67,
+  "candidateCasePromptsVerified": 12,
+  "candidateCases": [
+    {
+      "id": "multiplication",
+      "promptHash": "e8c9f7dcf97368e06eb9e3978bbec66e803cc2904cbf627ef04730ecf284d1c2",
+      "count": 22,
+      "idsHash": "8e81c605e76e5a6136d05261028686d7a4dd16437aa1292546cfb6f39aa32082"
+    },
+    {
+      "id": "exact-word",
+      "promptHash": "8a47db5274b7fe5a6b8c6cba1cb24facfc9e77af7fde86a7c5e961ead5b9d15a",
+      "count": 17,
+      "idsHash": "f24906670cf50c8e9968d41d59f6ce002cde09c2b0a4e2aa402f076a7e837178"
+    },
+    {
+      "id": "json-shape",
+      "promptHash": "a6ba560d688fad9022e507f2d43ebc7dc6b5f9f99bdd89e98d63d79933b28d74",
+      "count": 46,
+      "idsHash": "b627c984eb28a15f5aebee90b9c9111ceeada2cb9a7076641aaf2d0c2ff3a0c9"
+    },
+    {
+      "id": "year-extraction",
+      "promptHash": "122003ac93825529dff914d7637f617f0b7dd6d0da1bef330393797042b26384",
+      "count": 42,
+      "idsHash": "3b423de9e0a887ad8799b51cc8cb6beea047890aeeccab6d4077e1326ad5d468"
+    },
+    {
+      "id": "letter-count",
+      "promptHash": "3b0f9ecb72ac720bddf85f2ce378675c68516303830efda545834c197e3c6550",
+      "count": 27,
+      "idsHash": "80c4185b3d5dca2ce9f33a77ebbd86fcdffb6be9b9667e61472fb3ad21d5e246"
+    },
+    {
+      "id": "doubling",
+      "promptHash": "aa374e7f37b9f6f06acedcae59897469f0a203febf540572389cd5559ace8659",
+      "count": 42,
+      "idsHash": "bbd315ea3113d9b1e7e18172526ddb3a15acdc4dd8fff33ab59152603aff06c5"
+    },
+    {
+      "id": "ryb-colors",
+      "promptHash": "36ad136904a064ce742adb94d72a9e53b50351bc9e40ec358b1d1142c3723050",
+      "count": 49,
+      "idsHash": "85cb89fec41b5ebe74e939a3061b450a9ee468c8647f9748341c8d6e623505f8"
+    },
+    {
+      "id": "even-number",
+      "promptHash": "5f26b98853934f82a054cbccf44c16f75b8927e85fc1ffa08e49e038cc3df155",
+      "count": 30,
+      "idsHash": "aecfee4e8d10ebcaa8f4b7b91d850daffc25298f0bf9509bc169e11f7b1919d6"
+    },
+    {
+      "id": "numeric-sort",
+      "promptHash": "6769df851d46dd3e7a804850b9f66d41392bfa536be5d2b2c26eb01567661f34",
+      "count": 37,
+      "idsHash": "79d27e0ecc39d90e1d5b3a5868e66693f03273b29f63ae0cfb6185acc92d0f6a"
+    },
+    {
+      "id": "context-recall",
+      "promptHash": "98d013196a67a376ed821dc11e57ae72f8d201579f8dceb65d42f8b80a6a10b6",
+      "count": 46,
+      "idsHash": "c15a5651c5cf9d8a3b2dae8c18232b0d2d852c1d012b4606bbdd4fff99c92c1e"
+    },
+    {
+      "id": "field-extraction",
+      "promptHash": "80a49f0184892ea1af3671e29db24b922162c4d9a3da92c03ac19595676962eb",
+      "count": 40,
+      "idsHash": "1a27fe9ebb14bd4d150b511038ecf98fee39c5ad9b0524b6b1eb274b5d083f96"
+    },
+    {
+      "id": "ordered-instructions",
+      "promptHash": "5b58bff6a32c643e1c204c1d00bb300f682e61868978517787dcebaf2f966658",
+      "count": 33,
+      "idsHash": "8c2c279924c9a90b9945c247ec2e18176be2cf7709c2d8495f284e7b0fad36c3"
+    }
+  ],
+  "nativeEdges": [
+    {
+      "text": " ",
+      "count": 1,
+      "idsHash": "991a26ff4edaa7d5244848d1b20fa4c667589de6f83f6e38b45c763f8bee10eb"
+    },
+    {
+      "text": "  ",
+      "count": 1,
+      "idsHash": "d351b122d415ece9f197e2196d06d4979ceb42d4279624180361b5643fd53227"
+    },
+    {
+      "text": "   ",
+      "count": 1,
+      "idsHash": "6e8aa5ca09e79713272fcb3a3c663c6764ec97900aa4ae307ae9ab297954ec89"
+    },
+    {
+      "text": "    ",
+      "count": 1,
+      "idsHash": "4ec308a86927b5455193f71ed63ddefb06069cc0575c2ad34e4899f6ba5abd05"
+    },
+    {
+      "text": "     ",
+      "count": 1,
+      "idsHash": "ada1b3f558ee9cdc6c6da9a1e962335140b2d779728e87808f051917c03c8f4c"
+    },
+    {
+      "text": "      ",
+      "count": 1,
+      "idsHash": "8923c35c22001a4f887a70c725eee082822da2a16354aec80a6d849b409842b5"
+    },
+    {
+      "text": "       ",
+      "count": 1,
+      "idsHash": "d2e7a58b547f38c8e458cc38bb8eb9b0ce73ff544a9fd878d92d1293ad3f1156"
+    },
+    {
+      "text": "        ",
+      "count": 1,
+      "idsHash": "52ff7563aef9cbf639666fe48417312cb9575ba1c60fca9b5d6a9996a3498232"
+    },
+    {
+      "text": "         ",
+      "count": 1,
+      "idsHash": "4640dbdb6d8b2103657e6ff764cd6b2c700dd1ca0133116c84f7a56f075e6471"
+    },
+    {
+      "text": "          ",
+      "count": 1,
+      "idsHash": "9e2b6d405f5b201c2c1f47275b8636e0a7cef8fe5a5497ca09fc831f6d2cd86c"
+    },
+    {
+      "text": "           ",
+      "count": 1,
+      "idsHash": "22596bca93e765f82654b21bc56a2cf6a2dd1157597ab3c6c06e1e28de9bc12e"
+    },
+    {
+      "text": "            ",
+      "count": 1,
+      "idsHash": "0be8357ab55d975c152faa7da939eb5256411fbfb88770187ead1b115c4e2fc4"
+    },
+    {
+      "text": "             ",
+      "count": 1,
+      "idsHash": "67e958f73a455ad08514708c3913f329e004eaa7c6f8dd4151f0620f3d4b7faa"
+    },
+    {
+      "text": "              ",
+      "count": 1,
+      "idsHash": "8e0e19392c4bf092026d74007801ed777bcdc317cb40aabc82930c841851b1cf"
+    },
+    {
+      "text": "               ",
+      "count": 1,
+      "idsHash": "3af6c5fe1c56277972f3f20f7048bb8f5b0d638481068f7f4bbbc7994b4d5a8e"
+    },
+    {
+      "text": "                ",
+      "count": 1,
+      "idsHash": "89c1f224985c1269fdb30d2981bcb81cb97d20d51799fdd803733052bec6fc45"
+    },
+    {
+      "text": "                 ",
+      "count": 1,
+      "idsHash": "a52a846f9563c9740b48cb3553f8f0d0d4297f1ad75a5473554f87582b42cfe6"
+    },
+    {
+      "text": "                  ",
+      "count": 1,
+      "idsHash": "67a445b73d9dafd96586abc9cb13ce1497126c43b849080a9fb116c187dd2921"
+    },
+    {
+      "text": "                   ",
+      "count": 1,
+      "idsHash": "f103fb247b1b619a66e1fca1c8bc70f0b428470bc44faef2f062844d04d9bbf5"
+    },
+    {
+      "text": "                    ",
+      "count": 1,
+      "idsHash": "ac4e88703a2ee88e767c268e92c6dd30850d2838d2dbba8a24aea1e5d7fc5a3b"
+    },
+    {
+      "text": "                     ",
+      "count": 1,
+      "idsHash": "678d53f3b781c003ee10001ce4c48143470601afcc91d9d84d3c6f3c03f0f022"
+    },
+    {
+      "text": "                      ",
+      "count": 1,
+      "idsHash": "3dd6fcf876b8ffffa872f50a1fcf481996637137d3b0d2605666fcd98720bd6b"
+    },
+    {
+      "text": "                       ",
+      "count": 1,
+      "idsHash": "9247ed9faab3f395fa83269cda8aa61002ebea9cb3b359ea9f6911dbbef34995"
+    },
+    {
+      "text": "                        ",
+      "count": 1,
+      "idsHash": "0ff66ecf7aff1ce178c58ca2f1f1236ab26241bc298168cc68fc0b53639aa705"
+    },
+    {
+      "text": "                         ",
+      "count": 1,
+      "idsHash": "15306f2384d4be03ac9d8d3ccd4cc0260bacbad6965feea684c2f9424c88adb8"
+    },
+    {
+      "text": "                          ",
+      "count": 1,
+      "idsHash": "e10dadea152f64f8bb9411b84451dfe82cc6ed713cee420a48106aa6a1e46eb4"
+    },
+    {
+      "text": "                           ",
+      "count": 1,
+      "idsHash": "1b6ea63c1a75756b19acd522c9719f20c41352d4e7226d842f09818c21fc7ce6"
+    },
+    {
+      "text": "                            ",
+      "count": 1,
+      "idsHash": "8f9b88dbf445f29a06aaaf8d36b74f9df638dcafe0fa63f5a97db70b244389ae"
+    },
+    {
+      "text": "                             ",
+      "count": 1,
+      "idsHash": "ee70b12492d1a42b7b7af327d1b4c2cb3d20f1a4ca2bced7abca335ebf8f9ad4"
+    },
+    {
+      "text": "                              ",
+      "count": 1,
+      "idsHash": "e3ba6e02226dda90108422555db7ed629dfb1b0b189fba7bf4a2310b7cbf1e44"
+    },
+    {
+      "text": "                               ",
+      "count": 1,
+      "idsHash": "683ecd80e51ff2bb92338cc46f8bdac35157183a113a48a5f00937cfdd9bb8f3"
+    },
+    {
+      "text": "                                ",
+      "count": 1,
+      "idsHash": "d1dcb58632b3433123126a2948c0b1bf1fdfc5b150f4fd405e467c34e0d7b737"
+    },
+    {
+      "text": "                                 ",
+      "count": 1,
+      "idsHash": "6cdaf71fab9851fdfa1e3ad6f4197c589fd116702f44a9dff7553bb76b41f90e"
+    },
+    {
+      "text": "                                  ",
+      "count": 1,
+      "idsHash": "0edb16680ebfd255fab8cc8b05152c35b658c8099e55c93dfd05d105bc333e1d"
+    },
+    {
+      "text": "                                   ",
+      "count": 1,
+      "idsHash": "7d99c94ff10a82532a8349d2f75a6f282910b983569f7096f3f40a3dfa1ee394"
+    },
+    {
+      "text": "                                    ",
+      "count": 1,
+      "idsHash": "a3aa932a87572ee0c1d859136102bede5fc265d759044c8796a0babce92d1c99"
+    },
+    {
+      "text": "                                     ",
+      "count": 1,
+      "idsHash": "be4566c036bb440bbd231022a7948191969710a266b92a15fc2afd1525ce6a39"
+    },
+    {
+      "text": "                                      ",
+      "count": 1,
+      "idsHash": "0fe42803ddd5f56d1b6471e809182dbbae4311ab856644319cbd522f4fd89dbf"
+    },
+    {
+      "text": "                                       ",
+      "count": 1,
+      "idsHash": "5faa96671e39a3f1a545b6c56d892138ff9fd5dc3bab4d725ae77fda7c96dd65"
+    },
+    {
+      "text": "                                        ",
+      "count": 1,
+      "idsHash": "93be404d291b961f43c2ba547a21e0e3eda89664788da167d3abbb777c1b63e9"
+    },
+    {
+      "text": "",
+      "count": 0,
+      "idsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "text": "x",
+      "count": 1,
+      "idsHash": "b897108c15c849e1944882feb73fd3692240fda259b7627ba68e0b546be052f3"
+    },
+    {
+      "text": " x",
+      "count": 1,
+      "idsHash": "983472db17b52f05015db8586e39cf7796e335dceb4fe6ea66553c086f648049"
+    },
+    {
+      "text": "  x",
+      "count": 2,
+      "idsHash": "d5b8b0eda45dc61828341853869293d8f1dc9ebebeba934acace8ee83df05886"
+    },
+    {
+      "text": "\tx",
+      "count": 1,
+      "idsHash": "959a226c1e4f4279bf36dadfa4a0f4f7b858ff86bbc3c761391fe5c922e9a6c1"
+    },
+    {
+      "text": "\nx",
+      "count": 2,
+      "idsHash": "59a2600e9077d26bf12b0d66de9de1512b4210b915acf35dba7bebc51baae4df"
+    },
+    {
+      "text": "\r\nx",
+      "count": 2,
+      "idsHash": "3a0150b151c8e03db50e7d06d420f132bd2cacfab3d0ffe453ba9b88d1e41289"
+    },
+    {
+      "text": "<s>x",
+      "count": 2,
+      "idsHash": "846d5caff359a8f52362c9b69f70be04285b70b3905925ae4f0e07594b9c29ef"
+    },
+    {
+      "text": "[INST]x",
+      "count": 4,
+      "idsHash": "806ade7964ca7ea33bc3d4a43784ae96f4c957269437127e3555ddf2438b81ba"
+    },
+    {
+      "text": "[INST] x",
+      "count": 4,
+      "idsHash": "ca1ed28b5999ce4328f70f5877a985c3de4b7ae7ff661a7169dee6481561d412"
+    },
+    {
+      "text": "x[INST] y",
+      "count": 5,
+      "idsHash": "636f552ae5bbb61070d671692b166a57ef9118c703aaa161d79a6ba94c217acd"
+    },
+    {
+      "text": "x[INST]y",
+      "count": 5,
+      "idsHash": "a869a6a2c0f1e16fb420f0c1f9ac6873c511bb7887f4daeaa111eb18dd2470f5"
+    },
+    {
+      "text": " [INST] ",
+      "count": 4,
+      "idsHash": "5c07c167b2a992e817d09a4adefbccda1d788bb3b361fb43b2deed76b32934b7"
+    },
+    {
+      "text": "[INST][INST] x",
+      "count": 6,
+      "idsHash": "509c32a6a6fbbaf386c980b53331da2e1d3141f36b9cae8ddd5bc2f4d17bb198"
+    },
+    {
+      "text": "a<unk>b",
+      "count": 4,
+      "idsHash": "aff603326a4311c01498b2eb99defbb5814b53153cb498ac348298db98eeac12"
+    },
+    {
+      "text": "<0x00>",
+      "count": 5,
+      "idsHash": "a1b736865b48501b0583b7246e221c3309de8ba6918f75388a95feab55cdf741"
+    },
+    {
+      "text": "▁x",
+      "count": 3,
+      "idsHash": "3eedbe77c274e26633b8171119a4756b69a16a9215ca57b3fc91ddf4b3767113"
+    },
+    {
+      "text": "▁▁x",
+      "count": 5,
+      "idsHash": "3ea7bf477a2df81c182a144d1518a250179e314258aec2a03431edf5a1a08757"
+    },
+    {
+      "text": "é é Å Å Å ﬁ ﬁﬃ",
+      "count": 16,
+      "idsHash": "29ebd3378e4e29720baae6da24e3c6139f281da7bd289dd23faf14df62218469"
+    },
+    {
+      "text": "﻿x",
+      "count": 2,
+      "idsHash": "66f7b8de14ef07ef176f52117d078ad7fd689547e6dc3e4fb995be2912ea00da"
+    },
+    {
+      "text": "a\u0000b",
+      "count": 3,
+      "idsHash": "4e679a2d0ed672f2f3ab9f3e99854a097b683bba3f3367c0e21ff725771db9bc"
+    },
+    {
+      "text": "<s>",
+      "count": 2,
+      "idsHash": "f4f0318d72f20bb779bd7df006efba1dec6b68053fa07e1c9adac50ba79328c5"
+    },
+    {
+      "text": "</s>",
+      "count": 3,
+      "idsHash": "65f44ae2fb668f6c9de2294295bd46726ccd85daf35b670ca266f0c205f67313"
+    },
+    {
+      "text": "<pad>",
+      "count": 3,
+      "idsHash": "a7dcc66323643a33bf2c237fac3af341df1c8a9ec7f012647cee67322a55ea17"
+    },
+    {
+      "text": "[PAD]",
+      "count": 3,
+      "idsHash": "2e50f7070be265f553582fbbe6d770929c503ce33670d0840ccc30e30afd2ae2"
+    },
+    {
+      "text": "<|endoftext|>",
+      "count": 1,
+      "idsHash": "f7b07bb1e2b4461649d7fa6ee9f0e56227dd7c27a5167f4948ea11177f5e236a"
+    },
+    {
+      "text": "<|eot_id|>",
+      "count": 7,
+      "idsHash": "5b8e39fc35e2f7efbfe7219b2e2d9d1348692d6edab0788657ee9460207a1b62"
+    }
+  ]
+}

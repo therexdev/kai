@@ -66,6 +66,20 @@ function serialize(pack) {
   if (bytes.length > MAX_PACK) throw fail("provider_check_pack_too_large");
   return bytes;
 }
+function verifyNativeEvidence(model, indexed, bytes) {
+  const proof = json(bytes);
+  if (hash(bytes) !== indexed.sourceEvidenceFileSha256 || proof.schema !== 1 || proof.model !== model.model ||
+      proof.publishedModelSha256 !== model.modelHash || proof.nativeReference?.version !== "b10423" ||
+      proof.nativeReference?.vocabOnly !== true || proof.nativeReferenceVectorsVerified !== model.vectors.length ||
+      proof.candidateCasePromptsVerified !== model.cases.length || !Array.isArray(proof.candidateCases) ||
+      proof.candidateCases.length !== model.cases.length) throw fail("native_evidence_required");
+  for (let i = 0; i < model.cases.length; i++) {
+    const actual = model.cases[i], native = proof.candidateCases[i];
+    if (!native || native.id !== actual.id || native.promptHash !== actual.promptHash ||
+        native.count !== actual.inputTokens || native.idsHash !== actual.inputIdsHash) throw fail("native_prompt_mismatch");
+  }
+  return model;
+}
 function generate({ directories, backendCommit } = {}) {
   const inputs = Object.fromEntries(Object.entries(FILES).map(([name, file]) => [name, read(path.join(ROOT, file), LIMITS.manifest)]));
   const catalog = json(inputs.catalog), index = json(inputs.index), baseline = validateBaseline(json(inputs.suite));
@@ -82,7 +96,12 @@ function generate({ directories, backendCommit } = {}) {
     }
     const file = path.resolve(TOKENIZERS, "candidates", indexed.manifest);
     if (!file.startsWith(TOKENIZERS + path.sep)) throw fail("indexed_manifest_path_required");
-    try { pack.models.push(prepareModel({ approved, indexed, manifestBytes: read(file, LIMITS.manifest), directory, baseline })); }
+    try {
+      if (!/^[a-zA-Z0-9._-]+\.gguf-source\.json$/.test(indexed.sourceEvidence || "")) throw fail("native_evidence_required");
+      const model = prepareModel({ approved, indexed, manifestBytes: read(file, LIMITS.manifest), directory, baseline });
+      const evidence = read(path.join(TOKENIZERS, "candidates", indexed.sourceEvidence), LIMITS.manifest);
+      pack.models.push(verifyNativeEvidence(model, indexed, evidence));
+    }
     catch (error) {
       if (!["candidate_template_unsupported", "candidate_context_unsupported"].includes(error.code)) throw error;
       pack.unavailable.push({ model: approved.model, reason: error.code.replaceAll("_", "-") });
@@ -105,4 +124,4 @@ if (require.main === module) {
     console.log(JSON.stringify(write(output, generate({ directories: mapping.directories })), null, 2));
   } catch (error) { console.error(error.code && /^[a-z_]+$/.test(error.code) ? error.code : "provider_check_pack_generation_failed"); process.exitCode = 1; }
 }
-module.exports = { generate, prepareModel, serialize, write, read, hash, MAX_PACK, MAX_TEXT, AT };
+module.exports = { generate, prepareModel, verifyNativeEvidence, serialize, write, read, hash, MAX_PACK, MAX_TEXT, AT };

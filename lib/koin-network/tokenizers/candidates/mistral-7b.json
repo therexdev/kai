@@ -3,12 +3,12 @@
   "mode": "shadow",
   "model": "mistral-7b",
   "modelHash": "1270d22c0fbb3d092fb725d4d96c457b7b687a5f5a715abe1e818da303e562b6",
-  "repository": "mistralai/Mistral-7B-Instruct-v0.3",
-  "revision": "c170c708c41dac9275d15a8fff4eca08d52bab71",
-  "tokenizerHash": "e553af6fff7d7ad76e830608b218c5c0b0822998d5a1a96099a74cd3c1cb1a49",
+  "repository": "bartowski/Mistral-7B-Instruct-v0.3-GGUF",
+  "revision": "61fd4167fff3ab01ee1cfe0da183fa27a944db48",
+  "tokenizerHash": "d7cb022d1a861f61d05dd071460f9b12d41125440bee9446ff5ad2da100792d8",
   "configHash": "0533dec9cfe319163801b6618d0f3ec9cfa126b6288e3df5deca6e32acb09cd2",
   "templateHash": "e16746b40344d6c5b5265988e0328a0bf7277be86f1c335156eae07e29c82826",
-  "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6; candidate only, local runtime calibration pending",
+  "reference": "Pinned llama.cpp b10423 vocabulary-only tokenization; exact GGUF metadata score-BPE reconstruction; original pinned HF chat template; full loaded-model qualification remains separate",
   "vectors": [
     {
       "text": "Hello, world!",
@@ -43,8 +43,8 @@
         }
       ],
       "promptHash": "babd0554d9432acbdf02784edc75ba9be83bc621a4cc936c9a55d7ef77c7e463",
-      "count": 11,
-      "idsHash": "24e7737447d1bd44bfa84c5b8288b0ffb8fa48e9398c2a5aae9ed51672291152"
+      "count": 12,
+      "idsHash": "13b0248b438a4ddd2f46ae6ebf5d071f3a494727f9571f3bef355f976d800e5a"
     },
     {
       "messages": [
@@ -62,8 +62,8 @@
         }
       ],
       "promptHash": "b70744f66df53990608c3ed8ecd61b824f2ceed0ffecdfce9acf807a4ec56ae9",
-      "count": 23,
-      "idsHash": "ad0f237ccb43424b8b5fd47045f54d035c968946746957bdbc9ee204f288fbb6"
+      "count": 24,
+      "idsHash": "396561379c84f3e59b59e7e74b2f8ee0ef47b3569450240100baa7a6b22684cd"
     },
     {
       "messages": [
@@ -77,8 +77,191 @@
         }
       ],
       "promptHash": "da3ce0373106c32982b5accea720e3363f09a4b0a32e4898229fde64f7260f2a",
-      "count": 17,
-      "idsHash": "293b406cc837452ae97fa2434a8eba023126fb17aaa8904c1d06f2b0851ec836"
+      "count": 18,
+      "idsHash": "76a4503ab527576436452fbda5ee6ca12a27a01af40cb96a7491c87cb9c2a8fe"
+    },
+    {
+      "text": " ",
+      "count": 1,
+      "idsHash": "6fe0b51522369d75a16128e803574fba441242fd57952ffa3cbe58856976ed11"
+    },
+    {
+      "text": "  ",
+      "count": 1,
+      "idsHash": "180825636a2a2bb8d6e3f0824aa77d71de73a13282d1e39593a5588645b80c44"
+    },
+    {
+      "text": "   ",
+      "count": 1,
+      "idsHash": "a092c9deeb1f849f1d2c8ce4fcc044ceea2c5befd4383926ba1c434cb8a57747"
+    },
+    {
+      "text": "               ",
+      "count": 1,
+      "idsHash": "833ac0bfef2799e5bd5aaee24d677930d8ea2494cfa98c7d2b537fb50d604a82"
+    },
+    {
+      "text": "                ",
+      "count": 2,
+      "idsHash": "9dab8914dd50e7583fb5965eb440459a349314dd58ecb4980a4a48cef5780ed0"
+    },
+    {
+      "text": "                 ",
+      "count": 2,
+      "idsHash": "18834045ac8f362f96b70114d4faf710187d7d8f639a890b59197730b618f369"
+    },
+    {
+      "text": "                               ",
+      "count": 2,
+      "idsHash": "2ab65299806cc4b7e5989edb2aef3f916276644898d2bfc0a04f1e5b5f542ffa"
+    },
+    {
+      "text": "                                ",
+      "count": 3,
+      "idsHash": "9e18a2c31ac2f0a5b623993365a5344d4e340d2dab55a8a90d1886fb73edd495"
+    },
+    {
+      "text": "                                 ",
+      "count": 3,
+      "idsHash": "399e5bdcc53394868976135e5dba00cc90af13b35d96c4153c34f1402d691580"
+    },
+    {
+      "text": "                                        ",
+      "count": 3,
+      "idsHash": "c7dd0ed0ba7567853f960fbdc79b7466c3d61354affa111629e9f78ee3904d4d"
+    },
+    {
+      "text": " x",
+      "count": 2,
+      "idsHash": "61285ae1856cdda0611441b191f47f71dd21021c135c028f8217cffa822ebe29"
+    },
+    {
+      "text": "  x",
+      "count": 2,
+      "idsHash": "d3782b5d37be402b79a161235e9f0d310f62e330c4467698f651a4a16a0d552e"
+    },
+    {
+      "text": "\tx",
+      "count": 3,
+      "idsHash": "34b1b4015ae0be6ebf6771e444fd4428b3a477f4475800847872fe98dd0754e7"
+    },
+    {
+      "text": "\nx",
+      "count": 3,
+      "idsHash": "7e8ebab25f5d9565bab5ba3a832052b5ec62e74d008b1344e81de832c8c8c514"
+    },
+    {
+      "text": "<s>x",
+      "count": 2,
+      "idsHash": "96a1ea45b4fa9a2c074de5db9e25cf7390577723c0c3466fa21186d21210ab49"
+    },
+    {
+      "text": "[INST]x",
+      "count": 2,
+      "idsHash": "61fc629792a92ee5c506510ca297f4ab0ea32e59b8c2e76b225aa4740cdc0892"
+    },
+    {
+      "text": "[INST] x",
+      "count": 3,
+      "idsHash": "78be120070478e8d72c8058c03cedaca81acbaf2e039dda81eaade0a4cacf8db"
+    },
+    {
+      "text": "x[INST] y",
+      "count": 4,
+      "idsHash": "6771b778acab286a0a0f7f91fcf106f9cba79c72e1cdc3e03aa3309999965ea7"
+    },
+    {
+      "text": "x[INST]y",
+      "count": 3,
+      "idsHash": "8cc20f2c4e0ae57378a09428f5c1cafb699280e1f912c71778f06db2d15beb80"
+    },
+    {
+      "text": " [INST] ",
+      "count": 3,
+      "idsHash": "31338181b146a15f46d6b2b66bdbc395538c505741c62772df55d45ea3552a3b"
+    },
+    {
+      "text": "[INST][INST] x",
+      "count": 4,
+      "idsHash": "1564924b0e3520f536560d86837618ff0d548d6715c00637d78904c0827663a6"
+    },
+    {
+      "text": "a<unk>b",
+      "count": 3,
+      "idsHash": "3ea46dfc3b0333b5f672878803abcfa6ab99de4e062d65c6957421fd57549ac8"
+    },
+    {
+      "text": "<0x00>",
+      "count": 6,
+      "idsHash": "b99b24a77e8293be8c2a8c0819439a24574d73c58cb77127e3cdb8e5724ec70d"
+    },
+    {
+      "text": "▁x",
+      "count": 2,
+      "idsHash": "61285ae1856cdda0611441b191f47f71dd21021c135c028f8217cffa822ebe29"
+    },
+    {
+      "text": "▁▁x",
+      "count": 2,
+      "idsHash": "d3782b5d37be402b79a161235e9f0d310f62e330c4467698f651a4a16a0d552e"
+    },
+    {
+      "text": "é é Å Å Å ﬁ ﬁﬃ",
+      "count": 18,
+      "idsHash": "20eeb76d5d8fca192c1d18a8401de03aa737354ec181b2c9fc5d2a6f25af211d"
+    },
+    {
+      "text": "﻿x",
+      "count": 3,
+      "idsHash": "276dae167a3ee3a85f6e3ec02b403429ccbef40a1dcffa24ab2c6ba66123612b"
+    },
+    {
+      "text": "a\u0000b",
+      "count": 3,
+      "idsHash": "ad33f14c8e000286f88f6cf77bcc4de9e0e49c93e4920e067f2bd14aaa3e79e3"
+    },
+    {
+      "text": "<s>",
+      "count": 1,
+      "idsHash": "080a9ed428559ef602668b4c00f114f1a11c3f6b02a435f0bdc154578e4d7f22"
+    },
+    {
+      "text": "</s>",
+      "count": 1,
+      "idsHash": "038966de9f6b9a901b20b4c6ca8b2a46009feebe031babc842d43690c0bc222b"
+    },
+    {
+      "text": "<pad>",
+      "count": 3,
+      "idsHash": "9e8291ce79a955ef76c0cfd73fd57e2e7f5dfe6b26562790cd16eb54dba1d56b"
+    },
+    {
+      "text": "[PAD]",
+      "count": 4,
+      "idsHash": "79920d0587d2eb37117873856d2570c0eb24f70702aea185a6472e10558ac93d"
+    },
+    {
+      "text": "<|endoftext|>",
+      "count": 7,
+      "idsHash": "8b0d301a41aa0d018715178182479a6eaa2278afff67eb61febc2dbed6f14b92"
+    },
+    {
+      "text": "<|eot_id|>",
+      "count": 8,
+      "idsHash": "aa73da30e26eef6543643c8d5951f7455f79b3c6714b552971c205385dbabb57"
     }
-  ]
+  ],
+  "artifactSource": {
+    "kind": "gguf-metadata-v1",
+    "filename": "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf",
+    "modelSize": 4372812000,
+    "prefixBytes": 16000000,
+    "prefixHash": "33abc4f7ad5ee3a0dfb5aa8d01c7b8e5d0eae2fcbfedaf405ab501e8075bb915",
+    "converter": "mistral-spm-bpe-v1",
+    "configSource": {
+      "repository": "mistralai/Mistral-7B-Instruct-v0.3",
+      "revision": "c170c708c41dac9275d15a8fff4eca08d52bab71",
+      "sha256": "0533dec9cfe319163801b6618d0f3ec9cfa126b6288e3df5deca6e32acb09cd2"
+    }
+  }
 }

@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "model": "qwen25-14b",
+  "repository": "bartowski/Qwen2.5-14B-Instruct-GGUF",
+  "revision": "05244aa5d871c661c80082a15d3bce44714d068d",
+  "filename": "Qwen2.5-14B-Instruct-Q4_K_M.gguf",
+  "metadataUrl": "https://huggingface.co/api/models/bartowski/Qwen2.5-14B-Instruct-GGUF/revision/05244aa5d871c661c80082a15d3bce44714d068d?blobs=true",
+  "publishedModelSha256": "e47ad95dad6ff848b431053b375adb5d39321290ea2c638682577dafca87c008",
+  "publishedModelSize": 8988110976,
+  "publishedHashMatchesCatalog": true,
+  "downloadedFullModelVerified": false,
+  "prefixBytes": 16000000,
+  "prefixSha256": "a979db5ede48aaec61a95866583c7c3c88f3e86515cab1c40ea545a7688714cf",
+  "metadataBytes": 5934912,
+  "nativeReference": {
+    "version": "b10423",
+    "archiveSha256": "664ffbf9134dbc12b2de3281d0404cb8f98a2339580911e5f74035dc320e0e84",
+    "tokenizeBinarySha256": "5f0c1691b78ced63c8a67c1122ffffa820967094295c6d0f36a8a3880de02ec6",
+    "sourceUrl": "https://raw.githubusercontent.com/ggml-org/llama.cpp/b10423/tools/tokenize/tokenize.cpp",
+    "sourceSha256": "db0cd035294b91009250029a1435a1a688d72eb489c406b630d2293b30d6fb34",
+    "vocabOnly": true,
+    "modelWeightsUsed": false,
+    "vocabularySourceUrl": "https://raw.githubusercontent.com/ggml-org/llama.cpp/b10423/src/llama-vocab.cpp",
+    "vocabularySourceSha256": "dab35ad158ccae5cb6064d960243ae7a6a045a09e0c4335f6491328750f8ad01"
+  },
+  "nativeBehavior": [
+    "Qwen byte BPE preserves decomposed Unicode; no NFC normalization.",
+    "llama.cpp b10423 promotes literal </s> to a parsed control/EOG token although GGUF marks it normal."
+  ],
+  "nativeReferenceVectorsVerified": 32,
+  "candidateCasePromptsVerified": 12,
+  "candidateCases": [
+    {
+      "id": "multiplication",
+      "promptHash": "cf78273c189f61ae5b6d52d2f9cbb584f16caedea466328aedee109a4859794f",
+      "count": 46,
+      "idsHash": "f72c746dc23d2c57731c272b19823d1f97c31d95226ec120f0846ae6761ecc46"
+    },
+    {
+      "id": "exact-word",
+      "promptHash": "64ebf73dfd3a2ca24c228f23e88648d594cb87249d184132e90b3c201ed16725",
+      "count": 39,
+      "idsHash": "f83230f4f898ea0154587e727718dc7a5075e406c804ed943a6f9ed7e9da32fe"
+    },
+    {
+      "id": "json-shape",
+      "promptHash": "b5017a66d3326f65d1898411048d203d2beccdbc91b0bd6ad4cb55894cee44e8",
+      "count": 68,
+      "idsHash": "e5f2d57a3ea50412faec7486a4dacec75b86cf69b375ce008b86ab8dfe713196"
+    },
+    {
+      "id": "year-extraction",
+      "promptHash": "fcef161e2a6b036a4cff5a373995f00da9fd63d01f883a6f63e67a7b1a0acfb6",
+      "count": 68,
+      "idsHash": "4246ea4e0702568bb1ac4a341cd8fe62b5cbd69fc698cf219519e34137963288"
+    },
+    {
+      "id": "letter-count",
+      "promptHash": "daea504dad3fe721f8708ec2cc209e4d631d4b27f59a2b3a0323ddaa6dac8a29",
+      "count": 49,
+      "idsHash": "96a83d53e05f355b9867f7f9a84062553a8a574893ca9fa16071845fd80a1f35"
+    },
+    {
+      "id": "doubling",
+      "promptHash": "28579a66d9f4157b52eabd22f7e4e1130aa547fac9e661a237c0f09a0581340a",
+      "count": 65,
+      "idsHash": "9867b368a1a1844b05f1b659e9be2f1e745f09f195fde20d08312ea80638cf94"
+    },
+    {
+      "id": "ryb-colors",
+      "promptHash": "1bddd08fdb6d85ee5f3c51a3bd820123af0b2ea57388b86e097fb454ce5152a5",
+      "count": 71,
+      "idsHash": "d735192ce21257a4b53f34f27c7c206585785a4d849f8b588f690855d4ffbc5b"
+    },
+    {
+      "id": "even-number",
+      "promptHash": "62ea7abaac8b76c29b564e2acba8c22c016e0a22202e9fbd9f00b28c91a1391a",
+      "count": 53,
+      "idsHash": "e074940e8ac132ce7c0083053d94ce730d3064f2cdbff8093327c6bdc01419d3"
+    },
+    {
+      "id": "numeric-sort",
+      "promptHash": "2765a5aaf498a21e62fc384d416012650868dbb8b8ef9b001f56b6a0f3a465ba",
+      "count": 59,
+      "idsHash": "c8fb79784bde7c9fcf5eac25fa5751677d8447f8b00015feadd20127f6dcf027"
+    },
+    {
+      "id": "context-recall",
+      "promptHash": "411a7e7c0a5b5d8613bfbc575fdb3ac44bce93bf8dc9f38e7534fac64676094f",
+      "count": 70,
+      "idsHash": "9971e36efb836f91b330099aa5e574786f53ce3dde16e30e8717ff3b394eeb70"
+    },
+    {
+      "id": "field-extraction",
+      "promptHash": "9bd1a25fcd8fee6e2f5374c470fb75285a777bf185a7f38fecd101649698077d",
+      "count": 62,
+      "idsHash": "00efe31f38a2ee75f0e92b66b8dd110d04be4ffd1de9dd7859fd979764593f7e"
+    },
+    {
+      "id": "ordered-instructions",
+      "promptHash": "3b53a5687bb98dec8ed11ddad5981592c333247a7458c7170b8e98b448fb60d2",
+      "count": 35,
+      "idsHash": "5c688c51a2445688460bc35db2d3aa44b7898a9e1e9db73684056cc35393cc28"
+    }
+  ]
+}
