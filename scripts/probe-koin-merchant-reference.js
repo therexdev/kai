@@ -20,7 +20,9 @@ function fixture() {
     probeUsdtAtoms: "1000000", buyVkoinAtoms: "990000", sellVkoinAtoms: "1000000", sellUsdtAtoms: "990000" }));
   const history = { chainId: 1, protocol: "uniswap-v4", poolId: MARKET.poolId, currency0: MARKET.wrappedToken, currency1: MARKET.quoteToken,
     decimals0: 8, decimals1: 6, fee: 10000, tickSpacing: 200, hooks: "0x" + "0".repeat(40), canonical: true, anchorHash: hash(7), blocks };
-  const usdt = { source: policy.usdtSource, evidenceHash: hash(100), observedAt: now - 1000, validUntil: now + 15000, usdAtoms: "100000000" };
+  const abi = values => "0x" + values.map(n => BigInt(n).toString(16).padStart(64, "0")).join("");
+  const usdt = require("../lib/koin-network/v4-history-reader").usdtObservation({ feed, anchorHash: hash(7), decimals: abi([8]), round: abi([1, 100000000, now / 1000 - 5, now / 1000 - 5, 1]) },
+    { feed, source: policy.usdtSource, policy, anchor: blocks.at(-1) });
   return { now, config, reference, policy, deployment, history, usdt };
 }
 function oracleFixture(t) {

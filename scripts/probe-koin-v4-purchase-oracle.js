@@ -20,7 +20,9 @@ async function fixture(t) {
     probeUsdtAtoms: "1000000", buyVkoinAtoms: "990000", sellVkoinAtoms: "1000000", sellUsdtAtoms: "990000" }));
   const history = { chainId: 1, protocol: "uniswap-v4", poolId: MARKET.poolId, currency0: MARKET.wrappedToken, currency1: MARKET.quoteToken,
     decimals0: 8, decimals1: 6, fee: 10000, tickSpacing: 200, hooks: "0x" + "0".repeat(40), canonical: true, anchorHash: hash(7), blocks };
-  const usdt = { source: config.policy.usdtSource, evidenceHash: hash(101), observedAt: now - 1000, validUntil: now + 15000, usdAtoms: "100000000" };
+  const abi = values => "0x" + values.map(n => BigInt(n).toString(16).padStart(64, "0")).join("");
+  const usdt = require("../lib/koin-network/v4-history-reader").usdtObservation({ feed, anchorHash: hash(7), decimals: abi([8]), round: abi([1, 100000000, now / 1000 - 1, now / 1000 - 1, 1]) },
+    { feed, source: config.policy.usdtSource, policy: config.policy, anchor: history.blocks.at(-1) });
   let reads = 0;
   oracle.readers = [0, 1].map(() => ({ window: async () => { reads++; return structuredClone(history); }, usdt: async () => structuredClone(usdt), canonical: async () => {} }));
   t.after(async () => { oracle.close(); await oracle.pending?.catch(() => {}); fs.rmSync(dir, { recursive: true, force: true }); });
@@ -29,6 +31,10 @@ async function fixture(t) {
 test("fresh signed parity and matching independent archives enable an exact, bounded quote", async t => {
   const f = await fixture(t); await assert.rejects(f.oracle.read(), /warming/); await f.oracle.refresh();
   const q = await f.oracle.read(); assert.equal(q.usdPerKoin, "10000000000"); assert.equal(q.expiresAt, f.clock.now + 10000);
+  const snapshot = await f.oracle.readEvidence();
+  assert.deepEqual(snapshot.evidence.parityEnvelope, f.envelope);
+  assert.equal(snapshot.summary.referenceKind, "signed-parity");
+  assert.equal(snapshot.summary.referenceHash, "" + parityHash(f.envelope.statement).toString("hex"));
   assert.equal(f.reads(), 2); await f.oracle.read(); assert.equal(f.reads(), 2, "cached window is rechecked canonically without reloading every block");
   f.oracle.close(); await assert.rejects(f.oracle.read(), /stopped/);
 });

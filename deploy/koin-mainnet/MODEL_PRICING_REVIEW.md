@@ -101,7 +101,7 @@ be explicit; pricing a model does not automatically make it free-eligible.
 | Area | Gap identified before this implementation | Required change and acceptance evidence |
 | --- | --- | --- |
 | Catalog and policy | Legacy has 15 aliases; the new path has one tariff | One versioned rate catalog covering all 15 exact package identities; reject unknown/dev/private-API entries; validate all rates and selected-model policy identity |
-| Metering | Only Qwen 1.5B has a pinned tokenizer manifest | Calibrate tokenizer, template, context and output counting for each admitted package against the actual runtime; no estimated token charging |
+| Metering | All 15 candidate manifests have reference-verified metering; loaded-runtime admission remains pending | Calibrate tokenizer, template, context and output counting for each admitted package against the actual runtime; no estimated token charging |
 | Runtime and installer | `test-config.js`, `test-runtime.js`, `setup.js` construct one tariff/tokenizer | Accept and validate the full collection; preserve existing single-model compatibility and signed intent; never rewrite recovery records |
 | Qualification and readiness | Qualification uses `meter.tariffs()[0]`; status and overview assume `config.tariff` | Qualify each provider/model pair and renew it; count a model ready only while its pinned package, runtime, signatures and freshness pass |
 | Desktop and signing | Chat forces `config.model`; prepaid verification expects a single tariff policy | Use selected network model; verify the full authorized catalog and selected entry; preserve account, model, rate and version in request/recovery identity |

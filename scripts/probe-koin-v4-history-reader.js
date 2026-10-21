@@ -42,6 +42,10 @@ test("real loopback archive transport reads every canonical v4 block and executa
   const parity = { source: f.policy.paritySource, evidenceHash: hash(100), observedAt: f.now - 1000, validUntil: f.now + 10000,
     wrappedPerNativeAtoms: "100000000", state: "verified", nativeToken: "KOIN", wrappedToken: MARKET.wrappedToken };
   const quote = validate({ policy: f.policy, history, usdt, parity, now: f.now });
+  assert.deepEqual(require("../lib/koin-network/v4-history-reader").usdtObservation(usdt.observation, { feed: f.feed, source: f.policy.usdtSource, policy: f.policy, anchor }), usdt);
+  const altered = structuredClone(usdt.observation); altered.decimals = abi([7]);
+  const changed = require("../lib/koin-network/v4-history-reader").usdtObservation(altered, { feed: f.feed, source: f.policy.usdtSource, policy: f.policy, anchor });
+  assert.notEqual(changed.evidenceHash, usdt.evidenceHash); assert.notEqual(changed.usdAtoms, usdt.usdAtoms);
   assert.equal(quote.usdPerKoin, "10000000000"); assert.equal(history.blocks.length, 7);
   assert.equal(f.calls.filter(c => c.method === "eth_call" && c.params[0].data.startsWith(SELECTOR.quote)).length, 14);
   assert.equal(f.calls.some(c => /send|sign|observe/i.test(c.method)), false);

@@ -42,7 +42,7 @@ async function configure(directory, approved, providerFactory) {
     roles: Object.fromEntries(["settlement", "lifecycle", "claims"].map(r => [r, p.roleAddresses[r]])), schedulerUrl: s.schedulerUrl,
     version: 1, ...(models.schema === 2 ? { models: models.models } : { tokenizer: models.tokenizer, tariff: models.tariff }), policyHash: models.policyHash,
     maxRcPerTransaction: s.maxRcPerTransaction, maxRcPerDay: s.maxRcPerDay,
-    ...Object.fromEntries(["freePolicy", "accountMode", "purchasePricing", "qualificationPolicy", "qualificationPolicies"].filter(key => s[key] !== undefined).map(key => [key, s[key]])) });
+    ...Object.fromEntries(["freePolicy", "accountMode", "purchasePricing", "purchaseQuoteBudget", "qualificationPolicy", "qualificationPolicies"].filter(key => s[key] !== undefined).map(key => [key, s[key]])) });
   const plan = { schema: 1, mode: runtime.mode, runtime, owner: s.owner, limits: s.limits, deployRcLimit: s.deployRcLimit,
     artifacts: p.artifacts, fundingAddresses: p.roleAddresses, funding: p.funding, bootstrapHash: approved };
   save(path.join(directory, "deployment-plan.json"), plan);

@@ -22,7 +22,7 @@ function runtimeModels(s) {
   return { schema: 1, tokenizer, tariff, policyHash: P.hash(JSON.stringify(["KAI-KOIN-SHADOW-TARIFFS-V1", tariff])) };
 }
 function settings(s, { usd = false } = {}) {
-  const optional = ["freePolicy", "accountMode", "purchasePricing", "qualificationPolicy", "qualificationPolicies"];
+  const optional = ["freePolicy", "accountMode", "purchasePricing", "purchaseQuoteBudget", "qualificationPolicy", "qualificationPolicies"];
   const multi = s && Object.hasOwn(s, "models");
   const expected = multi ? "deployRcLimit,limits,maxRcPerDay,maxRcPerTransaction,models,owner,schedulerUrl" : "deployRcLimit,limits,maxRcPerDay,maxRcPerTransaction,owner,schedulerUrl,tariff";
   if (!s || Object.keys(s).filter(k => !optional.includes(k)).sort().join() !== expected || !utils.isChecksumAddress(s.owner)) throw Error("Fill the explicit Test setup settings first");
@@ -30,6 +30,7 @@ function settings(s, { usd = false } = {}) {
   if (s.accountMode !== undefined && !["public", "invitations"].includes(s.accountMode)) throw Error("Invalid account mode");
   require("../../lib/koin-network/free-credits").policy(s.freePolicy);
   if (s.purchasePricing !== undefined) require("../../lib/koin-network/v4-purchase-oracle").configuration(s.purchasePricing);
+  if (s.purchaseQuoteBudget !== undefined || s.accountMode === "public") require("../../lib/koin-network/purchase-quote-journal").budget(s.purchaseQuoteBudget);
   for (const key of ["deployRcLimit", "maxRcPerTransaction", "maxRcPerDay"]) amount(s[key]);
   if (!multi && (!s.tariff || Object.keys(s.tariff).sort().join() !== "contextTokens,inputAtomsPerMillion,maxLatencyMs,maxOutputTokens,outputAtomsPerMillion")) throw Error("Explicit Test tariff and resource limits required");
   const modelConfig = runtimeModels(s), tariffs = Models.tariffs(modelConfig);
@@ -133,6 +134,7 @@ async function deploy(directory, wasmDir, approved, { planFile = "plan.json", ha
     const tariffs = Models.tariffs(c), initial = tariffs.find(t => t.model === "koinos-fast") || tariffs[0];
     const desktop = { schema: 1, mode: c.mode, deployment: c.deployment, schedulerUrl: c.schedulerUrl, owner: plan.owner,
       policyHash: c.policyHash, version: c.version, model: initial.model, maxOutput: initial.maxOutputTokens,
+      ...(c.purchasePricing ? { pricingPolicyHash: require("../../lib/koin-network/v4-purchase-oracle").pricingIdentity(c.purchasePricing, c.deployment) } : {}),
       maxRcPerTransaction: c.maxRcPerTransaction, maxRcPerDay: c.maxRcPerDay, limits: plan.limits };
     const file = path.join(directory, "desktop-manifest.json");
     if (!fs.existsSync(file)) save(file, desktop); else if (JSON.stringify(JSON.parse(read(file))) !== JSON.stringify(desktop)) throw Error("Existing desktop manifest changed");

@@ -41,6 +41,7 @@ const entries = require("./lib/koin-network/model-configuration").entries(c);
 for (const entry of entries) require("./lib/koin-network/tokenizer").loadTokenizer(
   path.join(root, "tokenizer", ...(c.schema === 2 ? [entry.tariff.model] : [])), entry.tokenizer);
 if (d.policyHash !== c.policyHash || d.version !== c.version || !entries.some(e => e.tariff.model === d.model && e.tariff.maxOutputTokens === d.maxOutput)) throw Error("Desktop model policy differs from reviewed runtime");
+if (c.accountMode === "public" && (!c.purchasePricing || d.pricingPolicyHash !== require("./lib/koin-network/v4-purchase-oracle").pricingIdentity(c.purchasePricing, c.deployment))) throw Error("Desktop purchase price policy differs from reviewed runtime");
 NODE
 # Validate account sign-in and stage immutable copies before changing service
 # users, installed configuration or systemd. Never source a private env file.

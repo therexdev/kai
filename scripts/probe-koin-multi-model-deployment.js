@@ -25,7 +25,7 @@ function entry(alias) {
 function input() {
   return { mode: "mainnet-prepaid-usd-plan", rpc: ["https://rpc-a.example", "https://rpc-b.example"],
     settings: { owner, schedulerUrl: "https://credits.example/scheduler", deployRcLimit: "10000", maxRcPerTransaction: "100", maxRcPerDay: "1000",
-      accountMode: "public", limits: { amount: "100", perJob: "1000000", maxJobs: 10, durationMs: 60000 },
+      accountMode: "public", purchaseQuoteBudget: { schema: 1, dailyQuoteAuthorizationUsdAtoms: "100000000", accountDailyQuoteAuthorizationUsdAtoms: "100000000" }, limits: { amount: "100", perJob: "1000000", maxJobs: 10, durationMs: 60000 },
       models: [entry("koinos-fast"), entry("koinos-balanced")] },
     funding: { buyerCreditsAtoms: "100", rewardPoolAtoms: "100", maxTotalKoinAtoms: "1100", roles: Object.fromEntries(ROLES.map(r => [r, "100"])) } };
 }
@@ -54,6 +54,14 @@ test("USD model settings commit both exact rates and identities without silently
     c => { c.settings.models[1].tariff.version = 2; },
     c => { c.mode = "mainnet-pilot-plan"; },
   ]) { const changed = input(); change(changed); assert.throws(() => configuration(changed)); }
+});
+test("public USD setup requires explicit global and per-account quote authorization amounts", () => {
+  for (const change of [c => delete c.settings.purchaseQuoteBudget,
+    c => delete c.settings.purchaseQuoteBudget.accountDailyQuoteAuthorizationUsdAtoms,
+    c => c.settings.purchaseQuoteBudget.dailyQuoteAuthorizationUsdAtoms = null,
+    c => c.settings.purchaseQuoteBudget.accountDailyQuoteAuthorizationUsdAtoms = "100000001"]) {
+    const c = input(); change(c); assert.throws(() => configuration(c), /quote authorization budgets/);
+  }
 });
 
 test("per-model free and qualification settings cannot name an unpriced model", () => {

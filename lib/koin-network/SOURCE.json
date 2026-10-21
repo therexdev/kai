@@ -20,8 +20,10 @@
     "funding-observer.js": "dea69474d30f2c2b6e8b4a731f3f056e6f461dbdb83ee21d422806990c78f14c",
     "rpc-provider.js": "9866705dd85755889eb6c70d6dcca3c2c487b91a635d2d56f4308d10765a2c25",
     "product.js": "583d7166f9f249a104e58a63d949bc29e08dda13284250a050813e24ba7d29e8",
-    "purchase-quote.js": "73699d560fa8e0987fd565a7a123a40a91b640889b2cc1bb98da3a356a3754cd",
-    "prepaid-usd-abi.json": "a91f3cffadcfc603122f596363c75a453a6d08da2373743fef44ac6e225b0c6a"
+    "purchase-quote.js": "560c0a2d3988e46b80111b90dd223bf3a794cf1b0db16b95472d1a349008750d",
+    "prepaid-usd-abi.json": "a91f3cffadcfc603122f596363c75a453a6d08da2373743fef44ac6e225b0c6a",
+    "purchase-market.js": "06c1b89f7a31d00c27c6fd45f784649e3278c9fb855f2c0e7e5e0ac99952cad1",
+    "purchase-provenance.js": "78abc1bc20d520073f980db5ad90657fcff93c462366a8b74ad5abc81c17d8c9"
   },
-  "sourceCommit": "1dca09ae5e7129d1a3ef020cbd933e366b108366"
+  "sourceCommit": "05f93188a0d63c6637a06280535da6a6611d9141"
 }

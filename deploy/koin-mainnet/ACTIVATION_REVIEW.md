@@ -169,12 +169,20 @@ notional before signing, including upward rounding. This is a per-purchase
 ceiling, not an aggregate daily sales cap. New price failures affect purchases
 only; existing credits remain usable.
 
-Price diagnostics include source blocks, reference/policy hashes and the depth
-ceiling. The current signed purchase ABI commits to the amount, rate, account,
-contract identity, runtime policy version and expiry, but does not include the full
-diagnostic provenance. A durable mapping to the complete price evidence and
-customer-facing Price details remain acceptance work; do not claim they already
-exist from the diagnostic output.
+The quote journal now preserves the complete sanitized price evidence before
+signing, then saves the exact signed quote before responding. A versioned quote-ID
+commitment binds the displayed market observation, rate, window, policy/reference
+hashes and depth ceilings to that signature without changing the contract ABI.
+Desktop Buy credits verifies the configured pricing-policy pin and shows compact
+Price details. Repeated requests use one explicit purchase-intent ID; a later
+same-amount purchase uses a different intent.
+
+New public USD setup also requires explicit global and per-account daily quote authorization budgets.
+It counts admitted quote intents conservatively across retries and restarts,
+including uncertain signing outcomes. It is not an on-chain daily executed-sales
+cap. The amounts remain unset until reviewed; no default is inferred from model
+rates or exchange depth. This source implementation still needs released-app and
+live-service acceptance.
 
 ## Operator preparation status
 
@@ -217,12 +225,19 @@ using the saved approved tariff catalog. Unavailable models reject a new request
 before allocating credit; recovery of a delivered answer does not require the
 provider or current catalog to be online.
 
-Ten model tokenizer packs have passed 79 independent reference vectors. Five
-Llama/Gemma sources remain unfinished. Reference vectors establish tokenizer
-agreement; actual loaded GGUF calibration and quality/latency checks remain
-required per admitted model. The full 15-model example preserves these gaps
-instead of silently narrowing the product to Fast. See
-[TOKENIZER_PREPARATION.md](TOKENIZER_PREPARATION.md).
+All 15 model tokenizer packs are prepared: the original ten passed 79 independent
+reference vectors, and the five public-GGUF-derived Llama/Gemma packs passed 145
+native reference checks. Reference vectors establish tokenizer agreement; actual
+loaded GGUF calibration and quality/latency checks remain required per admitted
+model. The full 15-model example contains exact candidate manifests, with financial
+budgets still explicitly unset. See [TOKENIZER_PREPARATION.md](TOKENIZER_PREPARATION.md).
+
+Earn now includes a local Check this computer action for the currently loaded
+approved model, with progress, cancellation and Copy/Save report. Its unsigned
+candidate report hashes the installed model and verifies native tokenizer vectors
+before measuring 12 fixed answer cases. It creates no qualification or ONLINE
+status. The next operator action after verified Test publication is to run that
+check on the provider computer; no port/path collection or backend panel is needed.
 
 The isolated native USD harness now covers two distinct tariffs with controlled
 Fast-tokenizer fixture aliases; it makes no second-model quality claim. Current
