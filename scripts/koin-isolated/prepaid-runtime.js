@@ -57,7 +57,7 @@ async function runPrepaidRuntime(chain, reportCheck, usd = false) {
   const accountsFile = path.join(root, "accounts.json"), qualificationsFile = path.join(root, "qualifications.json");
   fs.writeFileSync(accountsFile, JSON.stringify([{ accountId: "prepaid_customer", grantId: "unused_legacy_grant", owner, tokenHash: P.hash(token), enabled: true, expiresAt: chain.now + 86400000 }]));
   fs.writeFileSync(qualificationsFile, JSON.stringify([{ address: workerAddress, capacityId: "prepaid-native-fixture", model: tokenizer.model,
-    modelHash: tokenizer.modelHash, benchmarkHash: P.hash("reviewed-fixture"), expires: chain.now + 86400000 }]));
+    modelHash: tokenizer.modelHash, benchmarkHash: P.hash("reviewed-fixture"), modelWeight: "1", coverageBps: 10000, expires: chain.now + 86400000 }]));
   const roles = { settlement: chain.address("sponsor"), lifecycle: chain.address("lifecycle"), claims: chain.address("manual") };
   const signers = Object.fromEntries(["verifier", "sponsor", "lifecycle", "manual"].map(n => [chain.address(n), chain.actors[n]]));
   const config = { mode: "isolated-rehearsal", deployment, schedulerUrl, roles, tokenizer, tariff, version: 1, policyHash: meter.policyHash,
@@ -153,12 +153,15 @@ async function runPrepaidRuntime(chain, reportCheck, usd = false) {
       for (let i = 0; i < 40; i++) {
         if (await done()) return;
         await runtime.tick(); if (transportError) throw transportError;
+        assert.deepEqual(runtime.errors, [], "Native prepaid runtime must not hide collection errors");
         await finalize(); await pause(100);
       }
       throw Error(label + " did not finish: " + JSON.stringify(runtime.status()));
     };
     await progress("prepaid daily opening", async () => !!(await client.read("rewards", "get_epoch", { epoch: day })).epoch?.opened_at);
-    await chain.block([], (Number(day) + 1) * 86400000 + 10000);
+    // Current reward collection closes the minute after its 45-second
+    // heartbeat grace. Advance fixture time beyond that watermark explicitly.
+    await chain.block([], (Number(day) + 1) * 86400000 + 60000);
     await progress("prepaid reward proposal", async () => BigInt((await client.read("rewards", "get_epoch", { epoch: day })).epoch?.review_until || "0") > 0n);
     const rewardDay = (await client.read("rewards", "get_epoch", { epoch: day })).epoch;
     if (usd) {

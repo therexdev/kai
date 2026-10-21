@@ -131,7 +131,8 @@ async function runTestRuntime(chain, check) {
     check("desktop native review and pinned tokenizer produce a real irreversible 38-atom settlement");
     check("backend restart after lost settlement acknowledgment reuses the original signed envelope");
     const before = BigInt(await chain.balance(workerAddress));
-    await chain.block([], (Number(epoch) + 1) * DAY + 10000);
+    // Preserve the current 45-second heartbeat grace when closing the day.
+    await chain.block([], (Number(epoch) + 1) * DAY + 60000);
     await progress("automatic reward proposal", async () => BigInt((await chain.read("rewards", "get_epoch", { epoch })).epoch?.review_until || "0") > 0n);
     await progress("review-day opening", async () => !!(await chain.read("rewards", "get_epoch", { epoch: String(Number(epoch) + 1) })).epoch?.opened_at);
     const rewardEpoch = (await chain.read("rewards", "get_epoch", { epoch })).epoch;
