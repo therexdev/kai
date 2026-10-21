@@ -3,7 +3,9 @@ set -euo pipefail
 umask 077
 # Run from the reviewed Test branch checkout. This never touches koinos.service,
 # its production checkout, its environment, its database or Caddy configuration.
-bootstrap=${1:?Usage: bash deploy/koin-mainnet/install.sh /absolute/private/bootstrap-directory}
+bootstrap=${1:?Usage: bash deploy/koin-mainnet/install-prepaid.sh /absolute/private/bootstrap-directory [/absolute/private/account-auth.json]}
+account_auth=${2:-}
+[[ $# -le 2 ]] || { echo "Unexpected installer arguments" >&2; exit 1; }
 [[ "$bootstrap" = /* ]] || { echo "Use an absolute bootstrap directory" >&2; exit 1; }
 [[ "$(id -u)" = 0 ]] || { echo "Run the Test service installer as root" >&2; exit 1; }
 test_repo=$(git rev-parse --show-toplevel)
@@ -12,7 +14,19 @@ cd "$test_repo"
 [[ -z "$(git status --porcelain)" ]] || { echo "Commit and review the Test checkout before installation" >&2; exit 1; }
 test_node=$(command -v node)
 [[ "$test_node" != /root/* && "$test_node" != /home/* ]] || { echo "Install a system Node binary accessible to the Test service" >&2; exit 1; }
-[[ ! -e /etc/systemd/system/kai-koin-prepaid.service ]] || { echo "Prepaid service already exists; use a reviewed code update that preserves its ledger." >&2; exit 1; }
+[[ ! -e /etc/systemd/system/kai-koin-prepaid.service && ! -L /etc/systemd/system/kai-koin-prepaid.service ]] || { echo "Prepaid service already exists; use a reviewed code update that preserves its ledger." >&2; exit 1; }
+# Check the destination directories before install -d can follow a link and
+# change ownership on another service's configuration, code or state.
+require_real_directory() {
+  if [[ -L "$1" ]] || { [[ -e "$1" ]] && [[ ! -d "$1" ]]; }; then
+    echo "Expected a separate real service directory: $1" >&2
+    return 1
+  fi
+}
+release_dir="/opt/kai-koin-prepaid/releases/$test_sha"
+for directory in /etc/kai-koin-prepaid /etc/kai-koin-prepaid/tokenizer /var/lib/kai-koin-prepaid /opt/kai-koin-prepaid /opt/kai-koin-prepaid/releases "$release_dir"; do
+  require_real_directory "$directory"
+done
 "$test_node" -e 'const v=Number(process.versions.node.split(".")[0]); if(v<22)throw Error("Node 22 or newer required")'
 "$test_node" - "$bootstrap" <<'NODE'
 const path = require("path"), fs = require("fs"), root = process.argv[2];
@@ -25,12 +39,18 @@ const d = JSON.parse(read(path.join(root, "desktop-manifest.json")));
 if (JSON.stringify(d.deployment) !== JSON.stringify(c.deployment)) throw Error("Verified desktop manifest required");
 require("./lib/koin-network/tokenizer").loadTokenizer(path.join(root,"tokenizer"), c.tokenizer);
 NODE
+# Validate account sign-in and stage immutable copies before changing service
+# users, installed configuration or systemd. Never source a private env file.
+config_stage=$(mktemp -d /tmp/kai-prepaid-config.XXXXXXXX)
+release_stage=""
+trap 'rm -rf -- "$config_stage"; if [[ -n "$release_stage" ]]; then rm -rf -- "$release_stage"; fi' EXIT
+prepare_args=("$bootstrap" "$config_stage")
+if [[ -n "$account_auth" ]]; then prepare_args+=("$account_auth"); fi
+"$test_node" deploy/koin-mainnet/prepaid-install-config.js "${prepare_args[@]}"
 id kai-koin-prepaid >/dev/null 2>&1 || useradd --system --home-dir /var/lib/kai-koin-prepaid --shell /usr/sbin/nologin kai-koin-prepaid
 install -d -m 0755 /opt/kai-koin-prepaid /opt/kai-koin-prepaid/releases
-release_dir="/opt/kai-koin-prepaid/releases/$test_sha"
 if [[ ! -d "$release_dir" ]]; then
   release_stage=$(mktemp -d "/opt/kai-koin-prepaid/releases/.$test_sha.XXXXXX")
-  trap 'rm -rf -- "$release_stage"' EXIT
   chmod 0755 "$release_stage"
   # Public application code must be readable by the unprivileged service user.
   # Keep the outer private umask for configuration and keys below.
@@ -41,21 +61,31 @@ if [[ ! -d "$release_dir" ]]; then
     npm ci --omit=dev --ignore-scripts
   )
   mv -T "$release_stage" "$release_dir"
-  trap - EXIT
+  release_stage=""
 fi
 # Catch incomplete or unreadable dependencies before enabling the service.
 runuser -u kai-koin-prepaid -- "$test_node" -e 'require(process.argv[1])' "$release_dir/test-server.js"
-install -d -m 0700 -o kai-koin-prepaid -g kai-koin-prepaid /etc/kai-koin-prepaid /etc/kai-koin-prepaid/tokenizer /var/lib/kai-koin-prepaid
-# Never copy offline-keys.json or the owner's invitation into the service tree.
-for file in runtime.json runtime-keys.json operator-secret invitations.json qualifications.json; do
-  if [[ -e "/etc/kai-koin-prepaid/$file" ]] && ! cmp -s "$bootstrap/$file" "/etc/kai-koin-prepaid/$file"; then
-    echo "Existing Test configuration differs: $file. Drain and review it before changing configuration." >&2
+install -d -m 0750 -o root -g kai-koin-prepaid /etc/kai-koin-prepaid /etc/kai-koin-prepaid/tokenizer
+install -d -m 0700 -o kai-koin-prepaid -g kai-koin-prepaid /var/lib/kai-koin-prepaid
+# Public accounts have no invitation file. Only the selected, validated files
+# are staged; offline keys and existing production account databases stay out.
+mapfile -d '' config_files < <(find "$config_stage" -type f -printf '%P\0')
+for file in "${config_files[@]}"; do
+  if [[ -L "/etc/kai-koin-prepaid/$file" ]] || { [[ -e "/etc/kai-koin-prepaid/$file" ]] && ! cmp -s "$config_stage/$file" "/etc/kai-koin-prepaid/$file"; }; then
+    echo "Existing prepaid configuration differs: $file. Review it before changing configuration." >&2
     exit 1
   fi
-  install -m 0600 -o kai-koin-prepaid -g kai-koin-prepaid "$bootstrap/$file" "/etc/kai-koin-prepaid/$file"
 done
-for file in tokenizer.json tokenizer_config.json; do
-  install -m 0600 -o kai-koin-prepaid -g kai-koin-prepaid "$bootstrap/tokenizer/$file" "/etc/kai-koin-prepaid/tokenizer/$file"
+for file in "${config_files[@]}"; do
+  if [[ "$file" = account.env ]]; then
+    # systemd reads this as root; the service receives only the named settings.
+    install -m 0600 -o root -g root "$config_stage/$file" "/etc/kai-koin-prepaid/$file"
+  elif [[ "$file" = runtime-keys.json || "$file" = operator-secret || "$file" = invitations.json ]]; then
+    # Runtime secret readers deliberately reject group-readable credentials.
+    install -m 0600 -o kai-koin-prepaid -g kai-koin-prepaid "$config_stage/$file" "/etc/kai-koin-prepaid/$file"
+  else
+    install -m 0640 -o root -g kai-koin-prepaid "$config_stage/$file" "/etc/kai-koin-prepaid/$file"
+  fi
 done
 cat > /etc/systemd/system/kai-koin-prepaid.service <<EOF
 [Unit]
@@ -71,6 +101,7 @@ ExecStart=$test_node $release_dir/test-server.js
 Environment=KAI_KOIN_TEST_CONFIG_DIR=/etc/kai-koin-prepaid
 Environment=KAI_KOIN_TEST_STATE_DIR=/var/lib/kai-koin-prepaid
 Environment=KAI_KOIN_TEST_PORT=3109
+EnvironmentFile=/etc/kai-koin-prepaid/account.env
 Restart=on-failure
 RestartSec=10
 TimeoutStopSec=35
@@ -93,5 +124,9 @@ const fs = require("fs"), path = require("path");
 const c = JSON.parse(fs.readFileSync(path.join(process.argv[2],"runtime.json"),"utf8"));
 console.log("Test service installed at reviewed commit. Add this separate HTTPS virtual host to your reverse proxy:");
 console.log(new URL(c.schedulerUrl).host + " {\n  reverse_proxy 127.0.0.1:3109\n}");
-console.log("Verify /health through that HTTPS hostname before importing the owner's private Test invitation. No production service was reconfigured.");
+if (c.accountMode === "public") {
+  console.log("Verify HTTPS /health and /auth/methods, then use /account for normal sign-in. No invitation import is needed.");
+  console.log("If Google sign-in is configured, register this exact redirect URI: " + new URL(c.schedulerUrl).origin + "/auth/google/callback");
+} else console.log("Verify HTTPS /health before importing the owner's private invitation.");
+console.log("The prepaid service keeps its own account database. No production service or account database was reconfigured.");
 NODE
