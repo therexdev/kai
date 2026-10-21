@@ -45,9 +45,9 @@ acceptance, or delayed payout verification. This executor uses Node 24.19.0;
 deployment declares Node 22. Existing provider qualification expired October 16;
 the changes do not automatically renew eligibility. That historical checkpoint preceded the qualification and run-budget continuations below.
 
-Fresh contract deployment/funding/credentials and live financial operations
-remain outside this task's authorization. Three closed reward days versus seven
-telemetry days must be resolved before claiming acceptance.
+Fresh contract deployment/funding and live financial operations require the
+exact reviewed plan. The approved Revision 2 acceptance period is three closed
+reward days with payouts; the earlier seven-day uncertainty is superseded.
 
 ### Prototype-backed network overview continuation
 
@@ -65,7 +65,7 @@ Capped sponsorship continuation: 375 backend and cutover-preparation tests pass;
 
 Automatic qualification is optional and inactive without an explicit reviewed policy. Configuration requires the reviewed evidence hash, exact accepted benchmark answers, pass count, latency limit, model pin and reward weight. Fresh per-attempt signed results run through the approved tokenizer/model path; they never enter customer billing or earnings. Durable evidence survives restart, expires after 24 hours and renews before expiry. A failed or in-progress renewal cannot advertise ONLINE. Changed device identity, replayed results and future-dated readiness evidence are rejected. The earlier October 16 qualification and reward epoch 20742 were not renewed or changed.
 
-Local backend validation after this continuation: 368 KOIN tests pass, including the real HTTP scheduler poll/result boundary, restart/renewal, forged answers and repeated result submission. These are fixture checks, not model-quality or two-computer acceptance. The earlier 7/10 benchmark artifact and approved pass/latency criteria remain required; no criteria have been silently weakened. No runtime policy was installed and no production service changed.
+Local backend validation after this continuation: 368 KOIN tests pass, including the real HTTP scheduler poll/result boundary, restart/renewal, forged answers and repeated result submission. These are fixture checks, not model-quality or two-computer acceptance. Fresh intended-model measurements and reviewed pass/latency criteria remain required; the expired 7/10 artifact is historical evidence only. No criteria have been silently weakened, no runtime policy was installed and no production service changed.
 
 Multiple linked wallets now require an explicit `creditWallet` selection for spending and the host lease. The server verifies membership; a walletless free request retains the same verified-account allowance. No balances are combined or moved. Recovery continues to use the original account-bound job owner. Full backend/cutover validation: 380 tests, 380 pass, zero failures. These remain isolated/local tests.
 
@@ -75,4 +75,25 @@ Research/Agents/Teams now use account-bound immutable run approvals in the same 
 
 The authenticated provider status response now supplies its observation time for public account earnings. Payout epoch strings and unresolved review states are preserved; no old reward is reset or submitted.
 
-This is source implementation, not production activation. The reviewed pricing/commercial configuration, benchmark quality/latency criteria, independent financial review, fresh authorized deployment/funding, real two-computer acceptance and delayed payout observation remain outstanding. Three versus seven acceptance days is unresolved. No production services or live financial operations were changed.
+This is source implementation, not production activation. The reviewed pricing/commercial configuration, benchmark quality/latency criteria, independent financial review, fresh authorized deployment/funding, real two-computer acceptance and three closed reward days with payouts remain outstanding. No production services or live financial operations were changed.
+
+### October 21 operator-report follow-up
+
+The server report confirms only the legacy product at the checked paths. The
+new USD service/configuration is missing; one old signed record remains a
+separate reconciliation obligation. See
+[the concrete activation review](deploy/koin-mainnet/ACTIVATION_REVIEW.md).
+
+Fixed the stale native-rehearsal source pin and added commit/shared-hash/ABI
+validation. Built the exact Test 201.1 contracts; all 12 WASM probes passed.
+Added protected, idempotent existing-provider auth preparation, a read-only
+pricing preflight, and a candidate-only local model evaluator. Future provider
+archives retain the fields needed to reverify their result signatures; legacy
+archives remain readable without being called independently verifiable.
+
+All 73 focused activation/source/pricing/qualification tests passed locally.
+The first live public-endpoint capability run returned matching five-minute
+market history, depth and USDT/USD evidence, but remains incomplete without
+trusted parity evidence. There is still no bridge evidence publisher or real
+new-model qualification policy. No customer account, service configuration,
+contract, wallet signature or KOIN transfer was changed by this work.

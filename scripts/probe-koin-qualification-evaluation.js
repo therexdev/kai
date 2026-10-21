@@ -1,0 +1,95 @@
+"use strict";
+const test = require("node:test"), assert = require("node:assert/strict"), fs = require("node:fs"), os = require("node:os"),
+  path = require("node:path"), http = require("node:http"), crypto = require("node:crypto"), { spawnSync } = require("node:child_process");
+const E = require("./evaluate-koin-qualification"), candidate = E.loadSuite().value;
+const digest = value => crypto.createHash("sha256").update(value).digest("hex");
+function directory(t) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kai-quality-candidate-")); t.after(() => fs.rmSync(dir, { recursive: true, force: true })); return dir; }
+async function server(t, handler) {
+  const s = http.createServer(handler); await new Promise(resolve => s.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise(resolve => { s.closeAllConnections(); s.close(resolve); }));
+  return `http://127.0.0.1:${s.address().port}`;
+}
+const answer = (output, finish = "stop") => new Response(JSON.stringify({ model: "fixture-local-runtime", choices: [{ message: { content: output }, finish_reason: finish }] }));
+test("versioned candidate is tied to exact model/tokenizer pins and declares no admission threshold", () => {
+  assert.equal(candidate.cases.length, 12); assert.equal(candidate.status, "candidate-not-approved"); assert.equal(candidate.minPass, undefined);
+  assert.match(candidate.cases.find(c => c.id === "ryb-colors").messages[0].content, /traditional RYB/);
+  assert.throws(() => E.suite({ ...candidate, modelHash: digest("other model") }), /candidate_pin_mismatch/);
+  assert.throws(() => E.suite({ ...candidate, minPass: 7 }), /invalid_candidate_suite/);
+});
+test("local runtime URL rejects remote targets, URL normalization tricks and embedded credentials", () => {
+  assert.equal(E.endpoint("http://127.0.0.1:1234/"), "http://127.0.0.1:1234"); assert.equal(E.endpoint("http://[::1]:1234"), "http://[::1]:1234");
+  for (const url of ["https://127.0.0.1:1234", "http://localhost:1234", "http://127.1:1234", "http://2130706433:1234", "http://0x7f000001:1234",
+    "http://127.0.0.2:1234", "http://example.com:1234", "http://127.0.0.1", "http://user@127.0.0.1:1234", "http://127.0.0.1:1234/a",
+    "http://127.0.0.1:1234?x=1", "http://127.0.0.1:1234#x", "http://127.0.0.1:99999", " http://127.0.0.1:1234"]) assert.throws(() => E.endpoint(url), undefined, url);
+});
+test("actual model bytes are hashed, wrong pins and symlink model files are rejected", async t => {
+  const dir = directory(t), file = path.join(dir, "model.gguf"), bytes = Buffer.from("fixture file, not a real model"); fs.writeFileSync(file, bytes);
+  assert.deepEqual(await E.hashModel(file, digest(bytes)), { sha256: digest(bytes), sizeBytes: bytes.length, hashVerified: true, loadedRuntimeIdentity: "unverified" });
+  await assert.rejects(E.hashModel(file), /model_hash_mismatch/);
+  const link = path.join(dir, "link.gguf"); fs.symlinkSync(file, link); await assert.rejects(E.hashModel(link, digest(bytes)), /regular_model_file_required/);
+});
+test("local measurement sends only the fixed suite with bounded deterministic inference and exports exact results", async t => {
+  const seen = [], base = await server(t, (req, res) => {
+    let text = ""; req.on("data", data => text += data); req.on("end", () => {
+      const input = JSON.parse(text), c = candidate.cases[seen.length]; seen.push({ route: req.url, input });
+      res.setHeader("content-type", "application/json"); res.end(JSON.stringify({ model: "fixture", choices: [{ message: { content: c.expected[0] }, finish_reason: "stop" }] }));
+    });
+  });
+  const result = await E.measureCases({ base, candidate, runtimeModel: "fixture" });
+  assert.equal(result.complete, true); assert.equal(result.passed, 12); assert.equal(result.completedCalls, 12);
+  for (let i = 0; i < seen.length; i++) {
+    assert.equal(seen[i].route, "/v1/chat/completions"); assert.deepEqual(seen[i].input.messages, candidate.cases[i].messages);
+    assert.equal(seen[i].input.max_tokens, candidate.cases[i].maxOutput); assert.equal(seen[i].input.temperature, 0); assert.equal(seen[i].input.stream, false);
+    assert.equal(result.results[i].outputHash, digest(candidate.cases[i].expected[0])); assert.ok(Number.isSafeInteger(result.results[i].elapsedMs));
+  }
+});
+test("wrong answers and truncated answers remain failed measurements without changing the candidate", async () => {
+  let calls = 0;
+  const result = await E.measureCases({ base: "http://127.0.0.1:1234", candidate, runtimeModel: "fixture", fetchImpl: async () => {
+    const c = candidate.cases[calls++]; return calls === 1 ? answer("wrong") : calls === 2 ? answer(c.expected[0], "length") : answer("\n" + c.expected[0] + "\n");
+  } });
+  assert.equal(result.complete, true); assert.equal(result.passed, 10); assert.equal(result.results[0].passed, false); assert.equal(result.results[1].passed, false);
+});
+test("redirects never contact a second endpoint and terminate after one request", async t => {
+  let destinationCalls = 0; const destination = await server(t, (_, res) => { destinationCalls++; res.end("{}"); });
+  const base = await server(t, (_, res) => { res.writeHead(302, { location: destination }); res.end(); });
+  const result = await E.measureCases({ base, candidate, runtimeModel: "fixture" });
+  assert.equal(destinationCalls, 0); assert.equal(result.complete, false); assert.equal(result.completedCalls, 1); assert.equal(result.results[0].error, "runtime_request_failed");
+});
+test("oversized, malformed and HTTP error responses are bounded and never leak server error text", async () => {
+  for (const [response, expected] of [
+    [new Response("x".repeat(E.MAX_RESPONSE + 1)), "runtime_response_too_large"],
+    [new Response("private runtime error text"), "invalid_runtime_json"],
+    [new Response("private error", { status: 503 }), "runtime_http_503"]
+  ]) {
+    const result = await E.measureCases({ base: "http://127.0.0.1:1234", candidate, runtimeModel: "fixture", fetchImpl: async () => response });
+    assert.equal(result.completedCalls, 1); assert.equal(result.results[0].error, expected); assert.equal(JSON.stringify(result).includes("private"), false);
+  }
+});
+test("timeout aborts the active request and does not automatically retry", async () => {
+  let calls = 0;
+  const result = await E.measureCases({ base: "http://127.0.0.1:1234", candidate, runtimeModel: "fixture", timeoutMs: 1000,
+    fetchImpl: (_, options) => new Promise((resolve, reject) => { calls++; options.signal.addEventListener("abort", () => reject(Error("private detail"))); }) });
+  assert.equal(calls, 1); assert.equal(result.complete, false); assert.equal(result.results[0].error, "runtime_timeout");
+});
+test("report files are private, exclusive and hashed without changing an existing artifact", t => {
+  const dir = directory(t), file = path.join(dir, "measurement.json"), report = { status: "candidate-not-approved" };
+  const checksum = E.writeReport(file, report); assert.equal(checksum, digest(fs.readFileSync(file))); assert.deepEqual(JSON.parse(fs.readFileSync(file)), report);
+  assert.equal(fs.statSync(file).mode & 0o777, 0o600); assert.throws(() => E.writeReport(file, { changed: true }), /output_already_exists/);
+  const link = path.join(dir, "link.json"); fs.symlinkSync(file, link); assert.throws(() => E.writeReport(link, report), /output_already_exists/);
+});
+test("CLI stops before inference when the supplied local file is not the pinned model", t => {
+  const dir = directory(t), file = path.join(dir, "wrong.gguf"), output = path.join(dir, "measurement.json"); fs.writeFileSync(file, "wrong model");
+  const run = spawnSync(process.execPath, [path.join(__dirname, "evaluate-koin-qualification.js"), "--endpoint", "http://127.0.0.1:1234", "--model-file", file, "--output", output], { encoding: "utf8" });
+  assert.equal(run.status, 1); assert.equal(run.stderr.trim(), "model_hash_mismatch"); assert.equal(fs.existsSync(output), false);
+});
+test("CLI summary preserves incomplete evidence while reporting a failed pipeline status", async t => {
+  const measurement = await E.measureCases({ base: "http://127.0.0.1:1234", candidate, runtimeModel: "fixture", fetchImpl: async () => new Response("unavailable", { status: 503 }) });
+  const output = path.join(directory(t), "partial.json"), sha256 = E.writeReport(output, { measurement });
+  let text = ""; const io = { stdout: { write: value => text += value }, exitCode: null };
+  E.printSummary({ output, sha256, complete: measurement.complete }, io);
+  assert.equal(io.exitCode, 2); assert.equal(JSON.parse(text).sha256, digest(fs.readFileSync(output)));
+  assert.equal(JSON.parse(fs.readFileSync(output)).measurement.results[0].error, "runtime_http_503");
+  text = ""; E.printSummary({ complete: true, passed: 0, completedCalls: 12 }, io);
+  assert.equal(io.exitCode, 0, "wrong answers do not invalidate a completed measurement"); assert.equal(JSON.parse(text).passed, 0);
+});

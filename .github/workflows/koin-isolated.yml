@@ -1,7 +1,7 @@
 name: KOIN isolated transfers
 on:
   push:
-    branches: [claude/koin-shadow-integration, codex/koin-mainnet-pilot]
+    branches: [claude/koin-shadow-integration, codex/koin-mainnet-pilot, codex/revision2-implementation]
     paths: ["lib/koin-network/**", "scripts/koin-isolated/**", ".github/workflows/koin-isolated.yml"]
   workflow_dispatch:
 permissions:
@@ -38,6 +38,10 @@ jobs:
           ref: ${{ steps.desktop_source.outputs.commit }}
           path: isolated-desktop
           persist-credentials: false
+      - name: Verify shared source and contract ABI provenance
+        run: |
+          node --test scripts/koin-isolated/source.test.js
+          node scripts/koin-isolated/verify-source.js isolated-desktop
       - name: Build pinned custody contracts
         run: |
           npm ci --ignore-scripts --prefix isolated-desktop/contracts/koin-network

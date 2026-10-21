@@ -21,7 +21,27 @@ The new settings example fixes the intended reward seed at **10,000 KOIN**, leav
 
 ## Public account service installation
 
-Create a root-owned, mode `0600`, regular JSON file outside the checkout, for example `/root/kai-prepaid-account-auth.json`. The installer rejects symlinks, other owners, group/world access, unknown names, incomplete providers and multiline values. Use the existing mail/OAuth provider credentials through a secure operator handoff; never paste real credentials into a command, chat, issue, or source file.
+First check whether the existing website already has usable sign-in credentials. On its host, from the reviewed backend checkout, run this read-only command as root:
+
+```sh
+node deploy/koin-mainnet/prepare-account-auth.js
+```
+
+It queries only `koinos.service`'s active process identity, reads a bounded copy of that process's environment in memory, and prints email/Google readiness and missing field names. It never prints credential values, sends mail, opens an account database, or changes a service. The source repository documents `/opt/koinos/kai.env` as the production EnvironmentFile; reading the effective process environment avoids guessing its quoting or missing systemd overrides. A check does not create any directories or files.
+
+To prepare the reviewed inputs using those existing credentials:
+
+```sh
+node deploy/koin-mainnet/prepare-account-auth.js --prepare
+```
+
+This exclusively creates `/root/kai-prepaid-inputs/account-auth.json`, mode `0600`, in a private directory. It does not create the future bootstrap directory, generate keys, deploy contracts, or install the service. Only complete usable email/Google providers are copied; the status still identifies incomplete providers. The production SMTP port/TLS behavior is preserved explicitly, including implicit TLS on port 465 and existing `true`, `yes`, or `1` values. The source process must remain the same throughout preparation. A repeated `--prepare` succeeds with `alreadyPrepared: true` only when the existing protected file contains exactly the same selected credentials; it makes no write. Changed or unsafe files are never overwritten. Rerun without `--prepare` for a read-only status report. An alternate private path can be selected with `--output /absolute/private/account-auth.json`; all ancestors must be trusted real directories (root-owned sticky temporary directories are allowed), and the final parent must remain private.
+
+For a minimal verified operator handoff, only `prepare-account-auth.js` and `account-auth-input.js` from the same reviewed commit are needed together; they require Node builtins and no npm install. Verify both files' provided checksums before running. The generated JSON is bounded to the same 16 KiB limit enforced by the service installer.
+
+Provider readiness here means the configuration passes validation, not that email delivery or Google's new redirect URI has been tested. No existing account IDs, cookies, session secrets, wallet keys, application flags, or database paths are copied. The helper does not modify production environment files or register an OAuth callback. If neither provider is usable, supply the missing provider settings through the operator's secure local credential workflow instead of pasting secrets into chat.
+
+The resulting input must be a root-owned, mode `0600`, regular JSON file outside the checkout. The installer rejects symlinks, other owners, group/world access, unknown names, incomplete providers and multiline values. Never paste real credentials into a command, chat, issue, or source file.
 
 The JSON may contain only these string fields:
 
@@ -35,7 +55,7 @@ At least one complete provider is required for public mode; both may be configur
 Once the deployment and installation have been approved, the public-mode invocation is:
 
 ```sh
-bash deploy/koin-mainnet/install-prepaid.sh /absolute/private/bootstrap-directory /root/kai-prepaid-account-auth.json
+bash deploy/koin-mainnet/install-prepaid.sh /absolute/private/bootstrap-directory /root/kai-prepaid-inputs/account-auth.json
 ```
 
 Invitation mode omits the second argument and requires its existing `invitations.json`. Neither mode creates guessed credentials or an authentication bypass. Validation and private staging finish before creating the new service user or copying installed configuration.

@@ -1,21 +1,18 @@
 "use strict";
 // Disposable, peerless Docker project. Never reads a wallet or live node config.
-const fs = require("fs"), path = require("path"), crypto = require("crypto"), cp = require("child_process");
+const fs = require("fs"), path = require("path"), crypto = require("crypto");
 const { Signer, utils } = require("koilib");
 const upstream = require("./upstream.json"), desktopPin = require("../../lib/koin-network/SOURCE.json").sourceCommit;
+const { verifyCheckout, verifySource } = require("./verify-source");
 const hash = value => crypto.createHash("sha256").update(value).digest("hex");
 const images = {
   amqp: "rabbitmq:3.13-alpine", chain: "koinos/koinos-chain:v1.5.2", jsonrpc: "koinos/koinos-jsonrpc:v1.2.0",
   block_store: "koinos/koinos-block-store:v1.1.0", mempool: "koinos/koinos-mempool:v1.5.0",
   transaction_store: "koinos/koinos-transaction-store:v1.1.0",
 };
-function verifyCheckout(directory, commit) {
-  if (cp.execFileSync("git", ["rev-parse", "HEAD"], { cwd: directory, encoding: "utf8" }).trim() !== commit) throw Error("Isolated source commit mismatch");
-  cp.execFileSync("git", ["diff", "--exit-code", "HEAD"], { cwd: directory, stdio: "pipe" });
-}
 function prepare(upstreamDir, desktopDir, directory) {
   upstreamDir = path.resolve(upstreamDir); desktopDir = path.resolve(desktopDir); directory = path.resolve(directory);
-  verifyCheckout(upstreamDir, upstream.commit); verifyCheckout(desktopDir, desktopPin);
+  verifyCheckout(upstreamDir, upstream.commit); verifySource(desktopDir);
   if (fs.existsSync(directory)) throw Error("Use a new empty rehearsal directory; never reuse node state");
   for (const [name, digest] of Object.entries(upstream.sha256)) if (hash(fs.readFileSync(path.join(upstreamDir, name))) !== digest) throw Error("Upstream artifact pin mismatch: " + name);
   const artifacts = {};

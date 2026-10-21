@@ -1,0 +1,228 @@
+{
+  "schema": 1,
+  "purpose": "public-endpoint-capability-observation",
+  "approvedForActivation": false,
+  "notes": [
+    "A single read-only run with two public endpoint candidates, not independently approved production sources.",
+    "These bounds select a small measurement only; minLiquidity=1 is deliberately not a production minimum.",
+    "No parity attestation, signing, configuration write or purchase quote was created.",
+    "Complete raw block history is not archived by this report; hashes identify the observed adapter payloads."
+  ],
+  "input": {
+    "purpose": "unapproved-capability-measurement-only",
+    "purchasePricing": {
+      "schema": 1,
+      "rpcUrls": [
+        "https://ethereum-rpc.publicnode.com",
+        "https://eth.drpc.org"
+      ],
+      "usdtFeed": "0x3e7d1eab13ad0104d2750b8863b489d65364e32d",
+      "policy": {
+        "version": 1,
+        "windowSeconds": 300,
+        "maxBlockGapSeconds": 48,
+        "maxPriceAgeMs": 1800000,
+        "maxQuoteMs": 60000,
+        "maxDeviationBps": 500,
+        "maxSlippageBps": 200,
+        "maxUsdtAgeMs": 86400000,
+        "maxUsdtDeviationBps": 100,
+        "maxParityAgeMs": 300000,
+        "maxParityDeviationBps": 0,
+        "minLiquidity": "1",
+        "minProbeUsdtAtoms": "1000000",
+        "usdtSource": "ethereum:chainlink:0x3e7d1eab13ad0104d2750b8863b489d65364e32d",
+        "paritySource": "vortex-review-pending"
+      }
+    }
+  },
+  "report": {
+    "schema": 1,
+    "purpose": "read-only-purchase-pricing-preflight",
+    "state": "incomplete",
+    "startedAt": 1792552774438,
+    "purchasesEnabled": false,
+    "configurationChanged": false,
+    "signed": false,
+    "sourceCodeHash": "0x23370e659029256eb45482770799112611f44609214142e104eabd74306d36d7",
+    "toolCodeHash": "0xa1308a20e7a37cdc9584984b3338b95bdceb6bd44583090f6fbc43b21943ca8d",
+    "providers": [
+      {
+        "provider": 1,
+        "state": "observed",
+        "stages": {
+          "endpoint": {
+            "state": "observed",
+            "elapsedMs": 2872
+          },
+          "finalized": {
+            "state": "observed",
+            "elapsedMs": 2218
+          },
+          "history": {
+            "state": "observed",
+            "elapsedMs": 8383
+          },
+          "usdt": {
+            "state": "observed",
+            "elapsedMs": 69
+          },
+          "canonical": {
+            "state": "observed",
+            "elapsedMs": 60
+          }
+        },
+        "finalizedAnchor": {
+          "number": 26238152,
+          "hash": "0x2bb5231d317ed2a57464907ccdad88b0a07afbd5b2a3df25d3d4b2daf94b12ef",
+          "timestamp": 1792551767,
+          "ageMs": 1012530,
+          "withinProposedAge": true
+        },
+        "history": {
+          "blockCount": 25,
+          "anchor": {
+            "number": 26238152,
+            "hash": "0x2bb5231d317ed2a57464907ccdad88b0a07afbd5b2a3df25d3d4b2daf94b12ef",
+            "timestamp": 1792551767,
+            "ageMs": 1020913
+          },
+          "windowSeconds": 300,
+          "maxGapSeconds": 24,
+          "minimumLiquidity": "2462531766982",
+          "probeUsdtAtoms": "1000000",
+          "maxPriceDeviationBps": "0",
+          "maxBuyDeviationBps": "11",
+          "maxSellDeviationBps": "11",
+          "comparisons": {
+            "anchorFresh": true,
+            "fullWindow": true,
+            "blockGaps": true,
+            "minimumLiquidity": true,
+            "priceDeviation": true,
+            "buyDepth": true,
+            "sellDepth": true
+          },
+          "policyState": "within-proposed-bounds",
+          "evidenceHash": "0x9c545551cc9d7bb47169e3bdcb997becf0f002760bda732cdb90111a4796db99"
+        },
+        "usdt": {
+          "observedAt": 1792507391000,
+          "validUntil": 1792593791000,
+          "ageMs": 45396983,
+          "usdAtoms": "99888425",
+          "deviationBps": "12",
+          "comparisons": {
+            "fresh": true,
+            "deviation": true
+          },
+          "policyState": "within-proposed-bounds",
+          "evidenceHash": "0xc9f6ee06e89e4e2986e893b9ec5c62d70c56a2bf1f0223e5ef22ad0b23b3846f"
+        },
+        "elapsedMs": 13603
+      },
+      {
+        "provider": 2,
+        "state": "observed",
+        "stages": {
+          "endpoint": {
+            "state": "observed",
+            "elapsedMs": 6546
+          },
+          "finalized": {
+            "state": "observed",
+            "elapsedMs": 42
+          },
+          "history": {
+            "state": "observed",
+            "elapsedMs": 9823
+          },
+          "usdt": {
+            "state": "observed",
+            "elapsedMs": 41
+          },
+          "canonical": {
+            "state": "observed",
+            "elapsedMs": 43
+          }
+        },
+        "finalizedAnchor": {
+          "number": 26238152,
+          "hash": "0x2bb5231d317ed2a57464907ccdad88b0a07afbd5b2a3df25d3d4b2daf94b12ef",
+          "timestamp": 1792551767,
+          "ageMs": 1014037,
+          "withinProposedAge": true
+        },
+        "history": {
+          "blockCount": 25,
+          "anchor": {
+            "number": 26238152,
+            "hash": "0x2bb5231d317ed2a57464907ccdad88b0a07afbd5b2a3df25d3d4b2daf94b12ef",
+            "timestamp": 1792551767,
+            "ageMs": 1023860
+          },
+          "windowSeconds": 300,
+          "maxGapSeconds": 24,
+          "minimumLiquidity": "2462531766982",
+          "probeUsdtAtoms": "1000000",
+          "maxPriceDeviationBps": "0",
+          "maxBuyDeviationBps": "11",
+          "maxSellDeviationBps": "11",
+          "comparisons": {
+            "anchorFresh": true,
+            "fullWindow": true,
+            "blockGaps": true,
+            "minimumLiquidity": true,
+            "priceDeviation": true,
+            "buyDepth": true,
+            "sellDepth": true
+          },
+          "policyState": "within-proposed-bounds",
+          "evidenceHash": "0x9c545551cc9d7bb47169e3bdcb997becf0f002760bda732cdb90111a4796db99"
+        },
+        "usdt": {
+          "observedAt": 1792507391000,
+          "validUntil": 1792593791000,
+          "ageMs": 45399902,
+          "usdAtoms": "99888425",
+          "deviationBps": "12",
+          "comparisons": {
+            "fresh": true,
+            "deviation": true
+          },
+          "policyState": "within-proposed-bounds",
+          "evidenceHash": "0xc9f6ee06e89e4e2986e893b9ec5c62d70c56a2bf1f0223e5ef22ad0b23b3846f"
+        },
+        "elapsedMs": 16497
+      }
+    ],
+    "limitations": [
+      "A single observation does not establish long-term reliability or approve policy thresholds.",
+      "Different archive hostnames do not prove independent operators.",
+      "A parity signature does not verify underlying backing, redemption availability or a renewal publisher."
+    ],
+    "policyHash": "0x674cdcfaf7fc0266a14077e718de77785dfdcbbfff1273540a90606a12bb32d9",
+    "marketSourcesHash": "0xf2c823af240c5d74a2902ead760a9c08eb256e272d66e4387f1692c0790badaf",
+    "market": {
+      "chainId": 1,
+      "protocol": "uniswap-v4",
+      "poolId": "0xd833a3afa936ca389966a9ed3a3d9abf7ec45c11b0d575aaaf6ca4d354687da6"
+    },
+    "marketEvidence": {
+      "state": "matching"
+    },
+    "parity": {
+      "underlyingEvidenceVerified": false,
+      "redemptionVerified": false,
+      "publisherVerified": false,
+      "state": "missing",
+      "code": "PARITY_ENVELOPE_AND_IDENTITY_REQUIRED"
+    },
+    "quoteValidation": {
+      "state": "not-run",
+      "usableForPurchase": false
+    },
+    "completedAt": 1792552790945,
+    "action": "Market observations are diagnostic only. Supply a reviewed fresh signed parity envelope and identity; the evidence collector/publisher must be established separately."
+  }
+}

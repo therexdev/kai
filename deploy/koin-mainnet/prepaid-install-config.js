@@ -5,7 +5,7 @@ const fs = require("node:fs"), path = require("node:path");
 const { configuration: pricing, verifyParity } = require("../../lib/koin-network/v4-purchase-oracle");
 const { TestAccounts } = require("../../lib/koin-network/test-accounts");
 const CONFIG_DIR = "/etc/kai-koin-prepaid";
-const AUTH_KEYS = new Set(["SMTP_HOST", "SMTP_PORT", "SMTP_SECURE", "SMTP_USER", "SMTP_PASS", "SMTP_FROM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"]);
+const { accountEnvironmentValues, MAX_ACCOUNT_AUTH_BYTES } = require("./account-auth-input");
 
 function bytes(file, label, maximum, secret = false) {
   let fd;
@@ -30,25 +30,8 @@ function accountEnvironment(file, required) {
     return "# Invitation mode: public account sign-in is disabled.\n";
   }
   if (!path.isAbsolute(file)) throw Error("Use an absolute account-auth JSON path");
-  const auth = json(bytes(file, "account-auth", 16384, true), "account-auth");
-  if (!auth || Array.isArray(auth) || typeof auth !== "object" || Object.keys(auth).some(key => !AUTH_KEYS.has(key)) ||
-      Object.values(auth).some(value => typeof value !== "string" || !value.length || value.length > 4096 || /[\x00-\x1f\x7f]/.test(value))) {
-    throw Error("Account-auth accepts only nonempty SMTP and Google string settings");
-  }
-  if (!required) throw Error("Account-auth settings are only accepted for public accounts");
-  const smtp = Object.keys(auth).some(key => key.startsWith("SMTP_"));
-  const google = Object.keys(auth).some(key => key.startsWith("GOOGLE_"));
-  if (smtp && (!auth.SMTP_HOST || !/^[a-zA-Z0-9.:[\]-]+$/.test(auth.SMTP_HOST) || !(auth.SMTP_FROM || auth.SMTP_USER) ||
-      Boolean(auth.SMTP_USER) !== Boolean(auth.SMTP_PASS) ||
-      (auth.SMTP_PORT && (!/^\d{1,5}$/.test(auth.SMTP_PORT) || Number(auth.SMTP_PORT) < 1 || Number(auth.SMTP_PORT) > 65535)) ||
-      (auth.SMTP_SECURE && !["true", "false"].includes(auth.SMTP_SECURE)))) throw Error("Complete SMTP host, sender and paired authentication settings are required");
-  if (google && (!auth.GOOGLE_CLIENT_ID || !auth.GOOGLE_CLIENT_SECRET)) throw Error("Both Google client settings are required");
-  if (!smtp && !google) throw Error("Configure email or Google sign-in for public accounts");
-  // systemd EnvironmentFile quoting, not a shell script. Newlines/control
-  // characters and arbitrary environment names are rejected above.
-  const quote = value => '"' + value.replace(/[\\"`$]/g, character => "\\" + character) + '"';
-  return "# Generated from the reviewed private account-auth JSON.\n" +
-    Object.entries(auth).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => `${key}=${quote(value)}`).join("\n") + "\n";
+  const auth = json(bytes(file, "account-auth", MAX_ACCOUNT_AUTH_BYTES, true), "account-auth");
+  return accountEnvironmentValues(auth, required);
 }
 
 function installationFiles(bootstrap, authFile, { now = Date.now() } = {}) {
@@ -111,4 +94,4 @@ if (require.main === module) {
     console.log(`Prepared ${result.accountMode} account configuration; parity file ${result.parityInstalled ? "included" : "not configured"}.`);
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }
-module.exports = { accountEnvironment, installationFiles, stageConfiguration, CONFIG_DIR };
+module.exports = { accountEnvironment, accountEnvironmentValues, installationFiles, stageConfiguration, CONFIG_DIR };

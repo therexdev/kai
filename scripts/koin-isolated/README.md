@@ -10,6 +10,15 @@ claims, recovery after a lost response, duplicate protection, Mana rejection and
 refunds. Reports include full transaction receipts and sponsor resource measurements.
 An isolated measurement is not a production Mana budget or permission to activate payments.
 
+The Revision 2 rehearsal pins desktop commit
+`da0713a3ea6d7bb2ee13ccbf96e389f1bb83b4dc`. Before building, the workflow checks
+every shared-file SHA-256 in `SOURCE.json` against both repositories and verifies
+all four contract ABIs. Preparation repeats this check before creating chain
+state. Update the exact source commit and hashes together when contract or shared
+protocol changes are reviewed. A newer desktop release alone does not update the
+rehearsal. Pushes on `codex/revision2-implementation` now run the same isolated
+workflow when its existing source paths change; manual dispatch remains available.
+
 The daily-cycle runner now performs budget opening, root proposal and finalization,
 then hands the signed manifest to the automatic claim queue. The harness loses a
 proposal acknowledgment after inclusion and restarts the journal before recovery.
@@ -61,6 +70,7 @@ the complete repeatable commands and removes only its own Compose project afterw
 For manual execution, use a new disposable directory:
 
 ```sh
+node scripts/koin-isolated/verify-source.js DESKTOP_CHECKOUT
 node scripts/koin-isolated/prepare.js UPSTREAM_CHECKOUT DESKTOP_CHECKOUT NEW_DIRECTORY
 docker compose -f NEW_DIRECTORY/compose.json up -d
 bash scripts/koin-isolated/run-in-network.sh NEW_DIRECTORY

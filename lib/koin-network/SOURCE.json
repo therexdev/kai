@@ -2,26 +2,26 @@
   "source": "therexdev/kaiapp/core/lib/koin-network",
   "mode": "rehearsal-and-explicit-test-and-mainnet-pilot",
   "sha256": {
-    "policy.js": "f30a5812cbca30be5a7be87dd3e5288a15df6831b85c91c7d2a4d33e42b80836",
+    "policy.js": "2bc954f47179e31101b1709a5a7e4292a2e74fac5286f74cb9b28ba1f6bcc0c4",
     "presence.js": "c72b18edb144c1da28470b4ff5b55c38403b92b16aca7edf021b96c08d586ce7",
-    "shadow.js": "df2c8571cf0141cffa0491d9cc339de7c6382cb982c1dc49be24057f8686da78",
+    "shadow.js": "8d3564dd593a612d69c5e98674bbb18aa818b055fbca001a8059f7ad6d0f47bd",
     "shadow-router.js": "970b44bf5ac7dcb65b4f515fab61926f3874bc49eec5a9e6881418896212a8a0",
-    "credits-abi.json": "9e2222c98b9c9f8cb3cd7876717c794ede3481c9cb1325cdca756fcb72a3be8d",
+    "credits-abi.json": "258170243bb16d7dddfa478b684ae58978e947ce431fbc5b6ba9ea9cb731768b",
     "job-protocol.js": "070f95a4076e4520153eff36f69d5e3ef2770995a69d4ba0c6d2d7df11546d4d",
     "session-delegation.js": "1e9470acdda2af9b1e49f98c7b7cc53644a4855168966e26ea93ade04d562b42",
-    "funded-protocol.js": "09ebd19a1ddc5fc5167d0c7e0468577d4b7bc98fdb905289f7c0aac84c3a3def",
+    "funded-protocol.js": "83e284d2f81e6a086e02284526630e16e602abb703f6b7c56970bed8b8d2676f",
     "merkle.js": "ad2739fbd78427309cec8b47c2aad2e2b6b2fb484efc6896cbae802446cc1a96",
-    "rewards-abi.json": "411185a0fe06e2d28afeb5588ab5aad35c73a72b4bb5c1c9870a842e86a14fe6",
-    "chain.js": "695f4eb4b7d735108a8962b3e61c5049666981ec338a869693d79caeaa0ca3f7",
+    "rewards-abi.json": "418fcccca1c9f3ab500395b3ac057320df932ba3cbfa126c51906a72db1cb571",
+    "chain.js": "f48cc6f0a8f48086d4ac0ab82e6561a9d82d4a468847dbd3efd1d87298e9f70a",
     "journal-set.js": "9132637fac7d22a9977bf7b2f1758a764f6383175ae7dace7f780299912eb338",
     "payment-mode.js": "dfeae0a0de00f358c9e2de2bd35496f2516a7ca95ae0da02fd62d7654b5ebbb2",
     "payment-network.js": "537bf1551f2d95482e204ef377b5e1218106912bcc47913f59499ee901185fc0",
-    "prepaid-abi.json": "3d851c227071c1e8a5cbe6c4367b7a67f8d4ebbc25822576dd6f35f4d2aa1e1b",
+    "prepaid-abi.json": "7a176092a3fb348a9b50df741effe5322c4ee6e89875423378e4e260ed2d8006",
     "funding-observer.js": "dea69474d30f2c2b6e8b4a731f3f056e6f461dbdb83ee21d422806990c78f14c",
     "rpc-provider.js": "9866705dd85755889eb6c70d6dcca3c2c487b91a635d2d56f4308d10765a2c25",
     "product.js": "583d7166f9f249a104e58a63d949bc29e08dda13284250a050813e24ba7d29e8",
-    "purchase-quote.js": "201db1e3af70819ae8afd1f0574d2862b1867569b1c047ef8db1e4d7b8049ac5",
-    "prepaid-usd-abi.json": "b182c31f4d193c7419207aaff6fb13af90ded6b52fa9a8f4035b522133d79a55"
+    "purchase-quote.js": "73699d560fa8e0987fd565a7a123a40a91b640889b2cc1bb98da3a356a3754cd",
+    "prepaid-usd-abi.json": "a91f3cffadcfc603122f596363c75a453a6d08da2373743fef44ac6e225b0c6a"
   },
-  "sourceCommit": "084bf3b7cb988ed406b563442c1575cd1ccf7e2e"
+  "sourceCommit": "da0713a3ea6d7bb2ee13ccbf96e389f1bb83b4dc"
 }

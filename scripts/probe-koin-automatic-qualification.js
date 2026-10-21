@@ -2,6 +2,7 @@
 const test = require("node:test"), assert = require("node:assert/strict"), path = require("path");
 const { fixture } = require("./helpers/koin-prepaid-fixture"), P = require("../lib/koin-network/job-protocol"), Q = require("../lib/koin-network/qualification-protocol");
 const { ProviderQualification, policy } = require("../lib/koin-network/provider-qualification");
+const Evidence = require("../lib/koin-network/qualification-evidence");
 function setup(t) {
   const f = fixture(t), config = { schema: 1, model: "fixture", modelHash: f.tariff.modelHash, modelWeight: "1", coverageBps: 10000,
     reviewedEvidenceHash: P.hash("reviewed fixture only"), maxLatencyMs: 4000, minPass: 2, renewBeforeMs: 60000, retryMs: 60000,
@@ -62,4 +63,32 @@ test("real scheduler polling and result routes isolate benchmark work and authen
   assert.equal((await send("wrong")).status, 401);
   assert.equal((await send("signed-fixture")).status, 200); assert.equal((await send("signed-fixture")).status, 200);
   assert.equal(f.engine.status(f.provider).completed, 1); assert.equal(f.ledger.jobs().length, 0);
+});
+test("new archives retain independently verifiable signature material and detect changed commitments", async t => {
+  const f = setup(t);
+  for (let i = 0; i < 2; i++) { const job = f.engine.next(f.worker); f.engine.result(f.worker, await f.body(job)); }
+  const record = f.engine.records()[0], fs = require("node:fs");
+  const archive = JSON.parse(fs.readFileSync(path.join(f.dir, "qualification-evidence", record.benchmarkHash + ".json")));
+  assert.equal(P.hash(JSON.stringify(archive.evidence)), record.benchmarkHash);
+  const expected = { target: f.target, policyHash: f.engine.policyHash, address: f.provider }, result = archive.evidence.results[0];
+  assert.deepEqual(Evidence.verifyResult(result, expected), { state: "signature-verified", qualityReplayed: false });
+  for (const field of ["attempt", "quoteHash"]) {
+    const changed = structuredClone(result); changed.signedMaterial[field] = P.hash("changed-" + field);
+    assert.throws(() => Evidence.verifyResult(changed, expected), /signature/i);
+  }
+  assert.throws(() => Evidence.verifyResult({ ...result, outputHash: P.hash("different answer") }, expected), /signature/i);
+  assert.throws(() => Evidence.verifyResult({ ...result, id: P.hash("another job") }, expected), /pins changed/);
+  assert.throws(() => Evidence.verifyResult(result, { ...expected, policyHash: P.hash("another policy") }), /pins changed/);
+  assert.throws(() => Evidence.verifyResult(result, { ...expected, target: { ...f.target, policyHash: P.hash("another tariff") } }), /pins changed/);
+  assert.throws(() => Evidence.verifyResult({ ...result, signedMaterial: { ...result.signedMaterial, extra: true } }, expected), /Exact/);
+});
+test("legacy result archives and interrupted old runs remain readable without claiming signature replay", async t => {
+  const f = setup(t), first = f.engine.next(f.worker); f.engine.result(f.worker, await f.body(first));
+  const legacy = f.engine.state.runs[f.provider].results[0]; delete legacy.signedMaterial; f.engine.save();
+  assert.deepEqual(Evidence.verifyResult(legacy, {}), { state: "unavailable", reason: "legacy-result-no-signed-material", qualityReplayed: false });
+  f.engine = new ProviderQualification(f.options); f.engine.result(f.worker, await f.body(f.engine.next(f.worker)));
+  assert.equal(f.engine.records().length, 1);
+  const before = JSON.stringify(f.engine.state.records); f.engine = new ProviderQualification(f.options);
+  assert.equal(JSON.stringify(f.engine.state.records), before, "loading does not rewrite historical records or hashes");
+  assert.deepEqual(Evidence.verifyResult({ reason: "deadline" }, {}), { state: "unavailable", reason: "no-signed-answer", qualityReplayed: false });
 });
