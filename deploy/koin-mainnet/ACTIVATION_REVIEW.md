@@ -49,23 +49,28 @@ obligation, and must be finished before public launch.
 
 ## One commercial policy to review
 
-These are proposed initial **Koinos Fast** settings, not installed prices or a
-claim of profitability:
+The [all-model pricing review](MODEL_PRICING_REVIEW.md) supersedes the Fast-only
+$0.10/$0.30-per-million proposal. It covers all 15 existing public model aliases,
+with proposed input/output rates from $0.01/$0.04 for Fast to $0.08/$0.32 for the
+32B tier. The new prepaid runtime and desktop are still restricted to one model;
+recording these rates does not complete that implementation. Full catalog
+configuration, metering, per-model qualification and desktop selection are
+required before calling the product multi-model ready.
 
 | Setting | Proposal | USD atoms in configuration |
 | --- | --- | --- |
-| Input usage per million AI tokens | $0.10 | `10000000` |
-| Output usage per million AI tokens | $0.30 | `30000000` |
+| Model-specific rates | [Complete 15-model schedule](model-rates.proposal.json) | Explicit per-model integer rates |
 | Daily free allowance per verified account | 7.5 credits ($0.0075) | `750000` |
 | Daily network free ceiling | 300 credits ($0.30) | `30000000` |
 | Daily origin free ceiling | 22.5 credits ($0.0225) | `2250000` |
 
-Free concurrency is one request per account. At the higher output tariff, the
-account allowance covers 25,000 AI tokens, subject to the shared budgets; it is
-not 25,000 service credits. Free usage is consumed before purchased credits.
-The network ceiling permits 40 full allowances; the origin ceiling permits
-three. Reverse-proxy origin grouping needs explicit acceptance before a wider
-cohort. One example with 1,000 input and 250 output tokens costs 0.175 credits.
+Free concurrency is one request per account. Free usage is consumed before
+purchased credits. The unchanged proposed budget now buys more usage at the lower
+model tariffs: 187,500 output-only Fast tokens, before input charges and shared
+caps. It is not a fixed AI-token entitlement. The network ceiling permits 40 full
+allowances; the origin ceiling permits three. Free-eligible models and
+reverse-proxy origin grouping still require explicit policy. With 1,000 input
+and 250 output tokens, proposed Fast usage costs 0.02 credits.
 
 The approved reward-seed amount does not authorize an unspecified extra role
 budget. Engineering must present fresh contract destinations, proposed per-role
@@ -81,7 +86,8 @@ Mana measurements must fit that approved cap before deployment. No old
 | Public authentication | Protected reuse of only existing SMTP/Google settings; actual new-origin sign-in and callback/delivery verification |
 | Exchange pricing | Two capable independent archive sources; actual finalized history, executable depth, USDT/USD freshness and justified policy bounds |
 | Wrapped/native reference | Select the explicit merchant-reference proposal below, or finish the schema-1 bridge evidence collector and publisher; never fabricate an attestation |
-| Provider qualification | Unambiguous candidate suite, measured intended-model results, reviewed admission policy and fresh signed provider checks |
+| All-model credit support | Complete 15-model rate catalog, matching signed policy, per-package metering, selected-model desktop flow and cross-model debit/recovery acceptance |
+| Provider qualification | Per-model candidate suites, measured intended-model results, reviewed admission policy and fresh signed checks for each provider/model pair |
 | Free credits | Approved model/account/network/origin policy plus matching funded contract sponsorship |
 | Funding and Master replenishment | Exact seed/role transfers and daily recipient allocation, preserving existing production reburn and Mana retention |
 
@@ -94,6 +100,9 @@ duplicate-prefix protection and lost-response recovery. That run used invitation
 accounts and controlled model output. The next harness adds public-account HTTP
 verification, wallet linking and free-first usage with native sponsorship;
 its results must be recorded separately, never inferred from the earlier run.
+At `41f1e3b880a2bacbfdef7bfc27eec90ec69d2b15`, full CI and all 48 isolated
+native checks passed, including the public-account/free-first fixtures. These
+controlled outputs do not establish actual model quality or multi-model readiness.
 
 Pricing and qualification have working mechanisms, but their production
 evidence is unfinished engineering. There is no automatic Vortex evidence
@@ -185,7 +194,9 @@ hashed deployment plan, complete budget and verified code identities.
    consumption without a KOIN reserve or backend test-panel action.
 3. Buy credits with one exact approved KOIN payment; finality increases the
    account balance once, including after a lost response or restart.
-4. Use normal Chat and verify one measured debit. Test Stop, partial answer,
+4. Select each admitted available model in normal Chat and verify its measured
+   debit at its own rate; verify unavailable models cannot silently become Fast.
+   Test Stop, partial answer,
    restart, insufficient balance, provider Off and unavailable purchase prices.
    Pricing or reward delays must not freeze already purchased credit use.
 5. Use genuinely independent buyer/provider accounts for work-reward acceptance;

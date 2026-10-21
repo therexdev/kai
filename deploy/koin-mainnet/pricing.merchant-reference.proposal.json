@@ -38,10 +38,6 @@
   "commercialProposal": {
     "creditsPerUsd": 1000,
     "initialTestPackUsd": "1.00",
-    "tariffUsdAtomsPerMillion": {
-      "input": "10000000",
-      "output": "30000000"
-    },
     "dailyFreeUsdAtoms": {
       "account": "750000",
       "network": "30000000",
@@ -53,7 +49,10 @@
       "The merchant bears pricing divergence risk. Existing credits are independent of price availability.",
       "Minimum active liquidity is a proposed floor below the observed 2462531766982; executable two-direction 10 USDT checks also apply.",
       "Sources and thresholds remain proposed; live observations do not approve them.",
-      "A single-purchase depth ceiling does not impose an aggregate daily sales limit."
-    ]
+      "A single-purchase depth ceiling does not impose an aggregate daily sales limit.",
+      "The previous Fast-only tariff is superseded by the all-model review; this file is not a multi-model runtime configuration."
+    ],
+    "modelRatesProposal": "model-rates.proposal.json",
+    "modelRateProposalVersion": "2026-10-21-draft-1"
   }
 }

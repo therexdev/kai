@@ -117,3 +117,22 @@ The native USD harness now adds public email verification, signed wallet linking
 free credit visibility, free-first streaming and exact sponsored settlement after
 restart. Its emails and model outputs are controlled fixtures; live signup,
 provider qualification, real two-computer use and funding remain outstanding.
+
+### All-model pricing correction — October 21
+
+The legacy scheduler already allows and provisionally prices 15 public model
+classes; 11 were advertised online around 04:03 UTC. The new prepaid config,
+qualification/readiness and desktop selection still assume Fast. That is an
+implementation gap, not a requirement to launch a Fast-only product.
+
+[The complete pricing and implementation review](deploy/koin-mainnet/MODEL_PRICING_REVIEW.md)
+and its [machine-readable proposal](deploy/koin-mainnet/model-rates.proposal.json)
+cover every non-development desktop catalog alias, pinned to Test 201.1 package
+hashes. They retain 1,000 credits/$1 and propose lower per-model usage prices.
+They supersede the prior Fast-only commercial tariff proposal, without activating
+rates or changing live records. The review identifies multi-tariff config,
+per-package calibrated metering, per-model qualification and matching desktop
+signed-policy work required before multi-model acceptance.
+
+The preceding source revision `41f1e3b` passed full CI and 48 isolated native
+checks. Those checks used controlled model output and do not close this gap.

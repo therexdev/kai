@@ -1,0 +1,364 @@
+{
+  "schema": 1,
+  "purpose": "all-model-text-rate-proposal-for-review",
+  "approvedForActivation": false,
+  "version": "2026-10-21-draft-1",
+  "creditsPerUsd": 1000,
+  "usdAtomsPerUsd": "100000000",
+  "rateBasis": "per-million-metered-text-tokens",
+  "catalogSource": {
+    "repository": "therexdev/kaiapp",
+    "commit": "da0713a3ea6d7bb2ee13ccbf96e389f1bb83b4dc",
+    "path": "core/models/catalog.json",
+    "sha256": "c3a00278dd3a4e52da0ae58084f99a6724ef6f7e2a2be788c6a4499e500239a0"
+  },
+  "availabilityObservation": {
+    "observedAroundUtc": "2026-10-21T04:03:00Z",
+    "url": "https://koinosai.com/scheduler/network/models",
+    "workersOnline": 6,
+    "advertisedModels": 11,
+    "paidUsdQualificationVerified": false
+  },
+  "notes": [
+    "Proposed introductory prices; provider economics are not measured or approved.",
+    "All 15 non-development public catalog aliases are priced; rates do not authorize model admission.",
+    "Legacy online counts describe advertised capacity at one instant, not paid USD readiness.",
+    "Do not load this review file as runtime configuration. Multi-model runtime and desktop integration remain unfinished.",
+    "Text usage only; no image, audio, tool surcharge, or cached-input discount is defined here.",
+    "Each paid model requires pinned tokenizer/template calibration and fresh qualification. Catalog context values are observations, not new paid tariff limits.",
+    "One shared USD-denominated balance. Rate/version and selected model must be fixed for an accepted request.",
+    "No automatic replacement of unavailable models with Fast. Private API connections and dev-tiny are excluded."
+  ],
+  "models": [
+    {
+      "model": "koinos-fast",
+      "label": "Koinos Fast",
+      "package": "qwen2.5-1.5b-instruct-q4_k_m@1",
+      "modelHash": "1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "1000000",
+        "output": "4000000"
+      },
+      "creditsPerMillion": {
+        "input": "10",
+        "output": "40"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "0.1",
+        "output": "0.4"
+      },
+      "legacyObservedProviders": 5,
+      "paidUsdReadiness": "not-verified"
+    },
+    {
+      "model": "koinos-balanced",
+      "label": "Koinos Balanced",
+      "package": "llama-3.2-3b-instruct-q4_k_m@1",
+      "modelHash": "6c1a2b41161032677be168d354123594c0e6e67d2b9227c84f296ad037c728ff",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "1500000",
+        "output": "6000000"
+      },
+      "creditsPerMillion": {
+        "input": "15",
+        "output": "60"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "0.15",
+        "output": "0.6"
+      },
+      "legacyObservedProviders": 2,
+      "paidUsdReadiness": "not-verified"
+    },
+    {
+      "model": "gemma3-4b",
+      "label": "Gemma 3 4B",
+      "package": "google_gemma-3-4b-it-q4_k_m@1",
+      "modelHash": "4996030242583a40aa151ff93f49ed787ac8c25e4120c3ae4588b2e2a7d1ae94",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "2000000",
+        "output": "8000000"
+      },
+      "creditsPerMillion": {
+        "input": "20",
+        "output": "80"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "0.2",
+        "output": "0.8"
+      },
+      "legacyObservedProviders": 3,
+      "paidUsdReadiness": "not-verified"
+    },
+    {
+      "model": "koinos-smart",
+      "label": "Koinos Smart",
+      "package": "qwen2.5-7b-instruct-q4_k_m@1",
+      "modelHash": "65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "2500000",
+        "output": "10000000"
+      },
+      "creditsPerMillion": {
+        "input": "25",
+        "output": "100"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "0.25",
+        "output": "1"
+      },
+      "legacyObservedProviders": 1,
+      "paidUsdReadiness": "not-verified"
+    },
+    {
+      "model": "mistral-7b",
+      "label": "Mistral 7B",
+      "package": "mistral-7b-instruct-v0.3-q4_k_m@1",
+      "modelHash": "1270d22c0fbb3d092fb725d4d96c457b7b687a5f5a715abe1e818da303e562b6",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "2500000",
+        "output": "10000000"
+      },
+      "creditsPerMillion": {
+        "input": "25",
+        "output": "100"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "0.25",
+        "output": "1"
+      },
+      "legacyObservedProviders": 1,
+      "paidUsdReadiness": "not-verified"
+    },
+    {
+      "model": "qwen-coder-7b",
+      "label": "Qwen Coder 7B",
+      "package": "qwen2.5-coder-7b-instruct-q4_k_m@1",
+      "modelHash": "1664fccab734674a50763490a8c6931b70e3f2f8ec10031b54806d30e5f956b6",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "2500000",
+        "output": "10000000"
+      },
+      "creditsPerMillion": {
+        "input": "25",
+        "output": "100"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "0.25",
+        "output": "1"
+      },
+      "legacyObservedProviders": 1,
+      "paidUsdReadiness": "not-verified"
+    },
+    {
+      "model": "llama31-8b",
+      "label": "Llama 3.1 8B",
+      "package": "meta-llama-3.1-8b-instruct-q4_k_m@1",
+      "modelHash": "7b064f5842bf9532c91456deda288a1b672397a54fa729aa665952863033557c",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "2500000",
+        "output": "10000000"
+      },
+      "creditsPerMillion": {
+        "input": "25",
+        "output": "100"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "0.25",
+        "output": "1"
+      },
+      "legacyObservedProviders": 1,
+      "paidUsdReadiness": "not-verified"
+    },
+    {
+      "model": "gemma3-12b",
+      "label": "Gemma 3 12B",
+      "package": "google_gemma-3-12b-it-q4_k_m@1",
+      "modelHash": "fc57f67efa46d711c346e587cbef7d049e95f3df8db2eb2271153343ef0acc7b",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "3500000",
+        "output": "14000000"
+      },
+      "creditsPerMillion": {
+        "input": "35",
+        "output": "140"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "0.4",
+        "output": "1.6"
+      },
+      "legacyObservedProviders": 1,
+      "paidUsdReadiness": "not-verified"
+    },
+    {
+      "model": "qwen25-14b",
+      "label": "Qwen 2.5 14B",
+      "package": "qwen2.5-14b-instruct-q4_k_m@1",
+      "modelHash": "e47ad95dad6ff848b431053b375adb5d39321290ea2c638682577dafca87c008",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "4000000",
+        "output": "16000000"
+      },
+      "creditsPerMillion": {
+        "input": "40",
+        "output": "160"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "0.5",
+        "output": "2"
+      },
+      "legacyObservedProviders": 1,
+      "paidUsdReadiness": "not-verified"
+    },
+    {
+      "model": "phi-4",
+      "label": "Phi-4 14B",
+      "package": "phi-4-q4_k_m@1",
+      "modelHash": "009aba717c09d4a35890c7d35eb59d54e1dba884c7c526e7197d9c13ab5911d9",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "4000000",
+        "output": "16000000"
+      },
+      "creditsPerMillion": {
+        "input": "40",
+        "output": "160"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "0.5",
+        "output": "2"
+      },
+      "legacyObservedProviders": 1,
+      "paidUsdReadiness": "not-verified"
+    },
+    {
+      "model": "mistral-small-24b",
+      "label": "Mistral Small 24B",
+      "package": "mistral-small-24b-instruct-2501-q4_k_m@1",
+      "modelHash": "d1a6d049f09730c3f8ba26cf6b0b60c89790b5fdafa9a59c819acdfe93fffd1b",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "6000000",
+        "output": "24000000"
+      },
+      "creditsPerMillion": {
+        "input": "60",
+        "output": "240"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "0.7",
+        "output": "2.8"
+      },
+      "legacyObservedProviders": 0,
+      "paidUsdReadiness": "not-verified"
+    },
+    {
+      "model": "gemma3-27b",
+      "label": "Gemma 3 27B",
+      "package": "google_gemma-3-27b-it-q4_k_m@1",
+      "modelHash": "4e83142e3ad3719ac61334f70a956dcc60bbba8adb29de5114161310bb9f7170",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "7000000",
+        "output": "28000000"
+      },
+      "creditsPerMillion": {
+        "input": "70",
+        "output": "280"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "0.8",
+        "output": "3.2"
+      },
+      "legacyObservedProviders": 0,
+      "paidUsdReadiness": "not-verified"
+    },
+    {
+      "model": "qwen25-32b",
+      "label": "Qwen 2.5 32B",
+      "package": "qwen2.5-32b-instruct-q4_k_m@1",
+      "modelHash": "2e5f6daea180dbc59f65a40641e94d3973b5dbaa32b3c0acf54647fa874e519e",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "8000000",
+        "output": "32000000"
+      },
+      "creditsPerMillion": {
+        "input": "80",
+        "output": "320"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "1",
+        "output": "4"
+      },
+      "legacyObservedProviders": 1,
+      "paidUsdReadiness": "not-verified"
+    },
+    {
+      "model": "qwen-coder-32b",
+      "label": "Qwen Coder 32B",
+      "package": "qwen2.5-coder-32b-instruct-q4_k_m@1",
+      "modelHash": "8e2fd78ff55e7cdf577fda257bac2776feb7d73d922613caf35468073807e815",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "8000000",
+        "output": "32000000"
+      },
+      "creditsPerMillion": {
+        "input": "80",
+        "output": "320"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "1",
+        "output": "4"
+      },
+      "legacyObservedProviders": 0,
+      "paidUsdReadiness": "not-verified"
+    },
+    {
+      "model": "deepseek-r1-32b",
+      "label": "DeepSeek R1 32B",
+      "package": "deepseek-r1-distill-qwen-32b-q4_k_m@1",
+      "modelHash": "bed9b0f551f5b95bf9da5888a48f0f87c37ad6b72519c4cbd775f54ac0b9fc62",
+      "quantization": "Q4_K_M",
+      "catalogContextTokens": 4096,
+      "usdAtomsPerMillion": {
+        "input": "8000000",
+        "output": "32000000"
+      },
+      "creditsPerMillion": {
+        "input": "80",
+        "output": "320"
+      },
+      "legacyObservedUsdPerMillion": {
+        "input": "1",
+        "output": "4"
+      },
+      "legacyObservedProviders": 0,
+      "paidUsdReadiness": "not-verified"
+    }
+  ]
+}
