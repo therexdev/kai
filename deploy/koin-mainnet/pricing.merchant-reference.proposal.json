@@ -1,0 +1,59 @@
+{
+  "purpose": "merchant-reference-proposal-for-review",
+  "approvedForActivation": false,
+  "deployment": {
+    "chainId": "EiBZK_GGVP0H_fXVAM3j6EAuz3-B-l3ejxRSewi7qIBfSA==",
+    "token": "19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK"
+  },
+  "purchasePricing": {
+    "schema": 2,
+    "rpcUrls": [
+      "https://ethereum-rpc.publicnode.com",
+      "https://eth.drpc.org"
+    ],
+    "usdtFeed": "0x3e7d1eab13ad0104d2750b8863b489d65364e32d",
+    "policy": {
+      "version": 2,
+      "windowSeconds": 300,
+      "maxBlockGapSeconds": 48,
+      "maxPriceAgeMs": 1800000,
+      "maxQuoteMs": 60000,
+      "maxDeviationBps": 500,
+      "maxSlippageBps": 200,
+      "maxUsdtAgeMs": 86400000,
+      "maxUsdtDeviationBps": 100,
+      "minLiquidity": "1000000000000",
+      "minProbeUsdtAtoms": "10000000",
+      "usdtSource": "ethereum:chainlink:0x3e7d1eab13ad0104d2750b8863b489d65364e32d"
+    },
+    "reference": {
+      "kind": "merchant-exchange-reference",
+      "nativeChainId": "EiBZK_GGVP0H_fXVAM3j6EAuz3-B-l3ejxRSewi7qIBfSA==",
+      "nativeToken": "19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK",
+      "wrappedChainId": 1,
+      "wrappedToken": "0xa50ad3a559A10f384a5bB2e27516f63E0B937b1A",
+      "wrappedPerNativeAtoms": "100000000"
+    }
+  },
+  "commercialProposal": {
+    "creditsPerUsd": 1000,
+    "initialTestPackUsd": "1.00",
+    "tariffUsdAtomsPerMillion": {
+      "input": "10000000",
+      "output": "30000000"
+    },
+    "dailyFreeUsdAtoms": {
+      "account": "750000",
+      "network": "30000000",
+      "origin": "2250000"
+    },
+    "notes": [
+      "Not a complete runtime or deployment plan; no funds or signing keys.",
+      "The vKOIN market is a commercial reference, not proof of native KOIN redemption or bridge backing.",
+      "The merchant bears pricing divergence risk. Existing credits are independent of price availability.",
+      "Minimum active liquidity is a proposed floor below the observed 2462531766982; executable two-direction 10 USDT checks also apply.",
+      "Sources and thresholds remain proposed; live observations do not approve them.",
+      "A single-purchase depth ceiling does not impose an aggregate daily sales limit."
+    ]
+  }
+}

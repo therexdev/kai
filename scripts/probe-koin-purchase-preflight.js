@@ -111,6 +111,37 @@ test("a supplied isolated parity envelope permits runtime validation without act
   f.safeReport(report); assert.deepEqual(f.snapshot(), before);
 });
 
+test("explicit merchant reference validates market observations without claiming bridge evidence or activating policy", async t => {
+  const f = await fixture(t);
+  f.input.deployment.chainId = require("../lib/koin-network/payment-network").MAINNET_CHAIN;
+  const c = f.input.purchasePricing;
+  c.schema = 2;
+  c.reference = { kind: "merchant-exchange-reference", nativeChainId: f.input.deployment.chainId,
+    nativeToken: f.input.deployment.token, wrappedChainId: 1, wrappedToken: MARKET.wrappedToken, wrappedPerNativeAtoms: "100000000" };
+  for (const key of ["maxParityAgeMs", "maxParityDeviationBps", "paritySource"]) delete c.policy[key];
+  f.save(); const before = f.snapshot();
+  t.mock.method(Signer.prototype, "signHash", () => { throw Error("Preflight must never sign"); });
+  let report = await f.run();
+  assert.equal(report.state, "observations-valid");
+  assert.equal(report.pricingMode, "merchant-exchange-reference");
+  assert.equal(report.parity, undefined);
+  assert.equal(report.reference.state, "explicit-commercial-reference");
+  assert.equal(report.reference.bridgeRedemptionVerified, false);
+  assert.equal(report.reference.commercialPolicyApproved, false);
+  assert.equal(report.quoteValidation.usdPerKoinAtoms, "10000000000");
+  assert.equal(report.quoteValidation.maxPurchaseUsdAtoms, "100000000");
+  assert.equal(report.purchasesEnabled, false); assert.equal(report.signed, false);
+  assert.deepEqual(f.snapshot(), before);
+  assert.ok(!serialize(report).includes(PRIVATE_MARKER));
+  for (const flag of f.flags) flag.depthBps = 9000n;
+  report = await f.run(); assert.equal(report.state, "incomplete"); assert.equal(report.quoteValidation.state, "rejected");
+  const calls = f.calls.length;
+  c.reference.nativeChainId = "another-chain"; f.save();
+  report = await f.run(); assert.equal(report.code, "MERCHANT_REFERENCE_CONFIGURATION_REQUIRED"); assert.equal(f.calls.length, calls);
+  c.reference.nativeChainId = f.input.deployment.chainId; c.parityFile = "unread-private-file"; f.save();
+  report = await f.run(); assert.equal(report.code, "MERCHANT_REFERENCE_CONFIGURATION_REQUIRED"); assert.equal(f.calls.length, calls);
+});
+
 test("unprotected, linked, malformed and malicious configuration fails before any archive request", async t => {
   const f = await fixture(t);
   fs.chmodSync(f.inputFile, 0o644); assert.equal((await f.run()).code, "PROTECTED_JSON_REQUIRED"); fs.chmodSync(f.inputFile, 0o600);

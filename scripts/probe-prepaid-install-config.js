@@ -144,6 +144,32 @@ test("parity installation relocates the file but preserves signed bytes and ever
   assert.throws(() => installationFiles(f.bootstrap, f.auth, { now: f.now }), /Signature/);
 });
 
+test("explicit merchant reference installs unchanged without an attestor and rejects a different native deployment", async t => {
+  const f = await parityFixture(t), policy = { ...f.config.policy };
+  f.runtime.deployment.chainId = require("../lib/koin-network/payment-network").MAINNET_CHAIN;
+  for (const key of ["maxParityAgeMs", "maxParityDeviationBps", "paritySource"]) delete policy[key];
+  const reference = { kind: "merchant-exchange-reference", nativeChainId: f.runtime.deployment.chainId,
+    nativeToken: f.runtime.deployment.token, wrappedChainId: 1, wrappedToken: MARKET.wrappedToken, wrappedPerNativeAtoms: "100000000" };
+  f.runtime.purchasePricing = { schema: 2, rpcUrls: f.config.rpcUrls, usdtFeed: f.config.usdtFeed, reference, policy };
+  write(path.join(f.bootstrap, "runtime.json"), f.runtime);
+  fs.unlinkSync(f.privateParity);
+  const before = f.snapshot(), files = installationFiles(f.bootstrap, f.auth, { now: f.now });
+  assert.equal(files.has("parity.json"), false);
+  assert.deepEqual(files.get("runtime.json"), fs.readFileSync(path.join(f.bootstrap, "runtime.json")));
+  assert.deepEqual(f.snapshot(), before);
+  for (const mutate of [
+    c => { c.reference.nativeChainId = "another-chain"; },
+    c => { c.reference.nativeToken = Signer.fromSeed("another-native-token").getAddress(); },
+    c => { c.parityFile = f.privateParity; },
+    c => { c.reference.wrappedPerNativeAtoms = "99999999"; },
+  ]) {
+    const changed = structuredClone(f.runtime); mutate(changed.purchasePricing);
+    write(path.join(f.bootstrap, "runtime.json"), changed);
+    assert.throws(() => stageConfiguration(f.bootstrap, f.stage, f.auth));
+    assert.deepEqual(fs.readdirSync(f.stage), [], "invalid commercial reference writes no staged files");
+  }
+});
+
 test("service installer wires only the separate account environment and state paths", () => {
   const script = fs.readFileSync(path.join(__dirname, "../deploy/koin-mainnet/install-prepaid.sh"), "utf8");
   assert.match(script, /^EnvironmentFile=\/etc\/kai-koin-prepaid\/account.env$/m);

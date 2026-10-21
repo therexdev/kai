@@ -6,7 +6,7 @@ const { performance } = require("node:perf_hooks");
 const { utils } = require("koilib");
 const { V4HistoryReader, CONTRACTS } = require("../lib/koin-network/v4-history-reader");
 const V = require("../lib/koin-network/v4-price-validation");
-const { verifyParity } = require("../lib/koin-network/v4-purchase-oracle");
+const { verifyParity, configuration: pricingConfiguration } = require("../lib/koin-network/v4-purchase-oracle");
 const { MARKET } = require("../lib/koin-network/purchase-price");
 const MAX_REPORT_BYTES = 32768;
 const canonical = value => JSON.stringify(value, (_key, item) => item && !Array.isArray(item) && typeof item === "object"
@@ -31,9 +31,18 @@ function protectedJson(file, maximum, secret = true) {
 function configuration(input) {
   const c = input?.purchasePricing;
   if (!c) throw new InputError("PURCHASE_PRICING_REQUIRED");
+  if (c.schema === 2) {
+    // Unlike schema-1 capability diagnostics, this explicit commercial reference
+    // must identify the native deployment. Never infer it from the market alone.
+    try {
+      if (!input.deployment?.chainId || !input.deployment?.token) throw Error();
+      const pricing = pricingConfiguration(c, input.deployment);
+      return { pricing, policy: pricing.policy, deployment: { chainId: input.deployment.chainId, token: input.deployment.token } };
+    } catch { throw new InputError("MERCHANT_REFERENCE_CONFIGURATION_REQUIRED"); }
+  }
   if (c.schema !== 1 || Object.keys(c).some(k => !["schema", "rpcUrls", "usdtFeed", "policy", "paritySigner", "parityFile"].includes(k))) throw new InputError("PRICING_SCHEMA_INVALID");
   let policy;
-  try { policy = V.config(c.policy); } catch { throw new InputError("REVIEWED_POLICY_REQUIRED"); }
+  try { policy = V.config(c.policy, "parity"); } catch { throw new InputError("REVIEWED_POLICY_REQUIRED"); }
   if (!Array.isArray(c.rpcUrls) || c.rpcUrls.length !== 2 || c.rpcUrls.some(url => {
     try { const u = new URL(url); return typeof url !== "string" || url.length > 4096 || u.protocol !== "https:" || u.username || u.password || u.hash; }
     catch { return true; }
@@ -159,6 +168,7 @@ const INPUT_HELP = {
   REVIEWED_POLICY_REQUIRED: "Supply every proposed pricing policy field with valid bounds; fixture thresholds are not production policy.",
   TWO_DISTINCT_HTTPS_ARCHIVES_REQUIRED: "Supply two independently reviewed HTTPS archive endpoints on distinct hosts in the protected file.",
   USDT_FEED_PIN_REQUIRED: "Pin the lowercase Ethereum USDT/USD feed and matching ethereum:chainlink:<address> policy source.",
+  MERCHANT_REFERENCE_CONFIGURATION_REQUIRED: "Use the exact explicit schema-2 merchant reference and market policy, bound to deployment.chainId and deployment.token. This does not approve or activate that commercial policy.",
 };
 async function preflight(inputFile, { fetchImpl = fetch, clock = Date.now, signal, timeoutMs = 70000, rpcTimeoutMs = 8000 } = {}) {
   const report = { schema: 1, purpose: "read-only-purchase-pricing-preflight", state: "incomplete", startedAt: clock(), purchasesEnabled: false,
@@ -174,6 +184,7 @@ async function preflight(inputFile, { fetchImpl = fetch, clock = Date.now, signa
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 90000 || !Number.isSafeInteger(rpcTimeoutMs) || rpcTimeoutMs < 1 || rpcTimeoutMs > 30000) throw new InputError("INVALID_DIAGNOSTIC_TIMEOUT");
   const deadline = signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs);
   report.policyHash = hash(c.policy);
+  report.pricingMode = c.pricing.schema === 2 ? "merchant-exchange-reference" : "attested-parity";
   report.marketSourcesHash = hash({ rpcUrls: c.pricing.rpcUrls, feed: c.pricing.usdtFeed, market: MARKET, contracts: CONTRACTS });
   report.market = { chainId: MARKET.chainId, protocol: MARKET.protocol, poolId: MARKET.poolId };
   // Only hashes leave the tool. Endpoint paths/query strings, source labels,
@@ -183,20 +194,27 @@ async function preflight(inputFile, { fetchImpl = fetch, clock = Date.now, signa
   const complete = observations.every(value => value.report.state === "observed");
   const matching = complete && canonical(observations[0].history) === canonical(observations[1].history) && canonical(observations[0].usdt) === canonical(observations[1].usdt);
   report.marketEvidence = { state: !complete ? "unavailable" : matching ? "matching" : "disagreement" };
-  const parity = parityObservation(c, clock()); report.parity = parity.report;
+  const merchantReference = c.pricing.schema === 2;
+  const parity = merchantReference ? null : parityObservation(c, clock());
+  if (merchantReference) {
+    report.reference = { state: "explicit-commercial-reference", identityHash: hash(c.pricing.reference),
+      bridgeRedemptionVerified: false, underlyingEvidenceVerified: false, commercialPolicyApproved: false };
+  } else report.parity = parity.report;
   report.quoteValidation = { state: "not-run", usableForPurchase: false };
-  if (matching && parity.value) {
+  if (matching && (merchantReference || parity.value)) {
     try {
-      const quote = V.validate({ policy: c.policy, history: observations[0].history, usdt: observations[0].usdt, parity: parity.value, now: clock() });
+      const quote = V.validate({ policy: c.policy, history: observations[0].history, usdt: observations[0].usdt,
+        ...(merchantReference ? { reference: c.pricing.reference, deployment: c.deployment } : { parity: parity.value }), now: clock() });
       report.quoteValidation = { state: "passed-current-runtime-validation", usableForPurchase: false,
-        usdPerKoinAtoms: quote.usdPerKoin, observedAt: quote.observedAt, expiresAt: quote.expiresAt, quoteHash: hash(quote) };
+        usdPerKoinAtoms: quote.usdPerKoin, observedAt: quote.observedAt, expiresAt: quote.expiresAt, quoteHash: hash(quote),
+        ...(quote.maxPurchaseUsdAtoms ? { maxPurchaseUsdAtoms: quote.maxPurchaseUsdAtoms, maxPurchaseKoinAtoms: quote.maxPurchaseKoinAtoms } : {}) };
       report.state = "observations-valid";
     } catch { report.quoteValidation = { state: "rejected", usableForPurchase: false, code: "RUNTIME_PRICING_POLICY_REJECTED" }; }
   }
   report.completedAt = clock();
   if (report.state !== "observations-valid") report.action = !complete ? "Review failed provider stages and measured finalized age before changing any proposed thresholds."
     : !matching ? "Resolve archive disagreement; do not choose one provider or fall back to spot pricing."
-      : !parity.value ? "Market observations are diagnostic only. Supply a reviewed fresh signed parity envelope and identity; the evidence collector/publisher must be established separately."
+      : !merchantReference && !parity.value ? "Market observations are diagnostic only. Supply a reviewed fresh signed parity envelope and identity; the evidence collector/publisher must be established separately."
         : "Observed evidence fails the current runtime policy. Review the measurements; do not relax runtime gates automatically.";
   return report;
 }

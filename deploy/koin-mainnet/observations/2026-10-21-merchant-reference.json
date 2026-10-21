@@ -1,0 +1,243 @@
+{
+  "schema": 1,
+  "purpose": "merchant-reference-read-only-observation",
+  "approvedForActivation": false,
+  "proposal": "../pricing.merchant-reference.proposal.json",
+  "input": {
+    "deployment": {
+      "chainId": "EiBZK_GGVP0H_fXVAM3j6EAuz3-B-l3ejxRSewi7qIBfSA==",
+      "token": "19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK"
+    },
+    "purchasePricing": {
+      "schema": 2,
+      "rpcUrls": [
+        "https://ethereum-rpc.publicnode.com",
+        "https://eth.drpc.org"
+      ],
+      "usdtFeed": "0x3e7d1eab13ad0104d2750b8863b489d65364e32d",
+      "policy": {
+        "version": 2,
+        "windowSeconds": 300,
+        "maxBlockGapSeconds": 48,
+        "maxPriceAgeMs": 1800000,
+        "maxQuoteMs": 60000,
+        "maxDeviationBps": 500,
+        "maxSlippageBps": 200,
+        "maxUsdtAgeMs": 86400000,
+        "maxUsdtDeviationBps": 100,
+        "minLiquidity": "1000000000000",
+        "minProbeUsdtAtoms": "10000000",
+        "usdtSource": "ethereum:chainlink:0x3e7d1eab13ad0104d2750b8863b489d65364e32d"
+      },
+      "reference": {
+        "kind": "merchant-exchange-reference",
+        "nativeChainId": "EiBZK_GGVP0H_fXVAM3j6EAuz3-B-l3ejxRSewi7qIBfSA==",
+        "nativeToken": "19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK",
+        "wrappedChainId": 1,
+        "wrappedToken": "0xa50ad3a559A10f384a5bB2e27516f63E0B937b1A",
+        "wrappedPerNativeAtoms": "100000000"
+      }
+    }
+  },
+  "notes": [
+    "Actual read-only mainnet archive calls; no wallet, signature or purchase.",
+    "One successful observation does not approve the commercial reference policy, thresholds or sources.",
+    "No raw full block history retained; hashes commit to observed adapter payloads.",
+    "This is not bridge-redemption evidence or sustained availability proof."
+  ],
+  "report": {
+    "schema": 1,
+    "purpose": "read-only-purchase-pricing-preflight",
+    "state": "observations-valid",
+    "startedAt": 1792554886879,
+    "purchasesEnabled": false,
+    "configurationChanged": false,
+    "signed": false,
+    "sourceCodeHash": "0xc3c8d14d9d15001bda67eb08edecc36f2d4e670e4e3fdfb9146390c5e7444d77",
+    "toolCodeHash": "0xdbda27ffecbaeff2e658207e3e383431d995faa751a6116cb9eb0c0a89321061",
+    "providers": [
+      {
+        "provider": 1,
+        "state": "observed",
+        "stages": {
+          "endpoint": {
+            "state": "observed",
+            "elapsedMs": 3547
+          },
+          "finalized": {
+            "state": "observed",
+            "elapsedMs": 3212
+          },
+          "history": {
+            "state": "observed",
+            "elapsedMs": 9256
+          },
+          "usdt": {
+            "state": "observed",
+            "elapsedMs": 65
+          },
+          "canonical": {
+            "state": "observed",
+            "elapsedMs": 123
+          }
+        },
+        "finalizedAnchor": {
+          "number": 26238344,
+          "hash": "0x83eea3c54f4c0812880d563364c5aebd3208645b5a462cd165c900d4d4a3761c",
+          "timestamp": 1792554071,
+          "ageMs": 822643,
+          "withinProposedAge": true
+        },
+        "history": {
+          "blockCount": 26,
+          "anchor": {
+            "number": 26238344,
+            "hash": "0x83eea3c54f4c0812880d563364c5aebd3208645b5a462cd165c900d4d4a3761c",
+            "timestamp": 1792554071,
+            "ageMs": 831898
+          },
+          "windowSeconds": 300,
+          "maxGapSeconds": 12,
+          "minimumLiquidity": "2462531766982",
+          "probeUsdtAtoms": "10000000",
+          "maxPriceDeviationBps": "0",
+          "maxBuyDeviationBps": "13",
+          "maxSellDeviationBps": "13",
+          "comparisons": {
+            "anchorFresh": true,
+            "fullWindow": true,
+            "blockGaps": true,
+            "minimumLiquidity": true,
+            "priceDeviation": true,
+            "buyDepth": true,
+            "sellDepth": true
+          },
+          "policyState": "within-proposed-bounds",
+          "evidenceHash": "0xdf642ffcb2edf49753411a972f3dfe76017d50c9f579f0725f2ea0869ca52d9c"
+        },
+        "usdt": {
+          "observedAt": 1792507391000,
+          "validUntil": 1792593791000,
+          "ageMs": 47511964,
+          "usdAtoms": "99888425",
+          "deviationBps": "12",
+          "comparisons": {
+            "fresh": true,
+            "deviation": true
+          },
+          "policyState": "within-proposed-bounds",
+          "evidenceHash": "0x4724e55894d348f0778b06858a7f50a5bebe5d58ad0f759517edf58a729121d8"
+        },
+        "elapsedMs": 16204
+      },
+      {
+        "provider": 2,
+        "state": "observed",
+        "stages": {
+          "endpoint": {
+            "state": "observed",
+            "elapsedMs": 3102
+          },
+          "finalized": {
+            "state": "observed",
+            "elapsedMs": 71
+          },
+          "history": {
+            "state": "observed",
+            "elapsedMs": 14194
+          },
+          "usdt": {
+            "state": "observed",
+            "elapsedMs": 48
+          },
+          "canonical": {
+            "state": "observed",
+            "elapsedMs": 63
+          }
+        },
+        "finalizedAnchor": {
+          "number": 26238344,
+          "hash": "0x83eea3c54f4c0812880d563364c5aebd3208645b5a462cd165c900d4d4a3761c",
+          "timestamp": 1792554071,
+          "ageMs": 819067,
+          "withinProposedAge": true
+        },
+        "history": {
+          "blockCount": 26,
+          "anchor": {
+            "number": 26238344,
+            "hash": "0x83eea3c54f4c0812880d563364c5aebd3208645b5a462cd165c900d4d4a3761c",
+            "timestamp": 1792554071,
+            "ageMs": 833262
+          },
+          "windowSeconds": 300,
+          "maxGapSeconds": 12,
+          "minimumLiquidity": "2462531766982",
+          "probeUsdtAtoms": "10000000",
+          "maxPriceDeviationBps": "0",
+          "maxBuyDeviationBps": "13",
+          "maxSellDeviationBps": "13",
+          "comparisons": {
+            "anchorFresh": true,
+            "fullWindow": true,
+            "blockGaps": true,
+            "minimumLiquidity": true,
+            "priceDeviation": true,
+            "buyDepth": true,
+            "sellDepth": true
+          },
+          "policyState": "within-proposed-bounds",
+          "evidenceHash": "0xdf642ffcb2edf49753411a972f3dfe76017d50c9f579f0725f2ea0869ca52d9c"
+        },
+        "usdt": {
+          "observedAt": 1792507391000,
+          "validUntil": 1792593791000,
+          "ageMs": 47513311,
+          "usdAtoms": "99888425",
+          "deviationBps": "12",
+          "comparisons": {
+            "fresh": true,
+            "deviation": true
+          },
+          "policyState": "within-proposed-bounds",
+          "evidenceHash": "0x4724e55894d348f0778b06858a7f50a5bebe5d58ad0f759517edf58a729121d8"
+        },
+        "elapsedMs": 17479
+      }
+    ],
+    "limitations": [
+      "A single observation does not establish long-term reliability or approve policy thresholds.",
+      "Different archive hostnames do not prove independent operators.",
+      "A parity signature does not verify underlying backing, redemption availability or a renewal publisher."
+    ],
+    "policyHash": "0xbb4cff8e5d750dd2a20b75d6ad2466cd7f3d3c03a8888bf08589a85061d0e0e8",
+    "pricingMode": "merchant-exchange-reference",
+    "marketSourcesHash": "0xf2c823af240c5d74a2902ead760a9c08eb256e272d66e4387f1692c0790badaf",
+    "market": {
+      "chainId": 1,
+      "protocol": "uniswap-v4",
+      "poolId": "0xd833a3afa936ca389966a9ed3a3d9abf7ec45c11b0d575aaaf6ca4d354687da6"
+    },
+    "marketEvidence": {
+      "state": "matching"
+    },
+    "reference": {
+      "state": "explicit-commercial-reference",
+      "identityHash": "0x0a01b3a581950c97664ad54917e87f30b829896dbe745bb39b067e0aa13e7bf3",
+      "bridgeRedemptionVerified": false,
+      "underlyingEvidenceVerified": false,
+      "commercialPolicyApproved": false
+    },
+    "quoteValidation": {
+      "state": "passed-current-runtime-validation",
+      "usableForPurchase": false,
+      "usdPerKoinAtoms": "2065671",
+      "observedAt": 1792554071000,
+      "expiresAt": 1792554964375,
+      "quoteHash": "0x60e9d5fd3a858fb780d86151cd037f6ba2e7843c9666ae7d1bb10a2b2bdf277e",
+      "maxPurchaseUsdAtoms": "998883802",
+      "maxPurchaseKoinAtoms": "48356384065"
+    },
+    "completedAt": 1792554904376
+  }
+}

@@ -6,11 +6,13 @@ The approved Ethereum v4 pool and token ordering are pinned in `purchase-price.j
 
 `v4-price-validation.js` calculates an arithmetic time-weighted price in integer fixed-point units. It requires a full contiguous parent-linked history, bounds every block's deviation from the average, and checks active liquidity plus executable buy and sell depth throughout the window, including the actual 1% fee. USDT/USD is read from an explicitly configured Chainlink-compatible feed at the same canonical anchor; incomplete, negative, stale or depegged rounds fail validation.
 
-`v4-purchase-oracle.js` requires two reviewed HTTPS archive hosts whose complete observations agree. Warm-up runs independently of settlement and existing-credit use. Every read rechecks the canonical anchor and signed parity evidence. A failed refresh clears the quote cache. Quote expiry cannot outlive the earliest underlying evidence, and the signed purchase quote uses that remaining lifetime.
+`v4-purchase-oracle.js` requires two reviewed HTTPS archive hosts whose complete observations agree. Warm-up runs independently of settlement and existing-credit use. Every read rechecks the canonical anchor and the selected reference rule (including fresh signed parity evidence in schema 1). A failed refresh clears the quote cache. Quote expiry cannot outlive the earliest underlying evidence, and the signed purchase quote uses that remaining lifetime.
+
+Both schemas return a conservative `maxPurchaseKoinAtoms` calculated from the configured minimum executable USDT probe and the highest unrounded pool price in the window/reference ratio, so it fits every checked block. The quote price remains the time-weighted average. The runtime checks the native purchase amount against the depth bound **before signing**. `maxPurchaseUsdAtoms` is the credited USD value of that native ceiling at the final integer quote rate. Upward native-atom rounding cannot exceed the checked depth. This is a raw notional ceiling, not an advertised USD pack size: choose a probe larger than the supported packs to leave rounding/depeg headroom. It is not an aggregate sales limit.
 
 ## Configuration and trust decisions
 
-The optional backend runtime `purchasePricing` object has exactly these fields:
+The optional backend runtime schema-1 `purchasePricing` object has exactly these fields:
 
 - `schema: 1`
 - `rpcUrls`: two independently reviewed HTTPS archive endpoints on distinct hosts. Provider independence remains an operator responsibility; different hostnames alone do not prove it.
@@ -26,6 +28,31 @@ The parity file is `{statement, signature}`. The statement is domain-separated a
 This attestation is a trust boundary: it records an approved reviewer's fresh redemption evidence; it does not automatically establish bridge solvency, availability or fee parity. The evidence behind its hash must establish those conditions. No signature or default 1:1 assumption is supplied by the app. Paused redemption, altered evidence, another chain/token, missing signatures, expiry or unacceptable ratio deviation rejects the quote.
 
 Run `node scripts/validate-koin-purchase-pricing.js <runtime-config.json>` for dry schema and attestation-signature validation. It does not access the network, sign, deploy, fund, or enable purchases. A valid dry result is not live quote acceptance.
+
+### Explicit merchant exchange reference (schema 2)
+
+This separately selected commercial convention prices each native KOIN at one vKOIN's validated market value. It does not assert that vKOIN is redeemable for native KOIN, backed by reserves, or worth the same in another market. The merchant accepts that divergence risk. No bridge transaction is part of the native-KOIN credit purchase.
+
+The exact configuration fields are `schema: 2`, `rpcUrls`, `usdtFeed`, `policy`, and `reference`. The market policy has all schema-1 fields except `maxParityAgeMs`, `maxParityDeviationBps` and `paritySource`. Market identity, finality, full-window history, two-source agreement, bid/ask depth, USDT conversion and expiry checks are retained. No parity signer, file, signature or synthetic evidence is accepted in this mode.
+
+The exact `reference` fields are:
+
+```json
+{
+  "kind": "merchant-exchange-reference",
+  "nativeChainId": "<exact canonical native chain ID>",
+  "nativeToken": "<exact native KOIN contract address>",
+  "wrappedChainId": 1,
+  "wrappedToken": "0xa50ad3a559A10f384a5bB2e27516f63E0B937b1A",
+  "wrappedPerNativeAtoms": "100000000"
+}
+```
+
+The native identity must match the deployment. `referenceHash()` domain-separates a deterministic commitment to that convention, the exact policy and market pins. Diagnostic quote provenance labels it `merchant:vkoin-exchange-reference` and `redemptionVerified: false`. It is a policy commitment, never a bridge evidence hash.
+
+The [review proposal](deploy/koin-mainnet/pricing.merchant-reference.proposal.json) is explicitly unapproved and is not a deployable runtime. Existing schema-1 configurations remain schema 1; an unavailable attestation never selects schema 2. There is no default activation. The installer preserves schema-2 configuration bytes and validates native identity without creating an attestation file. Existing credit use remains independent of both modes.
+
+The diagnostic provenance is not all included in the existing signed purchase ABI. The signed quote still binds the actual amount/rate/account/deployment/runtime-version/expiry; its version is `runtime.version`, not the independently selected `purchasePricing.policy.version`. A durable source-evidence record linked to each issued quote and customer Price details are separate remaining work.
 
 ## Read-only live capability preflight
 
@@ -48,9 +75,9 @@ For each provider the report records:
 
 These comparisons distinguish readable data from data inside the proposed bounds. Both providers must return the same complete history and stablecoin observations for `marketEvidence.state: matching`. Independent hosts do not themselves prove independent operators. Repeated measurements are needed to select and review operating thresholds; a single passing sample does not approve a commercial policy or establish long-term availability.
 
-Missing or invalid parity leaves `state: incomplete`, even if the market reads succeed. A supplied envelope is checked using the existing signature/freshness verifier; the report still states `underlyingEvidenceVerified: false`, `redemptionVerified: false` and `publisherVerified: false`. **The repository does not yet supply the Vortex evidence collector or recurring attestation publisher.** A signature verifies the configured attestor's assertion, not bridge backing or redemption liveness. A valid signature must not be described as completion of that missing work.
+In schema 1, missing or invalid parity leaves `state: incomplete`, even if the market reads succeed. A supplied envelope is checked using the existing signature/freshness verifier; the report still states `underlyingEvidenceVerified: false`, `redemptionVerified: false` and `publisherVerified: false`. **The repository does not yet supply the Vortex evidence collector or recurring attestation publisher.** A signature verifies the configured attestor's assertion, not bridge backing or redemption liveness. A valid signature must not be described as completion of that missing work.
 
-Only matching archives plus a valid supplied parity envelope reach the unchanged runtime pricing validator. A pass produces `state: observations-valid` and an **unsigned diagnostic** quote with its expiry and hash; `purchasesEnabled` and `usableForPurchase` remain false. Exit status is 0 for this complete diagnostic observation and 1 for missing, rejected or unavailable evidence. The invocation is bounded to 70 seconds overall (each RPC at most 8 seconds; existing history collection at most 60 seconds), with no automatic retries or spot fallback.
+Matching archives plus either the selected schema-1 parity envelope or explicit schema-2 reference reach the corresponding runtime validator. Schema 2 additionally requires `deployment.chainId` and `deployment.token`; the report states `commercialPolicyApproved: false` and `bridgeRedemptionVerified: false`. A pass produces `state: observations-valid` and an **unsigned diagnostic** quote with its expiry, size ceiling and hash; `purchasesEnabled` and `usableForPurchase` remain false. Exit status is 0 for this complete diagnostic observation and 1 for missing, rejected or unavailable evidence. The invocation is bounded to 70 seconds overall (each RPC at most 8 seconds; existing history collection at most 60 seconds), with no automatic retries or spot fallback.
 
 Missing configuration produces an actionable `input-required` JSON report without network access. Invalid or unreadable secret-bearing files and remote failures use fixed error codes rather than echoing their contents.
 

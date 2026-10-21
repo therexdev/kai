@@ -97,3 +97,23 @@ market history, depth and USDT/USD evidence, but remains incomplete without
 trusted parity evidence. There is still no bridge evidence publisher or real
 new-model qualification policy. No customer account, service configuration,
 contract, wallet signature or KOIN transfer was changed by this work.
+
+### Auth preparation completed; explicit exchange-reference option
+
+The operator successfully prepared the protected SMTP/Google input from the
+active server process at revision `885187b`. Both providers are configured;
+new-origin sign-in is not yet verified and no service changed. That revision's
+full CI and all 45 isolated native-chain checks passed.
+
+The next source revision adds an explicitly selected schema-2 merchant
+exchange-reference policy. It uses the validated vKOIN market as the commercial
+rate for native KOIN without claiming bridge redemption, creating a parity key,
+or silently replacing schema 1. The review proposal and commercial risks are in
+the activation review. It is unapproved and not installed. Both schemas now
+enforce executable native purchase size before signing, using unrounded price
+arithmetic so integer-rate rounding cannot authorize excessive notional.
+
+The native USD harness now adds public email verification, signed wallet linking,
+free credit visibility, free-first streaming and exact sponsored settlement after
+restart. Its emails and model outputs are controlled fixtures; live signup,
+provider qualification, real two-computer use and funding remain outstanding.

@@ -1,4 +1,4 @@
-# USD credits activation review — October 21, 2026
+# USD credits activation review — October 21, 2026 (UTC)
 
 This records the next activation work after the operator's read-only report at
 `2026-10-21T03:04:57.955873+00:00`. It is a review document, not permission to
@@ -16,6 +16,14 @@ and journals are missing, and its endpoints are unavailable. This explains why
 publishing the desktop alone has not enabled Buy credits. The legacy service's
 Master-match result is not a verification of the new purchase destination.
 The report did not verify chain balances, contract code, pricing or finality.
+
+Subsequent operator preparation succeeded at backend revision
+`885187be608a17e1aef41fb7679db56a8ff1d63b`: both email and Google settings are
+configured in `/root/kai-prepaid-inputs/account-auth.json`. The helper reported
+`configurationOnly: true`, `signInVerified: false` and `serviceChanged: false`.
+This step is complete. Do not repeat it or ask the operator to disclose its
+contents. New-origin email delivery and Google callback acceptance still need
+the installed service.
 
 Preparation and installation of the separate product do not require clearing
 the legacy signing record. Its eventual reconciliation remains a separate
@@ -72,7 +80,7 @@ Mana measurements must fit that approved cap before deployment. No old
 | Exact contract source | Desktop `da0713a3ea6d7bb2ee13ccbf96e389f1bb83b4dc`, matching backend ABI/provenance hashes, contract tests and isolated native-chain run |
 | Public authentication | Protected reuse of only existing SMTP/Google settings; actual new-origin sign-in and callback/delivery verification |
 | Exchange pricing | Two capable independent archive sources; actual finalized history, executable depth, USDT/USD freshness and justified policy bounds |
-| Wrapped/native reference | Explicit trust policy, verified deployed bridge evidence and an operational evidence publisher; a signed assertion alone does not establish redemption availability |
+| Wrapped/native reference | Select the explicit merchant-reference proposal below, or finish the schema-1 bridge evidence collector and publisher; never fabricate an attestation |
 | Provider qualification | Unambiguous candidate suite, measured intended-model results, reviewed admission policy and fresh signed provider checks |
 | Free credits | Approved model/account/network/origin policy plus matching funded contract sponsorship |
 | Funding and Master replenishment | Exact seed/role transfers and daily recipient allocation, preserving existing production reburn and Mana retention |
@@ -80,10 +88,12 @@ Mana measurements must fit that approved cap before deployment. No old
 The source audit found that the native rehearsal had still pinned an older
 desktop commit with incompatible ABIs. The updated provenance check verifies
 the desktop commit, clean tracked files, shared-file hashes and all four ABIs
-before the disposable chain can start. Current contract builds and contract
-probes are separate evidence from a native-chain run. The existing native
-harness covers paid invitation-mode purchase/chat/recovery; it is not a claim
-that public signup, daily free credits or normal desktop streaming has passed.
+before the disposable chain can start. At backend revision `885187b`, full CI
+and all 45 native-chain checks passed, including signed desktop streaming,
+duplicate-prefix protection and lost-response recovery. That run used invitation
+accounts and controlled model output. The next harness adds public-account HTTP
+verification, wallet linking and free-first usage with native sponsorship;
+its results must be recorded separately, never inferred from the earlier run.
 
 Pricing and qualification have working mechanisms, but their production
 evidence is unfinished engineering. There is no automatic Vortex evidence
@@ -112,19 +122,55 @@ Exact current build outputs (all 12 built-WASM probes passed):
 | `prepaid-usd.wasm` | 44,657 | `e87d504fa312b8a5c6d3a45f31d191cbc2577d3fa91c6d5750d0f2a80c7ea24d` |
 | `rewards.wasm` | 42,592 | `883bcdfb87cfdf1ad4529468bc890db194c077e4ea0523d948c24bb572524a9e` |
 
-## Operator preparation now
+## Recommended pricing decision
 
-From the reviewed backend revision, run:
+The [explicit proposal](pricing.merchant-reference.proposal.json) selects a
+merchant exchange-reference rule: value each native KOIN at one vKOIN's validated
+Uniswap v4 market price, converted from USDT to USD. This is a commercial price
+convention; it does not claim that a bridge is redeemable or fully backed.
+Customers pay native KOIN directly to Master and receive service credits.
+Neither customer nor merchant makes a bridge transaction as part of that purchase.
 
-```sh
-node deploy/koin-mainnet/prepare-account-auth.js --prepare
-```
+This avoids operating a second signing key and renewable bridge attestation
+publisher. The merchant accepts the risk that the vKOIN reference diverges from
+native KOIN's realizable value. The existing schema-1 signed-parity path remains
+unchanged and never silently falls back to this option. Explicit schema 2 and
+the native chain/token identity are required; production policy approval is
+still outstanding.
 
-The helper prepares only `/root/kai-prepaid-inputs/account-auth.json` from the
-active `koinos.service` process, with private permissions and credential-free
-status output. See [PREPAID.md](PREPAID.md) for its exact behavior. A server that
-uses another production service name must be identified explicitly; the helper
-does not search arbitrary process environments. Keep the future
+The review input proposes a five-minute finalized price window, 30-minute anchor
+age ceiling, one-minute quote lifetime, 5% within-window price deviation, 2%
+fee-adjusted depth deviation, 1% USDT/USD deviation, and a 24-hour USDT age ceiling.
+Its active-liquidity floor is `1000000000000`, below the earlier observed
+`2462531766982`; both directions must also execute the proposed 10-USDT probe.
+These are review bounds, not economic guarantees or proof of sustained uptime.
+The 24-hour stablecoin bound can cause purchase pauses near feed heartbeat and
+finality boundaries. It has not been silently relaxed.
+
+A subsequent [live read-only observation](observations/2026-10-21-merchant-reference.json)
+passed the proposed schema-2 checks with matching archive histories and 10-USDT
+buy/sell simulations. It remains unsigned, unapproved and unusable as a payment
+quote. All 39 focused pricing/installer probes passed, including schema-1
+regressions, native identity, precision-sensitive depth and a varying-price
+window. This does not complete sustained-operation or installed-app acceptance.
+
+The first commercial test pack is proposed at $1 (1,000 credits); no fixed KOIN
+amount is invented. A quote's native amount must fit the checked executable
+notional before signing, including upward rounding. This is a per-purchase
+ceiling, not an aggregate daily sales cap. New price failures affect purchases
+only; existing credits remain usable.
+
+Price diagnostics include source blocks, reference/policy hashes and the depth
+ceiling. The current signed purchase ABI commits to the amount, rate, account,
+contract identity, runtime policy version and expiry, but does not include the full
+diagnostic provenance. A durable mapping to the complete price evidence and
+customer-facing Price details remain acceptance work; do not claim they already
+exist from the diagnostic output.
+
+## Operator preparation status
+
+Auth preparation is complete; no further login-preparation command is needed.
+See [PREPAID.md](PREPAID.md) for its exact scope. Keep the future
 `/root/kai-prepaid-usd-bootstrap` path absent until final plan preparation.
 
 Do not run `setup.js deploy`, install a service or fund a generated address

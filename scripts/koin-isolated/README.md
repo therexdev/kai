@@ -19,6 +19,15 @@ protocol changes are reviewed. A newer desktop release alone does not update the
 rehearsal. Pushes on `codex/revision2-implementation` now run the same isolated
 workflow when its existing source paths change; manual dispatch remains available.
 
+The USD runtime uses the public account service, captures its fixture email code,
+verifies that code through HTTP and links the buyer wallet with its real fixture
+signature. It checks the free balance before purchase, matching native sponsorship
+ceilings, free-first mixed streaming usage and the next purchased-only request.
+Lost-response recovery must preserve both portions on chain and keep the original
+purchase count unchanged. Email delivery is captured locally and model output is
+controlled: this does not establish live SMTP/Google sign-in, model quality, or
+two-computer desktop UI acceptance.
+
 The daily-cycle runner now performs budget opening, root proposal and finalization,
 then hands the signed manifest to the automatic claim queue. The harness loses a
 proposal acknowledgment after inclusion and restarts the journal before recovery.

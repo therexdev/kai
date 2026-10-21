@@ -61,16 +61,22 @@ function installationFiles(bootstrap, authFile, { now = Date.now() } = {}) {
     files.set("invitations.json", invitations);
   }
   if (runtime.purchasePricing) {
-    const c = pricing(runtime.purchasePricing);
-    const envelope = bytes(c.parityFile, "parity attestation", 8192);
-    verifyParity(json(envelope, "parity attestation"), { signer: c.paritySigner, source: c.policy.paritySource,
-      nativeChainId: runtime.deployment.chainId, nativeToken: runtime.deployment.token, now, maxAgeMs: c.policy.maxParityAgeMs });
-    files.set("parity.json", envelope);
-    // Only the local file location changes. Its signed bytes and all market,
-    // contract, signer and policy pins stay exactly as reviewed.
-    runtime.purchasePricing.parityFile = path.join(CONFIG_DIR, "parity.json");
-    pricing(runtime.purchasePricing);
-    files.set("runtime.json", Buffer.from(JSON.stringify(runtime, null, 2) + "\n"));
+    const c = pricing(runtime.purchasePricing, runtime.deployment);
+    if (c.schema === 1) {
+      const envelope = bytes(c.parityFile, "parity attestation", 8192);
+      verifyParity(json(envelope, "parity attestation"), { signer: c.paritySigner, source: c.policy.paritySource,
+        nativeChainId: runtime.deployment.chainId, nativeToken: runtime.deployment.token, now, maxAgeMs: c.policy.maxParityAgeMs });
+      files.set("parity.json", envelope);
+      // Only the local file location changes. Its signed bytes and all market,
+      // contract, signer and policy pins stay exactly as reviewed.
+      runtime.purchasePricing.parityFile = path.join(CONFIG_DIR, "parity.json");
+      pricing(runtime.purchasePricing, runtime.deployment);
+      files.set("runtime.json", Buffer.from(JSON.stringify(runtime, null, 2) + "\n"));
+    } else {
+      // Explicit merchant reference mode makes no bridge-redemption assertion.
+      // Preserve the reviewed native identity, reference and policy byte-for-byte.
+      files.set("runtime.json", original);
+    }
   } else files.set("runtime.json", original);
   for (const [name, limit] of [["tokenizer.json", 16000000], ["tokenizer_config.json", 131072]]) {
     files.set("tokenizer/" + name, bytes(path.join(bootstrap, "tokenizer", name), name, limit));
