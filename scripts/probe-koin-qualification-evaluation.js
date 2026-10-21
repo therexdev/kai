@@ -93,3 +93,78 @@ test("CLI summary preserves incomplete evidence while reporting a failed pipelin
   text = ""; E.printSummary({ complete: true, passed: 0, completedCalls: 12 }, io);
   assert.equal(io.exitCode, 0, "wrong answers do not invalidate a completed measurement"); assert.equal(JSON.parse(text).passed, 0);
 });
+function modelSuite(selection) {
+  const { manifest, approved } = selection;
+  return { schema: 2, id: "fixture-only-three-cases-v1", status: "candidate-not-approved", model: manifest.model,
+    package: approved.package, modelHash: manifest.modelHash, tokenizerHash: manifest.tokenizerHash, templateHash: manifest.templateHash,
+    // Test-only suite: these cases exercise evaluator behavior, not this model's quality or an admission policy.
+    cases: ["first", "second", "third"].map((id, i) => ({ id, maxOutput: 512 + i, messages: [{ role: "user", content: "Fixture " + id }], expected: ["Fixture answer " + id] })) };
+}
+test("approved larger-model selection binds package and exact checked-in manifest, retaining Fast defaults", t => {
+  const fast = E.loadSelection(), large = E.loadSelection({ model: "qwen25-32b" });
+  assert.equal(fast.manifest.model, candidate.model); assert.equal(fast.manifest.modelHash, candidate.modelHash);
+  assert.equal(large.approved.package, "qwen2.5-32b-instruct-q4_k_m@1"); assert.equal(large.manifest.model, "qwen25-32b");
+  const file = path.join(directory(t), "manifest.json"), source = path.join(__dirname, "../lib/koin-network/tokenizers/candidates/qwen25-32b.json");
+  fs.copyFileSync(source, file);
+  const explicit = E.loadSelection({ model: "qwen25-32b", manifestFile: file });
+  assert.equal(explicit.manifestSha256, digest(fs.readFileSync(source))); assert.equal(explicit.manifestSource, "explicit-candidate");
+  const changed = structuredClone(explicit.manifest); changed.templateHash = digest("other template"); fs.writeFileSync(file, JSON.stringify(changed));
+  assert.throws(() => E.loadSelection({ model: "qwen25-32b", manifestFile: file }), /candidate_manifest_pin_mismatch/);
+  for (const model of ["dev-tiny", "__proto__", "private-api", "../qwen25-32b"]) assert.throws(() => E.loadSelection({ model }), /approved_model_required/);
+  assert.throws(() => E.loadSelection({ model: "gemma3-27b" }), /candidate_manifest_unavailable/);
+});
+test("new suites require exact model package/pins and explicit bounded cases without inventing quality thresholds", () => {
+  const selection = E.loadSelection({ model: "qwen25-32b" }), input = modelSuite(selection), manifest = selection.manifest;
+  assert.deepEqual(E.suite(input, manifest), input); assert.equal(E.suite(input, manifest).cases.length, 3);
+  assert.throws(() => E.suite({ ...input, package: E.loadSelection().approved.package }, manifest), /candidate_package_mismatch/);
+  for (const name of ["model", "modelHash", "tokenizerHash", "templateHash"]) assert.throws(() => E.suite({ ...input, [name]: "wrong" }, manifest), /candidate_pin_mismatch/);
+  assert.throws(() => E.suite({ ...input, minPass: 2 }, manifest), /invalid_candidate_suite/);
+  assert.throws(() => E.suite({ ...input, cases: [] }, manifest), /invalid_candidate_cases/);
+  assert.throws(() => E.suite({ ...input, cases: Array(33).fill(input.cases[0]) }, manifest), /invalid_candidate_cases/);
+  assert.throws(() => E.suite({ ...input, cases: [input.cases[0], input.cases[0]] }, manifest), /invalid_candidate_case/);
+  assert.throws(() => E.suite({ ...input, cases: [{ ...input.cases[0], maxOutput: 4097 }] }, manifest), /invalid_candidate_case/);
+  assert.throws(() => E.suite(candidate, manifest), /invalid_candidate_suite/);
+});
+test("larger-model measurement executes only its explicit suite and selected runtime alias", async () => {
+  const selection = E.loadSelection({ model: "qwen25-32b" }), input = modelSuite(selection), seen = [];
+  const result = await E.measureCases({ base: "http://127.0.0.1:1234", candidate: input, manifest: selection.manifest,
+    runtimeModel: selection.manifest.model, passes: 2, fetchImpl: async (_, options) => {
+      const c = input.cases[seen.length % input.cases.length]; seen.push(JSON.parse(options.body)); return answer(c.expected[0]);
+    } });
+  assert.equal(result.complete, true); assert.equal(result.completedCalls, 6); assert.equal(result.passed, 6);
+  seen.forEach((request, i) => { assert.equal(request.model, "qwen25-32b"); assert.deepEqual(request.messages, input.cases[i % 3].messages); assert.equal(request.max_tokens, input.cases[i % 3].maxOutput); });
+  let calls = 0;
+  await assert.rejects(E.measureCases({ base: "http://127.0.0.1:1234", candidate: input, runtimeModel: "qwen25-32b",
+    fetchImpl: async () => { calls++; return answer("unexpected"); } }), /candidate_package_mismatch|candidate_pin_mismatch/);
+  assert.equal(calls, 0);
+});
+test("explicit candidate files reject symlinks, excessive size, malformed JSON and cross-model manifests", t => {
+  const dir = directory(t), selection = E.loadSelection({ model: "qwen25-32b" }), file = path.join(dir, "suite.json"), link = path.join(dir, "link.json");
+  fs.writeFileSync(file, JSON.stringify(modelSuite(selection))); fs.symlinkSync(file, link);
+  assert.throws(() => E.loadSuite(link, selection.manifest), /regular_suite_file_required/);
+  assert.throws(() => E.loadSelection({ model: "qwen25-32b", manifestFile: link }), /regular_manifest_file_required/);
+  assert.throws(() => E.loadSuite("relative.json", selection.manifest), /absolute_suite_file_required/);
+  fs.writeFileSync(file, Buffer.alloc(E.MAX_SUITE + 1));
+  assert.throws(() => E.loadSuite(file, selection.manifest), /bounded_suite_file_required/);
+  assert.throws(() => E.loadSelection({ model: "qwen25-32b", manifestFile: file }), /bounded_manifest_file_required/);
+  fs.writeFileSync(file, "private malformed contents"); assert.throws(() => E.loadSuite(file), /^Error: invalid_suite_json$/);
+  fs.writeFileSync(file, JSON.stringify(E.loadSelection().manifest));
+  assert.throws(() => E.loadSelection({ model: "qwen25-32b", manifestFile: file }), /candidate_manifest_pin_mismatch/);
+});
+test("model cap admits the approved 32B package size range while refusing larger files before hashing", async t => {
+  assert.equal(E.MAX_MODEL, 32 * 1024 ** 3); assert.ok(E.MAX_MODEL > 20000000000);
+  const file = path.join(directory(t), "oversized-sparse.gguf"), fd = fs.openSync(file, "w");
+  try { fs.ftruncateSync(fd, E.MAX_MODEL + 1); } finally { fs.closeSync(fd); }
+  await assert.rejects(E.hashModel(file), /bounded_model_file_required/);
+});
+test("non-Fast CLI requires a model-specific suite and refuses wrong GGUF bytes before inference", t => {
+  const dir = directory(t), modelFile = path.join(dir, "wrong.gguf"), output = path.join(dir, "result.json"), suiteFile = path.join(dir, "suite.json");
+  const selection = E.loadSelection({ model: "qwen25-32b" }); fs.writeFileSync(modelFile, "fixture wrong model"); fs.writeFileSync(suiteFile, JSON.stringify(modelSuite(selection)));
+  const args = [path.join(__dirname, "evaluate-koin-qualification.js"), "--endpoint", "http://127.0.0.1:1234", "--model", "qwen25-32b", "--model-file", modelFile, "--output", output];
+  const missing = spawnSync(process.execPath, args, { encoding: "utf8" }); assert.equal(missing.status, 1); assert.equal(missing.stderr.trim(), "explicit_model_suite_required");
+  const wrong = spawnSync(process.execPath, [...args, "--suite", suiteFile], { encoding: "utf8" }); assert.equal(wrong.status, 1); assert.equal(wrong.stderr.trim(), "model_hash_mismatch");
+  assert.equal(fs.existsSync(output), false);
+  const parsed = E.argumentsFor([...args.slice(1), "--suite", suiteFile, "--manifest", "/explicit/manifest.json"]);
+  assert.equal(parsed.model, "qwen25-32b"); assert.equal(parsed.suiteFile, suiteFile); assert.equal(parsed.manifestFile, "/explicit/manifest.json");
+  assert.throws(() => E.argumentsFor([...args.slice(1), "--model", "koinos-fast"]), /invalid_arguments/);
+});

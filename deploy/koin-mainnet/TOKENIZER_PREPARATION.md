@@ -46,6 +46,16 @@ These are operator/build tools, not steps customers need to perform.
    Include multilingual text and a multi-turn message vector. Each message
    vector has a prompt hash, exact token-ID hash and count; date-dependent
    templates also require an explicit timestamp in `at`.
+5. `node scripts/evaluate-koin-qualification.js --endpoint
+   http://127.0.0.1:PORT --model-file ABS_GGUF --output ABS_NEW_JSON
+   --model APPROVED_ALIAS --suite ABS_SUITE_JSON` measures an explicit candidate
+   suite against a local runtime. It binds the approved package and exact model,
+   tokenizer and template hashes. Non-Fast models require their own suite; the
+   existing no-model-flag Fast invocation remains supported. `--manifest
+   ABS_MANIFEST_JSON` selects an explicit candidate when needed. Reports remain
+   unsigned candidate evidence and do not create provider eligibility or claim
+   loaded-runtime verification. The bounded 32 GiB file limit covers the current
+   approved packages.
 
 Schema-2 deployment configuration installs each configured pack under
 `tokenizer/<model-alias>/`. Legacy configuration retains its flat tokenizer

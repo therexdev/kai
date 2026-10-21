@@ -157,3 +157,31 @@ rates, free-first consumption, restart and recovery without live catalog access.
 Desktop source is pinned to `1dca09ae5e7129d1a3ef020cbd933e366b108366`.
 Service activation, live provider checks and three closed reward days remain
 outstanding; no existing service, balance, signature or funds changed.
+
+### Multi-model CI evidence — October 21, 2026 (UTC)
+
+Backend `86fdb173349afd2c73ea792772968f60d8571c7e`, using pinned desktop
+`1dca09ae5e7129d1a3ef020cbd933e366b108366`, passed both jobs in
+[general CI 39545245484](https://github.com/therexdev/kai/actions/runs/39545245484):
+all probes and the website browser checks.
+
+[Native isolated run 39545245485](https://github.com/therexdev/kai/actions/runs/39545245485),
+job `119041839806`, completed successfully. Its measured final report at
+`2026-10-21T04:42:16Z` was:
+
+```json
+{"passed":true,"checks":49,"maxObservedClaimRc":"12596998","productionManaCalibration":false}
+```
+
+The added check verified two controlled tariff aliases sharing one native credit
+balance, full-catalog quote verification, and second-model answer recovery
+without catalog access or another debit. Both fixture aliases use the same
+pinned Fast tokenizer and controlled output; this proves model/rate accounting
+and recovery, not a second real model's quality or live provider readiness.
+Public email delivery, mainnet Mana calibration, actual two-computer acceptance
+and production deployment are not established by this run.
+
+The run saved `koin-isolated-transfer-mana`, artifact `12321288088`, with archive
+digest `sha256:3b8e2c45faeb93b6e1a933bc2c3e5d6a8085c09faf115d2812ec0b3e0a47c284`.
+This records the published artifact metadata and job output; it does not claim
+an independent download or re-verification of the archive.

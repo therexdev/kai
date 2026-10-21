@@ -63,7 +63,7 @@ USD atom rates and source identity are in
 advertised providers remain priced and can be shown as unavailable. None should
 accept payment for inference until qualified capacity is present.
 
-Even the highest proposed tier is 20% below Luna's Standard input rate and 36%
+Even the highest approved introductory tier is 20% below Luna's Standard input rate and 36%
 below its output rate. This is a dollar-cost comparison, not a claim that these
 models match Luna's quality, context, latency or features. It is not a comparison
 against every other host or discounted/cached/batch pricing.
@@ -98,7 +98,7 @@ be explicit; pricing a model does not automatically make it free-eligible.
 
 ## Required implementation before multi-model acceptance
 
-| Area | Current limitation | Required change and acceptance evidence |
+| Area | Gap identified before this implementation | Required change and acceptance evidence |
 | --- | --- | --- |
 | Catalog and policy | Legacy has 15 aliases; the new path has one tariff | One versioned rate catalog covering all 15 exact package identities; reject unknown/dev/private-API entries; validate all rates and selected-model policy identity |
 | Metering | Only Qwen 1.5B has a pinned tokenizer manifest | Calibrate tokenizer, template, context and output counting for each admitted package against the actual runtime; no estimated token charging |

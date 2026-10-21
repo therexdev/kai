@@ -1,11 +1,17 @@
 #!/usr/bin/env node
 "use strict";
-// Fixed-suite, local-only candidate measurements. This never creates provider
+// Explicit-suite, local-only candidate measurements. This never creates provider
 // eligibility, signs a result, configures a service, or calls the network API.
 const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto");
 const pins = require("../lib/koin-network/tokenizers/qwen25-1.5b.json");
+const { manifestIdentity, LIMITS } = require("../lib/koin-network/tokenizer");
+const approvedModels = require("../deploy/koin-mainnet/model-rates.proposal.json").models;
+const candidateIndex = require("../lib/koin-network/tokenizers/candidates/index.json");
+const TOKENIZER_ROOT = path.join(__dirname, "../lib/koin-network/tokenizers");
 const SUITE_FILE = path.join(__dirname, "../deploy/koin-mainnet/qualification/fast-candidate-v1.json");
-const MAX_RESPONSE = 262144, MAX_MODEL = 8 * 1024 ** 3;
+// The largest current approved package is approximately 20 GB. Keep reads
+// finite while allowing its exact pinned bytes; file size never proves identity.
+const MAX_RESPONSE = 262144, MAX_MODEL = 32 * 1024 ** 3, MAX_SUITE = 2000000;
 const hash = value => crypto.createHash("sha256").update(value).digest("hex");
 const fail = code => Object.assign(new Error(code), { code });
 function endpoint(value) {
@@ -16,27 +22,69 @@ function endpoint(value) {
   if (!parsed.port || Number(parsed.port) > 65535) throw fail("explicit_loopback_endpoint_required");
   return parsed.origin;
 }
-function suite(value) {
-  if (!value || Object.keys(value).sort().join() !== "cases,id,model,modelHash,schema,status,templateHash,tokenizerHash" || value.schema !== 1 ||
-      value.status !== "candidate-not-approved" || value.id !== "fast-candidate-v1") throw fail("invalid_candidate_suite");
-  for (const name of ["model", "modelHash", "tokenizerHash", "templateHash"]) if (value[name] !== pins[name]) throw fail("candidate_pin_mismatch");
-  if (!Array.isArray(value.cases) || value.cases.length !== 12) throw fail("invalid_candidate_cases");
+function suite(value, manifest = pins) {
+  const legacy = value?.schema === 1, keys = legacy ? "cases,id,model,modelHash,schema,status,templateHash,tokenizerHash" :
+    "cases,id,model,modelHash,package,schema,status,templateHash,tokenizerHash";
+  if (!value || Object.keys(value).sort().join() !== keys || ![1, 2].includes(value.schema) || value.status !== "candidate-not-approved" ||
+      (legacy ? value.id !== "fast-candidate-v1" || manifest.model !== pins.model : !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/.test(value.id))) throw fail("invalid_candidate_suite");
+  const approved = approvedModels.find(m => m.model === manifest.model && m.modelHash === manifest.modelHash);
+  if (!approved || (!legacy && value.package !== approved.package)) throw fail("candidate_package_mismatch");
+  for (const name of ["model", "modelHash", "tokenizerHash", "templateHash"]) if (value[name] !== manifest[name] || (legacy && value[name] !== pins[name])) throw fail("candidate_pin_mismatch");
+  if (!Array.isArray(value.cases) || (legacy ? value.cases.length !== 12 : !value.cases.length || value.cases.length > 32)) throw fail("invalid_candidate_cases");
   const ids = new Set();
   for (const c of value.cases) {
-    if (!c || Object.keys(c).sort().join() !== "expected,id,maxOutput,messages" || !/^[a-z-]{1,64}$/.test(c.id) || ids.has(c.id) ||
-        !Number.isSafeInteger(c.maxOutput) || c.maxOutput < 1 || c.maxOutput > 256) throw fail("invalid_candidate_case");
+    if (!c || Object.keys(c).sort().join() !== "expected,id,maxOutput,messages" || !(legacy ? /^[a-z-]{1,64}$/ : /^[a-zA-Z0-9_-]{1,64}$/).test(c.id) || ids.has(c.id) ||
+        !Number.isSafeInteger(c.maxOutput) || c.maxOutput < 1 || c.maxOutput > (legacy ? 256 : Math.min(4096, approved.catalogContextTokens))) throw fail("invalid_candidate_case");
     ids.add(c.id);
     if (!Array.isArray(c.messages) || !c.messages.length || c.messages.length > 8 || c.messages.some(m => !m ||
         Object.keys(m).sort().join() !== "content,role" || !["user", "assistant", "system"].includes(m.role) ||
         typeof m.content !== "string" || Buffer.byteLength(m.content) > 4096)) throw fail("invalid_candidate_messages");
     if (!Array.isArray(c.expected) || !c.expected.length || c.expected.length > 8 || c.expected.some(s =>
-        typeof s !== "string" || !s.trim() || s !== s.trim() || Buffer.byteLength(s) > 256)) throw fail("invalid_candidate_answers");
+        typeof s !== "string" || !s.trim() || s !== s.trim() || Buffer.byteLength(s) > (legacy ? 256 : 65536))) throw fail("invalid_candidate_answers");
   }
   return structuredClone(value);
 }
-function loadSuite() {
-  const bytes = fs.readFileSync(SUITE_FILE);
-  return { value: suite(JSON.parse(bytes)), sha256: hash(bytes) };
+function readJson(file, max, label) {
+  if (typeof file !== "string" || !path.isAbsolute(file)) throw fail("absolute_" + label + "_file_required");
+  let fd;
+  try {
+    const link = fs.lstatSync(file);
+    if (!link.isFile() || link.isSymbolicLink()) throw fail("regular_" + label + "_file_required");
+    fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+    const before = fs.fstatSync(fd);
+    if (!before.isFile() || !before.size || before.size > max) throw fail("bounded_" + label + "_file_required");
+    const buffer = Buffer.alloc(max + 1); let length = 0, count;
+    do { count = fs.readSync(fd, buffer, length, buffer.length - length, null); length += count; } while (count && length <= max);
+    if (length > max) throw fail("bounded_" + label + "_file_required");
+    const after = fs.fstatSync(fd);
+    if (length !== before.size || after.size !== before.size || after.mtimeMs !== before.mtimeMs || after.ctimeMs !== before.ctimeMs) throw fail(label + "_changed_during_read");
+    const bytes = buffer.subarray(0, length);
+    let value; try { value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)); } catch { throw fail("invalid_" + label + "_json"); }
+    return { value, sha256: hash(bytes) };
+  } catch (error) {
+    if (error.code && /^[a-z_]+$/.test(error.code)) throw error;
+    throw fail(label + "_file_unavailable");
+  } finally { if (fd !== undefined) fs.closeSync(fd); }
+}
+function loadSelection({ model = pins.model, manifestFile } = {}) {
+  const approved = approvedModels.find(m => m.model === model), indexed = candidateIndex.models.find(m => m.model === model);
+  if (!approved || !indexed || indexed.modelHash !== approved.modelHash || indexed.package !== approved.package) throw fail("approved_model_required");
+  let file = manifestFile;
+  if (file === undefined) {
+    if (!indexed.manifest) throw fail("candidate_manifest_unavailable");
+    file = path.resolve(TOKENIZER_ROOT, "candidates", indexed.manifest);
+    if (!file.startsWith(TOKENIZER_ROOT + path.sep)) throw fail("invalid_indexed_manifest_path");
+  }
+  const loaded = readJson(file, LIMITS.manifest, "manifest");
+  try { manifestIdentity(loaded.value); } catch { throw fail("invalid_candidate_manifest"); }
+  const manifest = loaded.value;
+  if (manifest.model !== model || manifest.modelHash !== approved.modelHash || manifest.repository !== indexed.repository || manifest.revision !== indexed.revision ||
+      (indexed.manifestFileSha256 && loaded.sha256 !== indexed.manifestFileSha256)) throw fail("candidate_manifest_pin_mismatch");
+  return { approved, manifest, manifestSha256: loaded.sha256, manifestSource: manifestFile === undefined ? "checked-in-candidate" : "explicit-candidate" };
+}
+function loadSuite(file = SUITE_FILE, manifest = pins) {
+  const loaded = readJson(file, MAX_SUITE, "suite");
+  return { ...loaded, value: suite(loaded.value, manifest) };
 }
 async function hashModel(file, expected = pins.modelHash) {
   if (typeof file !== "string" || !path.isAbsolute(file)) throw fail("absolute_model_file_required");
@@ -79,8 +127,8 @@ async function boundedJson(response) {
     catch { throw fail("invalid_runtime_json"); }
   } finally { try { await reader.cancel(); } catch {} }
 }
-async function measureCases({ base, candidate, runtimeModel, passes = 1, timeoutMs = 120000, fetchImpl = fetch }) {
-  base = endpoint(base); candidate = suite(candidate);
+async function measureCases({ base, candidate, manifest = pins, runtimeModel, passes = 1, timeoutMs = 120000, fetchImpl = fetch }) {
+  base = endpoint(base); candidate = suite(candidate, manifest);
   if (typeof runtimeModel !== "string" || !runtimeModel.trim() || runtimeModel.length > 256 || /[\x00-\x1f]/.test(runtimeModel)) throw fail("invalid_runtime_model");
   if (!Number.isSafeInteger(passes) || passes < 1 || passes > 3 || !Number.isSafeInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 120000) throw fail("invalid_measurement_bounds");
   const results = [], startedAt = new Date().toISOString(); let interrupted = false;
@@ -124,7 +172,8 @@ function writeReport(file, report) {
   return hash(bytes);
 }
 function argumentsFor(args) {
-  const names = { "--endpoint": "base", "--model-file": "modelFile", "--output": "output", "--runtime-model": "runtimeModel", "--passes": "passes", "--timeout-ms": "timeoutMs" }, options = {};
+  const names = { "--endpoint": "base", "--model-file": "modelFile", "--output": "output", "--runtime-model": "runtimeModel", "--passes": "passes", "--timeout-ms": "timeoutMs",
+    "--model": "model", "--manifest": "manifestFile", "--suite": "suiteFile" }, options = {};
   for (let index = 0; index < args.length; index += 2) {
     const key = names[args[index]], value = args[index + 1];
     if (!key || !value || Object.hasOwn(options, key)) throw fail("invalid_arguments");
@@ -134,16 +183,21 @@ function argumentsFor(args) {
   return options;
 }
 async function evaluate(options) {
-  const base = endpoint(options.base), loaded = loadSuite(); outputDestination(options.output);
-  const modelFile = await hashModel(options.modelFile), runtimeModel = options.runtimeModel || loaded.value.model;
-  const measurement = await measureCases({ ...options, base, candidate: loaded.value, runtimeModel });
+  const base = endpoint(options.base), selection = loadSelection(options);
+  if (selection.manifest.model !== pins.model && options.suiteFile === undefined) throw fail("explicit_model_suite_required");
+  const loaded = loadSuite(options.suiteFile, selection.manifest); outputDestination(options.output);
+  const modelFile = await hashModel(options.modelFile, selection.manifest.modelHash), runtimeModel = options.runtimeModel || loaded.value.model;
+  const measurement = await measureCases({ ...options, base, candidate: loaded.value, manifest: selection.manifest, runtimeModel });
   const report = { schema: 1, kind: "local-qualification-candidate-measurement", status: "candidate-not-approved",
     signed: false, providerEligibilityCreated: false, runtimeReady: false, suiteSha256: loaded.sha256, suite: loaded.value,
+    model: selection.approved.model, package: selection.approved.package,
+    tokenizerManifest: { sha256: selection.manifestSha256, source: selection.manifestSource, value: selection.manifest, artifactsVerified: false },
     modelFile, inference: { endpoint: base, protocol: "openai-chat-completions", requestedModel: runtimeModel, temperature: 0,
       loadedModelVerified: false, networkQualificationPathVerified: false }, measurement,
     limits: ["The GGUF file hash is verified; this does not prove which file the separate running process loaded.",
       "Local chat-completions measurements do not exercise the signed network prompt, metering, or qualification path.",
-      "This fixed candidate suite is not an approved quality threshold, reward weight, security evaluation, or public certification."] };
+      "The selected manifest identifies exact candidate tokenizer/template pins; this command does not verify tokenizer artifact bytes or vectors.",
+      "This explicit candidate suite is not an approved quality threshold, reward weight, security evaluation, or public certification."] };
   const sha256 = writeReport(options.output, report);
   return { output: options.output, sha256, status: report.status, complete: measurement.complete, passed: measurement.passed,
     completedCalls: measurement.completedCalls, requestedCalls: measurement.requestedCalls, providerEligibilityCreated: false };
@@ -159,6 +213,6 @@ if (require.main === module) evaluate(argumentsForSafe()).then(result => printSu
 });
 function argumentsForSafe() {
   try { return argumentsFor(process.argv.slice(2)); }
-  catch { console.error("Usage: node scripts/evaluate-koin-qualification.js --endpoint http://127.0.0.1:PORT --model-file ABS_GGUF --output ABS_NEW_JSON [--runtime-model NAME] [--passes 1..3] [--timeout-ms 1000..120000]"); process.exit(1); }
+  catch { console.error("Usage: node scripts/evaluate-koin-qualification.js --endpoint http://127.0.0.1:PORT --model-file ABS_GGUF --output ABS_NEW_JSON [--model APPROVED_ALIAS --suite ABS_SUITE_JSON] [--manifest ABS_MANIFEST_JSON] [--runtime-model NAME] [--passes 1..3] [--timeout-ms 1000..120000]"); process.exit(1); }
 }
-module.exports = { endpoint, suite, loadSuite, hashModel, boundedJson, measureCases, outputDestination, writeReport, argumentsFor, evaluate, printSummary, MAX_RESPONSE };
+module.exports = { endpoint, suite, loadSelection, loadSuite, hashModel, boundedJson, measureCases, outputDestination, writeReport, argumentsFor, evaluate, printSummary, MAX_RESPONSE, MAX_MODEL, MAX_SUITE };
