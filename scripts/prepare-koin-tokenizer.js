@@ -8,7 +8,8 @@ const { hash } = require("../lib/koin-network/job-protocol");
 const catalog = require("../deploy/koin-mainnet/model-rates.proposal.json");
 
 function prepare(directory, source, references) {
-  if (!source || Object.keys(source).sort().join() !== "configHash,model,reference,repository,revision,templateHash,tokenizerHash" ||
+  const sourceKeys = "configHash,model,reference,repository,revision,templateHash,tokenizerHash";
+  if (!source || ![sourceKeys, "artifactSource," + sourceKeys].includes(Object.keys(source).sort().join()) ||
       typeof source.reference !== "string" || !source.reference.trim() || source.reference.length > 500) throw Error("Exact independently pinned tokenizer source required");
   const model = catalog.models.find(m => m.model === source.model);
   if (!model) throw Error("Model is not in the approved public catalog");

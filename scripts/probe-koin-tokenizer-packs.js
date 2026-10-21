@@ -78,22 +78,22 @@ test("manifest preparation binds catalog identity and requires independently sup
   assert.throws(() => prepare(f.directory, source, changed), /calibration mismatch/);
 });
 
-test("dated templates use the signed quote UTC time across midnight and never fall back to wall time", async t => {
+for (const [format, firstDay, secondDay] of [["%Y-%m-%d", "2026-10-20", "2026-10-21"], ["%d %b %Y", "20 Oct 2026", "21 Oct 2026"]]) test("dated templates use signed UTC quote time across midnight: " + format, async t => {
   const f = fixture(t), before = Date.UTC(2026, 9, 20, 23, 59, 59, 999), after = before + 1;
   const config = JSON.parse(f.artifacts["tokenizer_config.json"]);
-  config.chat_template = "{{ strftime_now('%Y-%m-%d') }} {% for message in messages %}{{ message.content }} {% endfor %}";
+  config.chat_template = "{{ strftime_now('" + format + "') }} {% for message in messages %}{{ message.content }} {% endfor %}";
   f.artifacts["tokenizer_config.json"] = Buffer.from(JSON.stringify(config));
   f.manifest.configHash = P.hash(f.artifacts["tokenizer_config.json"]); f.manifest.templateHash = P.hash(config.chat_template);
-  const ids = new (require("@huggingface/tokenizers").Tokenizer)(JSON.parse(f.artifacts["tokenizer.json"]), config).encode("2026-10-20 hello world ", { add_special_tokens: false }).ids;
-  Object.assign(f.manifest.vectors[2], { at: before, count: ids.length, idsHash: P.hash(JSON.stringify(ids)), promptHash: P.hash("2026-10-20 hello world ") });
+  const ids = new (require("@huggingface/tokenizers").Tokenizer)(JSON.parse(f.artifacts["tokenizer.json"]), config).encode(firstDay + " hello world ", { add_special_tokens: false }).ids;
+  Object.assign(f.manifest.vectors[2], { at: before, count: ids.length, idsHash: P.hash(JSON.stringify(ids)), promptHash: P.hash(firstDay + " hello world ") });
   const adapter = await install(f.directory, f.manifest, { fetchImpl: f.fetchImpl });
   const tariff = { model: f.manifest.model, modelHash: f.manifest.modelHash, tokenizerHash: f.manifest.tokenizerHash, templateHash: f.manifest.templateHash,
     version: 1, contextTokens: 4096, maxOutputTokens: 64, maxLatencyMs: 1000, inputAtomsPerMillion: "1000000", outputAtomsPerMillion: "4000000" };
   const meter = new (require("../lib/koin-network/metering").Meter)([{ tariff, adapter }]), messages = [{ role: "user", content: "hello" }];
   const first = meter.quote("shadow:fixture", tariff.model, 1, messages, 16, before);
   const second = meter.quote("shadow:fixture", tariff.model, 1, messages, 16, after);
-  assert.equal(first.promptHash, P.hash("2026-10-20 hello "));
-  assert.equal(second.promptHash, P.hash("2026-10-21 hello "));
+  assert.equal(first.promptHash, P.hash(firstDay + " hello "));
+  assert.equal(second.promptHash, P.hash(secondDay + " hello "));
   // Dispatch/recovery must rerender with the saved quote's timestamp, even
   // after another request was quoted on the next UTC date.
   assert.equal(P.hash(meter.entry(tariff.model, 1).render(messages, first.at)), first.promptHash);

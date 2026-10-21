@@ -111,7 +111,12 @@ test("approved larger-model selection binds package and exact checked-in manifes
   const changed = structuredClone(explicit.manifest); changed.templateHash = digest("other template"); fs.writeFileSync(file, JSON.stringify(changed));
   assert.throws(() => E.loadSelection({ model: "qwen25-32b", manifestFile: file }), /candidate_manifest_pin_mismatch/);
   for (const model of ["dev-tiny", "__proto__", "private-api", "../qwen25-32b"]) assert.throws(() => E.loadSelection({ model }), /approved_model_required/);
-  assert.throws(() => E.loadSelection({ model: "gemma3-27b" }), /candidate_manifest_unavailable/);
+  const gemma = E.loadSelection({ model: "gemma3-27b" }), gemmaFile = path.join(__dirname, "../lib/koin-network/tokenizers/candidates/gemma3-27b.json");
+  assert.equal(gemma.manifest.model, "gemma3-27b"); assert.equal(gemma.manifest.modelHash, "4e83142e3ad3719ac61334f70a956dcc60bbba8adb29de5114161310bb9f7170");
+  assert.equal(gemma.manifest.modelHash, gemma.approved.modelHash); assert.equal(gemma.manifestSha256, digest(fs.readFileSync(gemmaFile)));
+  assert.equal(gemma.manifest.mode, "shadow"); assert.equal(gemma.manifestSource, "checked-in-candidate");
+  const index = require("../lib/koin-network/tokenizers/candidates/index.json"), indexed = index.models.find(m => m.model === gemma.manifest.model);
+  assert.equal(index.productionApproved, false); assert.equal(indexed.runtimeModelVerified, false); assert.equal(indexed.paidAdmission, false);
 });
 test("new suites require exact model package/pins and explicit bounded cases without inventing quality thresholds", () => {
   const selection = E.loadSelection({ model: "qwen25-32b" }), input = modelSuite(selection), manifest = selection.manifest;

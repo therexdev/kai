@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "model": "gemma3-12b",
+  "repository": "bartowski/google_gemma-3-12b-it-GGUF",
+  "revision": "648e3a36a77c8a9f12d86e741f9dcb9089c769c4",
+  "filename": "google_gemma-3-12b-it-Q4_K_M.gguf",
+  "metadataUrl": "https://huggingface.co/api/models/bartowski/google_gemma-3-12b-it-GGUF/revision/648e3a36a77c8a9f12d86e741f9dcb9089c769c4?blobs=true",
+  "publishedModelSha256": "fc57f67efa46d711c346e587cbef7d049e95f3df8db2eb2271153343ef0acc7b",
+  "publishedModelSize": 7300575264,
+  "publishedHashMatchesCatalog": true,
+  "downloadedFullModelVerified": false,
+  "prefixBytes": 16000000,
+  "prefixSha256": "7ea6ce3034e317b475e13d47fcd84f2688bfad346e85fb529848f53ddde0e497",
+  "metadataBytes": 6513318,
+  "nativeReference": {
+    "version": "b10423",
+    "archiveSha256": "664ffbf9134dbc12b2de3281d0404cb8f98a2339580911e5f74035dc320e0e84",
+    "tokenizeBinarySha256": "5f0c1691b78ced63c8a67c1122ffffa820967094295c6d0f36a8a3880de02ec6",
+    "sourceUrl": "https://raw.githubusercontent.com/ggml-org/llama.cpp/b10423/tools/tokenize/tokenize.cpp",
+    "sourceSha256": "db0cd035294b91009250029a1435a1a688d72eb489c406b630d2293b30d6fb34",
+    "vocabOnly": true,
+    "modelWeightsUsed": false
+  }
+}

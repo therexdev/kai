@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "model": "koinos-balanced",
+  "repository": "bartowski/Llama-3.2-3B-Instruct-GGUF",
+  "revision": "5ab33fa94d1d04e903623ae72c95d1696f09f9e8",
+  "filename": "Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+  "metadataUrl": "https://huggingface.co/api/models/bartowski/Llama-3.2-3B-Instruct-GGUF/revision/5ab33fa94d1d04e903623ae72c95d1696f09f9e8?blobs=true",
+  "publishedModelSha256": "6c1a2b41161032677be168d354123594c0e6e67d2b9227c84f296ad037c728ff",
+  "publishedModelSize": 2019377696,
+  "publishedHashMatchesCatalog": true,
+  "downloadedFullModelVerified": false,
+  "prefixBytes": 16000000,
+  "prefixSha256": "11d0da13a9750942c1661fcd0c9d9b61accedbcc411b038c3c3810480fde53f6",
+  "metadataBytes": 7822851,
+  "nativeReference": {
+    "version": "b10423",
+    "archiveSha256": "664ffbf9134dbc12b2de3281d0404cb8f98a2339580911e5f74035dc320e0e84",
+    "tokenizeBinarySha256": "5f0c1691b78ced63c8a67c1122ffffa820967094295c6d0f36a8a3880de02ec6",
+    "sourceUrl": "https://raw.githubusercontent.com/ggml-org/llama.cpp/b10423/tools/tokenize/tokenize.cpp",
+    "sourceSha256": "db0cd035294b91009250029a1435a1a688d72eb489c406b630d2293b30d6fb34",
+    "vocabOnly": true,
+    "modelWeightsUsed": false
+  }
+}
