@@ -1,0 +1,1086 @@
+{
+  "mode": "mainnet-prepaid-usd-plan",
+  "rpc": [
+    "https://api.koinosai.com",
+    "https://api.koinos.io"
+  ],
+  "settings": {
+    "owner": "YOUR_MAINNET_BUYER_PUBLIC_ADDRESS",
+    "schedulerUrl": "https://credits.koinosai.com/scheduler",
+    "deployRcLimit": null,
+    "maxRcPerTransaction": null,
+    "maxRcPerDay": null,
+    "limits": {
+      "amount": null,
+      "perJob": null,
+      "maxJobs": 10,
+      "durationMs": 3600000
+    },
+    "accountMode": "public",
+    "models": [
+      {
+        "tariff": {
+          "version": 1,
+          "model": "koinos-fast",
+          "modelHash": "1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370",
+          "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+          "inputAtomsPerMillion": "1000000",
+          "outputAtomsPerMillion": "4000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": {
+          "schema": 1,
+          "mode": "shadow",
+          "model": "koinos-fast",
+          "modelHash": "1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370",
+          "repository": "Qwen/Qwen2.5-1.5B-Instruct",
+          "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+          "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "configHash": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+          "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+          "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6",
+          "vectors": [
+            {
+              "text": "Hello, world!",
+              "count": 4,
+              "idsHash": "ac77c278585afdac8b1f2318cf5ec06ac09f9744cf694355f823f428e123c36e"
+            },
+            {
+              "text": "\u4f60\u597d\uff0c\u4e16\u754c\uff01 \ud83c\udf0d caf\u00e9 e\u0301",
+              "count": 9,
+              "idsHash": "4f9c2e155957ddd6c2bc7e70829dd58cb9f91a25bb985a6b3379f9c5800024ad"
+            },
+            {
+              "text": "<|im_start|>assistant\n",
+              "count": 3,
+              "idsHash": "ef5941940ee034899cf442aef3e9af7a6c443ade9dd4afaa5d7fa2c4defd9d3f"
+            },
+            {
+              "text": "Line 1\r\n  0023 +\t42\n\ud834\udd1e\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbb",
+              "count": 22,
+              "idsHash": "a10a798b1090be21f2d910b4d86730f45fe2cff9f7a98627767c905b4b1c2f1d"
+            },
+            {
+              "text": "\u041f\u0440\u0438\u0432\u0435\u0442 \u043c\u0438\u0440! \u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645! \u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u0941\u0928\u093f\u092f\u093e!",
+              "count": 26,
+              "idsHash": "d5abbe5da1b4394ca6d4853f076a104a0fa764a901f62ffeb650fff1c07a4e70"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "064258bd8097a629ece10515bfbfb3724670172fecd628e94e288d8e2a57fdc2",
+              "count": 37,
+              "idsHash": "972ff6b59f5aac4d32d2c55604150e312d3bda62b441909faa3e82b36e1f93b5"
+            },
+            {
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Reply briefly."
+                },
+                {
+                  "role": "user",
+                  "content": "\u4f60\u597d\uff0c\u4e16\u754c\uff01"
+                },
+                {
+                  "role": "assistant",
+                  "content": "\u4f60\u597d\uff01"
+                },
+                {
+                  "role": "user",
+                  "content": "Now in English, please."
+                }
+              ],
+              "promptHash": "6f1aa82a3f9282a0005a5e0b8f1d41255d2d8e1dfe0101ed7e25cbdf44d90629",
+              "count": 38,
+              "idsHash": "a9085a8236ad95060fa06bbb045c2b8fa8722b99b429c4f19c218c0725019a12"
+            }
+          ]
+        }
+      },
+      {
+        "tariff": {
+          "version": 1,
+          "model": "koinos-balanced",
+          "modelHash": "6c1a2b41161032677be168d354123594c0e6e67d2b9227c84f296ad037c728ff",
+          "tokenizerHash": null,
+          "templateHash": null,
+          "inputAtomsPerMillion": "1500000",
+          "outputAtomsPerMillion": "6000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": null
+      },
+      {
+        "tariff": {
+          "version": 1,
+          "model": "gemma3-4b",
+          "modelHash": "4996030242583a40aa151ff93f49ed787ac8c25e4120c3ae4588b2e2a7d1ae94",
+          "tokenizerHash": null,
+          "templateHash": null,
+          "inputAtomsPerMillion": "2000000",
+          "outputAtomsPerMillion": "8000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": null
+      },
+      {
+        "tariff": {
+          "version": 1,
+          "model": "koinos-smart",
+          "modelHash": "65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423",
+          "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+          "inputAtomsPerMillion": "2500000",
+          "outputAtomsPerMillion": "10000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": {
+          "schema": 1,
+          "mode": "shadow",
+          "model": "koinos-smart",
+          "modelHash": "65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423",
+          "repository": "Qwen/Qwen2.5-7B-Instruct",
+          "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+          "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "configHash": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+          "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+          "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6; candidate only, local runtime calibration pending",
+          "vectors": [
+            {
+              "text": "Hello, world!",
+              "count": 4,
+              "idsHash": "ac77c278585afdac8b1f2318cf5ec06ac09f9744cf694355f823f428e123c36e"
+            },
+            {
+              "text": "\u4f60\u597d\uff0c\u4e16\u754c\uff01 \ud83c\udf0d caf\u00e9 e\u0301",
+              "count": 9,
+              "idsHash": "4f9c2e155957ddd6c2bc7e70829dd58cb9f91a25bb985a6b3379f9c5800024ad"
+            },
+            {
+              "text": "Line 1\r\n  0023 +\t42\n\ud834\udd1e\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbb",
+              "count": 22,
+              "idsHash": "a10a798b1090be21f2d910b4d86730f45fe2cff9f7a98627767c905b4b1c2f1d"
+            },
+            {
+              "text": "\u041f\u0440\u0438\u0432\u0435\u0442 \u043c\u0438\u0440! \u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645! \u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u0941\u0928\u093f\u092f\u093e!",
+              "count": 26,
+              "idsHash": "d5abbe5da1b4394ca6d4853f076a104a0fa764a901f62ffeb650fff1c07a4e70"
+            },
+            {
+              "text": "<|im_start|>assistant\n",
+              "count": 3,
+              "idsHash": "ef5941940ee034899cf442aef3e9af7a6c443ade9dd4afaa5d7fa2c4defd9d3f"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "064258bd8097a629ece10515bfbfb3724670172fecd628e94e288d8e2a57fdc2",
+              "count": 37,
+              "idsHash": "972ff6b59f5aac4d32d2c55604150e312d3bda62b441909faa3e82b36e1f93b5"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "\u4f60\u597d\uff0c\u4e16\u754c\uff01"
+                },
+                {
+                  "role": "assistant",
+                  "content": "\u4f60\u597d\uff01"
+                },
+                {
+                  "role": "user",
+                  "content": "Now in English, please."
+                }
+              ],
+              "promptHash": "a0a07712d75a1cf530dc0d30fbda077725851c03b464d8e80310c13c42eb923c",
+              "count": 51,
+              "idsHash": "46a189faf09688d219d2d8313338d06826ad650a835e2c90b821171bd2fcbf5a"
+            },
+            {
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Reply briefly."
+                },
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "a605ca6de347fd2e6cc2dcc747f43454c470ae11b1844bc1db48323d281507d1",
+              "count": 24,
+              "idsHash": "685592948b6da0f799406f3685de7ddec9e9b2092645a9cbac70627e922928cd"
+            }
+          ]
+        }
+      },
+      {
+        "tariff": {
+          "version": 1,
+          "model": "mistral-7b",
+          "modelHash": "1270d22c0fbb3d092fb725d4d96c457b7b687a5f5a715abe1e818da303e562b6",
+          "tokenizerHash": "e553af6fff7d7ad76e830608b218c5c0b0822998d5a1a96099a74cd3c1cb1a49",
+          "templateHash": "e16746b40344d6c5b5265988e0328a0bf7277be86f1c335156eae07e29c82826",
+          "inputAtomsPerMillion": "2500000",
+          "outputAtomsPerMillion": "10000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": {
+          "schema": 1,
+          "mode": "shadow",
+          "model": "mistral-7b",
+          "modelHash": "1270d22c0fbb3d092fb725d4d96c457b7b687a5f5a715abe1e818da303e562b6",
+          "repository": "mistralai/Mistral-7B-Instruct-v0.3",
+          "revision": "c170c708c41dac9275d15a8fff4eca08d52bab71",
+          "tokenizerHash": "e553af6fff7d7ad76e830608b218c5c0b0822998d5a1a96099a74cd3c1cb1a49",
+          "configHash": "0533dec9cfe319163801b6618d0f3ec9cfa126b6288e3df5deca6e32acb09cd2",
+          "templateHash": "e16746b40344d6c5b5265988e0328a0bf7277be86f1c335156eae07e29c82826",
+          "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6; candidate only, local runtime calibration pending",
+          "vectors": [
+            {
+              "text": "Hello, world!",
+              "count": 4,
+              "idsHash": "1714f4afae7f7bf99b5a3db32ed5f13e56a5ba7bf33bf9d9fa47856c817486a5"
+            },
+            {
+              "text": "\u4f60\u597d\uff0c\u4e16\u754c\uff01 \ud83c\udf0d caf\u00e9 e\u0301",
+              "count": 12,
+              "idsHash": "ccc1263998a37844a98554ac205de6e45a51db1724aefc5a72cb2b990aeb0e61"
+            },
+            {
+              "text": "Line 1\r\n  0023 +\t42\n\ud834\udd1e\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbb",
+              "count": 29,
+              "idsHash": "3964de816939f0661cf084f171ce1c337bd0f96015acc074496f6d3d16654d77"
+            },
+            {
+              "text": "\u041f\u0440\u0438\u0432\u0435\u0442 \u043c\u0438\u0440! \u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645! \u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u0941\u0928\u093f\u092f\u093e!",
+              "count": 32,
+              "idsHash": "970fc28f10ce6f21fe2eea5f1c58fdae739e9a895060bb2c5ced05082cce05a5"
+            },
+            {
+              "text": "<|im_start|>assistant\n",
+              "count": 10,
+              "idsHash": "e41f5f7577e57a4e78928271e795b5cccadba5190c518af38dcffa56368e9068"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "babd0554d9432acbdf02784edc75ba9be83bc621a4cc936c9a55d7ef77c7e463",
+              "count": 11,
+              "idsHash": "24e7737447d1bd44bfa84c5b8288b0ffb8fa48e9398c2a5aae9ed51672291152"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "\u4f60\u597d\uff0c\u4e16\u754c\uff01"
+                },
+                {
+                  "role": "assistant",
+                  "content": "\u4f60\u597d\uff01"
+                },
+                {
+                  "role": "user",
+                  "content": "Now in English, please."
+                }
+              ],
+              "promptHash": "b70744f66df53990608c3ed8ecd61b824f2ceed0ffecdfce9acf807a4ec56ae9",
+              "count": 23,
+              "idsHash": "ad0f237ccb43424b8b5fd47045f54d035c968946746957bdbc9ee204f288fbb6"
+            },
+            {
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Reply briefly."
+                },
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "da3ce0373106c32982b5accea720e3363f09a4b0a32e4898229fde64f7260f2a",
+              "count": 17,
+              "idsHash": "293b406cc837452ae97fa2434a8eba023126fb17aaa8904c1d06f2b0851ec836"
+            }
+          ]
+        }
+      },
+      {
+        "tariff": {
+          "version": 1,
+          "model": "qwen-coder-7b",
+          "modelHash": "1664fccab734674a50763490a8c6931b70e3f2f8ec10031b54806d30e5f956b6",
+          "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+          "inputAtomsPerMillion": "2500000",
+          "outputAtomsPerMillion": "10000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": {
+          "schema": 1,
+          "mode": "shadow",
+          "model": "qwen-coder-7b",
+          "modelHash": "1664fccab734674a50763490a8c6931b70e3f2f8ec10031b54806d30e5f956b6",
+          "repository": "Qwen/Qwen2.5-Coder-7B-Instruct",
+          "revision": "c03e6d358207e414f1eca0bb1891e29f1db0e242",
+          "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "configHash": "959e7f1d9a1b7641a6d6ce05ca97b75c7894fcb66cbe5a040406458fb1128ee4",
+          "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+          "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6; candidate only, local runtime calibration pending",
+          "vectors": [
+            {
+              "text": "Hello, world!",
+              "count": 4,
+              "idsHash": "ac77c278585afdac8b1f2318cf5ec06ac09f9744cf694355f823f428e123c36e"
+            },
+            {
+              "text": "\u4f60\u597d\uff0c\u4e16\u754c\uff01 \ud83c\udf0d caf\u00e9 e\u0301",
+              "count": 9,
+              "idsHash": "4f9c2e155957ddd6c2bc7e70829dd58cb9f91a25bb985a6b3379f9c5800024ad"
+            },
+            {
+              "text": "Line 1\r\n  0023 +\t42\n\ud834\udd1e\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbb",
+              "count": 22,
+              "idsHash": "a10a798b1090be21f2d910b4d86730f45fe2cff9f7a98627767c905b4b1c2f1d"
+            },
+            {
+              "text": "\u041f\u0440\u0438\u0432\u0435\u0442 \u043c\u0438\u0440! \u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645! \u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u0941\u0928\u093f\u092f\u093e!",
+              "count": 26,
+              "idsHash": "d5abbe5da1b4394ca6d4853f076a104a0fa764a901f62ffeb650fff1c07a4e70"
+            },
+            {
+              "text": "<|im_start|>assistant\n",
+              "count": 3,
+              "idsHash": "ef5941940ee034899cf442aef3e9af7a6c443ade9dd4afaa5d7fa2c4defd9d3f"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "064258bd8097a629ece10515bfbfb3724670172fecd628e94e288d8e2a57fdc2",
+              "count": 37,
+              "idsHash": "972ff6b59f5aac4d32d2c55604150e312d3bda62b441909faa3e82b36e1f93b5"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "\u4f60\u597d\uff0c\u4e16\u754c\uff01"
+                },
+                {
+                  "role": "assistant",
+                  "content": "\u4f60\u597d\uff01"
+                },
+                {
+                  "role": "user",
+                  "content": "Now in English, please."
+                }
+              ],
+              "promptHash": "a0a07712d75a1cf530dc0d30fbda077725851c03b464d8e80310c13c42eb923c",
+              "count": 51,
+              "idsHash": "46a189faf09688d219d2d8313338d06826ad650a835e2c90b821171bd2fcbf5a"
+            },
+            {
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Reply briefly."
+                },
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "a605ca6de347fd2e6cc2dcc747f43454c470ae11b1844bc1db48323d281507d1",
+              "count": 24,
+              "idsHash": "685592948b6da0f799406f3685de7ddec9e9b2092645a9cbac70627e922928cd"
+            }
+          ]
+        }
+      },
+      {
+        "tariff": {
+          "version": 1,
+          "model": "llama31-8b",
+          "modelHash": "7b064f5842bf9532c91456deda288a1b672397a54fa729aa665952863033557c",
+          "tokenizerHash": null,
+          "templateHash": null,
+          "inputAtomsPerMillion": "2500000",
+          "outputAtomsPerMillion": "10000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": null
+      },
+      {
+        "tariff": {
+          "version": 1,
+          "model": "gemma3-12b",
+          "modelHash": "fc57f67efa46d711c346e587cbef7d049e95f3df8db2eb2271153343ef0acc7b",
+          "tokenizerHash": null,
+          "templateHash": null,
+          "inputAtomsPerMillion": "3500000",
+          "outputAtomsPerMillion": "14000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": null
+      },
+      {
+        "tariff": {
+          "version": 1,
+          "model": "qwen25-14b",
+          "modelHash": "e47ad95dad6ff848b431053b375adb5d39321290ea2c638682577dafca87c008",
+          "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+          "inputAtomsPerMillion": "4000000",
+          "outputAtomsPerMillion": "16000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": {
+          "schema": 1,
+          "mode": "shadow",
+          "model": "qwen25-14b",
+          "modelHash": "e47ad95dad6ff848b431053b375adb5d39321290ea2c638682577dafca87c008",
+          "repository": "Qwen/Qwen2.5-14B-Instruct",
+          "revision": "cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8",
+          "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "configHash": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+          "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+          "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6; candidate only, local runtime calibration pending",
+          "vectors": [
+            {
+              "text": "Hello, world!",
+              "count": 4,
+              "idsHash": "ac77c278585afdac8b1f2318cf5ec06ac09f9744cf694355f823f428e123c36e"
+            },
+            {
+              "text": "\u4f60\u597d\uff0c\u4e16\u754c\uff01 \ud83c\udf0d caf\u00e9 e\u0301",
+              "count": 9,
+              "idsHash": "4f9c2e155957ddd6c2bc7e70829dd58cb9f91a25bb985a6b3379f9c5800024ad"
+            },
+            {
+              "text": "Line 1\r\n  0023 +\t42\n\ud834\udd1e\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbb",
+              "count": 22,
+              "idsHash": "a10a798b1090be21f2d910b4d86730f45fe2cff9f7a98627767c905b4b1c2f1d"
+            },
+            {
+              "text": "\u041f\u0440\u0438\u0432\u0435\u0442 \u043c\u0438\u0440! \u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645! \u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u0941\u0928\u093f\u092f\u093e!",
+              "count": 26,
+              "idsHash": "d5abbe5da1b4394ca6d4853f076a104a0fa764a901f62ffeb650fff1c07a4e70"
+            },
+            {
+              "text": "<|im_start|>assistant\n",
+              "count": 3,
+              "idsHash": "ef5941940ee034899cf442aef3e9af7a6c443ade9dd4afaa5d7fa2c4defd9d3f"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "064258bd8097a629ece10515bfbfb3724670172fecd628e94e288d8e2a57fdc2",
+              "count": 37,
+              "idsHash": "972ff6b59f5aac4d32d2c55604150e312d3bda62b441909faa3e82b36e1f93b5"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "\u4f60\u597d\uff0c\u4e16\u754c\uff01"
+                },
+                {
+                  "role": "assistant",
+                  "content": "\u4f60\u597d\uff01"
+                },
+                {
+                  "role": "user",
+                  "content": "Now in English, please."
+                }
+              ],
+              "promptHash": "a0a07712d75a1cf530dc0d30fbda077725851c03b464d8e80310c13c42eb923c",
+              "count": 51,
+              "idsHash": "46a189faf09688d219d2d8313338d06826ad650a835e2c90b821171bd2fcbf5a"
+            },
+            {
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Reply briefly."
+                },
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "a605ca6de347fd2e6cc2dcc747f43454c470ae11b1844bc1db48323d281507d1",
+              "count": 24,
+              "idsHash": "685592948b6da0f799406f3685de7ddec9e9b2092645a9cbac70627e922928cd"
+            }
+          ]
+        }
+      },
+      {
+        "tariff": {
+          "version": 1,
+          "model": "phi-4",
+          "modelHash": "009aba717c09d4a35890c7d35eb59d54e1dba884c7c526e7197d9c13ab5911d9",
+          "tokenizerHash": "9f38d05d9d25756bb2f181ab5a0cebcd59e638df10336fc7ed1010f7296d0298",
+          "templateHash": "fe4120415a3858b873955c92ce3a103a95bc97c2cb00b72e62659aaf0f891ee5",
+          "inputAtomsPerMillion": "4000000",
+          "outputAtomsPerMillion": "16000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": {
+          "schema": 1,
+          "mode": "shadow",
+          "model": "phi-4",
+          "modelHash": "009aba717c09d4a35890c7d35eb59d54e1dba884c7c526e7197d9c13ab5911d9",
+          "repository": "microsoft/phi-4",
+          "revision": "2db69c1c3e91a05d2c64a3185acfbaf36f744e25",
+          "tokenizerHash": "9f38d05d9d25756bb2f181ab5a0cebcd59e638df10336fc7ed1010f7296d0298",
+          "configHash": "2b707658c7c2b41580155a45503d7d3b42dc2f530bef678f67a39bf5d10b0510",
+          "templateHash": "fe4120415a3858b873955c92ce3a103a95bc97c2cb00b72e62659aaf0f891ee5",
+          "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6; candidate only, local runtime calibration pending",
+          "vectors": [
+            {
+              "text": "Hello, world!",
+              "count": 4,
+              "idsHash": "9ede3e9b737420085993f89d15540cc415a517bf1cd863922bb24a64412f8b10"
+            },
+            {
+              "text": "\u4f60\u597d\uff0c\u4e16\u754c\uff01 \ud83c\udf0d caf\u00e9 e\u0301",
+              "count": 13,
+              "idsHash": "928f9bb432ea9c2f40cfcf48e9c5e24399327ce81c1054911c4d48a40868d81b"
+            },
+            {
+              "text": "Line 1\r\n  0023 +\t42\n\ud834\udd1e\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbb",
+              "count": 25,
+              "idsHash": "400bd73be2e5f08c1c1dfdbf159baf66cea2263e6873e278c19ae173e7eca4e8"
+            },
+            {
+              "text": "\u041f\u0440\u0438\u0432\u0435\u0442 \u043c\u0438\u0440! \u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645! \u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u0941\u0928\u093f\u092f\u093e!",
+              "count": 32,
+              "idsHash": "b5760d2c7eef39ee6403faa2255993d1160347f679319e72811c72604875a242"
+            },
+            {
+              "text": "<|im_start|>assistant\n",
+              "count": 3,
+              "idsHash": "6fe6a47fc0f649ba2ec72975a273066222e14caba3bbbad0bd8449cfd4b7dcdb"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "e669461d4e071a7726db016c8379838fcaa79a79ec3b9425db296c178a834b44",
+              "count": 15,
+              "idsHash": "c529684fc9988c36c9eead4e25cf3c13766681b5a4e3863b46b5fad9072ecdcc"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "\u4f60\u597d\uff0c\u4e16\u754c\uff01"
+                },
+                {
+                  "role": "assistant",
+                  "content": "\u4f60\u597d\uff01"
+                },
+                {
+                  "role": "user",
+                  "content": "Now in English, please."
+                }
+              ],
+              "promptHash": "8f0d913f19aa6a6345ea8037b14a0aa5f6edd243e76e00e3694d6aef45ede7b0",
+              "count": 31,
+              "idsHash": "fcd99a7bd253c1823e438d5181a363e5b203b5caccaf0849b5ed2e0e9373b2c1"
+            },
+            {
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Reply briefly."
+                },
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "9053a8a2d5878de6853ed690dd2e201526e9d67039a9f79aaa29843fd5ac5b2c",
+              "count": 22,
+              "idsHash": "72c8a1684e1f74e60fbbf75e217dd0a3313060ecd70fb45a01613171566a0d83"
+            }
+          ]
+        }
+      },
+      {
+        "tariff": {
+          "version": 1,
+          "model": "mistral-small-24b",
+          "modelHash": "d1a6d049f09730c3f8ba26cf6b0b60c89790b5fdafa9a59c819acdfe93fffd1b",
+          "tokenizerHash": "b76085f9923309d873994d444989f7eb6ec074b06f25b58f1e8d7b7741070949",
+          "templateHash": "3934d199bfe5b6fab5cba1b5f8ee475e8d5738ac315f21cb09545b4e665cc005",
+          "inputAtomsPerMillion": "6000000",
+          "outputAtomsPerMillion": "24000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": {
+          "schema": 1,
+          "mode": "shadow",
+          "model": "mistral-small-24b",
+          "modelHash": "d1a6d049f09730c3f8ba26cf6b0b60c89790b5fdafa9a59c819acdfe93fffd1b",
+          "repository": "mistralai/Mistral-Small-24B-Instruct-2501",
+          "revision": "9527884be6e5616bdd54de542f9ae13384489724",
+          "tokenizerHash": "b76085f9923309d873994d444989f7eb6ec074b06f25b58f1e8d7b7741070949",
+          "configHash": "85090a231c4b1432c95cf62d5857777df08c0939fc698bf89b91ccc96f92400e",
+          "templateHash": "3934d199bfe5b6fab5cba1b5f8ee475e8d5738ac315f21cb09545b4e665cc005",
+          "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6 with exact quote.at UTC date; candidate only, runtime calibration pending",
+          "vectors": [
+            {
+              "text": "Hello, world!",
+              "count": 4,
+              "idsHash": "8293d47ac0bcb55f15e0ae01d97934516c5300d48f69af5b569d560a4d186ea3"
+            },
+            {
+              "text": "\u4f60\u597d\uff0c\u4e16\u754c\uff01 \ud83c\udf0d caf\u00e9 e\u0301",
+              "count": 11,
+              "idsHash": "fcb02691d0bb2a724a006e898f39246e6fecfb52fe759cc9e933ef0339499440"
+            },
+            {
+              "text": "Line 1\r\n  0023 +\t42\n\ud834\udd1e\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbb",
+              "count": 33,
+              "idsHash": "6c4271cfa9a8af6ccae834a0ae39c69fe209232f5b0e090a989d8767a418f855"
+            },
+            {
+              "text": "\u041f\u0440\u0438\u0432\u0435\u0442 \u043c\u0438\u0440! \u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645! \u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u0941\u0928\u093f\u092f\u093e!",
+              "count": 19,
+              "idsHash": "366d8902c4dced69d2aa4e522c9cac215cdcbf810e961ef1c98a8aa3653c28b8"
+            },
+            {
+              "text": "<|im_start|>assistant\n",
+              "count": 9,
+              "idsHash": "b575fc4be90c1f9a8d6a2c093cbaf19d586d6adbd36aec76db2b330f52f283ce"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "at": 1792540800000,
+              "promptHash": "b06130cdf495e21fa34f755019b26578aed42b67b3ecdb8dbe5f0ff2db67f7e4",
+              "count": 185,
+              "idsHash": "19beb155101c9e54e6848b4fa3fd20cddb344fea989e48d9c6f7753df77091aa"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "\u4f60\u597d\uff0c\u4e16\u754c\uff01"
+                },
+                {
+                  "role": "assistant",
+                  "content": "\u4f60\u597d\uff01"
+                },
+                {
+                  "role": "user",
+                  "content": "Now in English, please."
+                }
+              ],
+              "at": 1792540800000,
+              "promptHash": "119c0d669afac62876bca6d89660c3ff18c5e54f39b4908dced61a6ba35f71cc",
+              "count": 192,
+              "idsHash": "05baac9690f0a1822386e98ffbdec0db0e8cfc159d390f05f760083fefbffd0e"
+            },
+            {
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Reply briefly."
+                },
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "at": 1792540800000,
+              "promptHash": "1787425de52b4b55e0db6ab1746f298e05ce44ca8449ce859b4f4f92ff3a7ec7",
+              "count": 16,
+              "idsHash": "7ff3dcc1e1992ae30669de439efa9d8189d8cdf6be67741f6d7168378e6c2b6b"
+            }
+          ]
+        }
+      },
+      {
+        "tariff": {
+          "version": 1,
+          "model": "gemma3-27b",
+          "modelHash": "4e83142e3ad3719ac61334f70a956dcc60bbba8adb29de5114161310bb9f7170",
+          "tokenizerHash": null,
+          "templateHash": null,
+          "inputAtomsPerMillion": "7000000",
+          "outputAtomsPerMillion": "28000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": null
+      },
+      {
+        "tariff": {
+          "version": 1,
+          "model": "qwen25-32b",
+          "modelHash": "2e5f6daea180dbc59f65a40641e94d3973b5dbaa32b3c0acf54647fa874e519e",
+          "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+          "inputAtomsPerMillion": "8000000",
+          "outputAtomsPerMillion": "32000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": {
+          "schema": 1,
+          "mode": "shadow",
+          "model": "qwen25-32b",
+          "modelHash": "2e5f6daea180dbc59f65a40641e94d3973b5dbaa32b3c0acf54647fa874e519e",
+          "repository": "Qwen/Qwen2.5-32B-Instruct",
+          "revision": "5ede1c97bbab6ce5cda5812749b4c0bdf79b18dd",
+          "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "configHash": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+          "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+          "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6; candidate only, local runtime calibration pending",
+          "vectors": [
+            {
+              "text": "Hello, world!",
+              "count": 4,
+              "idsHash": "ac77c278585afdac8b1f2318cf5ec06ac09f9744cf694355f823f428e123c36e"
+            },
+            {
+              "text": "\u4f60\u597d\uff0c\u4e16\u754c\uff01 \ud83c\udf0d caf\u00e9 e\u0301",
+              "count": 9,
+              "idsHash": "4f9c2e155957ddd6c2bc7e70829dd58cb9f91a25bb985a6b3379f9c5800024ad"
+            },
+            {
+              "text": "Line 1\r\n  0023 +\t42\n\ud834\udd1e\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbb",
+              "count": 22,
+              "idsHash": "a10a798b1090be21f2d910b4d86730f45fe2cff9f7a98627767c905b4b1c2f1d"
+            },
+            {
+              "text": "\u041f\u0440\u0438\u0432\u0435\u0442 \u043c\u0438\u0440! \u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645! \u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u0941\u0928\u093f\u092f\u093e!",
+              "count": 26,
+              "idsHash": "d5abbe5da1b4394ca6d4853f076a104a0fa764a901f62ffeb650fff1c07a4e70"
+            },
+            {
+              "text": "<|im_start|>assistant\n",
+              "count": 3,
+              "idsHash": "ef5941940ee034899cf442aef3e9af7a6c443ade9dd4afaa5d7fa2c4defd9d3f"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "064258bd8097a629ece10515bfbfb3724670172fecd628e94e288d8e2a57fdc2",
+              "count": 37,
+              "idsHash": "972ff6b59f5aac4d32d2c55604150e312d3bda62b441909faa3e82b36e1f93b5"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "\u4f60\u597d\uff0c\u4e16\u754c\uff01"
+                },
+                {
+                  "role": "assistant",
+                  "content": "\u4f60\u597d\uff01"
+                },
+                {
+                  "role": "user",
+                  "content": "Now in English, please."
+                }
+              ],
+              "promptHash": "a0a07712d75a1cf530dc0d30fbda077725851c03b464d8e80310c13c42eb923c",
+              "count": 51,
+              "idsHash": "46a189faf09688d219d2d8313338d06826ad650a835e2c90b821171bd2fcbf5a"
+            },
+            {
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Reply briefly."
+                },
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "a605ca6de347fd2e6cc2dcc747f43454c470ae11b1844bc1db48323d281507d1",
+              "count": 24,
+              "idsHash": "685592948b6da0f799406f3685de7ddec9e9b2092645a9cbac70627e922928cd"
+            }
+          ]
+        }
+      },
+      {
+        "tariff": {
+          "version": 1,
+          "model": "qwen-coder-32b",
+          "modelHash": "8e2fd78ff55e7cdf577fda257bac2776feb7d73d922613caf35468073807e815",
+          "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+          "inputAtomsPerMillion": "8000000",
+          "outputAtomsPerMillion": "32000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": {
+          "schema": 1,
+          "mode": "shadow",
+          "model": "qwen-coder-32b",
+          "modelHash": "8e2fd78ff55e7cdf577fda257bac2776feb7d73d922613caf35468073807e815",
+          "repository": "Qwen/Qwen2.5-Coder-32B-Instruct",
+          "revision": "381fc969f78efac66bc87ff7ddeadb7e73c218a7",
+          "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "configHash": "959e7f1d9a1b7641a6d6ce05ca97b75c7894fcb66cbe5a040406458fb1128ee4",
+          "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+          "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6; candidate only, local runtime calibration pending",
+          "vectors": [
+            {
+              "text": "Hello, world!",
+              "count": 4,
+              "idsHash": "ac77c278585afdac8b1f2318cf5ec06ac09f9744cf694355f823f428e123c36e"
+            },
+            {
+              "text": "\u4f60\u597d\uff0c\u4e16\u754c\uff01 \ud83c\udf0d caf\u00e9 e\u0301",
+              "count": 9,
+              "idsHash": "4f9c2e155957ddd6c2bc7e70829dd58cb9f91a25bb985a6b3379f9c5800024ad"
+            },
+            {
+              "text": "Line 1\r\n  0023 +\t42\n\ud834\udd1e\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbb",
+              "count": 22,
+              "idsHash": "a10a798b1090be21f2d910b4d86730f45fe2cff9f7a98627767c905b4b1c2f1d"
+            },
+            {
+              "text": "\u041f\u0440\u0438\u0432\u0435\u0442 \u043c\u0438\u0440! \u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645! \u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u0941\u0928\u093f\u092f\u093e!",
+              "count": 26,
+              "idsHash": "d5abbe5da1b4394ca6d4853f076a104a0fa764a901f62ffeb650fff1c07a4e70"
+            },
+            {
+              "text": "<|im_start|>assistant\n",
+              "count": 3,
+              "idsHash": "ef5941940ee034899cf442aef3e9af7a6c443ade9dd4afaa5d7fa2c4defd9d3f"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "064258bd8097a629ece10515bfbfb3724670172fecd628e94e288d8e2a57fdc2",
+              "count": 37,
+              "idsHash": "972ff6b59f5aac4d32d2c55604150e312d3bda62b441909faa3e82b36e1f93b5"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "\u4f60\u597d\uff0c\u4e16\u754c\uff01"
+                },
+                {
+                  "role": "assistant",
+                  "content": "\u4f60\u597d\uff01"
+                },
+                {
+                  "role": "user",
+                  "content": "Now in English, please."
+                }
+              ],
+              "promptHash": "a0a07712d75a1cf530dc0d30fbda077725851c03b464d8e80310c13c42eb923c",
+              "count": 51,
+              "idsHash": "46a189faf09688d219d2d8313338d06826ad650a835e2c90b821171bd2fcbf5a"
+            },
+            {
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Reply briefly."
+                },
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "a605ca6de347fd2e6cc2dcc747f43454c470ae11b1844bc1db48323d281507d1",
+              "count": 24,
+              "idsHash": "685592948b6da0f799406f3685de7ddec9e9b2092645a9cbac70627e922928cd"
+            }
+          ]
+        }
+      },
+      {
+        "tariff": {
+          "version": 1,
+          "model": "deepseek-r1-32b",
+          "modelHash": "bed9b0f551f5b95bf9da5888a48f0f87c37ad6b72519c4cbd775f54ac0b9fc62",
+          "tokenizerHash": "88145e3c3249adc2546ede277e9819d6e405e19072456e4b521cbc724bd60773",
+          "templateHash": "56a1447ad31926fdc21fb07e56e5642bd9c850c4f52d8c8af7bbe5f079a84f5f",
+          "inputAtomsPerMillion": "8000000",
+          "outputAtomsPerMillion": "32000000",
+          "contextTokens": 4096,
+          "maxOutputTokens": 256,
+          "maxLatencyMs": 120000
+        },
+        "tokenizer": {
+          "schema": 1,
+          "mode": "shadow",
+          "model": "deepseek-r1-32b",
+          "modelHash": "bed9b0f551f5b95bf9da5888a48f0f87c37ad6b72519c4cbd775f54ac0b9fc62",
+          "repository": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+          "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746",
+          "tokenizerHash": "88145e3c3249adc2546ede277e9819d6e405e19072456e4b521cbc724bd60773",
+          "configHash": "8ac8c85fb242563c2260baec0909debd69d718af6a0b3d90e6cab62b4d341cd5",
+          "templateHash": "56a1447ad31926fdc21fb07e56e5642bd9c850c4f52d8c8af7bbe5f079a84f5f",
+          "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6; candidate only, local runtime calibration pending",
+          "vectors": [
+            {
+              "text": "Hello, world!",
+              "count": 4,
+              "idsHash": "ac77c278585afdac8b1f2318cf5ec06ac09f9744cf694355f823f428e123c36e"
+            },
+            {
+              "text": "\u4f60\u597d\uff0c\u4e16\u754c\uff01 \ud83c\udf0d caf\u00e9 e\u0301",
+              "count": 9,
+              "idsHash": "4f9c2e155957ddd6c2bc7e70829dd58cb9f91a25bb985a6b3379f9c5800024ad"
+            },
+            {
+              "text": "Line 1\r\n  0023 +\t42\n\ud834\udd1e\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbb",
+              "count": 22,
+              "idsHash": "a10a798b1090be21f2d910b4d86730f45fe2cff9f7a98627767c905b4b1c2f1d"
+            },
+            {
+              "text": "\u041f\u0440\u0438\u0432\u0435\u0442 \u043c\u0438\u0440! \u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645! \u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u0941\u0928\u093f\u092f\u093e!",
+              "count": 26,
+              "idsHash": "d5abbe5da1b4394ca6d4853f076a104a0fa764a901f62ffeb650fff1c07a4e70"
+            },
+            {
+              "text": "<|im_start|>assistant\n",
+              "count": 8,
+              "idsHash": "22ad2450b262e28d811f329eb9f802cb76d1acb86332d1c0174ba4d428689c4e"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "dfa8a01a5b8b730cee5dffc3a9317cd161df7ad361667730a7b876478473f45f",
+              "count": 13,
+              "idsHash": "cd995391026477bd1c7368b617a9b56a8ce0fda1d198b6d73ad632efb8c6c21e"
+            },
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "\u4f60\u597d\uff0c\u4e16\u754c\uff01"
+                },
+                {
+                  "role": "assistant",
+                  "content": "\u4f60\u597d\uff01"
+                },
+                {
+                  "role": "user",
+                  "content": "Now in English, please."
+                }
+              ],
+              "promptHash": "b6643e96ff357422cff318789e4310a5bd7fc6ea8b331945c436b01566b1fb0e",
+              "count": 20,
+              "idsHash": "c24b80f202dd54d4a4f31fc041565cc4e92a92fad643a4372c34427b7ed87afd"
+            },
+            {
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Reply briefly."
+                },
+                {
+                  "role": "user",
+                  "content": "What is 2 + 2?"
+                }
+              ],
+              "promptHash": "afb54c7371cb19eebe9592fed1fdc2dfcff44d0df9489fa2461a147ea5e6510d",
+              "count": 16,
+              "idsHash": "539d60e8b5004d1215f22a97a39cfbefcc5b79da759a0e7e9f80910b518519c5"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "funding": {
+    "maxTotalKoinAtoms": null,
+    "buyerCreditsAtoms": null,
+    "rewardPoolAtoms": "1000000000000",
+    "roles": {
+      "admin": "0",
+      "credits": null,
+      "rewards": null,
+      "verifier": null,
+      "mining": "0",
+      "operations": "0",
+      "settlement": null,
+      "lifecycle": null,
+      "claims": null
+    }
+  }
+}

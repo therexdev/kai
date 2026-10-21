@@ -8,21 +8,50 @@ const { FOUNDATION_CHAIN, FOUNDATION_TOKEN } = require("../../lib/koin-network/p
 const { read, configuration } = require("../../lib/koin-network/test-config");
 const { amount } = require("../../lib/koin-network/session-delegation"), P = require("../../lib/koin-network/job-protocol");
 const tokenizer = require("../../lib/koin-network/tokenizers/qwen25-1.5b.json"), abi = require("../../lib/koin-network/credits-abi.json");
+const Models = require("../../lib/koin-network/model-configuration");
 const RPC = "https://testnet.koinosfoundation.org/jsonrpc", roles = ["admin", "credits", "rewards", "verifier", "mining", "operations", "settlement", "lifecycle", "claims"];
 const json = value => JSON.stringify(value, null, 2) + "\n";
 function save(file, value) { const fd = fs.openSync(file, "wx", 0o600); try { fs.writeFileSync(fd, typeof value === "string" || Buffer.isBuffer(value) ? value : json(value)); fs.fsyncSync(fd); } finally { fs.closeSync(fd); } }
+function runtimeModels(s) {
+  if (Object.hasOwn(s, "models")) {
+    const models = Models.entries({ schema: 2, models: s.models, version: 1 });
+    return { schema: 2, models, policyHash: Models.policyHash({ schema: 2, models, version: 1 }) };
+  }
+  const tariff = Object.fromEntries(Object.entries({ ...s.tariff, version: 1, model: tokenizer.model, modelHash: tokenizer.modelHash,
+    tokenizerHash: tokenizer.tokenizerHash, templateHash: tokenizer.templateHash }).sort(([a], [b]) => a.localeCompare(b)));
+  return { schema: 1, tokenizer, tariff, policyHash: P.hash(JSON.stringify(["KAI-KOIN-SHADOW-TARIFFS-V1", tariff])) };
+}
 function settings(s, { usd = false } = {}) {
-  const optional = ["freePolicy", "accountMode", "purchasePricing", "qualificationPolicy"];
-  if (!s || Object.keys(s).filter(k => !optional.includes(k)).sort().join() !== "deployRcLimit,limits,maxRcPerDay,maxRcPerTransaction,owner,schedulerUrl,tariff" || !utils.isChecksumAddress(s.owner)) throw Error("Fill the explicit Test setup settings first");
-  if (optional.some(k => s[k] !== undefined) && !usd) throw Error("Public USD settings require a fresh USD deployment");
+  const optional = ["freePolicy", "accountMode", "purchasePricing", "qualificationPolicy", "qualificationPolicies"];
+  const multi = s && Object.hasOwn(s, "models");
+  const expected = multi ? "deployRcLimit,limits,maxRcPerDay,maxRcPerTransaction,models,owner,schedulerUrl" : "deployRcLimit,limits,maxRcPerDay,maxRcPerTransaction,owner,schedulerUrl,tariff";
+  if (!s || Object.keys(s).filter(k => !optional.includes(k)).sort().join() !== expected || !utils.isChecksumAddress(s.owner)) throw Error("Fill the explicit Test setup settings first");
+  if ((multi || optional.some(k => s[k] !== undefined)) && !usd) throw Error("Public USD settings require a fresh USD deployment");
   if (s.accountMode !== undefined && !["public", "invitations"].includes(s.accountMode)) throw Error("Invalid account mode");
   require("../../lib/koin-network/free-credits").policy(s.freePolicy);
   if (s.purchasePricing !== undefined) require("../../lib/koin-network/v4-purchase-oracle").configuration(s.purchasePricing);
   for (const key of ["deployRcLimit", "maxRcPerTransaction", "maxRcPerDay"]) amount(s[key]);
-  const t = s.tariff;
-  if (!t || Object.keys(t).sort().join() !== "contextTokens,inputAtomsPerMillion,maxLatencyMs,maxOutputTokens,outputAtomsPerMillion") throw Error("Explicit Test tariff and resource limits required");
-  amount(t.inputAtomsPerMillion); amount(t.outputAtomsPerMillion); P.integer(t.contextTokens, 1, 32768); P.integer(t.maxOutputTokens, 1, t.contextTokens); P.integer(t.maxLatencyMs, 1, 180000);
-  if (s.qualificationPolicy !== undefined) require("../../lib/koin-network/provider-qualification").policy(s.qualificationPolicy, { ...t, model: tokenizer.model, modelHash: tokenizer.modelHash });
+  if (!multi && (!s.tariff || Object.keys(s.tariff).sort().join() !== "contextTokens,inputAtomsPerMillion,maxLatencyMs,maxOutputTokens,outputAtomsPerMillion")) throw Error("Explicit Test tariff and resource limits required");
+  const modelConfig = runtimeModels(s), tariffs = Models.tariffs(modelConfig);
+  for (const t of tariffs) {
+    amount(t.inputAtomsPerMillion); amount(t.outputAtomsPerMillion); P.integer(t.contextTokens, 1, 32768);
+    P.integer(t.maxOutputTokens, 1, t.contextTokens); P.integer(t.maxLatencyMs, 1, 180000);
+  }
+  if (s.qualificationPolicy !== undefined && s.qualificationPolicies !== undefined) throw Error("Select one qualification policy format");
+  if (s.qualificationPolicy !== undefined) {
+    if (multi) throw Error("Multi-model settings require per-model qualificationPolicies");
+    require("../../lib/koin-network/provider-qualification").policy(s.qualificationPolicy, tariffs[0]);
+  }
+  if (s.qualificationPolicies !== undefined) {
+    if (!multi || !Array.isArray(s.qualificationPolicies) || !s.qualificationPolicies.length || s.qualificationPolicies.length > tariffs.length) throw Error("Explicit per-model qualification policies required");
+    const seen = new Set();
+    for (const p of s.qualificationPolicies) {
+      const t = tariffs.find(t => t.model === p?.model);
+      if (!t || seen.has(p.model)) throw Error("Unknown or duplicate qualification model");
+      seen.add(p.model); require("../../lib/koin-network/provider-qualification").policy(p, t);
+    }
+  }
+  if (s.freePolicy && s.freePolicy.eligibleModels.some(model => !tariffs.some(t => t.model === model))) throw Error("Free-credit models must have explicit tariffs");
   if (!s.limits || Object.keys(s.limits).sort().join() !== "amount,durationMs,maxJobs,perJob") throw Error("Explicit bounded session limits required");
   amount(s.limits.amount); amount(s.limits.perJob); P.integer(s.limits.maxJobs, 1, 10000); P.integer(s.limits.durationMs, 60000, 86400000);
   if (!usd && BigInt(s.limits.perJob) > BigInt(s.limits.amount)) throw Error("Per-request limit exceeds session budget");
@@ -101,8 +130,9 @@ async function deploy(directory, wasmDir, approved, { planFile = "plan.json", ha
       if (state.state !== "finalized") throw Error("Deployment remains unresolved. Re-run the same reviewed command to recover its original transaction");
     }
     await new KoinChain(c.deployment).verify();
+    const tariffs = Models.tariffs(c), initial = tariffs.find(t => t.model === "koinos-fast") || tariffs[0];
     const desktop = { schema: 1, mode: c.mode, deployment: c.deployment, schedulerUrl: c.schedulerUrl, owner: plan.owner,
-      policyHash: c.policyHash, version: c.version, model: c.tariff.model, maxOutput: c.tariff.maxOutputTokens,
+      policyHash: c.policyHash, version: c.version, model: initial.model, maxOutput: initial.maxOutputTokens,
       maxRcPerTransaction: c.maxRcPerTransaction, maxRcPerDay: c.maxRcPerDay, limits: plan.limits };
     const file = path.join(directory, "desktop-manifest.json");
     if (!fs.existsSync(file)) save(file, desktop); else if (JSON.stringify(JSON.parse(read(file))) !== JSON.stringify(desktop)) throw Error("Existing desktop manifest changed");
@@ -110,15 +140,12 @@ async function deploy(directory, wasmDir, approved, { planFile = "plan.json", ha
   } finally { journal.close(); }
 }
 async function tokenizerPack(directory) {
-  const out = path.join(directory, "tokenizer"); fs.mkdirSync(out, { recursive: true, mode: 0o700 });
-  for (const [name, hash] of [["tokenizer.json", tokenizer.tokenizerHash], ["tokenizer_config.json", tokenizer.configHash]]) {
-    const file = path.join(out, name); if (fs.existsSync(file)) { if (P.hash(fs.readFileSync(file)) !== hash) throw Error("Installed tokenizer checksum changed"); continue; }
-    const response = await fetch(`https://huggingface.co/${tokenizer.repository}/resolve/${tokenizer.revision}/${name}`, { signal: AbortSignal.timeout(60000) });
-    if (!response.ok) throw Error("Pinned tokenizer download failed"); const parts = []; let size = 0;
-    for await (const part of response.body) { size += part.length; if (size > 16000000) throw Error("Tokenizer download too large"); parts.push(part); }
-    const bytes = Buffer.concat(parts); if (P.hash(bytes) !== hash) throw Error("Tokenizer download checksum mismatch"); save(file, bytes);
+  const c = configuration(JSON.parse(read(path.join(directory, "runtime.json"))));
+  for (const { tariff, tokenizer: manifest } of Models.entries(c)) {
+    const out = path.join(directory, "tokenizer", ...(c.schema === 2 ? [tariff.model] : []));
+    await require("../../lib/koin-network/tokenizer-pack").install(out, manifest);
   }
-  require("../../lib/koin-network/tokenizer").loadTokenizer(out, tokenizer); console.log("Pinned Test tokenizer verified");
+  console.log(`Pinned tokenizer packs verified for ${Models.entries(c).length} model(s)`);
 }
 function invite(directory, owner) {
   if (!utils.isChecksumAddress(owner || "")) throw Error("A Test participant's public wallet address is required");
@@ -164,4 +191,4 @@ async function main() {
   throw Error("Choose prepare, deploy, tokenizer or invite");
 }
 if (require.main === module) main().catch(e => { console.error(String(e.message).slice(0, 240)); process.exitCode = 1; });
-module.exports = { settings, prepare, deploy, tokenizerPack, invite };
+module.exports = { settings, runtimeModels, prepare, deploy, tokenizerPack, invite };

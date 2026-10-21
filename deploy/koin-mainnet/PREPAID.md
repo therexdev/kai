@@ -11,13 +11,47 @@ The new settings example fixes the intended reward seed at **10,000 KOIN**, leav
 ## Reviewable preparation
 
 1. Require passing desktop Test checks, contract tests, backend regressions, and the isolated native-chain prepaid test at the exact source revisions. The native test includes purchase, finality, credit import, normal desktop chat, signed provider response, lost settlement response, restart, and conservation of original custody.
-2. Copy `settings.prepaid-usd.example.json` into a private bootstrap location and fill the owner, intended HTTPS scheduler, pricing, and exact KOIN/Mana funding ceilings. For the normal sign-in product, explicitly add `settings.accountMode: "public"`, the reviewed `freePolicy`, `purchasePricing`, and provider `qualificationPolicy` before generating the plan. Keep the private settings and any credential-bearing archive URLs out of logs and source control. Do not infer permission to fund fresh roles from permission to publish code.
+2. Copy `settings.prepaid-usd.models.example.json` into a private bootstrap location and fill the owner, intended HTTPS scheduler, pricing, and exact KOIN/Mana funding ceilings. For the normal sign-in product, explicitly add `settings.accountMode: "public"`, the reviewed `freePolicy`, `purchasePricing`, and reviewed per-model `qualificationPolicies` before generating the plan. The 15-model example contains approved USD prices and immutable package hashes. Ten entries include exact reference-verified tokenizer manifests and pins; the two Llama and three Gemma entries remain null while faithful tokenizer preparation is unfinished. Reference vectors do not verify the loaded GGUF runtime. Complete per-model runtime calibration and qualification before admission; do not use this example as a ready deployment. Select admitted entries explicitly in `settings.models`; no missing entry silently becomes Fast. The old single-model example remains only for legacy plan compatibility. Keep the private settings and any credential-bearing archive URLs out of logs and source control. Do not infer permission to fund fresh roles from permission to publish code.
 3. Run `prepare.js` with a **new** absolute private bootstrap directory and the reviewed desktop contract build directory. `mode: mainnet-prepaid-usd-plan` selects `prepaid-usd.wasm`, generates new contract/role identities, verifies mainnet identity through two RPCs, and writes a reviewable budget. It signs and broadcasts nothing.
 4. Review that exact plan. `setup.js configure --dir ... --approve <plan hash>` produces runtime configuration. Invitation mode also creates private invitations; public mode deliberately does not. Securely back up the generated keys; offline admin and contract keys never go in the service directory.
 5. After the precise role-funding budget and deployment transactions have been approved, use the existing `check-funding`, `tokenizer`, and `deploy` commands. Deployment is journaled and uses the exact new code hashes. The on-chain prepaid product marker must verify before a desktop manifest is exported.
 6. Prepare the private account credentials below, then run `install-prepaid.sh` from the reviewed, clean backend commit. Configure the new HTTPS hostname to proxy to `127.0.0.1:3109`; verify `/health` shows `product: prepaid-usd-v1` and `/auth/methods` exposes a working account-creation method. This installer refuses to replace an existing prepaid service and never reconfigures the legacy service.
 7. Add the exact deployed rewards contract to the independent Master app's saved daily recipients. Retain the reviewed production reburn and Mana reserve settings; determine the recipient percentage from that budget. The Master app closes cycles daily at its configured UTC hour and requires its own local wallet-password authorization. Purchase deposits are not automatically counted as block-production profits. Ordinary native KOIN transfers replenish the pool; no credit purchase/refund call is needed. Seed the pool with the separately approved 10,000 KOIN transaction and verify irreversible receipt.
 8. Connect the verified new deployment in Test. Public mode uses normal verified sign-in at the new service origin and does not require invitation import. Invitation mode retains its private manifest/invitation flow. Existing pilot account files and unresolved wallet transactions remain preserved; connecting the new service does not move the old KOIN balance.
+
+## Model catalogs and tokenizer installation
+
+New multi-model USD settings use `models: [{ tariff, tokenizer }]` instead of
+`tariff`. The two formats cannot be mixed. Every entry contains its full version-1
+text tariff and pinned tokenizer manifest. Mainnet preparation verifies model
+aliases, package hashes and input/output USD rates against the approved 15-model
+schedule. Missing manifests, duplicate aliases, changed hashes/rates and
+unpriced free/qualification models fail before generating keys. Price approval
+does not establish tokenizer accuracy or provider qualification.
+
+The example retains all 15 models. Fast and nine additional entries embed the
+exact checked-in reference manifests, verified against the manifest file hashes
+in `lib/koin-network/tokenizers/candidates/index.json`; no tokenizer or template
+pin has been guessed. Llama 3.2 3B, Llama 3.1 8B, and Gemma 3 4B/12B/27B retain
+null manifests and pins. A reference-prepared entry is not runtime-calibrated,
+provider-qualified or activated. Actual GGUF token counts, rendered prompts,
+model behavior and latency still need verification. The example supplies no
+invented qualification policy, operational funding or deployment authority.
+
+Configuration produces runtime schema 2 and a commitment to the entire sorted
+model catalog. `setup.js tokenizer` installs each checked pack under
+`tokenizer/<model-alias>/`; schema 1 keeps its original flat tokenizer directory
+and signed policy. The installer copies every selected pack, checks exact hashes,
+and rejects symlinked pack directories. It never substitutes a missing pack with
+Fast. The desktop manifest initially selects Fast if admitted, otherwise the
+first admitted model; its policy pin commits every admitted model, and the normal
+model picker determines subsequent requests.
+
+An existing bootstrap is immutable. Adding a model is a reviewed policy change,
+not permission to regenerate keys, replace deployment journals or rewrite saved
+requests. Offline catalog models remain unavailable until calibrated artifacts
+and current provider qualification exist. Use normal chat acceptance for each
+available admitted model before describing it as ready.
 
 ## Public account service installation
 

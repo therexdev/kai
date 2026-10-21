@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "mode": "shadow",
+  "model": "mistral-small-24b",
+  "modelHash": "d1a6d049f09730c3f8ba26cf6b0b60c89790b5fdafa9a59c819acdfe93fffd1b",
+  "repository": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "revision": "9527884be6e5616bdd54de542f9ae13384489724",
+  "tokenizerHash": "b76085f9923309d873994d444989f7eb6ec074b06f25b58f1e8d7b7741070949",
+  "configHash": "85090a231c4b1432c95cf62d5857777df08c0939fc698bf89b91ccc96f92400e",
+  "templateHash": "3934d199bfe5b6fab5cba1b5f8ee475e8d5738ac315f21cb09545b4e665cc005",
+  "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6 with exact quote.at UTC date; candidate only, runtime calibration pending",
+  "vectors": [
+    {
+      "text": "Hello, world!",
+      "count": 4,
+      "idsHash": "8293d47ac0bcb55f15e0ae01d97934516c5300d48f69af5b569d560a4d186ea3"
+    },
+    {
+      "text": "你好，世界！ 🌍 café é",
+      "count": 11,
+      "idsHash": "fcb02691d0bb2a724a006e898f39246e6fecfb52fe759cc9e933ef0339499440"
+    },
+    {
+      "text": "Line 1\r\n  0023 +\t42\n𝄞👩🏽‍💻",
+      "count": 33,
+      "idsHash": "6c4271cfa9a8af6ccae834a0ae39c69fe209232f5b0e090a989d8767a418f855"
+    },
+    {
+      "text": "Привет мир! مرحبا بالعالم! नमस्ते दुनिया!",
+      "count": 19,
+      "idsHash": "366d8902c4dced69d2aa4e522c9cac215cdcbf810e961ef1c98a8aa3653c28b8"
+    },
+    {
+      "text": "<|im_start|>assistant\n",
+      "count": 9,
+      "idsHash": "b575fc4be90c1f9a8d6a2c093cbaf19d586d6adbd36aec76db2b330f52f283ce"
+    },
+    {
+      "messages": [
+        {
+          "role": "user",
+          "content": "What is 2 + 2?"
+        }
+      ],
+      "at": 1792540800000,
+      "promptHash": "b06130cdf495e21fa34f755019b26578aed42b67b3ecdb8dbe5f0ff2db67f7e4",
+      "count": 185,
+      "idsHash": "19beb155101c9e54e6848b4fa3fd20cddb344fea989e48d9c6f7753df77091aa"
+    },
+    {
+      "messages": [
+        {
+          "role": "user",
+          "content": "你好，世界！"
+        },
+        {
+          "role": "assistant",
+          "content": "你好！"
+        },
+        {
+          "role": "user",
+          "content": "Now in English, please."
+        }
+      ],
+      "at": 1792540800000,
+      "promptHash": "119c0d669afac62876bca6d89660c3ff18c5e54f39b4908dced61a6ba35f71cc",
+      "count": 192,
+      "idsHash": "05baac9690f0a1822386e98ffbdec0db0e8cfc159d390f05f760083fefbffd0e"
+    },
+    {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Reply briefly."
+        },
+        {
+          "role": "user",
+          "content": "What is 2 + 2?"
+        }
+      ],
+      "at": 1792540800000,
+      "promptHash": "1787425de52b4b55e0db6ab1746f298e05ce44ca8449ce859b4f4f92ff3a7ec7",
+      "count": 16,
+      "idsHash": "7ff3dcc1e1992ae30669de439efa9d8189d8cdf6be67741f6d7168378e6c2b6b"
+    }
+  ]
+}

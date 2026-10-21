@@ -1,10 +1,12 @@
 "use strict";
 // Real native KOIN, new WASM contracts, private desktop purchase/chat clients,
-// scheduler HTTP, pinned tokenizer and signed provider receipts. No live funds.
+// scheduler HTTP, pinned tokenizer and signed provider receipts. USD uses two
+// controlled tariff aliases of the SAME Fast tokenizer: this proves model/rate
+// selection and accounting, not the quality of a second real model. No live funds.
 const fs = require("fs"), path = require("path"), http = require("http"), assert = require("node:assert/strict");
 const { Signer, utils, Contract } = require("koilib"), { EventEmitter } = require("events");
 const { KoinChain } = require("../../lib/koin-network/chain"), { TestRuntime } = require("../../lib/koin-network/test-runtime");
-const { Meter } = require("../../lib/koin-network/metering"), { loadTokenizer } = require("../../lib/koin-network/tokenizer");
+const { Meter, price } = require("../../lib/koin-network/metering"), { loadTokenizer } = require("../../lib/koin-network/tokenizer");
 const P = require("../../lib/koin-network/job-protocol"), { fundedResultHash, fundedChunkHash } = require("../../lib/koin-network/funded-protocol");
 const tokenizer = require("../../lib/koin-network/tokenizers/qwen25-1.5b.json"), { bytes, pause } = require("./chain");
 const enc = utils.encodeBase64url;
@@ -48,7 +50,16 @@ async function runPrepaidRuntime(chain, reportCheck, usd = false) {
   const owner = chain.address("buyer"), workerAddress = chain.address("alice"), tariff = { version: 1, model: tokenizer.model, modelHash: tokenizer.modelHash,
     tokenizerHash: tokenizer.tokenizerHash, templateHash: tokenizer.templateHash, inputAtomsPerMillion: "1000000000", outputAtomsPerMillion: "1000000000",
     contextTokens: 8192, maxOutputTokens: 8, maxLatencyMs: 120000 };
-  const meter = new Meter([{ tariff, adapter: loadTokenizer(chain.manifest.tokenizerDir, tokenizer) }]);
+  const secondAlias = "fixture-second-tariff", modelEntries = [{ tariff, tokenizer }];
+  if (usd) modelEntries.push({ tariff: { ...tariff, model: secondAlias, inputAtomsPerMillion: "2000000000", outputAtomsPerMillion: "3000000000" },
+    tokenizer: { ...tokenizer, model: secondAlias } });
+  const tokenizerDir = usd ? path.join(root, "tokenizers") : chain.manifest.tokenizerDir;
+  if (usd) for (const entry of modelEntries) {
+    const directory = path.join(tokenizerDir, entry.tariff.model); fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+    for (const file of ["tokenizer.json", "tokenizer_config.json"]) fs.copyFileSync(path.join(chain.manifest.tokenizerDir, file), path.join(directory, file));
+  }
+  const meter = new Meter(modelEntries.map(entry => ({ tariff: entry.tariff,
+    adapter: loadTokenizer(usd ? path.join(tokenizerDir, entry.tariff.model) : tokenizerDir, entry.tokenizer) })));
   let runtime, journal, accountAuth, accountApp, nativeReviews = 0, transportError, lost = false;
   const originalCall = chain.provider.call.bind(chain.provider), submitted = [];
   const server = http.createServer(async (req, res) => {
@@ -70,13 +81,14 @@ async function runPrepaidRuntime(chain, reportCheck, usd = false) {
   }
   const accountsFile = path.join(root, "accounts.json"), qualificationsFile = path.join(root, "qualifications.json");
   if (!usd) fs.writeFileSync(accountsFile, JSON.stringify([{ accountId: "prepaid_customer", grantId: "unused_legacy_grant", owner, tokenHash: P.hash(token), enabled: true, expiresAt: chain.now + 86400000 }]));
-  fs.writeFileSync(qualificationsFile, JSON.stringify([{ address: workerAddress, capacityId: "prepaid-native-fixture", model: tokenizer.model,
-    modelHash: tokenizer.modelHash, benchmarkHash: P.hash("reviewed-fixture"), modelWeight: "1", coverageBps: 10000, expires: chain.now + 86400000 }]));
+  fs.writeFileSync(qualificationsFile, JSON.stringify(modelEntries.map(({ tariff: t }, index) => ({ address: workerAddress,
+    capacityId: "prepaid-native-fixture-" + index, model: t.model, modelHash: t.modelHash,
+    benchmarkHash: P.hash("controlled-fixture-" + t.model), modelWeight: "1", coverageBps: 10000, expires: chain.now + 86400000 }))));
   const roles = { settlement: chain.address("sponsor"), lifecycle: chain.address("lifecycle"), claims: chain.address("manual") };
   const signers = Object.fromEntries(["verifier", "sponsor", "lifecycle", "manual"].map(n => [chain.address(n), chain.actors[n]]));
-  const config = { mode: "isolated-rehearsal", deployment, schedulerUrl, roles, tokenizer, tariff, version: 1, policyHash: meter.policyHash,
+  const config = { schema: usd ? 2 : 1, mode: "isolated-rehearsal", deployment, schedulerUrl, roles, ...(usd ? { models: modelEntries } : { tokenizer, tariff }), version: 1, policyHash: meter.policyHash,
     maxRcPerTransaction: "10000000000", maxRcPerDay: "1000000000000", ...(usd ? { accountMode: "public", freePolicy } : {}) };
-  const create = () => new TestRuntime({ config, stateDir: path.join(root, "backend"), accountsFile, qualificationsFile, tokenizerDir: chain.manifest.tokenizerDir,
+  const create = () => new TestRuntime({ config, stateDir: path.join(root, "backend"), accountsFile, qualificationsFile, tokenizerDir,
     operatorSecret: "fixture-prepaid-encryption", signers, client, clock: () => chain.now,
     ...(usd ? { accountService: accountAuth.service, purchasePrice: { read: async () => ({ usdPerKoin: "25000000" }) } } : {}) });
   const refreshSponsorship = async () => {
@@ -119,7 +131,7 @@ async function runPrepaidRuntime(chain, reportCheck, usd = false) {
       assert.equal(fs.existsSync(accountsFile), false, "Public mode must not depend on an invitation file");
       check("public email verification exposes the free balance before purchase; signed wallet linking preserves the same grant");
     }
-    const paymentConfig = { schema: 1, ...config, owner, model: tokenizer.model, maxOutput: 8,
+    const paymentConfig = { ...config, schema: 1, owner, model: tokenizer.model, maxOutput: 8,
       limits: { amount: "10000000", perJob: "1000000", maxJobs: 3, durationMs: 3600000 } };
     const { FundingRecovery } = require(path.join(desktop, "electron/koin-funding-recovery")), { TestPayments } = require(path.join(desktop, "electron/koin-test-payments"));
     journal = new FundingRecovery(path.join(root, "desktop-journals"), { mode: config.mode, client: walletClient, maxRcPerDay: config.maxRcPerDay, clock: () => chain.now });
@@ -136,10 +148,15 @@ async function runPrepaidRuntime(chain, reportCheck, usd = false) {
     if (usd) assert.equal(BigInt(await chain.balance(deployment.masterNode)) - masterBefore, 10000000n);
     assert.equal((await payments.run(window, "check", bought.deposit.id)).funding.state, "funded");
     const { PrepaidChat } = require(path.join(desktop, "electron/koin-prepaid-chat"));
-    const progressEvents = [];
-    const chat = new PrepaidChat({ file: path.join(root, "desktop-chat.json"), config: paymentConfig, payments, progress: event => progressEvents.push(event),
+    const progressEvents = []; let refuseCatalogDuringRecovery = false, recoveryCatalogReads = 0;
+    const chatOptions = { file: path.join(root, "desktop-chat.json"), config: paymentConfig, payments, clock: () => chain.now, progress: event => progressEvents.push(event),
       storage: { isEncryptionAvailable: () => true, encryptString: s => Buffer.from(s).map(b => b ^ 42), decryptString: b => b.map(n => n ^ 42).toString() },
-      access: { authorize: () => ({ owner, sessionToken: token }) } });
+      access: { authorize: () => ({ owner, sessionToken: token }) },
+      fetchImpl: (url, options) => {
+        if (refuseCatalogDuringRecovery && url.endsWith("/koin/prepaid/models")) { recoveryCatalogReads++; throw Error("Catalog deliberately unavailable during saved-answer recovery"); }
+        return fetch(url, options);
+      } };
+    let chat = new PrepaidChat(chatOptions);
     await chat.call("purchase", { txId: bought.deposit.txId });
     assert.equal((await runtime.scheduler.koinPrepaid.purchases.inspect(bought.deposit.txId, owner)).state, "finalized");
     await runtime.scheduler.koinPrepaid.purchases.tick();
@@ -149,15 +166,23 @@ async function runPrepaidRuntime(chain, reportCheck, usd = false) {
     await runtime.scheduler.koinPrepaid.purchases.tick();
     assert.equal((await chat.status()).balance.available, creditAtoms);
     check("one native KOIN purchase approval creates prepaid credits once after irreversible confirmation");
-    const worker = { address: workerAddress, proof: "signed", models: [tokenizer.model], lastSeen: chain.now,
+    const worker = { address: workerAddress, proof: "signed", models: modelEntries.map(e => e.tariff.model), lastSeen: chain.now,
       capabilities: { koinFundedRehearsalJobs: 1, koinMeteredStreaming: 1 } };
-    const complete = async text => {
+    const complete = async (text, selectedModel = tokenizer.model, acknowledge = true) => {
+      const selectedTariff = modelEntries.find(e => e.tariff.model === selectedModel).tariff;
       await refreshSponsorship();
+      // Controlled fixture readiness for the same signed provider used below;
+      // this exercises the real catalog without claiming a hardware benchmark.
+      worker.lastSeen = chain.now; runtime.lastServing = chain.now;
+      runtime.scheduler.koinShadow.ledger.state.presence[workerAddress] = { at: chain.now, model: selectedModel, modelHash: selectedTariff.modelHash, ready: true };
       runtime.scheduler.workers.set("prepaid-worker", worker); let error;
-      const pending = chat.chat(window, { model: "koinos-network", messages: [{ role: "user", content: text }], max_tokens: 8 }, AbortSignal.timeout(30000)).catch(e => { error = e; });
+      const pending = chat.chat(window, { model: usd ? "koinos-network:" + selectedModel : "koinos-network", messages: [{ role: "user", content: text }], max_tokens: 8 }, AbortSignal.timeout(30000)).catch(e => { error = e; });
       let job;
       for (let i = 0; !job; i++) { if (error) throw error; if (i > 300) throw Error("Prepaid provider did not receive chat"); job = await runtime.scheduler.koinPrepaid.work.next(worker); if (!job) await pause(10); }
       assert.equal(job.stream, true, "Use the current desktop's normal streaming path");
+      assert.equal(job.model, selectedModel); assert.equal(job.quote.tariff.model, selectedModel); assert.equal(job.quote.policyHash, meter.policyHash);
+      assert.equal(job.quote.tariff.inputAtomsPerMillion, selectedTariff.inputAtomsPerMillion);
+      assert.equal(job.quote.tariff.outputAtomsPerMillion, selectedTariff.outputAtomsPerMillion);
       const chunk = { jobId: job.id, output: "4", sequence: 1,
         signature: Buffer.from(await chain.actors.alice.signHash(fundedChunkHash(runtime.target, job, "4", 1))).toString("base64") };
       const sendChunk = () => fetch(schedulerUrl + "/koin/funded/rehearsal/chunk?token=prepaid-worker",
@@ -174,12 +199,20 @@ async function runPrepaidRuntime(chain, reportCheck, usd = false) {
       assert.equal(runtime.ledger.balance(owner).spent, streamedSpent, "Finalizing the same answer cannot debit its prefix twice");
       assert.equal(runtime.ledger.job(job.id).funding?.freeUsed, streamedFunding?.freeUsed, "Final result cannot consume its free prefix twice");
       assert.deepEqual(progressEvents.filter(event => event?.requestId === job.id).map(event => event.delta), ["4"]);
-      assert.equal(answer.choices[0].message.content, "4"); chat.acknowledge(answer.id); return answer;
+      assert.equal(answer.choices[0].message.content, "4"); assert.equal(answer.servedModel, selectedModel);
+      assert.equal(answer.koin.receipt.usage.amount, price(selectedTariff, answer.usage.prompt_tokens, answer.usage.completion_tokens));
+      if (acknowledge) chat.acknowledge(answer.id); return answer;
     };
     const first = await complete("What is 2 + 2?");
     await runtime.prepaidSettlement.tick(); if (transportError) throw transportError; assert.equal(lost, true);
-    const second = await complete("What is 3 + 1?"); assert.notEqual(second.id, first.id);
+    // Same prompt, different selected USD model: a new request must use the
+    // second tariff instead of recovering or silently substituting the first.
+    const second = await complete(usd ? "What is 2 + 2?" : "What is 3 + 1?", usd ? secondAlias : tokenizer.model, !usd); assert.notEqual(second.id, first.id);
     if (usd) {
+      assert.equal(first.usage.prompt_tokens, second.usage.prompt_tokens); assert.equal(first.usage.completion_tokens, second.usage.completion_tokens);
+      assert.ok(BigInt(second.koin.receipt.usage.amount) > BigInt(first.koin.receipt.usage.amount));
+      assert.equal(first.koin.quote.policyHash, second.koin.quote.policyHash);
+      assert.equal(chat.read().tariffs.length, 2, "Saved desktop response retains the entire approved tariff commitment");
       const firstFunding = runtime.ledger.job(first.id).funding, secondFunding = runtime.ledger.job(second.id).funding;
       assert.equal(firstFunding.freeUsed, freePolicy.accountDaily); assert.ok(BigInt(firstFunding.paidUsed) > 0n);
       assert.equal(secondFunding.freeUsed, "0"); assert.equal(secondFunding.paidUsed, second.koin.receipt.usage.amount);
@@ -189,6 +222,17 @@ async function runPrepaidRuntime(chain, reportCheck, usd = false) {
     assert.equal(nativeReviews, 1, "Chat must never request session approvals");
     check("normal desktop streaming chat verifies signed prefixes once while an earlier KOIN settlement response is lost");
     await runtime.close(); runtime = create();
+    if (usd) {
+      const beforeRecovery = runtime.ledger.balance(owner).spent;
+      assert.equal(runtime.scheduler.workers.size, 0, "Provider is offline after restart in this controlled fixture");
+      chat = new PrepaidChat(chatOptions); refuseCatalogDuringRecovery = true;
+      const recovered = await chat.recover(window, AbortSignal.timeout(10000));
+      refuseCatalogDuringRecovery = false;
+      assert.equal(recoveryCatalogReads, 0); assert.equal(recovered.completion.id, second.id); assert.equal(recovered.completion.servedModel, secondAlias);
+      assert.equal(recovered.completion.koin.receipt.usage.amount, second.koin.receipt.usage.amount);
+      assert.equal(runtime.ledger.balance(owner).spent, beforeRecovery, "Saved answer recovery cannot add a debit");
+      chat.acknowledge(second.id);
+    }
     for (let n = 0; runtime.ledger.pendingJobs().length && n < 10; n++) { await finalize(); await runtime.prepaidSettlement.tick(); if (transportError) throw transportError; }
     assert.equal(runtime.ledger.pendingJobs().length, 0);
     const spent = runtime.ledger.balance(owner).spent, onchain = await client.read("credits", "balances", { account: bytes(owner) });
@@ -198,6 +242,9 @@ async function runPrepaidRuntime(chain, reportCheck, usd = false) {
       const secondSponsored = await client.read("credits", "get_sponsored_charge", { id: enc(Buffer.from(second.id, "hex")) });
       assert.equal(firstSponsored.amount, freePolicy.accountDaily); assert.equal(secondSponsored.amount, "0");
       assert.equal(runtime.ledger.purchases(owner).length, 1, "Free usage must not manufacture a purchase");
+      const expectedPaid = BigInt(first.koin.receipt.usage.amount) + BigInt(second.koin.receipt.usage.amount) - BigInt(freePolicy.accountDaily);
+      assert.equal(BigInt(spent), expectedPaid); assert.equal(BigInt(onchain.prepaid.consumed), expectedPaid);
+      check("two controlled model tariffs share one native credit balance, verify full-catalog signed quotes, and recover the second-model answer offline without another debit");
       check("native USD settlement preserves the exact free and purchased split after lost-response recovery and restart");
     }
     assert.equal(await chain.balance(deployment.credits), usd ? "0" : onchain.balance.available);
@@ -232,7 +279,9 @@ async function runPrepaidRuntime(chain, reportCheck, usd = false) {
     assert.ok(paid > 0n); assert.equal(runtime.ledger.balance(owner).spent, spent);
     assert.equal(await chain.balance(chain.address("credits")), legacyBalance);
     check("new prepaid contracts pay the provider automatically without changing customer credits or legacy funds");
-    return { passed: true, accountMode: usd ? "public" : "invitation", ...(usd ? { signupDelivery: "captured-fixture", freeUsedAtoms: freePolicy.accountDaily } : {}),
+    return { passed: true, accountMode: usd ? "public" : "invitation", ...(usd ? { signupDelivery: "captured-fixture", freeUsedAtoms: freePolicy.accountDaily,
+        modelFixtures: "two tariffs using one pinned Fast tokenizer; no second-model quality claim",
+        meteredModels: [first.servedModel, second.servedModel], tariffChargesAtoms: [first.koin.receipt.usage.amount, second.koin.receipt.usage.amount] } : {}),
       nativeReviews, requests: 2, spentAtoms: spent, creditAtoms: onchain.balance.available, providerPayoutAtoms: String(paid), submitted: submitted.length };
   } finally {
     chain.provider.call = originalCall; journal?.close(); await runtime?.close(); await new Promise(resolve => server.close(resolve)); accountAuth?.service.db.close();

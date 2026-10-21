@@ -9,7 +9,6 @@ const { KoinChain } = require("../../lib/koin-network/chain");
 const { TestDeployer } = require("../../lib/koin-network/test-deployer");
 const { assertPaymentMode } = require("../../lib/koin-network/payment-mode");
 const P = require("../../lib/koin-network/job-protocol"), shared = require("../koin-test/setup");
-const tokenizer = require("../../lib/koin-network/tokenizers/qwen25-1.5b.json");
 const json = v => JSON.stringify(v, null, 2) + "\n";
 function save(file, value) {
   if (fs.existsSync(file)) { if (read(file) !== json(value)) throw Error("Existing mainnet configuration changed: " + path.basename(file)); return; }
@@ -38,13 +37,12 @@ async function configure(directory, approved, providerFactory) {
     if (Signer.fromWif(keys[role]).getAddress() !== p.roleAddresses[role] ||
         (p.deployment[role] !== undefined && p.deployment[role] !== p.roleAddresses[role])) throw Error("Mainnet role key changed");
   }
-  const s = p.settings, tariff = Object.fromEntries(Object.entries({ ...s.tariff, version: 1, model: tokenizer.model,
-    modelHash: tokenizer.modelHash, tokenizerHash: tokenizer.tokenizerHash, templateHash: tokenizer.templateHash }).sort(([a], [b]) => a.localeCompare(b)));
-  const runtime = configuration({ schema: 1, mode: "mainnet-pilot", deployment: p.deployment,
+  const s = p.settings, models = shared.runtimeModels(s);
+  const runtime = configuration({ schema: models.schema, mode: "mainnet-pilot", deployment: p.deployment,
     roles: Object.fromEntries(["settlement", "lifecycle", "claims"].map(r => [r, p.roleAddresses[r]])), schedulerUrl: s.schedulerUrl,
-    version: 1, tokenizer, tariff, policyHash: P.hash(JSON.stringify(["KAI-KOIN-SHADOW-TARIFFS-V1", tariff])),
+    version: 1, ...(models.schema === 2 ? { models: models.models } : { tokenizer: models.tokenizer, tariff: models.tariff }), policyHash: models.policyHash,
     maxRcPerTransaction: s.maxRcPerTransaction, maxRcPerDay: s.maxRcPerDay,
-    ...Object.fromEntries(["freePolicy", "accountMode", "purchasePricing", "qualificationPolicy"].filter(key => s[key] !== undefined).map(key => [key, s[key]])) });
+    ...Object.fromEntries(["freePolicy", "accountMode", "purchasePricing", "qualificationPolicy", "qualificationPolicies"].filter(key => s[key] !== undefined).map(key => [key, s[key]])) });
   const plan = { schema: 1, mode: runtime.mode, runtime, owner: s.owner, limits: s.limits, deployRcLimit: s.deployRcLimit,
     artifacts: p.artifacts, fundingAddresses: p.roleAddresses, funding: p.funding, bootstrapHash: approved };
   save(path.join(directory, "deployment-plan.json"), plan);

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "purpose": "all-model-text-rate-proposal-for-review",
+  "purpose": "approved-all-model-introductory-text-rates",
   "approvedForActivation": false,
   "version": "2026-10-21-draft-1",
   "creditsPerUsd": 1000,
@@ -20,7 +20,7 @@
     "paidUsdQualificationVerified": false
   },
   "notes": [
-    "Proposed introductory prices; provider economics are not measured or approved.",
+    "Owner-approved introductory text prices; provider economics and live qualification remain unmeasured. approvedForActivation stays false because deployment acceptance is incomplete.",
     "All 15 non-development public catalog aliases are priced; rates do not authorize model admission.",
     "Legacy online counts describe advertised capacity at one instant, not paid USD readiness.",
     "Do not load this review file as runtime configuration. Multi-model runtime and desktop integration remain unfinished.",
@@ -360,5 +360,12 @@
       "legacyObservedProviders": 0,
       "paidUsdReadiness": "not-verified"
     }
-  ]
+  ],
+  "commercialApproval": {
+    "approved": true,
+    "date": "2026-10-20",
+    "timezone": "America/Chicago",
+    "scope": "1000 credits per USD and the complete 15-model introductory text rate schedule",
+    "source": "Owner: Looks good. lets go with this plan"
+  }
 }

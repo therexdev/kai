@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "mode": "shadow",
+  "model": "phi-4",
+  "modelHash": "009aba717c09d4a35890c7d35eb59d54e1dba884c7c526e7197d9c13ab5911d9",
+  "repository": "microsoft/phi-4",
+  "revision": "2db69c1c3e91a05d2c64a3185acfbaf36f744e25",
+  "tokenizerHash": "9f38d05d9d25756bb2f181ab5a0cebcd59e638df10336fc7ed1010f7296d0298",
+  "configHash": "2b707658c7c2b41580155a45503d7d3b42dc2f530bef678f67a39bf5d10b0510",
+  "templateHash": "fe4120415a3858b873955c92ce3a103a95bc97c2cb00b72e62659aaf0f891ee5",
+  "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6; candidate only, local runtime calibration pending",
+  "vectors": [
+    {
+      "text": "Hello, world!",
+      "count": 4,
+      "idsHash": "9ede3e9b737420085993f89d15540cc415a517bf1cd863922bb24a64412f8b10"
+    },
+    {
+      "text": "你好，世界！ 🌍 café é",
+      "count": 13,
+      "idsHash": "928f9bb432ea9c2f40cfcf48e9c5e24399327ce81c1054911c4d48a40868d81b"
+    },
+    {
+      "text": "Line 1\r\n  0023 +\t42\n𝄞👩🏽‍💻",
+      "count": 25,
+      "idsHash": "400bd73be2e5f08c1c1dfdbf159baf66cea2263e6873e278c19ae173e7eca4e8"
+    },
+    {
+      "text": "Привет мир! مرحبا بالعالم! नमस्ते दुनिया!",
+      "count": 32,
+      "idsHash": "b5760d2c7eef39ee6403faa2255993d1160347f679319e72811c72604875a242"
+    },
+    {
+      "text": "<|im_start|>assistant\n",
+      "count": 3,
+      "idsHash": "6fe6a47fc0f649ba2ec72975a273066222e14caba3bbbad0bd8449cfd4b7dcdb"
+    },
+    {
+      "messages": [
+        {
+          "role": "user",
+          "content": "What is 2 + 2?"
+        }
+      ],
+      "promptHash": "e669461d4e071a7726db016c8379838fcaa79a79ec3b9425db296c178a834b44",
+      "count": 15,
+      "idsHash": "c529684fc9988c36c9eead4e25cf3c13766681b5a4e3863b46b5fad9072ecdcc"
+    },
+    {
+      "messages": [
+        {
+          "role": "user",
+          "content": "你好，世界！"
+        },
+        {
+          "role": "assistant",
+          "content": "你好！"
+        },
+        {
+          "role": "user",
+          "content": "Now in English, please."
+        }
+      ],
+      "promptHash": "8f0d913f19aa6a6345ea8037b14a0aa5f6edd243e76e00e3694d6aef45ede7b0",
+      "count": 31,
+      "idsHash": "fcd99a7bd253c1823e438d5181a363e5b203b5caccaf0849b5ed2e0e9373b2c1"
+    },
+    {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Reply briefly."
+        },
+        {
+          "role": "user",
+          "content": "What is 2 + 2?"
+        }
+      ],
+      "promptHash": "9053a8a2d5878de6853ed690dd2e201526e9d67039a9f79aaa29843fd5ac5b2c",
+      "count": 22,
+      "idsHash": "72c8a1684e1f74e60fbbf75e217dd0a3313060ecd70fb45a01613171566a0d83"
+    }
+  ]
+}

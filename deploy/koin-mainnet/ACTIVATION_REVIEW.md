@@ -47,13 +47,13 @@ obligation, and must be finished before public launch.
   verification. The current desktop remains Test 201.1 until verified new
   deployment pins justify another app publication.
 
-## One commercial policy to review
+## Approved model prices and remaining commercial settings
 
 The [all-model pricing review](MODEL_PRICING_REVIEW.md) supersedes the Fast-only
 $0.10/$0.30-per-million proposal. It covers all 15 existing public model aliases,
-with proposed input/output rates from $0.01/$0.04 for Fast to $0.08/$0.32 for the
-32B tier. The new prepaid runtime and desktop are still restricted to one model;
-recording these rates does not complete that implementation. Full catalog
+with owner-approved input/output rates from $0.01/$0.04 for Fast to $0.08/$0.32 for the
+32B tier. The runtime and desktop now have source support for multiple models. Commercial
+approval and source implementation do not complete live activation. Full catalog
 configuration, metering, per-model qualification and desktop selection are
 required before calling the product multi-model ready.
 
@@ -206,3 +206,26 @@ hashed deployment plan, complete budget and verified code identities.
 
 The first complete two-computer acceptance, including free credits, must pass
 before representing the new credit product as usable.
+
+
+## Approved pricing implementation checkpoint
+
+The owner approved the full model-price plan on October 20 (America/Chicago).
+Source now supports explicit multi-model deployment, full catalog commitments,
+per-model qualification/readiness, normal desktop model selection, and recovery
+using the saved approved tariff catalog. Unavailable models reject a new request
+before allocating credit; recovery of a delivered answer does not require the
+provider or current catalog to be online.
+
+Ten model tokenizer packs have passed 79 independent reference vectors. Five
+Llama/Gemma sources remain unfinished. Reference vectors establish tokenizer
+agreement; actual loaded GGUF calibration and quality/latency checks remain
+required per admitted model. The full 15-model example preserves these gaps
+instead of silently narrowing the product to Fast. See
+[TOKENIZER_PREPARATION.md](TOKENIZER_PREPARATION.md).
+
+The isolated native USD harness now covers two distinct tariffs with controlled
+Fast-tokenizer fixture aliases; it makes no second-model quality claim. Current
+CI and installer outcomes must be checked at the final source revision before
+calling this change released. Live credit-service deployment, actual model
+admission and the two-computer acceptance are still outstanding.

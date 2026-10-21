@@ -1,8 +1,9 @@
 # All-model credit pricing review — October 21, 2026 (UTC)
 
-This replaces the Fast-only commercial tariff proposal. It is a proposed price
-schedule and implementation scope, not an installed policy or a completed
-multi-model product. No live balances, rates, qualifications or funds change.
+The owner approved this complete 15-model introductory rate schedule and the
+1,000 credits/$1 denomination on October 20, 2026 (America/Chicago). It replaces
+the Fast-only tariff proposal. Commercial approval does not mark deployment or
+model qualification complete. No live balances or funds have changed.
 
 ## OpenAI comparison
 
@@ -23,7 +24,7 @@ $0.001. At the calculated OpenAI reference, one OpenAI credit represents the
 same dollars as 40 KAI credits. The number printed as “credits” is a unit;
 competitive pricing comes from lower charges for the actual workload.
 
-## Complete proposed text rate schedule
+## Approved introductory text rate schedule
 
 All amounts below are per **one million AI tokens**, input / output. KAI credits
 are account spending units; AI tokens measure text. Prices target introductory
@@ -38,7 +39,7 @@ are explicitly PROVISIONAL and feed legacy billing; they are not the new
 prepaid product's approved rate schedule. Counts below are a historical snapshot,
 not current availability or proof of prepaid qualification.
 
-| Model | Proposed USD input / output | Proposed KAI credits input / output | Existing provisional USD input / output | Advertised providers |
+| Model | Approved USD input / output | Approved KAI credits input / output | Existing provisional USD input / output | Advertised providers |
 | --- | ---: | ---: | ---: | ---: |
 | Koinos Fast (`koinos-fast`) | $0.01 / $0.04 | 10 / 40 | $0.1 / $0.4 | 5 |
 | Koinos Balanced (`koinos-balanced`) | $0.015 / $0.060 | 15 / 60 | $0.15 / $0.6 | 2 |
@@ -132,3 +133,16 @@ without an explicit scope decision.
 See [ACTIVATION_REVIEW.md](ACTIVATION_REVIEW.md) for preserved authentication,
 contract, purchase-pricing, funding and deployment work. Preparing auth is
 complete; another auth-preparation loop is not part of this change.
+
+
+## Implementation following owner approval
+
+Multi-model runtime/configuration, authenticated full-catalog pricing, model
+selection and saved-answer verification, per-model provider readiness, and
+installation of per-alias tokenizer packs are now implemented in source.
+The table above records the limitations found at the initial review; it is not
+a claim that those source gaps remain unchanged. Runtime model calibration,
+reviewed qualification criteria, live deployment and two-computer acceptance
+remain open. Ten reference packs passed 79 independent vectors; five
+Llama/Gemma packs need further preparation. See
+[TOKENIZER_PREPARATION.md](TOKENIZER_PREPARATION.md) for exact model status.

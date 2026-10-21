@@ -136,3 +136,24 @@ signed-policy work required before multi-model acceptance.
 
 The preceding source revision `41f1e3b` passed full CI and 48 isolated native
 checks. Those checks used controlled model output and do not close this gap.
+
+
+### Owner-approved multi-model credit implementation
+
+The owner approved the full 15-model introductory rates and 1,000 credits/$1
+on October 20 (America/Chicago). Added compatible schema2 multi-model runtime
+and deployment configuration, full pinned catalog verification in the desktop,
+per-model availability and qualification journals, and exact model selection for
+Chat and advanced runs. Offline models reject new requests before credit is
+allocated; saved-answer recovery retains its original full tariff commitment.
+
+Ten tokenizer packs pass 79 independent Python-to-JavaScript reference vectors.
+Five Llama/Gemma packs remain explicitly unfinished. No runtime benchmark,
+model admission or provider profitability is inferred from those vectors.
+Mistral Small date-dependent prompts use signed quote time consistently through
+metering and dispatch. The native harness now exercises two distinct fixture
+rates, free-first consumption, restart and recovery without live catalog access.
+
+Desktop source is pinned to `1dca09ae5e7129d1a3ef020cbd933e366b108366`.
+Service activation, live provider checks and three closed reward days remain
+outstanding; no existing service, balance, signature or funds changed.

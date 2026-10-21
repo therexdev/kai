@@ -37,7 +37,10 @@ if (!require("./lib/koin-network/product").isPrepaid(c.deployment)) throw Error(
 loadKeys(path.join(root, "runtime-keys.json"), c);
 const d = JSON.parse(read(path.join(root, "desktop-manifest.json")));
 if (JSON.stringify(d.deployment) !== JSON.stringify(c.deployment)) throw Error("Verified desktop manifest required");
-require("./lib/koin-network/tokenizer").loadTokenizer(path.join(root,"tokenizer"), c.tokenizer);
+const entries = require("./lib/koin-network/model-configuration").entries(c);
+for (const entry of entries) require("./lib/koin-network/tokenizer").loadTokenizer(
+  path.join(root, "tokenizer", ...(c.schema === 2 ? [entry.tariff.model] : [])), entry.tokenizer);
+if (d.policyHash !== c.policyHash || d.version !== c.version || !entries.some(e => e.tariff.model === d.model && e.tariff.maxOutputTokens === d.maxOutput)) throw Error("Desktop model policy differs from reviewed runtime");
 NODE
 # Validate account sign-in and stage immutable copies before changing service
 # users, installed configuration or systemd. Never source a private env file.
@@ -47,6 +50,12 @@ trap 'rm -rf -- "$config_stage"; if [[ -n "$release_stage" ]]; then rm -rf -- "$
 prepare_args=("$bootstrap" "$config_stage")
 if [[ -n "$account_auth" ]]; then prepare_args+=("$account_auth"); fi
 "$test_node" deploy/koin-mainnet/prepaid-install-config.js "${prepare_args[@]}"
+# Check every destination parent before install -d can follow it, including
+# schema-2 per-model tokenizer directories. Staging contains validated names only.
+mapfile -d '' config_dirs < <(find "$config_stage" -mindepth 1 -type d -printf '%P\0')
+for directory in "${config_dirs[@]}"; do
+  require_real_directory "/etc/kai-koin-prepaid/$directory"
+done
 id kai-koin-prepaid >/dev/null 2>&1 || useradd --system --home-dir /var/lib/kai-koin-prepaid --shell /usr/sbin/nologin kai-koin-prepaid
 install -d -m 0755 /opt/kai-koin-prepaid /opt/kai-koin-prepaid/releases
 if [[ ! -d "$release_dir" ]]; then
@@ -66,6 +75,9 @@ fi
 # Catch incomplete or unreadable dependencies before enabling the service.
 runuser -u kai-koin-prepaid -- "$test_node" -e 'require(process.argv[1])' "$release_dir/test-server.js"
 install -d -m 0750 -o root -g kai-koin-prepaid /etc/kai-koin-prepaid /etc/kai-koin-prepaid/tokenizer
+for directory in "${config_dirs[@]}"; do
+  install -d -m 0750 -o root -g kai-koin-prepaid "/etc/kai-koin-prepaid/$directory"
+done
 install -d -m 0700 -o kai-koin-prepaid -g kai-koin-prepaid /var/lib/kai-koin-prepaid
 # Public accounts have no invitation file. Only the selected, validated files
 # are staged; offline keys and existing production account databases stay out.

@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "mode": "shadow",
+  "model": "qwen25-14b",
+  "modelHash": "e47ad95dad6ff848b431053b375adb5d39321290ea2c638682577dafca87c008",
+  "repository": "Qwen/Qwen2.5-14B-Instruct",
+  "revision": "cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8",
+  "tokenizerHash": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+  "configHash": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+  "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+  "reference": "Python tokenizers 0.22.1 + Jinja2 3.1.6; candidate only, local runtime calibration pending",
+  "vectors": [
+    {
+      "text": "Hello, world!",
+      "count": 4,
+      "idsHash": "ac77c278585afdac8b1f2318cf5ec06ac09f9744cf694355f823f428e123c36e"
+    },
+    {
+      "text": "你好，世界！ 🌍 café é",
+      "count": 9,
+      "idsHash": "4f9c2e155957ddd6c2bc7e70829dd58cb9f91a25bb985a6b3379f9c5800024ad"
+    },
+    {
+      "text": "Line 1\r\n  0023 +\t42\n𝄞👩🏽‍💻",
+      "count": 22,
+      "idsHash": "a10a798b1090be21f2d910b4d86730f45fe2cff9f7a98627767c905b4b1c2f1d"
+    },
+    {
+      "text": "Привет мир! مرحبا بالعالم! नमस्ते दुनिया!",
+      "count": 26,
+      "idsHash": "d5abbe5da1b4394ca6d4853f076a104a0fa764a901f62ffeb650fff1c07a4e70"
+    },
+    {
+      "text": "<|im_start|>assistant\n",
+      "count": 3,
+      "idsHash": "ef5941940ee034899cf442aef3e9af7a6c443ade9dd4afaa5d7fa2c4defd9d3f"
+    },
+    {
+      "messages": [
+        {
+          "role": "user",
+          "content": "What is 2 + 2?"
+        }
+      ],
+      "promptHash": "064258bd8097a629ece10515bfbfb3724670172fecd628e94e288d8e2a57fdc2",
+      "count": 37,
+      "idsHash": "972ff6b59f5aac4d32d2c55604150e312d3bda62b441909faa3e82b36e1f93b5"
+    },
+    {
+      "messages": [
+        {
+          "role": "user",
+          "content": "你好，世界！"
+        },
+        {
+          "role": "assistant",
+          "content": "你好！"
+        },
+        {
+          "role": "user",
+          "content": "Now in English, please."
+        }
+      ],
+      "promptHash": "a0a07712d75a1cf530dc0d30fbda077725851c03b464d8e80310c13c42eb923c",
+      "count": 51,
+      "idsHash": "46a189faf09688d219d2d8313338d06826ad650a835e2c90b821171bd2fcbf5a"
+    },
+    {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Reply briefly."
+        },
+        {
+          "role": "user",
+          "content": "What is 2 + 2?"
+        }
+      ],
+      "promptHash": "a605ca6de347fd2e6cc2dcc747f43454c470ae11b1844bc1db48323d281507d1",
+      "count": 24,
+      "idsHash": "685592948b6da0f799406f3685de7ddec9e9b2092645a9cbac70627e922928cd"
+    }
+  ]
+}

@@ -8,7 +8,7 @@ function fixture(t, overrides = {}) {
   let now = Date.now(), ledger;
   const tariff = { model: "fixture", version: 1, modelHash: P.hash("model"), tokenizerHash: P.hash("tokenizer"), templateHash: P.hash("template"),
     inputAtomsPerMillion: "1000000", outputAtomsPerMillion: "1000000", maxOutputTokens: 64, contextTokens: 4096, maxLatencyMs: 5000 };
-  const encode = s => [...Buffer.from(s)], meter = new Meter([{ tariff, adapter: { ...tariff, render: JSON.stringify, encode,
+  const encode = s => [...Buffer.from(s)], meter = overrides.meter || new Meter([{ tariff, adapter: { ...tariff, render: JSON.stringify, encode,
     input: m => encode(JSON.stringify(m)).length, output: s => encode(s).length } }]);
   const target = { chainId: require("../../lib/koin-network/payment-network").MAINNET_CHAIN, credits: address("contract"),
     creditsHash: "0x1220" + P.hash("prepaid-wasm"), policyHash: meter.policyHash, domain: "shadow:mainnet-pilot-" + P.hash("prepaid-service") };

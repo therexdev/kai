@@ -4,6 +4,7 @@
 const fs = require("node:fs"), path = require("node:path");
 const { configuration: pricing, verifyParity } = require("../../lib/koin-network/v4-purchase-oracle");
 const { TestAccounts } = require("../../lib/koin-network/test-accounts");
+const { LIMITS } = require("../../lib/koin-network/tokenizer");
 const CONFIG_DIR = "/etc/kai-koin-prepaid";
 const { accountEnvironmentValues, MAX_ACCOUNT_AUTH_BYTES } = require("./account-auth-input");
 
@@ -36,7 +37,7 @@ function accountEnvironment(file, required) {
 
 function installationFiles(bootstrap, authFile, { now = Date.now() } = {}) {
   if (!path.isAbsolute(bootstrap)) throw Error("Absolute private bootstrap directory required");
-  const original = bytes(path.join(bootstrap, "runtime.json"), "runtime", 65536, true);
+  const original = bytes(path.join(bootstrap, "runtime.json"), "runtime", 1048576, true);
   const runtime = json(original, "runtime");
   if (![undefined, "invitations", "public"].includes(runtime.accountMode)) throw Error("Invalid account mode");
   const publicAccounts = runtime.accountMode === "public";
@@ -78,8 +79,21 @@ function installationFiles(bootstrap, authFile, { now = Date.now() } = {}) {
       files.set("runtime.json", original);
     }
   } else files.set("runtime.json", original);
-  for (const [name, limit] of [["tokenizer.json", 16000000], ["tokenizer_config.json", 131072]]) {
-    files.set("tokenizer/" + name, bytes(path.join(bootstrap, "tokenizer", name), name, limit));
+  const packs = runtime.schema === 2
+    ? require("../../lib/koin-network/model-configuration").entries(runtime).map(e => ({ directory: "tokenizer/" + e.tariff.model, manifest: e.tokenizer }))
+    : [{ directory: "tokenizer", manifest: null }];
+  for (const { directory, manifest } of packs) {
+    // O_NOFOLLOW on files does not protect parent directories. Reject linked
+    // pack directories before collecting their immutable bytes for staging.
+    for (const relative of ["tokenizer", directory]) {
+      const st = fs.lstatSync(path.join(bootstrap, relative));
+      if (!st.isDirectory() || st.isSymbolicLink()) throw Error("Expected real tokenizer pack directory");
+    }
+    for (const [name, limit, pin] of [["tokenizer.json", LIMITS.tokenizer, "tokenizerHash"], ["tokenizer_config.json", LIMITS.config, "configHash"]]) {
+      const data = bytes(path.join(bootstrap, directory, name), name, limit);
+      if (manifest && require("../../lib/koin-network/job-protocol").hash(data) !== manifest[pin]) throw Error("Tokenizer pack checksum changed before installation");
+      files.set(directory + "/" + name, data);
+    }
   }
   return files;
 }
@@ -88,8 +102,10 @@ function stageConfiguration(bootstrap, directory, authFile) {
   const stat = fs.lstatSync(directory);
   if (!stat.isDirectory() || stat.isSymbolicLink() || fs.readdirSync(directory).length ||
       (process.platform !== "win32" && ((stat.mode & 0o077) || stat.uid !== process.getuid()))) throw Error("Use an empty private staging directory");
-  fs.mkdirSync(path.join(directory, "tokenizer"), { mode: 0o700 });
-  for (const [name, data] of files) fs.writeFileSync(path.join(directory, name), data, { mode: 0o600, flag: "wx" });
+  for (const [name, data] of files) {
+    fs.mkdirSync(path.dirname(path.join(directory, name)), { recursive: true, mode: 0o700 });
+    fs.writeFileSync(path.join(directory, name), data, { mode: 0o600, flag: "wx" });
+  }
   return { accountMode: files.has("invitations.json") ? "invitations" : "public", parityInstalled: files.has("parity.json") };
 }
 if (require.main === module) {

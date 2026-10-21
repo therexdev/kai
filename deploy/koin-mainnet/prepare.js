@@ -15,6 +15,15 @@ const ACTIVE = ["credits", "rewards", "verifier", "settlement", "lifecycle", "cl
 function configuration(c) {
   if (!c || Object.keys(c).sort().join() !== "funding,mode,rpc,settings" || !["mainnet-pilot-plan", "mainnet-prepaid-plan", "mainnet-prepaid-usd-plan"].includes(c.mode)) throw Error("Explicit mainnet pilot plan required");
   testSettings(c.settings, { usd: c.mode === "mainnet-prepaid-usd-plan" });
+  if (Object.hasOwn(c.settings, "models")) {
+    const approved = require("./model-rates.proposal.json").models;
+    for (const { tariff } of c.settings.models) {
+      const model = approved.find(m => m.model === tariff.model);
+      if (!model || tariff.modelHash !== model.modelHash ||
+          tariff.inputAtomsPerMillion !== model.usdAtomsPerMillion.input || tariff.outputAtomsPerMillion !== model.usdAtomsPerMillion.output)
+        throw Error("Multi-model deployment must match the approved model identities and USD rates");
+    }
+  }
   const u = new URL(c.settings.schedulerUrl);
   if (u.protocol !== "https:" || u.pathname !== "/scheduler" || u.username || u.password || u.search || u.hash || u.href !== c.settings.schedulerUrl) throw Error("Dedicated canonical HTTPS scheduler URL required");
   if (!Array.isArray(c.rpc) || c.rpc.length !== 2 || new Set(c.rpc.map(url => new URL(url).hostname)).size !== 2) throw Error("Two distinct HTTPS RPC hosts required for mainnet identity checks");

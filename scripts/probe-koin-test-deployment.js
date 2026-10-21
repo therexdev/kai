@@ -174,6 +174,11 @@ test("participant invitations bind a separate wallet without printing tokens or 
   const schedulerUrl = "https://test.example/scheduler", c = { schema: 1, mode: "test-deployment", deployment: f.client.d,
     roles: Object.fromEntries(["settlement", "lifecycle", "claims"].map(k => [k, Signer.fromSeed("invite-role-" + k).getAddress()])),
     schedulerUrl, version: 1, tokenizer: {}, tariff: {}, policyHash: P.hash("invite-policy"), maxRcPerTransaction: "100", maxRcPerDay: "1000" };
+  c.tokenizer = require("../lib/koin-network/tokenizers/qwen25-1.5b.json");
+  c.tariff = { model: c.tokenizer.model, version: 1, modelHash: c.tokenizer.modelHash, tokenizerHash: c.tokenizer.tokenizerHash,
+    templateHash: c.tokenizer.templateHash, inputAtomsPerMillion: "1", outputAtomsPerMillion: "2", contextTokens: 4096,
+    maxOutputTokens: 256, maxLatencyMs: 5000 };
+  c.policyHash = require("../lib/koin-network/model-configuration").policyHash(c);
   fs.writeFileSync(path.join(f.directory, "runtime.json"), JSON.stringify(c));
   fs.writeFileSync(path.join(f.directory, "desktop-manifest.json"), JSON.stringify({ deployment: c.deployment, schedulerUrl, owner }));
   const file = path.join(f.directory, "invitations.json");
