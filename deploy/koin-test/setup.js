@@ -2,7 +2,7 @@
 // Run on the operator's machine. Creates fresh Test keys; prints public pins only.
 const fs = require("fs"), path = require("path"), crypto = require("crypto");
 const { Provider, Signer, Serializer, utils } = require("koilib");
-const { boundedRpc } = require("../../lib/payouts");
+const { PinnedRpcProvider } = require("../../lib/koin-network/rpc-provider");
 const { KoinChain } = require("../../lib/koin-network/chain"), { TestDeployer } = require("../../lib/koin-network/test-deployer");
 const { FOUNDATION_CHAIN, FOUNDATION_TOKEN } = require("../../lib/koin-network/payment-mode");
 const { read, configuration } = require("../../lib/koin-network/test-config");
@@ -97,8 +97,9 @@ async function deploy(directory, wasmDir, approved, { planFile = "plan.json", ha
   let plan = JSON.parse(read(path.join(directory, planFile))); const hash = P.hash(JSON.stringify(plan));
   if (read(path.join(directory, hashFile), 100).trim() !== hash) throw Error("Deployment plan hash mismatch");
   const c = configuration(plan.runtime), keys = JSON.parse(read(path.join(directory, "offline-keys.json"), 16384, true));
-  const provider = new Provider(c.deployment.rpc);
-  if (c.mode === "mainnet-pilot") provider.call = boundedRpc(c.deployment.rpc[0]);
+  const provider = c.mode === "mainnet-pilot"
+    ? new PinnedRpcProvider(c.deployment.rpc, c.deployment.chainId)
+    : new Provider(c.deployment.rpc);
   const serializer = new Serializer(abi.types), journal = new TestDeployer(path.join(directory, "deployment-journal"), { provider, identity: hash, tokenHash: c.deployment.tokenHash, mode: c.mode });
   const encoded = role => utils.encodeBase64url(utils.decodeBase58(c.deployment[role]));
   const config = { chain_id: c.deployment.chainId, token: encoded("token"), credits: encoded("credits"), treasury: encoded("rewards"),

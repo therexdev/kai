@@ -3,6 +3,7 @@
 const fs = require("fs"), path = require("path"), crypto = require("crypto");
 const { Signer, Provider, Contract, utils } = require("koilib");
 const { boundedRpc } = require("../../lib/payouts");
+const { PinnedRpcProvider } = require("../../lib/koin-network/rpc-provider");
 const { configuration: budget, verifyIdentity, MAINNET_CHAIN, MAINNET_TOKEN, ROLES } = require("./prepare");
 const { configuration, read } = require("../../lib/koin-network/test-config");
 const { KoinChain } = require("../../lib/koin-network/chain");
@@ -95,7 +96,7 @@ async function checkFunding(directory) {
   if (evidence[0].tokenHash !== p.deployment.tokenHash) throw Error("Native KOIN bytecode changed");
   const revision = currentResourceRevision(directory, p);
   const funding = revision?.plan.funding || p.funding, deployRcLimit = revision?.plan.deployRcLimit || p.settings.deployRcLimit;
-  const provider = new Provider(p.deployment.rpc); provider.call = boundedRpc(p.deployment.rpc[0]);
+  const provider = new PinnedRpcProvider(p.deployment.rpc, MAINNET_CHAIN);
   const token = new Contract({ id: MAINNET_TOKEN, abi: utils.tokenAbi, provider }), roles = [];
   for (const role of ROLES) {
     const address = p.roleAddresses[role], response = await token.functions.balanceOf({ owner: address });

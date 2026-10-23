@@ -3,8 +3,8 @@
 // Operator-machine bootstrap only. No signer is attached to an RPC provider,
 // no transactions are prepared, and this plan alone cannot enable payments.
 const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto");
-const { Provider, Signer } = require("koilib");
-const { boundedRpc } = require("../../lib/payouts");
+const { Signer } = require("koilib");
+const { PinnedRpcProvider } = require("../../lib/koin-network/rpc-provider");
 const { settings: testSettings } = require("../koin-test/setup");
 const { atoms, hash, decimal } = require("../../lib/kai-earned-snapshot");
 const { KoinChain } = require("../../lib/koin-network/chain");
@@ -41,14 +41,28 @@ function configuration(c) {
   if (atoms(c.settings.limits.amount) > atoms(f.buyerCreditsAtoms)) throw Error("Session budget exceeds the planned buyer credit balance");
   return { config: structuredClone(c), total: String(total) };
 }
-async function verifyIdentity(rpc, providerFactory = url => { const p = new Provider([url]); p.call = boundedRpc(url); return p; }) {
+async function verifyIdentity(rpc, providerFactory = url => new PinnedRpcProvider([url], MAINNET_CHAIN)) {
   const evidence = [];
   for (const url of rpc) {
-    const p = providerFactory(url), chainId = await p.getChainId(), token = (await p.invokeGetContractAddress("koin"))?.value?.address;
-    if (chainId !== MAINNET_CHAIN || token !== MAINNET_TOKEN) throw Error("Mainnet chain/native-token identity mismatch");
-    const tokenHash = (await p.invokeGetContractMetadata(token))?.value?.hash;
-    if (!/^0x1220[a-f0-9]{64}$/.test(tokenHash || "")) throw Error("Native KOIN bytecode pin missing");
-    evidence.push({ rpc: url, chainId, token, tokenHash });
+    const p = providerFactory(url);
+    // Both independent hosts must answer. Retry only transient read failures
+    // on this same host; a healthy backup cannot replace its identity evidence.
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const chainId = await p.getChainId(), token = (await p.invokeGetContractAddress("koin"))?.value?.address;
+        if (chainId !== MAINNET_CHAIN || token !== MAINNET_TOKEN) throw Error("Mainnet chain/native-token identity mismatch");
+        const tokenHash = (await p.invokeGetContractMetadata(token))?.value?.hash;
+        if (!/^0x1220[a-f0-9]{64}$/.test(tokenHash || "")) throw Error("Native KOIN bytecode pin missing");
+        evidence.push({ rpc: url, chainId, token, tokenHash });
+        break;
+      } catch (error) {
+        if (attempt === 3 || error.code !== "koin_rpc_unavailable") {
+          throw Error("Mainnet identity check at " + new URL(url).hostname + ": " + error.message);
+        }
+        console.error("Retrying mainnet identity check at " + new URL(url).hostname + " (" + attempt + "/3)");
+        await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+      }
+    }
   }
   if (new Set(evidence.map(e => e.tokenHash)).size !== 1) throw Error("RPC native-token code hashes disagree");
   return evidence;
