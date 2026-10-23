@@ -15,18 +15,14 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
   if (config.accountMode === "public") {
     // Existing verified sign-in implementation, separate Test state. No new
     // wallet, invitation or spend grant is required to receive a free grant.
-    const express = require("express"), smtp = process.env.SMTP_HOST ? require("nodemailer").createTransport({
+    const smtp = process.env.SMTP_HOST ? require("nodemailer").createTransport({
       host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587), secure: process.env.SMTP_SECURE === "true",
       ...(process.env.SMTP_USER ? { auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } } : {}),
     }) : null;
     publicAccounts = require("./lib/accounts").createAccounts({ stateDir, siteOrigin: new URL(config.schedulerUrl).origin,
       sendMail: smtp ? m => smtp.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, ...m }) : null,
       google: process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET } : null });
-    authApp = express(); authApp.disable("x-powered-by"); authApp.use(express.json({ limit: "32kb" })); authApp.use(publicAccounts.router);
-    authApp.get(["/account", "/link"], (_req, res) => res.sendFile(path.join(__dirname, "public/account.html")));
-    authApp.use("/i18n", express.static(path.join(__dirname, "public/i18n")));
-    for (const asset of ["brand-mark.svg", "kai-companion.svg"]) authApp.get("/redesign/" + asset, (_req, res) => res.sendFile(path.join(__dirname, "public/redesign", asset)));
-    authApp.use((_req, res) => res.status(404).json({ error: "Unknown account route" }));
+    authApp = require("./lib/credit-account-web").createCreditAccountWeb(publicAccounts.router);
   }
   const runtime = new TestRuntime({ config, stateDir, signers: loadKeys(path.join(directory, "runtime-keys.json"), config),
     accountService: publicAccounts?.service,
@@ -38,7 +34,7 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
     res.setHeader("X-Content-Type-Options", "nosniff");
     try {
       const url = new URL(req.url, "http://test");
-      if (authApp && (/^\/(auth|account|i18n)(\/|$)/.test(url.pathname) || url.pathname === "/link" || /^\/redesign\/(brand-mark|kai-companion)\.svg$/.test(url.pathname))) return authApp(req, res);
+      if (authApp && require("./lib/credit-account-web").handles(url.pathname)) return authApp(req, res);
       if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, product: config.deployment.product || "legacy-reservations", lastSuccess: (runtime.prepaid ? runtime.lastServing : runtime.lastSuccess) || null, lastSettlementSuccess: runtime.lastSuccess || null });
       if (url.pathname === "/operator/status" && req.method === "GET") {
         const presented = crypto.createHash("sha256").update(String(req.headers["x-operator-secret"] || "")).digest();

@@ -27,6 +27,12 @@
 <body><header class="kai-site-header"><div class="kai-header-inner"><a class="kai-brand" href="/"><img src="/redesign/brand-mark.svg" alt=""><span>Koinos<em>AI</em></span></a><nav class="kai-site-links" aria-label="Main"><a href="/">Home</a><a href="/network">Network</a><a href="/testers">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account" aria-current="page">Account</a></nav><a class="btn btn-signal" href="/app#chat">Open KAI ↗</a><details class="kai-site-menu"><summary>Menu</summary><nav aria-label="Mobile"><a href="/">Home</a><a href="/network">Network</a><a href="/testers">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account" aria-current="page">Account</a><a href="/app#chat">Open KAI</a></nav></details></div></header>
 <main class="kai-account-layout"><aside class="kai-account-intro"><div><p class="eyebrow">Your KAI account</p><h2>KAI, wherever you are.</h2><p>Manage your devices, wallets, and access from one familiar place.</p></div><img src="/redesign/kai-companion.svg" alt="KAI, your AI companion"></aside><div class="kai-account-main">
   <h1 id="title">Account</h1>
+  <section id="creditServiceNote" class="card hide">
+    <h2>AI credits and model sharing</h2>
+    <p>This service has its own sign-in and linked wallets. Your existing website account, connected wallets and Koinos node dashboard remain on koinosai.com.</p>
+    <p><a class="btn" href="https://koinosai.com/account" rel="noreferrer">Existing account and linked wallets ↗</a> <a class="btn" href="https://koinosai.com/dashboard" rel="noreferrer">Your node dashboard ↗</a></p>
+    <p class="muted">To connect Test to AI credits, approve the code from Settings → AI credit account. Link your existing wallet there when the app asks.</p>
+  </section>
   <!-- The way back. Arriving here from the app and having no route back to it
        is a dead end, and the app is where people actually spend their time. -->
   <p style="margin:-6px 0 18px"><a class="btn" href="/app">← Back to Koinos AI</a></p>
@@ -92,11 +98,11 @@
     <div class="card">
       <h2>Linked wallets</h2>
       <div id="wallets"></div>
-      <p class="muted" style="margin-top:12px">Link a wallet from the Koinos AI app: Earn tab → Account → “Link this wallet”. The app signs the proof with the wallet's own key — the key never leaves your machine.</p>
+      <p class="muted" id="walletLinkHelp" style="margin-top:12px">Link a wallet from the Koinos AI app: Earn tab → Account → “Link this wallet”. The app signs the proof with the wallet's own key — the key never leaves your machine.</p>
       <p style="margin-top:14px"><a class="btn" href="/dashboard">View node details on your dashboard →</a></p>
     </div>
 
-    <div class="card">
+    <div class="card" id="webAccessCard">
       <h2>Web access</h2>
       <p class="muted" style="margin-bottom:12px">
         What <a href="/app">koinosai.com/app</a> may spend on your behalf. A grant is created in the
@@ -108,7 +114,7 @@
 
     <div class="card">
       <h2>Signed-in browsers</h2>
-      <p class="muted" style="margin-bottom:12px">
+      <p class="muted" id="sessionHelp" style="margin-bottom:12px">
         Every session that can act as you right now. A session can spend through a grant, so one left
         on a machine you no longer use is worth ending.
       </p>
@@ -116,7 +122,7 @@
       <hr />
       <button class="btn" id="logout">Sign out on this browser</button>
       <button class="btn" id="revokeAll" style="margin-left:8px">Sign out everywhere</button>
-      <p class="muted" style="margin-top:10px">Signing out everywhere also revokes spending grants — not just sessions.</p>
+      <p class="muted" id="revokeHelp" style="margin-top:10px">Signing out everywhere also revokes spending grants — not just sessions.</p>
       <p class="msg" role="status" aria-live="polite" id="sessMsg"></p>
     </div>
   </div>
@@ -131,6 +137,23 @@
 /* Self-contained page logic, no build step (repo posture). Talks to the
  * /auth + /account JSON endpoints with same-origin cookies. */
 const $ = (id) => document.getElementById(id);
+const creditService = document.body.dataset.accountService === "credits";
+if (creditService) {
+  document.title = "Koinos AI — AI credit account";
+  document.querySelector(".kai-account-intro h2").textContent = "Your AI credit account.";
+  $("creditServiceNote").classList.remove("hide");
+  $("webAccessCard").classList.add("hide");
+  $("walletLinkHelp").textContent = "In Test, open Settings → AI credit account → Link this wallet. This proves ownership of your existing wallet without moving funds. Website wallet links stay with your website account.";
+  $("sessionHelp").textContent = "These sessions belong to your AI credit account. Your website and Connections sessions are managed separately at koinosai.com/account.";
+  $("revokeHelp").textContent = "Signing out everywhere ends sessions on this credit service. Your website sign-in is managed separately.";
+  for (const link of document.querySelectorAll("a[href]")) {
+    const raw = link.getAttribute("href"), target = new URL(raw, location.origin);
+    if (target.origin === location.origin && ["/", "/network", "/testers", "/dashboard", "/app", "/docs/", "/updates", "/privacy"].includes(target.pathname)) {
+      link.href = "https://koinosai.com" + target.pathname + target.hash;
+      link.rel = "noreferrer";
+    }
+  }
+}
 const j = async (url, body, method) => {
   const r = await fetch(url, {
     method: method || (body === undefined ? "GET" : "POST"),
@@ -189,7 +212,7 @@ async function refresh() {
   outEl.classList.toggle("hide", !!account);
   const linking = new URLSearchParams(location.search).get("code");
   if (linking) $("linkCode").value = linking;
-  KaiI18n.setText($("title"), location.pathname === "/link" ? "Approve a device" : "Account");
+  KaiI18n.setText($("title"), location.pathname === "/link" ? "Approve a device" : creditService ? "AI credit account" : "Account");
   if (!account) return;
   /*
    * Arrived here from a gated page? Go back to it now that we can get in.
@@ -439,7 +462,7 @@ $("logout").onclick = async () => { await j("/auth/logout", {}); refresh(); };
 $("revokeAll").onclick = async () => {
   // This ends the session running this page too, so it is a one-way door and
   // says so before it opens.
-  if (!confirm(KaiI18n.t("Sign out of every browser and revoke every spending grant?\n\nThis signs you out here as well, and koinosai.com/app stops being able to spend until you authorise it again from the desktop app."))) return;
+  if (!confirm(KaiI18n.t(creditService ? "Sign out of every session on this AI credit service? Your website sign-in stays separate." : "Sign out of every browser and revoke every spending grant?\n\nThis signs you out here as well, and koinosai.com/app stops being able to spend until you authorise it again from the desktop app."))) return;
   try {
     const r = await j("/account/sessions/revoke-all", {});
     KaiI18n.setText($("sessMsg"), KaiI18n.message`Sessions ended: ${r.sessions}. Grants revoked: ${r.grants}.`);
