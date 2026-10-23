@@ -4,6 +4,12 @@
 const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto"), { execFileSync } = require("node:child_process");
 const OLD = "1e224ff1298cd7166ba775f82887bf8dfad6635b", UNIT = "kai-koin-prepaid.service";
 const ALLOWED = new Set(["test-server.js", "lib/credit-account-web.js", "public/account.html", "scripts/probe-credit-account-web.js", "scripts/probe-prepaid-web-update.js", "deploy/koin-mainnet/update-prepaid-web.js"]);
+const DEPENDENCIES = {
+  base: "39a44fe1935d20c37f44c98bc4fcc59f90f28725",
+  allowed: new Set(["package.json", "package-lock.json", "scripts/probe-prepaid-web-update.js", "deploy/koin-mainnet/update-prepaid-web.js"]),
+  required: ["package.json", "package-lock.json"],
+  label: "Credit service dependency fix",
+};
 const PATHS = { work: "/root", releases: "/opt/kai-koin-prepaid/releases", config: "/etc/kai-koin-prepaid", unit: "/etc/systemd/system/" + UNIT };
 function command(exe, args, cwd, capture = false) {
   return execFileSync(exe, args, { cwd, encoding: "utf8", stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit", env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } }) || "";
@@ -42,15 +48,17 @@ async function health() {
   }
   throw Error("Updated HTTPS account page, dashboard handoff or service heartbeat did not verify");
 }
-async function update({ repo = process.cwd(), paths: p = PATHS, run = command, checkHealth = health, log = console.log } = {}) {
+async function update({ repo = process.cwd(), paths: p = PATHS, run = command, checkHealth = health, log = console.log, kind = "web" } = {}) {
+  if (!["web", "dependencies"].includes(kind)) throw Error("Unknown update kind");
+  const review = kind === "dependencies" ? DEPENDENCIES : { base: OLD, allowed: ALLOWED, required: ["test-server.js"], label: "Credit account web fix" };
   const target = run("git", ["rev-parse", "HEAD"], repo, true).trim();
-  if (!/^[a-f0-9]{40}$/.test(target) || target === OLD || run("git", ["status", "--porcelain"], repo, true).trim()) throw Error("Use the clean reviewed web-fix checkout");
-  const changed = run("git", ["diff", "--name-only", OLD, target], repo, true).trim().split("\n");
-  if (!changed.includes("test-server.js") || changed.some(name => !ALLOWED.has(name))) throw Error("This updater accepts only the reviewed web-page change, not payment or configuration changes");
+  if (!/^[a-f0-9]{40}$/.test(target) || target === review.base || run("git", ["status", "--porcelain"], repo, true).trim()) throw Error("Use the clean reviewed fix checkout");
+  const changed = run("git", ["diff", "--name-only", review.base, target], repo, true).trim().split("\n");
+  if (review.required.some(name => !changed.includes(name)) || changed.some(name => !review.allowed.has(name))) throw Error("This updater accepts only the reviewed " + (kind === "web" ? "web-page" : "dependency") + " change, not payment or configuration changes");
   const show = prop => run("systemctl", ["show", UNIT, "--value", "--property=" + prop], undefined, true).trim();
-  const oldDir = path.join(p.releases, OLD), targetDir = path.join(p.releases, target), current = show("WorkingDirectory");
+  const oldDir = path.join(p.releases, review.base), targetDir = path.join(p.releases, target), current = show("WorkingDirectory");
   if (![oldDir, targetDir].includes(current) || show("ActiveState") !== "active" || show("FragmentPath") !== p.unit || show("DropInPaths")) throw Error("Unexpected prepaid service version or overrides; no service changes made");
-  if (current === targetDir) { await checkHealth(); log("Credit account web fix already installed."); return; }
+  if (current === targetDir) { await checkHealth(); log(review.label + " already installed."); return; }
   for (const dir of [p.releases, p.config]) if (!fs.lstatSync(dir).isDirectory() || fs.lstatSync(dir).isSymbolicLink()) throw Error("Expected real service directories");
   if (!fs.lstatSync(p.unit).isFile() || fs.lstatSync(p.unit).isSymbolicLink()) throw Error("Expected a regular systemd unit");
   if (fs.existsSync(targetDir)) throw Error("Target release directory already exists; preserve it for review");
@@ -64,6 +72,8 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, c
   try { run("tar", ["-xf", archive, "-C", targetDir]); run("npm", ["ci", "--omit=dev", "--ignore-scripts"], targetDir); }
   finally { process.umask(mask); }
   run("runuser", ["-u", "kai-koin-prepaid", "--", process.execPath, "-e", "require(process.argv[1])", path.join(targetDir, "test-server.js")]);
+  if (kind === "dependencies") run("runuser", ["-u", "kai-koin-prepaid", "--", process.execPath, "-e",
+    'for (const [name, version] of [["body-parser", "1.20.9"], ["nodemailer", "10.1.4"]]) { const installed = require(require.resolve(name + "/package.json", { paths: [process.argv[1]] })); if (installed.version !== version) throw Error("Unexpected dependency version: " + name); }', targetDir]);
   if (configDigest(p.config) !== digest || !fs.readFileSync(p.unit).equals(oldUnit)) throw Error("Service configuration changed during preparation");
   const writeUnit = bytes => { const temporary = p.unit + ".web-update"; fs.writeFileSync(temporary, bytes, { flag: "wx", mode }); fs.chmodSync(temporary, mode); fs.renameSync(temporary, p.unit); };
   let stopped = false;
@@ -80,11 +90,13 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, c
     }
     throw error;
   }
-  log("Credit account web fix installed: " + target);
+  log(review.label + " installed: " + target);
   log("HTTPS account page and dashboard handoff verified. Account databases, keys, configuration and payment records preserved.");
 }
 if (require.main === module) {
   if (process.getuid?.() !== 0 || Number(process.versions.node.split(".")[0]) < 22 || /^\/(root|home)\//.test(process.execPath)) throw Error("Use system Node 22+ as root");
-  process.umask(0o077); update().catch(error => { console.error(error.message); process.exitCode = 1; });
+  const args = process.argv.slice(2);
+  if (args.length && (args.length !== 1 || args[0] !== "--dependencies")) throw Error("Usage: node deploy/koin-mainnet/update-prepaid-web.js [--dependencies]");
+  process.umask(0o077); update({ kind: args.length ? "dependencies" : "web" }).catch(error => { console.error(error.message); process.exitCode = 1; });
 }
-module.exports = { update, replacementUnit, configDigest, OLD, UNIT, ALLOWED };
+module.exports = { update, replacementUnit, configDigest, OLD, UNIT, ALLOWED, DEPENDENCIES };

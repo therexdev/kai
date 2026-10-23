@@ -18,10 +18,11 @@
     "@huggingface/tokenizers": "0.2.0",
     "express": "^4.22.3",
     "koilib": "^9.4.0",
-    "nodemailer": "^10.0.16"
+    "nodemailer": "10.1.4"
   },
   "overrides": {
-    "protobufjs": "7.6.6"
+    "protobufjs": "7.6.6",
+    "body-parser": "1.20.9"
   },
   "devDependencies": {
     "jsdom": "^26.1.0",
