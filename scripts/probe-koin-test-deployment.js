@@ -114,9 +114,50 @@ function mainnetDeployment(t, initialize = false) {
     assert.equal(journal.get("step").attempts, 0);
     return { receipt: { id: body.transaction.id, rc_used: "1000000" } };
   };
-  return { provider, calls, identity, reopen, get journal() { return journal; }, get signs() { return signs; },
-    prepare: () => journal.prepare("step", operations, f.owner, "100000000") };
+  return { provider, calls, identity, reopen, owner: f.owner.getAddress(), get journal() { return journal; }, get signs() { return signs; },
+    prepare: (rcLimit = "100000000") => journal.prepare("step", operations, f.owner, rcLimit) };
 }
+test("fresh mainnet initialization uses remaining Mana below the approved ceiling and preserves its signed limit across restart", async t => {
+  const f = mainnetDeployment(t, true), ceiling = "7500000000";
+  // The upload has consumed part of the funded account's Mana. No resource
+  // revision is needed to initialize within the original approved ceiling.
+  f.provider.getAccountRc = async () => "6000000000";
+  assert.equal(f.journal.resourceRevision(), null);
+  const limit = await f.journal.deploymentLimit("step", ceiling, f.owner);
+  assert.equal(limit, "6000000000");
+  const prepared = await f.prepare(limit);
+  await f.journal.submit("step", f.identity);
+  assert.deepEqual(f.calls.map(c => c.broadcast), [false, true]);
+  assert.equal(f.journal.get("step").simulation.rcLimit, limit);
+  f.reopen();
+  for (const available of ["5000000000", "10000000000"]) {
+    f.provider.getAccountRc = async () => available;
+    const savedLimit = await f.journal.deploymentLimit("step", ceiling, f.owner);
+    assert.equal(savedLimit, limit);
+    assert.deepEqual((await f.prepare(savedLimit)).transaction, prepared.transaction);
+  }
+  assert.equal(f.signs, 1);
+  assert.equal(await f.journal.deploymentLimit("another-step", ceiling, f.owner), ceiling);
+});
+test("remaining Mana must still cover the deployment simulation and headroom before broadcast", async t => {
+  const f = mainnetDeployment(t, true);
+  f.provider.getAccountRc = async () => "1000000";
+  const limit = await f.journal.deploymentLimit("step", "7500000000", f.owner);
+  await f.prepare(limit);
+  await assert.rejects(f.journal.submit("step", f.identity), /headroom/);
+  assert.deepEqual(f.calls.map(c => c.broadcast), [false]);
+  assert.equal(f.journal.get("step").attempts, 0);
+});
+test("fresh mainnet steps stop before signing when remaining Mana is zero or cannot be read", async t => {
+  const f = mainnetDeployment(t, true);
+  f.provider.getAccountRc = async () => "0";
+  await assert.rejects(f.journal.deploymentLimit("step", "7500000000", f.owner), /Insufficient deployment Mana/);
+  f.provider.getAccountRc = async () => { throw Error("RPC unavailable"); };
+  await assert.rejects(f.journal.deploymentLimit("step", "7500000000", f.owner), /RPC unavailable/);
+  assert.equal(f.signs, 0);
+  assert.equal(f.journal.get("step"), null);
+  assert.deepEqual(f.calls, []);
+});
 for (const initialize of [false, true]) test("mainnet " + (initialize ? "initialization" : "upload") + " measures Mana before broadcast and recovers the exact envelope after restart", async t => {
   const f = mainnetDeployment(t, initialize), prepared = await f.prepare();
   await f.journal.submit("step", f.identity);
