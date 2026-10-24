@@ -1,0 +1,692 @@
+{
+  "schema": 1,
+  "sourceReportSha256": "2af542cb72101ba2028b55f439ea3410798aad40494c0ddfd0d8495c6b48fec3",
+  "omittedFields": [
+    "publicWallet",
+    "hardware",
+    "runtime.pid"
+  ],
+  "report": {
+    "schema": 1,
+    "kind": "local-provider-candidate-check",
+    "status": "candidate-not-approved",
+    "signed": false,
+    "providerEligibilityCreated": false,
+    "networkReady": false,
+    "startedAt": 1792813516848,
+    "completedAt": 1792813525671,
+    "app": {
+      "version": "0.54.12-test.206.1",
+      "channel": "test"
+    },
+    "model": {
+      "id": "koinos-smart",
+      "label": "Koinos Smart",
+      "package": "qwen2.5-7b-instruct-q4_k_m@1",
+      "modelHash": "65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423",
+      "tokenizerHash": "fee4b0cea9cad15d464b84d1f85fe7019103a76fca033894afd3685d77d8b4de",
+      "configHash": "f7ad4d4d1d22d4a5125adc51282e6b7819bece91aba888a7ed253cac0c848eb1",
+      "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+      "manifestSha256": "c10c7483860389c736e6aa94595511b26bed4d6872b3be13e2749a6edaaa5c34",
+      "referenceAt": 1792540800000
+    },
+    "runtime": {
+      "kind": "llamacpp",
+      "identity": "managed-process-observed",
+      "stable": true
+    },
+    "modelFile": {
+      "sha256": "65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423",
+      "sizeBytes": 4683074240,
+      "hashVerified": true
+    },
+    "calibration": {
+      "complete": true,
+      "vectors": [
+        {
+          "id": "reference-1",
+          "textHash": "315f5bdb76d078c43b8ac0064e4a0164612b1fce77c869345bfc94c75894edd3",
+          "expectedCount": 4,
+          "expectedIdsHash": "ac77c278585afdac8b1f2318cf5ec06ac09f9744cf694355f823f428e123c36e",
+          "count": 4,
+          "idsHash": "ac77c278585afdac8b1f2318cf5ec06ac09f9744cf694355f823f428e123c36e",
+          "passed": true
+        },
+        {
+          "id": "reference-2",
+          "textHash": "818dacbaf3d3c5bdab78204832aa1ef087f78f97f4b67182b4aa88644269865e",
+          "expectedCount": 10,
+          "expectedIdsHash": "ec96c056f263f7fd352e93f8a0599c7ff2690c522483d2720f568b980d9f6f14",
+          "count": 10,
+          "idsHash": "ec96c056f263f7fd352e93f8a0599c7ff2690c522483d2720f568b980d9f6f14",
+          "passed": true
+        },
+        {
+          "id": "reference-3",
+          "textHash": "517cc834bcfb23f049fdf7a164b3e747d78f22be67ac7c8eba98ae1e9eabb710",
+          "expectedCount": 22,
+          "expectedIdsHash": "a10a798b1090be21f2d910b4d86730f45fe2cff9f7a98627767c905b4b1c2f1d",
+          "count": 22,
+          "idsHash": "a10a798b1090be21f2d910b4d86730f45fe2cff9f7a98627767c905b4b1c2f1d",
+          "passed": true
+        },
+        {
+          "id": "reference-4",
+          "textHash": "752cd76d84d064674db11ec76c9f1b168c4b8d0f9337dcc72c06adab4852ca17",
+          "expectedCount": 26,
+          "expectedIdsHash": "d5abbe5da1b4394ca6d4853f076a104a0fa764a901f62ffeb650fff1c07a4e70",
+          "count": 26,
+          "idsHash": "d5abbe5da1b4394ca6d4853f076a104a0fa764a901f62ffeb650fff1c07a4e70",
+          "passed": true
+        },
+        {
+          "id": "reference-5",
+          "textHash": "fb3832354a86f4328bdfbf33691473fc7c08824ff6bd056f4b90c95d7fe9eaa4",
+          "expectedCount": 3,
+          "expectedIdsHash": "ef5941940ee034899cf442aef3e9af7a6c443ade9dd4afaa5d7fa2c4defd9d3f",
+          "count": 3,
+          "idsHash": "ef5941940ee034899cf442aef3e9af7a6c443ade9dd4afaa5d7fa2c4defd9d3f",
+          "passed": true
+        },
+        {
+          "id": "reference-6",
+          "textHash": "12973d7f0f39be39509bcbcd2f2b08e2161770ab5451c88d3c9be6671093a365",
+          "expectedCount": 39,
+          "expectedIdsHash": "86119eb23ac0764ac806ed0061d4ae01f39b8bc56727d65279f895cc379f5a20",
+          "count": 39,
+          "idsHash": "86119eb23ac0764ac806ed0061d4ae01f39b8bc56727d65279f895cc379f5a20",
+          "passed": true
+        },
+        {
+          "id": "reference-7",
+          "textHash": "3eefaa76f42c24243a75c0559c27bfea910a45891b9945cf0ca039c7946f0783",
+          "expectedCount": 8,
+          "expectedIdsHash": "268db0cc47450c9bdae66a837891803952521dbb7d5f087a7581a5739e7ef138",
+          "count": 8,
+          "idsHash": "268db0cc47450c9bdae66a837891803952521dbb7d5f087a7581a5739e7ef138",
+          "passed": true
+        },
+        {
+          "id": "reference-8",
+          "textHash": "58c8f098b591cd9dd0012729ab04cac8be05e0657b1fc64c0a0450174cd01673",
+          "expectedCount": 6,
+          "expectedIdsHash": "838d09438c2d2dabd4492b61a3c7fa4d95c89377b1db1eb466450e792b953bbd",
+          "count": 6,
+          "idsHash": "838d09438c2d2dabd4492b61a3c7fa4d95c89377b1db1eb466450e792b953bbd",
+          "passed": true
+        },
+        {
+          "id": "reference-9",
+          "textHash": "10ec8e08ed5db85c443363bb05624aff898d6f5900f5afae965a5a034ab8d5fd",
+          "expectedCount": 8,
+          "expectedIdsHash": "70f2b0e7ccfde75fec63fcc44e78f445dc9ab6dad6adfe02bead544315b24b09",
+          "count": 8,
+          "idsHash": "70f2b0e7ccfde75fec63fcc44e78f445dc9ab6dad6adfe02bead544315b24b09",
+          "passed": true
+        },
+        {
+          "id": "reference-10",
+          "textHash": "b34f6ef9474910df1a6b33600c719a8ce562d93848bef926ffd4e49126877251",
+          "expectedCount": 21,
+          "expectedIdsHash": "911e260ee00f87a93a240fb1c7cc83220668a0b38904444d43beef7b57e5ad66",
+          "count": 21,
+          "idsHash": "911e260ee00f87a93a240fb1c7cc83220668a0b38904444d43beef7b57e5ad66",
+          "passed": true
+        },
+        {
+          "id": "reference-11",
+          "textHash": "d8561639daf8de454ebcda3585ec49e4cac9f56595a5a6cedeb6b6cddf65f427",
+          "expectedCount": 3,
+          "expectedIdsHash": "0e347d6a7b24f3f631f65b28510f79a23bc9bd010e393ad87ebef1fb4a0d370f",
+          "count": 3,
+          "idsHash": "0e347d6a7b24f3f631f65b28510f79a23bc9bd010e393ad87ebef1fb4a0d370f",
+          "passed": true
+        },
+        {
+          "id": "reference-12",
+          "textHash": "ab6cf101d88f0e5f2a786a25a40ce3c5a8ffe0f31a8f1c4f67e694f01824215a",
+          "expectedCount": 43,
+          "expectedIdsHash": "88418a841c7d684365691e6b52a6e4b81944940ae027f296eb2eab2dbd10cd13",
+          "count": 43,
+          "idsHash": "88418a841c7d684365691e6b52a6e4b81944940ae027f296eb2eab2dbd10cd13",
+          "passed": true
+        },
+        {
+          "id": "reference-13",
+          "textHash": "bf12b6d99b589347dd2e5ff83ac48cd1671af27c9aa23b84cc634179b6d0f233",
+          "expectedCount": 22,
+          "expectedIdsHash": "42af9cd81f332c20a82f8f56f34e3f9bebbd19508a8095d217503ee8f1747b2d",
+          "count": 22,
+          "idsHash": "42af9cd81f332c20a82f8f56f34e3f9bebbd19508a8095d217503ee8f1747b2d",
+          "passed": true
+        },
+        {
+          "id": "reference-14",
+          "textHash": "b10d8119a1353c8ff16c60093a71edb03d51b9ef717ed4552e510b82e2f70a91",
+          "expectedCount": 22,
+          "expectedIdsHash": "b9374e816a5fe1e3e2111342c6cd57eb1444d232e1d657e9ba20da6a5320ff52",
+          "count": 22,
+          "idsHash": "b9374e816a5fe1e3e2111342c6cd57eb1444d232e1d657e9ba20da6a5320ff52",
+          "passed": true
+        },
+        {
+          "id": "reference-15",
+          "textHash": "ade62da6a93619580c398ca464d20df38546d528f5b5955677cf0b9f20b6c65b",
+          "expectedCount": 15,
+          "expectedIdsHash": "d12ba2f2428a228cdfec5efba3197dca7704707393ef9715cb85788916cfdeb0",
+          "count": 15,
+          "idsHash": "d12ba2f2428a228cdfec5efba3197dca7704707393ef9715cb85788916cfdeb0",
+          "passed": true
+        },
+        {
+          "id": "reference-16",
+          "textHash": "a0b3c654255b3b1a00dc23eede673060bbbf2bae97f618304aa95421e2655e08",
+          "expectedCount": 7,
+          "expectedIdsHash": "971868d5d29a114c8b793765d6ffb5c4651f9d40cb2415cf89b4f4fb61b3f0a9",
+          "count": 7,
+          "idsHash": "971868d5d29a114c8b793765d6ffb5c4651f9d40cb2415cf89b4f4fb61b3f0a9",
+          "passed": true
+        },
+        {
+          "id": "reference-17",
+          "textHash": "c05c9212ad461896261a1c0542bd6bbed3635643751a928ffe97f7363444c80c",
+          "expectedCount": 25,
+          "expectedIdsHash": "247d0059b2b6cda17ca06721436068a1e378f05ef6def711d9e4a8c1bc44c3ed",
+          "count": 25,
+          "idsHash": "247d0059b2b6cda17ca06721436068a1e378f05ef6def711d9e4a8c1bc44c3ed",
+          "passed": true
+        },
+        {
+          "id": "reference-18",
+          "textHash": "38543d90f76c0608c374a7941e6f9145125a0abe0d6157386ecee402645d3f88",
+          "expectedCount": 29,
+          "expectedIdsHash": "0154e309777d46c393649423a614d0b29556113d8cbaca9a7efeeae2dbae5a2e",
+          "count": 29,
+          "idsHash": "0154e309777d46c393649423a614d0b29556113d8cbaca9a7efeeae2dbae5a2e",
+          "passed": true
+        },
+        {
+          "id": "reference-19",
+          "textHash": "99c6dc566b3690fa61e34ced6e2e00c4fdbd611920f0260441fbb64b99e98075",
+          "expectedCount": 19,
+          "expectedIdsHash": "0c3710631b227c6780cc52382243ed843a63a4fa893ee3f362b1a1aa4b0566f2",
+          "count": 19,
+          "idsHash": "0c3710631b227c6780cc52382243ed843a63a4fa893ee3f362b1a1aa4b0566f2",
+          "passed": true
+        },
+        {
+          "id": "reference-20",
+          "textHash": "1e4803b98e0660cdaab843fca462e837aa61cce964e61ee3c862ccfca7559b8e",
+          "expectedCount": 7,
+          "expectedIdsHash": "f6e090232b86383d62bdb10b8519661ae370016ebe2f0d4e60c6741b02dd5659",
+          "count": 7,
+          "idsHash": "f6e090232b86383d62bdb10b8519661ae370016ebe2f0d4e60c6741b02dd5659",
+          "passed": true
+        },
+        {
+          "id": "reference-21",
+          "textHash": "3ba3f5f43b92602683c19aee62a20342b084dd5971ddd33808d81a328879a547",
+          "expectedCount": 4,
+          "expectedIdsHash": "c392e3d3a14a72010bd7635aefa5fae9be12d8fe29f85336763b3565eb3f7d3a",
+          "count": 4,
+          "idsHash": "c392e3d3a14a72010bd7635aefa5fae9be12d8fe29f85336763b3565eb3f7d3a",
+          "passed": true
+        },
+        {
+          "id": "reference-22",
+          "textHash": "6ebd5e15635831219cab347ac8021da39c0ed5cc97c5f87ac2fb915a8f5b2a13",
+          "expectedCount": 15,
+          "expectedIdsHash": "130c4a2065255edc41d9c1962f550698a193b4c52d9f093196bcb32a2829ffae",
+          "count": 15,
+          "idsHash": "130c4a2065255edc41d9c1962f550698a193b4c52d9f093196bcb32a2829ffae",
+          "passed": true
+        },
+        {
+          "id": "reference-23",
+          "textHash": "b771f509b5c9f4545b7a3a280487ca958e5ccc709555aa040029489b5d3e6d49",
+          "expectedCount": 7,
+          "expectedIdsHash": "05a2b73e20aa63850e86d30ed7b8032539b99f433f7def8f7e5520a7eb8a2524",
+          "count": 7,
+          "idsHash": "05a2b73e20aa63850e86d30ed7b8032539b99f433f7def8f7e5520a7eb8a2524",
+          "passed": true
+        },
+        {
+          "id": "reference-24",
+          "textHash": "25effd66563f2613505fc7b37a7517378182ee245b2803c15c1dcf2d948d9fc5",
+          "expectedCount": 9,
+          "expectedIdsHash": "f2f1fb61bc03db3800bd0a6836404019fa4215d00f155721a3a92ebd1e98ee0d",
+          "count": 9,
+          "idsHash": "f2f1fb61bc03db3800bd0a6836404019fa4215d00f155721a3a92ebd1e98ee0d",
+          "passed": true
+        },
+        {
+          "id": "reference-25",
+          "textHash": "1cfc5cf29f8bbf89cb973376a2d825eb525a3faecd32afd80bc272c2ca9b443f",
+          "expectedCount": 11,
+          "expectedIdsHash": "a5450d8d40bbdd9c50072c93cc166e7a4cbc2fd53a9fc50859c58fe0c92421a2",
+          "count": 11,
+          "idsHash": "a5450d8d40bbdd9c50072c93cc166e7a4cbc2fd53a9fc50859c58fe0c92421a2",
+          "passed": true
+        },
+        {
+          "id": "reference-26",
+          "textHash": "064258bd8097a629ece10515bfbfb3724670172fecd628e94e288d8e2a57fdc2",
+          "expectedCount": 37,
+          "expectedIdsHash": "972ff6b59f5aac4d32d2c55604150e312d3bda62b441909faa3e82b36e1f93b5",
+          "count": 37,
+          "idsHash": "972ff6b59f5aac4d32d2c55604150e312d3bda62b441909faa3e82b36e1f93b5",
+          "passed": true
+        },
+        {
+          "id": "reference-27",
+          "textHash": "a0a07712d75a1cf530dc0d30fbda077725851c03b464d8e80310c13c42eb923c",
+          "expectedCount": 51,
+          "expectedIdsHash": "46a189faf09688d219d2d8313338d06826ad650a835e2c90b821171bd2fcbf5a",
+          "count": 51,
+          "idsHash": "46a189faf09688d219d2d8313338d06826ad650a835e2c90b821171bd2fcbf5a",
+          "passed": true
+        },
+        {
+          "id": "reference-28",
+          "textHash": "a605ca6de347fd2e6cc2dcc747f43454c470ae11b1844bc1db48323d281507d1",
+          "expectedCount": 24,
+          "expectedIdsHash": "685592948b6da0f799406f3685de7ddec9e9b2092645a9cbac70627e922928cd",
+          "count": 24,
+          "idsHash": "685592948b6da0f799406f3685de7ddec9e9b2092645a9cbac70627e922928cd",
+          "passed": true
+        },
+        {
+          "id": "reference-29",
+          "textHash": "43264a86f709f1a4e64f9890dadbc4553e8c227aa14b05876d21d6619112356c",
+          "expectedCount": 73,
+          "expectedIdsHash": "6285a907e6e042557bdb8e5738109133491df69a3b9d8509cf3fcf924631122e",
+          "count": 73,
+          "idsHash": "6285a907e6e042557bdb8e5738109133491df69a3b9d8509cf3fcf924631122e",
+          "passed": true
+        },
+        {
+          "id": "reference-30",
+          "textHash": "e1672d24ce8a55976bcdbd3ad9536ee852892cf1f76d97e7f02ac191ce10a81c",
+          "expectedCount": 5,
+          "expectedIdsHash": "0e255e25e9e3208185fa4bd9e48dcd384ad6e5dfe640a93805b245ac34f4c808",
+          "count": 5,
+          "idsHash": "0e255e25e9e3208185fa4bd9e48dcd384ad6e5dfe640a93805b245ac34f4c808",
+          "passed": true
+        },
+        {
+          "id": "reference-31",
+          "textHash": "6298a71f2aff31dfee6625886eb6829844c82d1b03ff287f2cfaf2c54132cdee",
+          "expectedCount": 17,
+          "expectedIdsHash": "f6bb2e8c414647c63a56d384320a054adea4c022028708578860ea67784e76ac",
+          "count": 17,
+          "idsHash": "f6bb2e8c414647c63a56d384320a054adea4c022028708578860ea67784e76ac",
+          "passed": true
+        },
+        {
+          "id": "reference-32",
+          "textHash": "6f1232e098ff7941f48f845b3953fdc62281577aa59b6ecf3a83541c00a38749",
+          "expectedCount": 7,
+          "expectedIdsHash": "0efa73a940705df5fd4a46c4e7e5f3b692e7d9f0890366e5004a766d6ad87631",
+          "count": 7,
+          "idsHash": "0efa73a940705df5fd4a46c4e7e5f3b692e7d9f0890366e5004a766d6ad87631",
+          "passed": true
+        }
+      ]
+    },
+    "measurement": {
+      "complete": true,
+      "results": [
+        {
+          "id": "multiplication",
+          "promptHash": "cf78273c189f61ae5b6d52d2f9cbb584f16caedea466328aedee109a4859794f",
+          "referenceAt": 1792540800000,
+          "inputTokens": 46,
+          "inputIdsHash": "f72c746dc23d2c57731c272b19823d1f97c31d95226ec120f0846ae6761ecc46",
+          "tokenizer": {
+            "count": 46,
+            "idsHash": "f72c746dc23d2c57731c272b19823d1f97c31d95226ec120f0846ae6761ecc46",
+            "passed": true
+          },
+          "expected": [
+            "391"
+          ],
+          "maxOutput": 32,
+          "passed": true,
+          "inferenceInput": {
+            "format": "token-ids",
+            "count": 46,
+            "idsHash": "f72c746dc23d2c57731c272b19823d1f97c31d95226ec120f0846ae6761ecc46"
+          },
+          "elapsedMs": 625,
+          "output": "391",
+          "outputHash": "a934c244755c66aebb0d6f9f5687038ffae8f00b00b28b4e17521016393f38b9",
+          "stoppedByLimit": false
+        },
+        {
+          "id": "exact-word",
+          "promptHash": "64ebf73dfd3a2ca24c228f23e88648d594cb87249d184132e90b3c201ed16725",
+          "referenceAt": 1792540800000,
+          "inputTokens": 39,
+          "inputIdsHash": "f83230f4f898ea0154587e727718dc7a5075e406c804ed943a6f9ed7e9da32fe",
+          "tokenizer": {
+            "count": 39,
+            "idsHash": "f83230f4f898ea0154587e727718dc7a5075e406c804ed943a6f9ed7e9da32fe",
+            "passed": true
+          },
+          "expected": [
+            "PONG"
+          ],
+          "maxOutput": 32,
+          "passed": true,
+          "inferenceInput": {
+            "format": "token-ids",
+            "count": 39,
+            "idsHash": "f83230f4f898ea0154587e727718dc7a5075e406c804ed943a6f9ed7e9da32fe"
+          },
+          "elapsedMs": 461,
+          "output": "PONG",
+          "outputHash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+          "stoppedByLimit": false
+        },
+        {
+          "id": "json-shape",
+          "promptHash": "b5017a66d3326f65d1898411048d203d2beccdbc91b0bd6ad4cb55894cee44e8",
+          "referenceAt": 1792540800000,
+          "inputTokens": 68,
+          "inputIdsHash": "e5f2d57a3ea50412faec7486a4dacec75b86cf69b375ce008b86ab8dfe713196",
+          "tokenizer": {
+            "count": 68,
+            "idsHash": "e5f2d57a3ea50412faec7486a4dacec75b86cf69b375ce008b86ab8dfe713196",
+            "passed": true
+          },
+          "expected": [
+            "{\"ok\":true,\"n\":3}"
+          ],
+          "maxOutput": 64,
+          "passed": true,
+          "inferenceInput": {
+            "format": "token-ids",
+            "count": 68,
+            "idsHash": "e5f2d57a3ea50412faec7486a4dacec75b86cf69b375ce008b86ab8dfe713196"
+          },
+          "elapsedMs": 956,
+          "output": "{\"ok\":true,\"n\":3}",
+          "outputHash": "234ad22e29f2e04a104950eba1bce76f583707943b3626156cf692223e516528",
+          "stoppedByLimit": false
+        },
+        {
+          "id": "year-extraction",
+          "promptHash": "fcef161e2a6b036a4cff5a373995f00da9fd63d01f883a6f63e67a7b1a0acfb6",
+          "referenceAt": 1792540800000,
+          "inputTokens": 68,
+          "inputIdsHash": "4246ea4e0702568bb1ac4a341cd8fe62b5cbd69fc698cf219519e34137963288",
+          "tokenizer": {
+            "count": 68,
+            "idsHash": "4246ea4e0702568bb1ac4a341cd8fe62b5cbd69fc698cf219519e34137963288",
+            "passed": true
+          },
+          "expected": [
+            "1937"
+          ],
+          "maxOutput": 32,
+          "passed": true,
+          "inferenceInput": {
+            "format": "token-ids",
+            "count": 68,
+            "idsHash": "4246ea4e0702568bb1ac4a341cd8fe62b5cbd69fc698cf219519e34137963288"
+          },
+          "elapsedMs": 601,
+          "output": "1937",
+          "outputHash": "c6f5c46f9e3daea6422f8a004682a5de6f6946a9cfb7c9ca71912c029a981403",
+          "stoppedByLimit": false
+        },
+        {
+          "id": "letter-count",
+          "promptHash": "daea504dad3fe721f8708ec2cc209e4d631d4b27f59a2b3a0323ddaa6dac8a29",
+          "referenceAt": 1792540800000,
+          "inputTokens": 49,
+          "inputIdsHash": "96a83d53e05f355b9867f7f9a84062553a8a574893ca9fa16071845fd80a1f35",
+          "tokenizer": {
+            "count": 49,
+            "idsHash": "96a83d53e05f355b9867f7f9a84062553a8a574893ca9fa16071845fd80a1f35",
+            "passed": true
+          },
+          "expected": [
+            "3"
+          ],
+          "maxOutput": 32,
+          "passed": true,
+          "inferenceInput": {
+            "format": "token-ids",
+            "count": 49,
+            "idsHash": "96a83d53e05f355b9867f7f9a84062553a8a574893ca9fa16071845fd80a1f35"
+          },
+          "elapsedMs": 396,
+          "output": "3",
+          "outputHash": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+          "stoppedByLimit": false
+        },
+        {
+          "id": "doubling",
+          "promptHash": "28579a66d9f4157b52eabd22f7e4e1130aa547fac9e661a237c0f09a0581340a",
+          "referenceAt": 1792540800000,
+          "inputTokens": 65,
+          "inputIdsHash": "9867b368a1a1844b05f1b659e9be2f1e745f09f195fde20d08312ea80638cf94",
+          "tokenizer": {
+            "count": 65,
+            "idsHash": "9867b368a1a1844b05f1b659e9be2f1e745f09f195fde20d08312ea80638cf94",
+            "passed": true
+          },
+          "expected": [
+            "32"
+          ],
+          "maxOutput": 32,
+          "passed": true,
+          "inferenceInput": {
+            "format": "token-ids",
+            "count": 65,
+            "idsHash": "9867b368a1a1844b05f1b659e9be2f1e745f09f195fde20d08312ea80638cf94"
+          },
+          "elapsedMs": 432,
+          "output": "32",
+          "outputHash": "e29c9c180c6279b0b02abd6a1801c7c04082cf486ec027aa13515e4f3884bb6b",
+          "stoppedByLimit": false
+        },
+        {
+          "id": "ryb-colors",
+          "promptHash": "1bddd08fdb6d85ee5f3c51a3bd820123af0b2ea57388b86e097fb454ce5152a5",
+          "referenceAt": 1792540800000,
+          "inputTokens": 71,
+          "inputIdsHash": "d735192ce21257a4b53f34f27c7c206585785a4d849f8b588f690855d4ffbc5b",
+          "tokenizer": {
+            "count": 71,
+            "idsHash": "d735192ce21257a4b53f34f27c7c206585785a4d849f8b588f690855d4ffbc5b",
+            "passed": true
+          },
+          "expected": [
+            "red, yellow, blue"
+          ],
+          "maxOutput": 32,
+          "passed": true,
+          "inferenceInput": {
+            "format": "token-ids",
+            "count": 71,
+            "idsHash": "d735192ce21257a4b53f34f27c7c206585785a4d849f8b588f690855d4ffbc5b"
+          },
+          "elapsedMs": 706,
+          "output": "red, yellow, blue",
+          "outputHash": "282e87f671c0ddbd220311cd2cdf3b1e37c616be2ab33b787123642c9192afca",
+          "stoppedByLimit": false
+        },
+        {
+          "id": "even-number",
+          "promptHash": "62ea7abaac8b76c29b564e2acba8c22c016e0a22202e9fbd9f00b28c91a1391a",
+          "referenceAt": 1792540800000,
+          "inputTokens": 53,
+          "inputIdsHash": "e074940e8ac132ce7c0083053d94ce730d3064f2cdbff8093327c6bdc01419d3",
+          "tokenizer": {
+            "count": 53,
+            "idsHash": "e074940e8ac132ce7c0083053d94ce730d3064f2cdbff8093327c6bdc01419d3",
+            "passed": true
+          },
+          "expected": [
+            "YES"
+          ],
+          "maxOutput": 32,
+          "passed": true,
+          "inferenceInput": {
+            "format": "token-ids",
+            "count": 53,
+            "idsHash": "e074940e8ac132ce7c0083053d94ce730d3064f2cdbff8093327c6bdc01419d3"
+          },
+          "elapsedMs": 394,
+          "output": "YES",
+          "outputHash": "f9171164593756e56fb197327b529a4955590566560dbe62d586bff41be9d297",
+          "stoppedByLimit": false
+        },
+        {
+          "id": "numeric-sort",
+          "promptHash": "2765a5aaf498a21e62fc384d416012650868dbb8b8ef9b001f56b6a0f3a465ba",
+          "referenceAt": 1792540800000,
+          "inputTokens": 59,
+          "inputIdsHash": "c8fb79784bde7c9fcf5eac25fa5751677d8447f8b00015feadd20127f6dcf027",
+          "tokenizer": {
+            "count": 59,
+            "idsHash": "c8fb79784bde7c9fcf5eac25fa5751677d8447f8b00015feadd20127f6dcf027",
+            "passed": true
+          },
+          "expected": [
+            "2, 5, 9"
+          ],
+          "maxOutput": 32,
+          "passed": true,
+          "inferenceInput": {
+            "format": "token-ids",
+            "count": 59,
+            "idsHash": "c8fb79784bde7c9fcf5eac25fa5751677d8447f8b00015feadd20127f6dcf027"
+          },
+          "elapsedMs": 857,
+          "output": "2, 5, 9",
+          "outputHash": "00b6521e8bff0ac0820c516df2d7b49afbeaac3d4f55cc988bbd13c0d6c3b53f",
+          "stoppedByLimit": false
+        },
+        {
+          "id": "context-recall",
+          "promptHash": "411a7e7c0a5b5d8613bfbc575fdb3ac44bce93bf8dc9f38e7534fac64676094f",
+          "referenceAt": 1792540800000,
+          "inputTokens": 70,
+          "inputIdsHash": "9971e36efb836f91b330099aa5e574786f53ce3dde16e30e8717ff3b394eeb70",
+          "tokenizer": {
+            "count": 70,
+            "idsHash": "9971e36efb836f91b330099aa5e574786f53ce3dde16e30e8717ff3b394eeb70",
+            "passed": true
+          },
+          "expected": [
+            "ORBIT"
+          ],
+          "maxOutput": 32,
+          "passed": true,
+          "inferenceInput": {
+            "format": "token-ids",
+            "count": 70,
+            "idsHash": "9971e36efb836f91b330099aa5e574786f53ce3dde16e30e8717ff3b394eeb70"
+          },
+          "elapsedMs": 439,
+          "output": "ORBIT",
+          "outputHash": "46d27380af82d6d618e163346c67dd7bc617d40836551d082e0aa6582b8bc934",
+          "stoppedByLimit": false
+        },
+        {
+          "id": "field-extraction",
+          "promptHash": "9bd1a25fcd8fee6e2f5374c470fb75285a777bf185a7f38fecd101649698077d",
+          "referenceAt": 1792540800000,
+          "inputTokens": 62,
+          "inputIdsHash": "00efe31f38a2ee75f0e92b66b8dd110d04be4ffd1de9dd7859fd979764593f7e",
+          "tokenizer": {
+            "count": 62,
+            "idsHash": "00efe31f38a2ee75f0e92b66b8dd110d04be4ffd1de9dd7859fd979764593f7e",
+            "passed": true
+          },
+          "expected": [
+            "Ada"
+          ],
+          "maxOutput": 32,
+          "passed": true,
+          "inferenceInput": {
+            "format": "token-ids",
+            "count": 62,
+            "idsHash": "00efe31f38a2ee75f0e92b66b8dd110d04be4ffd1de9dd7859fd979764593f7e"
+          },
+          "elapsedMs": 401,
+          "output": "Ada",
+          "outputHash": "99a563ab2f6e21e96998f9fddd2a2bab82b70ac019579502b8d7fc0032ff62bb",
+          "stoppedByLimit": false
+        },
+        {
+          "id": "ordered-instructions",
+          "promptHash": "3b53a5687bb98dec8ed11ddad5981592c333247a7458c7170b8e98b448fb60d2",
+          "referenceAt": 1792540800000,
+          "inputTokens": 35,
+          "inputIdsHash": "5c688c51a2445688460bc35db2d3aa44b7898a9e1e9db73684056cc35393cc28",
+          "tokenizer": {
+            "count": 35,
+            "idsHash": "5c688c51a2445688460bc35db2d3aa44b7898a9e1e9db73684056cc35393cc28",
+            "passed": true
+          },
+          "expected": [
+            "SAFE"
+          ],
+          "maxOutput": 32,
+          "passed": true,
+          "inferenceInput": {
+            "format": "token-ids",
+            "count": 35,
+            "idsHash": "5c688c51a2445688460bc35db2d3aa44b7898a9e1e9db73684056cc35393cc28"
+          },
+          "elapsedMs": 386,
+          "output": "SAFE",
+          "outputHash": "10a87133a313ecf05f5be2f63a927977b5347ec0578bb5d21fcab2f86695d49c",
+          "stoppedByLimit": false
+        }
+      ]
+    },
+    "limits": [
+      "A local candidate measurement creates no network eligibility or reward entitlement.",
+      "The current model file is hashed and the app-managed process is observed; already-loaded weight bytes are not cryptographically attested.",
+      "This check sends fixed public test prompts to the local engine only. No account credentials, private chats, logs or keys are exported.",
+      "Timing can include runtime warm-up and competing local work; no admission or latency threshold is inferred."
+    ],
+    "source": {
+      "backendCommit": "a2ca17124d98ed80a60c0289674a4e070c79d8a9",
+      "packSha256": "68be2e83bde62980e6730c6ec6944261d09f35b4c5f1d010917f34624cbdd627",
+      "suiteSha256": "ba408ef760fa4b47667cc826bfdd9e279cc62bd225b956a0cead932d58a755ff",
+      "catalogSha256": "609403a926e525d76200ae1ecaf293203b20539f9235cef655aab5cd8b98f087",
+      "indexSha256": "01b7850bc955756d77927941fb98c6ecb3c026af16a0c7b53dd504faa95306aa",
+      "generatorSha256": "9a59b24edd1e1496c1068d0d7ccfb4662046f653cdbadf368bb5bbedaf925a45",
+      "tokenizerSourceSha256": "f35556eefd9ed5213894ee2076869ac45050237ceb994a89ab63c0b1fa1488a7"
+    },
+    "localState": {
+      "initial": {
+        "loading": false,
+        "activeModel": "koinos-smart",
+        "running": true,
+        "engine": "llamacpp",
+        "lastLoadFailed": false,
+        "installedApprovedModels": 10
+      },
+      "current": {
+        "loading": false,
+        "activeModel": "koinos-smart",
+        "running": true,
+        "engine": "llamacpp",
+        "lastLoadFailed": false,
+        "installedApprovedModels": 10
+      },
+      "waitedForLoad": false
+    },
+    "outcome": {
+      "state": "complete",
+      "code": null
+    }
+  }
+}

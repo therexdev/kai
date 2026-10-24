@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "purpose": "Separate prepaid Test service: first Smart admission for operator testing; not Alpha/public launch certification",
+  "originalReportSha256": "2af542cb72101ba2028b55f439ea3410798aad40494c0ddfd0d8495c6b48fec3",
+  "observationFile": "smart-2026-10-24.observation.json",
+  "observationSha256": "58499916ab87ba98e6ebc77c2cc74b21cd12d0d859e6dc3c1041cbf62aa15309",
+  "desktopCommit": "80a37ad02a8243f2b919ffa489f3bb1e7114b96e",
+  "installedBackendCommit": "cbdb3a581bf6b1e188379f18b99654a496626142",
+  "model": {
+    "id": "koinos-smart",
+    "label": "Koinos Smart",
+    "package": "qwen2.5-7b-instruct-q4_k_m@1",
+    "modelHash": "65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423",
+    "tokenizerHash": "fee4b0cea9cad15d464b84d1f85fe7019103a76fca033894afd3685d77d8b4de",
+    "configHash": "f7ad4d4d1d22d4a5125adc51282e6b7819bece91aba888a7ed253cac0c848eb1",
+    "templateHash": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f",
+    "manifestSha256": "c10c7483860389c736e6aa94595511b26bed4d6872b3be13e2749a6edaaa5c34",
+    "referenceAt": 1792540800000
+  },
+  "measured": {
+    "calibrationPassed": 32,
+    "answersPassed": 12,
+    "answersTotal": 12,
+    "minAnswerMs": 386,
+    "maxAnswerMs": 956,
+    "totalCheckMs": 8823
+  },
+  "decision": {
+    "minPass": 12,
+    "maxLatencyMs": 30000,
+    "nominalParametersBillions": 7,
+    "weightRule": "Existing policy.modelWeight(7): round(sqrt(7 / 4) * 10000)",
+    "modelWeight": "13229",
+    "coverageBps": 10000,
+    "renewBeforeMs": 3600000,
+    "retryMs": 300000,
+    "qualificationLifetimeMs": 86400000
+  },
+  "rationale": [
+    "Retain all twelve original cases and exact accepted answers. Require twelve fresh signed matches; no failed cases are removed or weakened.",
+    "Thirty seconds per network challenge is a provisional timeout, not a measured network SLA. The longest local answer was 956 ms; extra time accommodates worker polling, transport, signing and contention.",
+    "Use the existing reward formula with the catalog nominal 7B size and neutral coverage. No reward rate, funding, payout allocation or tariff is changed.",
+    "A configured policy applies to each signed provider advertising this exact Smart package on the separate Test service; it does not itself whitelist only the reporting wallet."
+  ],
+  "limits": [
+    "One user-supplied unsigned run on one computer; no independent model-weight attestation, sustained performance proof, or broad quality/security certification.",
+    "The fixed public suite can be memorized; it is an operator pilot check, not Byzantine proof of useful inference.",
+    "No existing qualification is fabricated, imported, or renewed. Provider identity and fresh answers must pass the existing signed network protocol.",
+    "Purchase/payment readiness, account linking, free-credit funding and two-computer acceptance still require live checks.",
+    "Fast, Balanced and all other models remain without an automatic policy. No mainnet transfer or reward-cycle start is authorized by this review."
+  ],
+  "scope": {
+    "mode": "mainnet-pilot",
+    "schedulerUrl": "https://credits.koinosai.com/scheduler",
+    "policyHash": "9a4d812014a210d0d9fa083c479c0c0d82341ece2bde33b596ea8bb3826b9089",
+    "deployment": {
+      "network": "mainnet",
+      "chainId": "EiBZK_GGVP0H_fXVAM3j6EAuz3-B-l3ejxRSewi7qIBfSA==",
+      "product": "prepaid-usd-v1",
+      "credits": "18QmSHrMszxmYPaDB1jxzY35vYDcG6aomN",
+      "creditsHash": "0x1220e87d504fa312b8a5c6d3a45f31d191cbc2577d3fa91c6d5750d0f2a80c7ea24d",
+      "rewards": "19G5nydrp3YTqG5jfVGjdonbLEnAW3xN5K",
+      "rewardsHash": "0x1220883bcdfb87cfdf1ad4529468bc890db194c077e4ea0523d948c24bb572524a9e",
+      "masterNode": "15CM9Qr4GKREDgqnyXJ8tckPj2biERTM1T"
+    }
+  }
+}
