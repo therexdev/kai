@@ -15,12 +15,17 @@ function runtime() {
     purchaseQuoteBudget: { schema: 1, dailyQuoteAuthorizationUsdAtoms: "100000000", accountDailyQuoteAuthorizationUsdAtoms: "100000000" },
     freePolicy: { version: 1, accountConcurrent: 1, accountDaily: "750000", networkDaily: "30000000", originDaily: "2250000", eligibleModels: ["koinos-fast"] } };
 }
-function fixture(t) {
+function fixture(t, runtimeMode) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "kai-admission-probe-")); fs.chmodSync(root, 0o700); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const paths = { config: path.join(root, "config"), state: path.join(root, "state"), work: root, release: path.join(root, "releases", BASE), unit: path.join(root, UNIT) };
   fs.mkdirSync(paths.config, { mode: 0o700 }); fs.mkdirSync(paths.state, { mode: 0o700 });
   const file = path.join(paths.config, "runtime.json"), original = Buffer.from(JSON.stringify(runtime(), null, 2) + "\n");
   fs.writeFileSync(file, original, { mode: 0o640 });
+  // Default creation respects the caller's umask; explicit cases also exercise
+  // an existing group-readable service file under a restrictive operator mask.
+  if (runtimeMode !== undefined) fs.chmodSync(file, runtimeMode);
+  const permissions = () => { const s = fs.statSync(file); return { mode: s.mode & 0o777, uid: s.uid, gid: s.gid }; };
+  const originalPermissions = permissions();
   const preserved = new Map([[path.join(paths.config, "runtime-keys.json"), "private-fixture-key"], [path.join(paths.config, "qualifications.json"), "[]"],
     [path.join(paths.state, "accounts.sqlite"), "existing-account"], [path.join(paths.state, "payments.sqlite"), "pending-purchase"],
     [path.join(root, "bootstrap-plan.json"), "immutable-original-plan"]]);
@@ -41,7 +46,7 @@ function fixture(t) {
   };
   const args = { approve: e.approvalHash, paths, run, checkHealth: async () => {}, log: s => logs.push(s) };
   const unchanged = () => { for (const [file, bytes] of preserved) assert.equal(fs.readFileSync(file, "utf8"), bytes); assert.equal(fs.readFileSync(paths.unit, "utf8"), unit); assert.ok(!logs.join(" ").includes("private-fixture-key")); };
-  return { root, paths, file, original, preserved, calls, logs, args, run, unchanged, set overrides(v) { overrides = v; }, set changed(v) { changed = v; }, set dirty(v) { dirty = v; } };
+  return { root, paths, file, original, originalPermissions, permissions, preserved, calls, logs, args, run, unchanged, set overrides(v) { overrides = v; }, set changed(v) { changed = v; }, set dirty(v) { dirty = v; } };
 }
 test("Smart review retains all candidate answers and commits the actual unsigned measurement", () => {
   assert.equal(e.policy.minPass, 12); assert.equal(e.policy.cases.length, 12); assert.equal(e.review.measured.answersPassed, 12);
@@ -54,19 +59,25 @@ test("Smart review retains all candidate answers and commits the actual unsigned
   }
 });
 test("configuration-only admission preserves prices, limits, keys, accounts, plans and journals, and is idempotent", async t => {
-  const f = fixture(t); await install(f.args); f.unchanged();
-  const current = JSON.parse(fs.readFileSync(f.file)); assert.deepEqual(current.qualificationPolicies, [e.policy]); delete current.qualificationPolicies;
-  assert.deepEqual(current, JSON.parse(f.original)); assert.equal(fs.statSync(f.file).mode & 0o777, 0o640);
-  const stops = f.calls.filter(c => c[0] === "systemctl" && c[1] === "stop").length;
-  await install(f.args); assert.equal(f.calls.filter(c => c[0] === "systemctl" && c[1] === "stop").length, stops); f.unchanged();
+  for (const runtimeMode of [undefined, 0o600, 0o640]) {
+    const f = fixture(t, runtimeMode); await install(f.args); f.unchanged();
+    const current = JSON.parse(fs.readFileSync(f.file)); assert.deepEqual(current.qualificationPolicies, [e.policy]); delete current.qualificationPolicies;
+    assert.deepEqual(current, JSON.parse(f.original)); assert.deepEqual(f.permissions(), f.originalPermissions);
+    const stops = f.calls.filter(c => c[0] === "systemctl" && c[1] === "stop").length;
+    await install(f.args); assert.equal(f.calls.filter(c => c[0] === "systemctl" && c[1] === "stop").length, stops); f.unchanged();
+    assert.deepEqual(f.permissions(), f.originalPermissions);
+  }
 });
 test("failed new-policy health restores only runtime settings and retains newly written payment and qualification records", async t => {
-  const f = fixture(t), payment = path.join(f.paths.state, "payments.sqlite"), journal = path.join(f.paths.state, "automatic-qualification.json");
-  await assert.rejects(install({ ...f.args, checkHealth: async () => {
-    fs.writeFileSync(payment, "new-payment"); fs.writeFileSync(journal, "new-signed-qualification"); throw Error("health failed");
-  } }), /health failed/);
-  assert.deepEqual(fs.readFileSync(f.file), f.original); assert.equal(fs.readFileSync(payment, "utf8"), "new-payment");
-  assert.equal(fs.readFileSync(journal, "utf8"), "new-signed-qualification"); f.preserved.set(payment, "new-payment"); f.unchanged();
+  for (const runtimeMode of [undefined, 0o600, 0o640]) {
+    const f = fixture(t, runtimeMode), payment = path.join(f.paths.state, "payments.sqlite"), journal = path.join(f.paths.state, "automatic-qualification.json");
+    await assert.rejects(install({ ...f.args, checkHealth: async () => {
+      fs.writeFileSync(payment, "new-payment"); fs.writeFileSync(journal, "new-signed-qualification"); throw Error("health failed");
+    } }), /health failed/);
+    assert.deepEqual(fs.readFileSync(f.file), f.original); assert.equal(fs.readFileSync(payment, "utf8"), "new-payment");
+    assert.equal(fs.readFileSync(journal, "utf8"), "new-signed-qualification"); f.preserved.set(payment, "new-payment"); f.unchanged();
+    assert.deepEqual(f.permissions(), f.originalPermissions);
+  }
 });
 test("wrong approval, source edits, service identity, dirty checkout, existing policy and lock stop before service changes", async t => {
   for (const mutate of [f => f.args.approve = "0".repeat(64), f => f.changed = [...ALLOWED, "lib/accounts.js"].join("\n"), f => f.dirty = " M package.json",
