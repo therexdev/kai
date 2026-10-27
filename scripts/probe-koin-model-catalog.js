@@ -38,6 +38,26 @@ test("catalog prices remain bound to policy while expired readiness cannot adver
   assert.throws(() => modelCatalog({ ...options, target: { policyHash: P.hash("wrong") } }), /authorized/);
 });
 
+test("readiness observed while building the catalog remains fresh across a clock tick without admitting future or expired observations", () => {
+  const meter = meterFor([entry("fixture")]), target = { policyHash: meter.policyHash };
+  let now = 1790000000000, observation;
+  const options = { meter, target, clock: () => now, networkOverview: () => {
+    // The real runtime computes its network overview on demand. Its sample
+    // may follow the catalog invocation by one millisecond or more.
+    now += 2;
+    observation = { observedAt: now, validUntil: now + 15000, models: [{ id: "fixture", available: true, providers: 1 }] };
+    return observation;
+  } };
+  const current = modelCatalog(options);
+  assert.equal(current.models[0].available, true);
+  assert.equal(current.asOf, now); assert.equal(current.validUntil, now + 15000);
+  const check = change => modelCatalog({ ...options, networkOverview: () => ({ ...observation, ...change }) }).models[0].available;
+  assert.equal(check({ observedAt: now + 1 }), false, "genuinely future observations remain rejected");
+  assert.equal(check({ observedAt: now - 15001 }), false);
+  assert.equal(check({ validUntil: now }), false);
+  assert.equal(check({ validUntil: now + 15001 }), false);
+});
+
 test("two models use distinct rates against one balance, free eligibility and exact request recovery survive restart", async t => {
   const meter = meterFor([entry("fixture"), entry("premium", "8000000", "32000000")]);
   const f = fixture(t, { meter, product: "prepaid-usd-v1", freePolicy: { version: 1, accountDaily: "25", originDaily: "100", networkDaily: "200", accountConcurrent: 2, eligibleModels: ["fixture"] } });

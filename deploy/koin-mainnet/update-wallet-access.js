@@ -16,11 +16,12 @@ const ALLOWED = new Set([
   "lib/koin-network/test-runtime.js", "lib/koin-network/prepaid-router.js", "lib/koin-network/prepaid-ledger.js",
   "lib/koin-network/provider-qualification.js", "lib/koin-network/qualification-evidence.js", "lib/koin-network/shadow-router.js",
   "lib/koin-network/provider-qualification-set.js", "lib/koin-network/provider-readiness.js", "lib/koin-network/network-overview.js",
+  "lib/koin-network/model-catalog.js", "scripts/probe-koin-model-catalog.js",
   "scripts/probe-koin-provider-devices.js", "scripts/probe-wallet-credit-auth.js", "scripts/probe-wallet-credit-router.js",
   "deploy/koin-mainnet/update-wallet-access.js", "deploy/koin-mainnet/update-wallet-access.test.js", "deploy/koin-mainnet/WALLET_ACCESS.md",
 ]);
 const REQUIRED = ["lib/accounts.js", "lib/wallet-credit-auth.js", "lib/koin-network/provider-devices.js", "lib/koin-network/provider-device-protocol.js", "lib/koin-network/test-runtime.js", "test-server.js", "scripts/probe-koin-provider-devices.js", "scripts/probe-wallet-credit-auth.js"];
-const PROBES = ["scripts/probe-koin-provider-devices.js", "scripts/probe-wallet-credit-auth.js", "scripts/probe-wallet-credit-router.js", "scripts/probe-koin-credit-priority.js", "scripts/probe-koin-purchase-journal.js", "deploy/koin-mainnet/update-wallet-access.test.js"];
+const PROBES = ["scripts/probe-koin-provider-devices.js", "scripts/probe-wallet-credit-auth.js", "scripts/probe-wallet-credit-router.js", "scripts/probe-koin-model-catalog.js", "scripts/probe-koin-credit-priority.js", "scripts/probe-koin-purchase-journal.js", "deploy/koin-mainnet/update-wallet-access.test.js"];
 function command(exe, args, cwd, capture = false) {
   return execFileSync(exe, args, { cwd, encoding: "utf8", stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit", env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } }) || "";
 }
