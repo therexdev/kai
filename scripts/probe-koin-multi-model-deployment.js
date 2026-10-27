@@ -72,12 +72,15 @@ test("USD model settings commit both exact rates and identities without silently
     c => { c.mode = "mainnet-pilot-plan"; },
   ]) { const changed = input(); change(changed); assert.throws(() => configuration(changed)); }
 });
-test("public USD setup requires explicit global and per-account quote authorization amounts", () => {
-  for (const change of [c => delete c.settings.purchaseQuoteBudget,
-    c => delete c.settings.purchaseQuoteBudget.accountDailyQuoteAuthorizationUsdAtoms,
+test("public USD setup needs no daily quote budget and retains valid legacy settings", () => {
+  const noBudget = input(); delete noBudget.settings.purchaseQuoteBudget;
+  assert.equal(configuration(noBudget).total, "1100");
+  const legacy = input();
+  assert.deepEqual(settings(legacy.settings, { usd: true }).purchaseQuoteBudget, legacy.settings.purchaseQuoteBudget);
+  for (const change of [c => delete c.settings.purchaseQuoteBudget.accountDailyQuoteAuthorizationUsdAtoms,
     c => c.settings.purchaseQuoteBudget.dailyQuoteAuthorizationUsdAtoms = null,
     c => c.settings.purchaseQuoteBudget.accountDailyQuoteAuthorizationUsdAtoms = "100000001"]) {
-    const c = input(); change(c); assert.throws(() => configuration(c), /quote authorization budgets/);
+    const c = input(); change(c); assert.throws(() => configuration(c), /legacy purchase quote budget/);
   }
 });
 

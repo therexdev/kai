@@ -1,8 +1,8 @@
 name: KOIN pilot regression tests
 on:
   push:
-    branches: [codex/koin-mainnet-pilot]
-    paths: ["lib/koin-network/**", "scripts/probe-koin*.js", "scripts/helpers/koin-*.js", "deploy/koin-mainnet/**", ".github/workflows/koin-pilot.yml"]
+    branches: [codex/koin-mainnet-pilot, work/wallet-first-access-20261027]
+    paths: ["lib/koin-network/**", "scripts/probe-koin*.js", "scripts/probe-purchase-quotes-http.js", "scripts/helpers/koin-*.js", "deploy/koin-mainnet/**", "deploy/koin-test/**", "test-server.js", ".github/workflows/koin-pilot.yml"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -19,5 +19,5 @@ jobs:
           node-version: 22
       - run: npm ci --ignore-scripts
       - run: npm audit --omit=dev --audit-level=high
-      - run: node --test --test-concurrency=2 scripts/probe-koin*.js
+      - run: node --test --test-concurrency=2 scripts/probe-koin*.js scripts/probe-purchase-quotes-http.js deploy/koin-mainnet/update-purchase-quotes.test.js
       - run: node --check test-server.js

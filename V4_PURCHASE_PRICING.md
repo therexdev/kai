@@ -58,21 +58,28 @@ New purchase quotes preserve the existing ABI and additionally commit their `id`
 
 `purchase-quote-journal.js` writes a separate `purchase-quotes/purchase-quotes.sqlite` and external recovery anchor under the service state directory. It stores the exact quote intent, versioned Price details, sanitized full validation evidence, and signed purchase arguments **before** returning the quote. Evidence includes every validated pool/depth observation, the full raw USDT round and decimal ABI results, reviewed policy, native and market identities, and either the signed parity envelope or explicit merchant reference. The versioned `KAI-USDT-OBSERVATION-V2` hash covers feed, anchor, decimal result and round result. Archive endpoint strings are stored only as hashes; credential-bearing URLs are never written to the evidence record or public response.
 
-New public USD setup requires explicit `purchaseQuoteBudget` settings:
+There is no per-account or service-wide daily purchase quote allowance. Requesting,
+retrying, abandoning or allowing a quote to expire cannot exhaust buying access.
+The optional legacy `purchaseQuoteBudget` field remains readable for existing
+reviewed configurations; its values no longer restrict quote issuance. Existing
+`days` and `account_days` journal rows remain as historical records and are not
+read or incremented by the issuer. Already-exhausted journals accept fresh quotes
+without deleting records, resetting counters or waiting for a new UTC day.
 
-```json
-{
-  "schema": 1,
-  "dailyQuoteAuthorizationUsdAtoms": "<positive reviewed USD-1e-8 integer>",
-  "accountDailyQuoteAuthorizationUsdAtoms": "<positive reviewed USD-1e-8 integer no greater than the global amount>"
-}
-```
+The quote request includes a random 64-hex `intentId` for that intended purchase.
+Network retries retain it; a subsequent intentional purchase uses another value.
+An exact unexpired request for the same account, wallet, amount, denomination,
+intent and deployment/pricing scope reuses its durable signed quote. Existing
+scope identity is retained across the update, including legacy configuration,
+so an in-flight retry still recovers the same quote. Expired quotes receive fresh
+signed pricing. Quote issuance never adds or removes purchased credits.
 
-These placeholders are not deployable amounts. No default or approved financial limit is supplied. Admission atomically counts the credited USD value of every distinct quote intent against both UTC-day totals, before invoking the signer. The account limit uses the verified account identity across linked wallets. An abandoned offer, expired offer, lost response or uncertain signer outcome does not release its authorization. This is a **quote authorization budget**, not an on-chain executed-sales cap: offers can be bought across a UTC boundary, and the unchanged contract does not enforce aggregate sales per day. Multiple verified accounts can still exhaust the global allocation; origin/Sybil resistance and operational sizing remain public-launch acceptance work.
-
-The quote request includes a random 64-hex `intentId` for that intended purchase. Network retries retain it; a subsequent intentional purchase uses another value. An exact unexpired request for the same account, wallet, amount, denomination, intent and deployment/pricing/budget policy reuses its durable quote and authorization. This permits consecutive equal-size purchases without replaying the already-used on-chain purchase ID. After expiry a fresh quote consumes new authorization. No amount is automatically refunded or debited from the customer's purchased-credit balance by quote admission.
-
-Journal corruption, missing tracked files, a detected rollback, a backward service clock, unavailable evidence or exhausted authorization pauses new quote issuance. The journal is initialized lazily and independently from the purchased-credit ledger; existing-credit chat, already-signed purchase attribution and settlement continue. Preserve both the journal directory and external anchor when operating on service state. Do not delete or recreate them to clear a budget or recover a transaction. Full evidence remains private operator data; customers receive the signed-ID-bound summary, observation time, expiry, reference/policy hashes and size ceiling.
+Journal corruption, missing tracked files, detected rollback, a backward service
+clock or unavailable pricing evidence still pauses new quote issuance. Individual
+quotes retain their verified liquidity ceiling and expiry. The independent
+purchased-credit ledger, already-signed payment attribution and settlement remain
+available. Preserve the journal directory and external recovery anchor when
+operating on service state; never delete them to recover a transaction. Full evidence remains private operator data; customers receive the signed-ID-bound summary, observation time, expiry, reference/policy hashes and size ceiling.
 
 The desktop manifest exported by setup includes `pricingPolicyHash`, which commits to the explicit reviewed pricing policy, public market/native identities, USDT feed and reference rule or parity signer. RPC connection credentials and attestation-file paths are excluded. The public USD installer checks that desktop and runtime pins match. Local probes verify concurrent admission, restart/retry, equal-amount subsequent purchases, signer interruption, account boundaries, UTC rollover, evidence integrity and journal rollback. Installed-app acceptance and live purchase finality remain separate gates.
 

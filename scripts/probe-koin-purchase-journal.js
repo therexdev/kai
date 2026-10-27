@@ -1,6 +1,6 @@
 "use strict";
 const { test } = require("node:test"), assert = require("node:assert/strict"), fs = require("node:fs"), os = require("node:os"), path = require("node:path");
-const { Signer } = require("koilib"), { DatabaseSync } = require("node:sqlite");
+const { Signer } = require("koilib");
 const { PurchaseQuoteIssuer, budget } = require("../lib/koin-network/purchase-quote-journal");
 const { V4PurchaseOracle, pricingIdentity } = require("../lib/koin-network/v4-purchase-oracle");
 const Provenance = require("../lib/koin-network/purchase-provenance"), Q = require("../lib/koin-network/purchase-quote");
@@ -53,32 +53,35 @@ test("signed provenance commits the exact sanitized full evidence and rejects ch
   assert.equal(JSON.parse(row.body).history.blocks.length, 7);
   assert.equal(JSON.parse(row.body).archiveProviderHashes.length, 2);
 });
-test("concurrent requests across issuer instances cannot exceed the explicit daily budget", async t => {
-  const f = await fixture(t), a = f.create(), b = f.create();
-  const outcomes = await Promise.allSettled(Array.from({ length: 7 }, (_, i) => f.issue(i % 2 ? a : b, i + 1, "1", f.address("concurrent-" + i))));
-  assert.equal(outcomes.filter(r => r.status === "fulfilled").length, 3);
-  for (const r of outcomes.filter(r => r.status === "rejected")) assert.equal(r.reason.code, "PURCHASE_QUOTE_BUDGET_EXCEEDED");
-  assert.equal(a.journal.db.prepare("SELECT authorized FROM days").get().authorized, "300000000");
+test("concurrent unused quotes have no per-account or global daily allowance", async t => {
+  const f = await fixture(t, "100000000"), a = f.create(), b = f.create();
+  const results = await Promise.all(Array.from({ length: 24 }, (_, i) => f.issue(i % 2 ? a : b, i + 1, "1", i < 12 ? f.customer : f.address("concurrent-" + i))));
+  assert.equal(new Set(results.map(r => r.args.purchase_quote.id)).size, 24);
+  for (const result of results) await Q.verify(f.deployment, result.args, { now: f.clock.now, version: 1 });
+  assert.equal(a.journal.db.prepare("SELECT COUNT(*) AS n FROM quotes WHERE signed IS NOT NULL").get().n, 24);
+  assert.equal(a.journal.db.prepare("SELECT COUNT(*) AS n FROM days").get().n, 0, "new quotes do not debit a daily allowance");
 });
-test("retry and restart preserve exact signed bytes and a single debit; a second intentional same-amount purchase is distinct", async t => {
+test("retry and restart preserve exact signed bytes and one intent; a second intentional same-amount purchase is distinct", async t => {
   const f = await fixture(t), a = f.create();
   const first = await f.issue(a), duplicate = await f.issue(a);
   assert.deepEqual(first, duplicate); a.close();
   const b = f.create({ prices: { readEvidence() { throw Error("price refresh must not replace a valid saved intent"); } } });
   assert.deepEqual(await f.issue(b), first);
-  assert.equal(b.journal.db.prepare("SELECT authorized FROM days").get().authorized, "100000000");
+  assert.equal(b.journal.db.prepare("SELECT COUNT(*) AS n FROM quotes").get().n, 1);
   const c = f.create(), second = await f.issue(c, 2);
   assert.notEqual(second.args.purchase_quote.id, first.args.purchase_quote.id);
-  assert.equal(c.journal.db.prepare("SELECT authorized FROM days").get().authorized, "200000000");
+  assert.equal(c.journal.db.prepare("SELECT COUNT(*) AS n FROM quotes").get().n, 2);
 });
-test("a crash after intent admission recovers that intent without another budget debit", async t => {
+test("a crash after intent admission recovers that intent and permits a later purchase", async t => {
   const f = await fixture(t, "100000000"), a = f.create({ signer: { getAddress: () => f.signer.getAddress(), signHash: async () => { throw Error("simulated signer crash"); } } });
   await assert.rejects(f.issue(a), e => e.code === "PURCHASE_QUOTE_UNAVAILABLE");
   const intent = JSON.parse(a.journal.db.prepare("SELECT intent FROM quotes").get().intent); a.close();
   const b = f.create(), recovered = await f.issue(b);
   assert.equal(recovered.args.purchase_quote.id, intent.quote.id);
   assert.equal(b.journal.db.prepare("SELECT COUNT(*) AS n FROM quotes").get().n, 1);
-  await assert.rejects(f.issue(b, 2), e => e.code === "PURCHASE_ACCOUNT_QUOTE_BUDGET_EXCEEDED");
+  const next = await f.issue(b, 2);
+  assert.notEqual(next.args.purchase_quote.id, intent.quote.id);
+  assert.equal(b.journal.db.prepare("SELECT COUNT(*) AS n FROM quotes").get().n, 2);
 });
 test("account, amount, and pricing policy boundaries cannot reuse another intent", async t => {
   const f = await fixture(t, "1000000000"), a = f.create(), first = await f.issue(a);
@@ -89,19 +92,64 @@ test("account, amount, and pricing policy boundaries cannot reuse another intent
   await assert.rejects(f.issue(changed), e => e.code === "PURCHASE_QUOTE_UNAVAILABLE");
   assert.equal(changed.journal.db.prepare("SELECT COUNT(*) AS n FROM quotes").get().n, 3);
 });
-test("UTC rollover grants a new authorization day, expired offers stay charged, and clock rollback pauses quotes", async t => {
-  const f = await fixture(t, "100000000"), a = f.create(); await f.issue(a);
-  f.clock.now += 20000; await f.oracle.refresh();
-  await assert.rejects(f.issue(a), e => e.code === "PURCHASE_ACCOUNT_QUOTE_BUDGET_EXCEEDED");
-  f.clock.now = (Math.floor(f.clock.now / 86400000) + 1) * 86400000; await f.oracle.refresh();
-  await f.issue(a); assert.equal(a.journal.db.prepare("SELECT COUNT(*) AS n FROM days").get().n, 2);
-  f.clock.now -= 1; await assert.rejects(f.issue(a), e => e.code === "PURCHASE_QUOTE_UNAVAILABLE");
+test("an exhausted legacy journal allows unused, canceled, and expired quotes on the same day after restart", async t => {
+  const f = await fixture(t, "100000000"), a = f.create(), first = await f.issue(a);
+  const oldQuote = a.journal.db.prepare("SELECT * FROM quotes").get();
+  const oldEvidence = a.journal.db.prepare("SELECT * FROM evidence").get();
+  const accountKey = JSON.parse(oldQuote.intent).accountKey, day = Math.floor(f.clock.now / 86400000);
+  // Model a pre-update journal at both old limits. No payment was signed or sent:
+  // a quote can outlive a canceled approval, and its historical counters remain.
+  a.journal.guard.write(a.journal.db, () => {
+    a.journal.db.prepare("INSERT INTO days VALUES(?,?) ON CONFLICT(day) DO UPDATE SET authorized=excluded.authorized").run(day, f.policy.dailyQuoteAuthorizationUsdAtoms);
+    a.journal.db.prepare("INSERT INTO account_days VALUES(?,?,?) ON CONFLICT(day,account_key) DO UPDATE SET authorized=excluded.authorized").run(day, accountKey, f.policy.accountDailyQuoteAuthorizationUsdAtoms);
+  });
+  const oldDays = a.journal.db.prepare("SELECT * FROM days").all(), oldAccountDays = a.journal.db.prepare("SELECT * FROM account_days").all();
+  a.close();
+  const b = f.create();
+  assert.deepEqual(await f.issue(b), first, "an unexpired retry reuses the exact old signature");
+  for (let i = 2; i <= 12; i++) {
+    // The buyer dismisses approval without submitting each successive quote.
+    const result = await f.issue(b, i);
+    await Q.verify(f.deployment, result.args, { now: f.clock.now, version: 1 });
+  }
+  f.clock.now += 20001; await f.oracle.refresh();
+  assert.equal(Math.floor(f.clock.now / 86400000), day);
+  const renewed = await f.issue(b);
+  assert.notEqual(renewed.args.purchase_quote.id, first.args.purchase_quote.id, "expired offer can be renewed without waiting until tomorrow");
+  const other = await f.issue(b, 13, "1", f.address("another-account"));
+  await Q.verify(f.deployment, other.args, { now: f.clock.now, version: 1 });
+  assert.deepEqual(b.journal.db.prepare("SELECT * FROM quotes WHERE id=?").get(oldQuote.id), oldQuote);
+  assert.deepEqual(b.journal.db.prepare("SELECT * FROM evidence WHERE hash=?").get(oldEvidence.hash), oldEvidence);
+  assert.deepEqual(b.journal.db.prepare("SELECT * FROM days").all(), oldDays, "historical counters are preserved, not reset or consumed");
+  assert.deepEqual(b.journal.db.prepare("SELECT * FROM account_days").all(), oldAccountDays);
+  b.close();
+  const c = f.create(); assert.deepEqual(await f.issue(c), renewed);
+  await f.issue(c, 14);
+  f.clock.now -= 1; await assert.rejects(f.issue(c, 15), e => e.code === "PURCHASE_QUOTE_UNAVAILABLE", "clock rollback protection remains enforced");
 });
-test("missing explicit budget never signs or initializes a journal", async t => {
+test("quotes require no daily budget; explicitly supplied legacy budget settings remain readable", async t => {
   const f = await fixture(t), a = f.create({ policy: undefined });
-  await assert.rejects(f.issue(a), e => e.code === "PURCHASE_QUOTE_UNAVAILABLE");
-  assert.equal(fs.existsSync(f.directory), false);
-  for (const value of [undefined, {}, { schema: 1, dailyQuoteAuthorizationUsdAtoms: "0" }, { schema: 1, dailyQuoteAuthorizationUsdAtoms: "01" }]) assert.throws(() => budget(value));
+  const result = await f.issue(a);
+  await Q.verify(f.deployment, result.args, { now: f.clock.now, version: 1 });
+  assert.equal(budget(undefined), undefined);
+  assert.deepEqual(budget(f.policy), f.policy);
+  for (const value of [{}, { schema: 1, dailyQuoteAuthorizationUsdAtoms: "0" }, { schema: 1, dailyQuoteAuthorizationUsdAtoms: "01" }]) assert.throws(() => budget(value));
+});
+test("runtime quote scopes allow omitted budgets while preserving legacy signed intent replay", async t => {
+  const f = await fixture(t), { purchaseQuoteScope } = require("../lib/koin-network/test-runtime");
+  const target = { chainId: f.deployment.chainId, credits: f.deployment.credits, creditsHash: f.deployment.creditsHash };
+  const pricingPolicyHash = f.scope.pricingPolicyHash;
+  const noBudgetScope = purchaseQuoteScope(target, pricingPolicyHash, { version: 1 });
+  assert.equal(Object.hasOwn(noBudgetScope, "budget"), false);
+  const a = f.create({ policy: undefined, scope: noBudgetScope }), first = await f.issue(a);
+  await Q.verify(f.deployment, first.args, { now: f.clock.now, version: 1 });
+  a.close();
+  const b = f.create({ policy: undefined, scope: purchaseQuoteScope(target, pricingPolicyHash, { version: 1 }) });
+  assert.deepEqual(await f.issue(b), first, "new no-budget runtime recovers its exact quote after restart");
+  const oldScope = { ...target, pricingPolicyHash, version: 1, budget: f.policy };
+  const c = f.create({ scope: oldScope }), legacy = await f.issue(c, 2); c.close();
+  const d = f.create({ scope: purchaseQuoteScope(target, pricingPolicyHash, { version: 1, purchaseQuoteBudget: f.policy }) });
+  assert.deepEqual(await f.issue(d, 2), legacy, "updating a legacy runtime preserves the original request key and signed bytes");
 });
 test("archive corruption or missing journal prevents new quote signatures without exposing private errors", async t => {
   const f = await fixture(t), a = f.create(); await f.issue(a);
@@ -118,24 +166,24 @@ test("restoring an older SQLite journal cannot rewind the external authorization
   for (const suffix of ["-wal", "-shm"]) fs.rmSync(file + suffix, { force: true }); fs.copyFileSync(backup, file);
   const b = f.create(); await assert.rejects(f.issue(b, 3), e => e.code === "PURCHASE_QUOTE_UNAVAILABLE");
 });
-test("evidence mismatch and stale evidence cannot produce a signature or spend authorization budget", async t => {
+test("evidence mismatch and stale evidence cannot produce a signature or save a quote", async t => {
   const f = await fixture(t), snapshot = await f.oracle.readEvidence(); let signs = 0;
   const signer = { getAddress: () => f.signer.getAddress(), signHash: async h => { signs++; return f.signer.signHash(h); } };
   const a = f.create({ signer, prices: { readEvidence: async () => ({ ...snapshot, evidence: { changed: true } }) } });
   await assert.rejects(f.issue(a), e => e.code === "PURCHASE_QUOTE_UNAVAILABLE"); assert.equal(signs, 0);
-  assert.equal(a.journal.db.prepare("SELECT COUNT(*) AS n FROM days").get().n, 0);
+  assert.equal(a.journal.db.prepare("SELECT COUNT(*) AS n FROM quotes").get().n, 0);
   f.clock.now = snapshot.price.expiresAt + 1;
   const b = f.create({ signer, prices: { readEvidence: async () => snapshot } });
   await assert.rejects(f.issue(b), e => e.code === "PURCHASE_QUOTE_UNAVAILABLE"); assert.equal(signs, 0);
 });
-test("per-account authorization spans linked wallets and leaves other accounts their share", async t => {
+test("linked wallets and other accounts can request quotes without sharing an allowance", async t => {
   const f = await fixture(t, "300000000"); f.policy.accountDailyQuoteAuthorizationUsdAtoms = "100000000";
   const a = f.create(), first = await f.issue(a);
-  assert.deepEqual(await f.issue(a), first, "retries do not debit the account twice");
-  await assert.rejects(a.issue(f.address("linked-wallet"), "1", "USD", "account:" + f.customer, hex(2)), e => e.code === "PURCHASE_ACCOUNT_QUOTE_BUDGET_EXCEEDED");
+  assert.deepEqual(await f.issue(a), first, "retries preserve one exact quote");
+  const linked = await a.issue(f.address("linked-wallet"), "1", "USD", "account:" + f.customer, hex(2));
+  assert.notEqual(linked.args.purchase_quote.id, first.args.purchase_quote.id);
   await f.issue(a, 3, "1", f.address("second-account"));
-  assert.equal(a.journal.db.prepare("SELECT authorized FROM days").get().authorized, "200000000");
-  assert.equal(a.journal.db.prepare("SELECT COUNT(*) AS n FROM account_days").get().n, 2);
+  assert.equal(a.journal.db.prepare("SELECT COUNT(*) AS n FROM quotes").get().n, 3);
 });
 test("quote journal failure leaves existing purchased credits and finality attribution usable", async t => {
   const f = await fixture(t), credits = require("./helpers/koin-prepaid-fixture").fixture(t, { product: "prepaid-usd-v1" });
@@ -150,7 +198,7 @@ test("quote journal failure leaves existing purchased credits and finality attri
   assert.equal(BigInt(credits.ledger.balance(credits.owner).purchased), BigInt(prior) + 1000n);
 });
 
-test("automatic price previews read current evidence without creating quote authorizations or signing", async t => {
+test("automatic price previews read current evidence without creating purchase quotes or signing", async t => {
   const f = await fixture(t), readPreview = require("../lib/koin-network/purchase-price").preview;
   let signs = 0;
   const issuer = f.create({ signer: { getAddress: () => f.signer.getAddress(), signHash: async value => { signs++; return f.signer.signHash(value); } } });
@@ -161,10 +209,10 @@ test("automatic price previews read current evidence without creating quote auth
     assert.equal(Object.hasOwn(preview, "price_signature"), false); assert.equal(Object.hasOwn(preview, "id"), false);
   }
   assert.equal(signs, 0); assert.equal(issuer.journal, null); assert.equal(fs.existsSync(f.directory), false);
-  await f.issue(issuer); const authorized = issuer.journal.db.prepare("SELECT authorized FROM days").get().authorized;
+  await f.issue(issuer);
   for (let i = 0; i < 20; i++) await readPreview(f.oracle, f.scope.pricingPolicyHash, () => f.clock.now);
   assert.equal(signs, 1); assert.equal(issuer.journal.db.prepare("SELECT COUNT(*) AS n FROM quotes").get().n, 1);
-  assert.equal(issuer.journal.db.prepare("SELECT authorized FROM days").get().authorized, authorized);
+  assert.equal(issuer.journal.db.prepare("SELECT COUNT(*) AS n FROM days").get().n, 0);
   const snapshot = await f.oracle.readEvidence();
   for (const [reader, expected, now] of [
     [f.oracle, hex(999), f.clock.now],

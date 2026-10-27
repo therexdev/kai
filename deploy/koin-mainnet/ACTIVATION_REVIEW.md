@@ -177,12 +177,11 @@ Desktop Buy credits verifies the configured pricing-policy pin and shows compact
 Price details. Repeated requests use one explicit purchase-intent ID; a later
 same-amount purchase uses a different intent.
 
-New public USD setup also requires explicit global and per-account daily quote authorization budgets.
-It counts admitted quote intents conservatively across retries and restarts,
-including uncertain signing outcomes. It is not an on-chain daily executed-sales
-cap. The amounts remain unset until reviewed; no default is inferred from model
-rates or exchange depth. This source implementation still needs released-app and
-live-service acceptance.
+The former global and per-account daily quote authorization budgets have been
+removed. Unused or expired quotes cannot exhaust buying access; new public USD
+setup needs no `purchaseQuoteBudget`. Existing historical totals and saved signed
+quotes remain preserved. Fresh pricing, per-quote executable depth, expiry and
+payment confirmation continue to apply.
 
 ## Operator preparation status
 

@@ -3399,12 +3399,7 @@
           ]
         }
       }
-    ],
-    "purchaseQuoteBudget": {
-      "schema": 1,
-      "dailyQuoteAuthorizationUsdAtoms": null,
-      "accountDailyQuoteAuthorizationUsdAtoms": null
-    }
+    ]
   },
   "funding": {
     "maxTotalKoinAtoms": null,

@@ -30,7 +30,7 @@ function settings(s, { usd = false } = {}) {
   if (s.accountMode !== undefined && !["public", "invitations"].includes(s.accountMode)) throw Error("Invalid account mode");
   require("../../lib/koin-network/free-credits").policy(s.freePolicy);
   if (s.purchasePricing !== undefined) require("../../lib/koin-network/v4-purchase-oracle").configuration(s.purchasePricing);
-  if (s.purchaseQuoteBudget !== undefined || s.accountMode === "public") require("../../lib/koin-network/purchase-quote-journal").budget(s.purchaseQuoteBudget);
+  if (s.purchaseQuoteBudget !== undefined) require("../../lib/koin-network/purchase-quote-journal").budget(s.purchaseQuoteBudget);
   for (const key of ["deployRcLimit", "maxRcPerTransaction", "maxRcPerDay"]) amount(s[key]);
   if (!multi && (!s.tariff || Object.keys(s.tariff).sort().join() !== "contextTokens,inputAtomsPerMillion,maxLatencyMs,maxOutputTokens,outputAtomsPerMillion")) throw Error("Explicit Test tariff and resource limits required");
   const modelConfig = runtimeModels(s), tariffs = Models.tariffs(modelConfig);
