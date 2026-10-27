@@ -58,6 +58,37 @@ test("changed deployment policy never reuses old qualification or pending signat
   assert.notEqual(changed.next(f.worker).challenge.id, pending.challenge.id);
 });
 
+test("new models are checked before a failed model retry even when its retry time has elapsed", async t => {
+  const f = setup(t), first = f.engine.next(f.worker);
+  f.engine.result(f.worker, await f.body(first, "Wrong"));
+  f.time(60001);
+  f.engine = new ProviderQualificationSet(f.options);
+  const second = f.engine.next(f.worker);
+  assert.equal(second.challenge.model, "beta", "first-time checks cannot be starved by the earlier failed model");
+  f.engine.result(f.worker, await f.body(second));
+  assert.equal(f.engine.next(f.worker).challenge.model, "alpha", "a failed model still retries after all new models were attempted");
+});
+
+test("after a later model fails the provider returns to qualified selected capacity without sending a chat", async t => {
+  const f = setup(t), auth = "c".repeat(64), device = "device-c", worker = { ...f.worker, providerAuthorization: auth, providerDeviceId: device,
+    capabilities: { ...f.worker.capabilities, koinModelOnDemand: 1 } };
+  let presence = { ...f.tariffs[0], ready: true, at: f.ledger.clock() };
+  const options = { ...f.options, providerDevices: { workerActive: () => true, verify: (sig, _action, digest, wallet) => P.signatureMatches(digest, sig, wallet) }, preparePresence: () => presence };
+  let engine = new ProviderQualificationSet(options);
+  const alpha = engine.next(worker); engine.result(worker, await f.body(alpha));
+  const betaPrepare = engine.next(worker); assert.equal(betaPrepare.type, "koin-provider-prepare"); assert.equal(betaPrepare.model, "beta");
+  const other = { ...worker, providerAuthorization: "d".repeat(64), providerDeviceId: "other", fingerprint: "d".repeat(16) };
+  assert.equal(engine.next(other), null, "second device cannot switch to another benchmark during preparation");
+  presence = { ...f.tariffs[1], ready: true, at: f.ledger.clock() };
+  const beta = engine.next(worker); engine.result(worker, await f.body(beta, "Wrong"));
+  const restore = engine.next(worker); assert.equal(restore.type, "koin-provider-prepare"); assert.equal(restore.model, "alpha");
+  assert.equal(engine.records().length, 1, "a load request does not qualify the failed model");
+  engine = new ProviderQualificationSet(options); assert.deepEqual(engine.next(worker), restore, "restarts retain the restore deadline");
+  assert.equal(engine.next({ ...worker, models: ["beta"] }), null, "excluded qualified model is never restored");
+  presence = { ...f.tariffs[0], ready: true, at: f.ledger.clock() };
+  assert.equal(engine.next(worker), null, "qualified capacity stays resident without buyer work");
+});
+
 test("readiness counts only the currently ready model, isolates failed renewal and bounds the network observation by matching qualification expiry", async t => {
   const f = setup(t);
   f.engine.result(f.worker, await f.body(f.engine.next(f.worker), "Wrong"));

@@ -1,56 +1,126 @@
-# Wallet access service update
+# Complete wallet, earning and credit service update
 
-This update adds versioned wallet-only credit sessions and non-spending provider
-device authorization to the **separate prepaid service**. It includes the prior
-read-only KOIN price preview and paid-first preference support already reviewed
-at `9d4ad205cf06fe54cc1a38f7088e87443eb7e87b`.
+This is the matching server update for wallet-only credit access, earning with
+the wallet locked, automatic price previews, the paid-first preference, and
+sharing the configured model catalog. Run it on **koinos-scheduler**, then update
+the desktop app. No contract deployment or wallet import is part of this update.
 
-The desktop and backend changes must be validated and activated together. A
-desktop installer alone cannot enable these server capabilities. Do not describe
-the flow as live until the public capability checks and connected app flows pass.
+## Run the released update
 
-## Installation boundary
+From Windows PowerShell, connect to the existing server:
 
-Run `node deploy/koin-mainnet/update-wallet-access.js` from the clean, reviewed
-backend commit using system Node 22+ as root on the existing scheduler host.
-The updater accepts the deployed dependency release `cbdb3a5…`, the reviewed
-credit preference release `9d4ad20…`, or an idempotent repeat of its exact target.
-It refuses other service identities, overrides, source changes and concurrent
-updates. It runs fixture tests before stopping the service, installs immutable
-source into `/opt/kai-koin-prepaid/releases/<commit>`, then changes only the
-systemd code pointers. The accounts, transactions and device state stay in
-`/var/lib/kai-koin-prepaid`.
+```powershell
+ssh root@45.76.255.224
+```
 
-The updater preserves every byte of `/etc/kai-koin-prepaid`, including the free
-credit and model qualification policy, tariffs, private keys and account settings.
-It does not fund wallets, submit transactions, deploy contracts, grant free
-credits, broaden model admission, change payout ownership, edit Caddy or touch
-`koinos.service`.
+Use the exact backend commit printed in the matching desktop release's update
+instructions. Set `KAI_RELEASE_COMMIT` to that full 40-character SHA, then run
+the following block at the `root@koinos-scheduler` prompt. It uses a new source
+directory; the earlier staging directory and all bootstrap keys remain intact.
 
-Health checks require fresh serving on loopback and public HTTPS, plus both:
+```bash
+(
+set -euo pipefail
+umask 077
+: "${KAI_RELEASE_COMMIT:?Set the exact backend commit from the release instructions}"
+[[ "$KAI_RELEASE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+test "$(id -u)" = 0
+node -e 'if(Number(process.versions.node.split(".")[0]) < 22) throw Error("System Node 22 or newer required")'
+KAI_UPDATE_STAGE=$(mktemp -d /root/kai-wallet-update.XXXXXXXX)
+git -C "$KAI_UPDATE_STAGE" init --quiet
+git -C "$KAI_UPDATE_STAGE" fetch --quiet --no-tags --depth=64 https://github.com/therexdev/kai.git "$KAI_RELEASE_COMMIT" 9d4ad205cf06fe54cc1a38f7088e87443eb7e87b
+git -C "$KAI_UPDATE_STAGE" checkout --quiet --detach "$KAI_RELEASE_COMMIT"
+cd "$KAI_UPDATE_STAGE"
+test "$(git rev-parse HEAD)" = "$KAI_RELEASE_COMMIT"
+git merge-base --is-ancestor 9d4ad205cf06fe54cc1a38f7088e87443eb7e87b HEAD
+npm ci --ignore-scripts
+npm audit --omit=dev --audit-level=high
+node deploy/koin-mainnet/update-wallet-access.js
+)
+```
 
-- `/scheduler/koin/provider/device/capabilities`: wallet-first and delegated
-  provider protocol version 1.
-- `/auth/wallet-credit/capabilities`: wallet credit protocol version 1 bound to
-  the existing service origin, scheduler URL and mainnet chain.
+The complete release instructions substitute the exact SHA, so the final user
+command has no placeholder or moving branch name. Password entry belongs to SSH;
+never put passwords, wallet keys or the operator credential in these commands.
 
-If startup/readiness fails, rollback restores only the previous unit's code
-pointers. New account, device, credit usage and payment records are retained.
-Unsupported new device activity may need the corrected new service to resume;
-rolling back does not erase or replay it. A concurrent operator edit or unclean
-shutdown stops automatic replacement and reports the saved previous unit.
+Successful installation prints the exact installed commit and verifies both
+public capabilities and all 15 running model qualification policies. Its JSON
+readiness report separates software installation from reward funding, current
+Mana, sponsorship availability and saved payout states. A nonempty `blockers`
+list is an actual operating condition to address, not a request to repeat a
+purchase. Update failures exit nonzero and do not print success.
 
-## Access and rollout evidence
+## What this changes
 
-The repository's existing one-minute deploy timer updates the main website
-`koinos.service`; it does **not** update `kai-koin-prepaid.service`. GitHub CI has
-no prepaid deployment step. The development session that prepared this update
-had repository access and public health access, but no authenticated scheduler
-shell or deployment connection. No installation was performed by this script's
-creation or by a desktop release.
+- Credit access accepts wallet ownership instead of requiring email/password
+  signup. Existing linked accounts and balances retain their identities.
+- Provider devices receive narrowly scoped, non-spending authority. They can
+  qualify and serve assigned work after the reward wallet is locked.
+- All 15 exact configured model packages receive the reviewed twelve-case
+  qualification criteria. The existing Smart policy is preserved exactly. Every
+  device/model must independently pass twelve fresh signed answers before it is
+  eligible; installation itself creates no qualification or reward entitlement.
+- Existing USD price previews and paid-first support are installed together.
 
-Before release, record the exact backend commit and public capability results;
-verify wallet-only enrollment, retained existing balances, actual free-credit
-entitlement, purchase confirmation/recovery, network replies and locked-wallet
-provider work. Use the matching tested desktop source and verify its installers
-and update feeds. Preserve the server's independent service and custody design.
+## What the updater preserves
+
+The updater accepts the last reported dependency release `cbdb3a5…`, the reviewed
+credit preference release `9d4ad20…`, the prior wallet candidate `11474a9…`, or an
+idempotent repeat of its exact target. Unknown service versions, overrides,
+unrelated source changes and concurrent operator edits stop before replacement.
+
+It validates the separate `kai-koin-prepaid.service`, runs fixture tests before
+stopping it, prepares dependencies in a temporary directory, and installs source
+under `/opt/kai-koin-prepaid/releases/<commit>`. Its only runtime configuration
+change is the reviewed `qualificationPolicies` catalog. Prices, free-credit
+budgets and eligibility list, reward budgets, RPC settings, account settings,
+private keys and other configuration files remain unchanged. Original ownership
+and permissions are retained.
+
+Accounts, credit usage, device authorizations and payment/reward journals remain
+in `/var/lib/kai-koin-prepaid`. No database is copied back during rollback. If
+startup or required capability/policy verification fails, the updater restores
+only the previous service code pointers and model policy after a clean shutdown.
+New financial records remain in place. An incomplete shutdown or concurrent edit
+is preserved and reported with the backup location. A completed rollback keeps
+the prepared source in the private backup and permits an exact retry.
+
+Backups are under `/root/kai-wallet-code-*`: previous service unit, previous and
+next runtime configuration, public model review, source archive and readiness
+report. They are private. The update does not edit Caddy, touch `koinos.service`
+or the separate Master producer application, deploy contracts, transfer KOIN,
+fund a reward pool, change payout ownership or grant credits.
+
+## Readiness and first use
+
+The post-install check uses read-only, time-bounded RPC calls. It verifies pinned
+contracts, reads reward-pool liquid balance and liabilities, compares existing
+free-credit policy with on-chain sponsor ceilings, and reads available Mana for
+the settlement, lifecycle and claims sponsor addresses. Each address is printed
+beside its actual observed Mana. The configured transaction ceiling is a
+conservative readiness comparison, not a claim that every transaction costs that
+amount.
+
+Payout counts and the latest transaction IDs come from a read-only view of the
+existing reward journal after matching its deployment identity. `confirmed`
+means the service previously recorded irreversible payment; `chainRechecked`
+is false because this install check does not re-prove each historical payout.
+Current wallet transactions remain available in the app. An empty or funded
+reward pool is reported honestly; updating code does not fund it.
+
+After the server reports installed, update **Koinos AI Test**:
+
+1. Provider: open Earn, authorize this device once, then start earning. Leave
+   all compatible installed models selected or choose a subset. Qualification
+   runs automatically; no chat is needed to begin. Lock the wallet after device
+   authorization and check that fresh network status reaches ONLINE.
+2. Buyer: open Credits and use Connect wallet, enter a dollar amount, review the
+   displayed KOIN estimate, then Buy credits and approve the exact payment.
+   Use Network chat after confirmation. Free credits remain first by default.
+3. Pi: use the same wallet flow. If protected key storage is unavailable, the
+   explicit temporary option permits free-credit chat and device earning for
+   that app session. It does not claim persistence or manufacture free credits.
+
+The updater verifies software activation; actual model performance, a new
+production purchase/reply and physical Pi behavior are the user's acceptance
+tests. Existing financial finality and reward epoch rules remain in force.

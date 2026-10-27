@@ -175,3 +175,18 @@ test("distinct authorized devices cannot borrow presence or multiply the wallet'
   await runtime.collectRewards(); assert.equal(Object.keys(shadow.state.qualifications).length, 1); assert.equal(Object.values(shadow.state.qualifications)[0].providerAuthorization, b.authorizationId);
   f.restartDevices(); assert.equal(f.devices.presence(wb).ready, true); assert.equal(f.devices.presence(wa), null);
 });
+test("authenticated preparation presence is acknowledged before reward qualification and cannot manufacture reward capacity", async t => {
+  const f = setup(t), d = await f.enroll(), router = require("../lib/koin-network/shadow-router").createShadowRouter({
+    dataDir: path.join(f.dir, "preparation-shadow"), operatorSecret: "fixture-only", audience: schedulerUrl, clock: () => f.ledger.clock(), providerDevices: f.devices });
+  const server = http.createServer((req, res) => router.handle(req, res));
+  await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise(resolve => { server.closeAllConnections(); server.close(resolve); }));
+  const report = { schema: 1, session: "e".repeat(32), sequence: 1, at: f.ledger.clock(), model: "fixture", modelHash: f.tariff.modelHash, ready: true };
+  const signature = d.sign("presence", require("../lib/koin-network/presence").presenceHash(f.provider, schedulerUrl, report));
+  const send = value => fetch(`http://127.0.0.1:${server.address().port}/koin/presence`, { method: "POST", body: JSON.stringify(value) });
+  const response = await send({ address: f.provider, report, signature }); assert.equal(response.status, 200);
+  assert.equal(f.devices.presence({ address: f.provider, ...d.binding }).ready, true);
+  assert.deepEqual(router.ledger.state.qualifications, {}); assert.equal(router.ledger.state.presence[f.provider], undefined);
+  assert.equal((await send({ address: f.provider, report, signature })).status, 400, "replayed device presence is still rejected");
+  assert.equal((await send({ address: f.provider, report: { ...report, modelHash: P.hash("wrong") }, signature })).status, 400);
+});

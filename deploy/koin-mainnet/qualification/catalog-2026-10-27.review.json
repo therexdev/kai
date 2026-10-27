@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "purpose": "Operator-requested qualification of every compatible installed public model on the existing prepaid service",
+  "kind": "criteria-review-not-model-measurement",
+  "scope": {
+    "mode": "mainnet-pilot",
+    "schedulerUrl": "https://credits.koinosai.com/scheduler",
+    "policyHash": "9a4d812014a210d0d9fa083c479c0c0d82341ece2bde33b596ea8bb3826b9089",
+    "deployment": {
+      "network": "mainnet",
+      "chainId": "EiBZK_GGVP0H_fXVAM3j6EAuz3-B-l3ejxRSewi7qIBfSA==",
+      "product": "prepaid-usd-v1",
+      "credits": "18QmSHrMszxmYPaDB1jxzY35vYDcG6aomN",
+      "creditsHash": "0x1220e87d504fa312b8a5c6d3a45f31d191cbc2577d3fa91c6d5750d0f2a80c7ea24d",
+      "rewards": "19G5nydrp3YTqG5jfVGjdonbLEnAW3xN5K",
+      "rewardsHash": "0x1220883bcdfb87cfdf1ad4529468bc890db194c077e4ea0523d948c24bb572524a9e",
+      "masterNode": "15CM9Qr4GKREDgqnyXJ8tckPj2biERTM1T"
+    }
+  },
+  "baselineCasesSha256": "ab4642fecb957a53fca7064c537bda6dc1fcdac8abeac7c21e27323ffa82e617",
+  "catalogSha256": "609403a926e525d76200ae1ecaf293203b20539f9235cef655aab5cd8b98f087",
+  "tokenizerIndexSha256": "01b7850bc955756d77927941fb98c6ecb3c026af16a0c7b53dd504faa95306aa",
+  "existingSmartPolicySha256": "3aebefc063417e4b165f516551b7f49a5f0fbcd9eaf24d5715df3a4fcf8b2b26",
+  "criteria": {
+    "minPass": 12,
+    "total": 12,
+    "maxLatencyMs": 30000,
+    "coverageBps": 10000,
+    "renewBeforeMs": 3600000,
+    "retryMs": 300000,
+    "qualificationLifetimeMs": 86400000,
+    "modelWeightRule": "round(sqrt(nominalParametersBillions / 4) * 10000)"
+  },
+  "models": [
+    {
+      "model": "koinos-fast",
+      "package": "qwen2.5-1.5b-instruct-q4_k_m@1",
+      "modelHash": "1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370",
+      "nominalParametersBillions": 1.5,
+      "priorFullModelMeasurement": "not-established"
+    },
+    {
+      "model": "koinos-balanced",
+      "package": "llama-3.2-3b-instruct-q4_k_m@1",
+      "modelHash": "6c1a2b41161032677be168d354123594c0e6e67d2b9227c84f296ad037c728ff",
+      "nominalParametersBillions": 3,
+      "priorFullModelMeasurement": "not-established"
+    },
+    {
+      "model": "gemma3-4b",
+      "package": "google_gemma-3-4b-it-q4_k_m@1",
+      "modelHash": "4996030242583a40aa151ff93f49ed787ac8c25e4120c3ae4588b2e2a7d1ae94",
+      "nominalParametersBillions": 4,
+      "priorFullModelMeasurement": "not-established"
+    },
+    {
+      "model": "koinos-smart",
+      "package": "qwen2.5-7b-instruct-q4_k_m@1",
+      "modelHash": "65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423",
+      "nominalParametersBillions": 7,
+      "priorFullModelMeasurement": "retained-separate-Smart-observation"
+    },
+    {
+      "model": "mistral-7b",
+      "package": "mistral-7b-instruct-v0.3-q4_k_m@1",
+      "modelHash": "1270d22c0fbb3d092fb725d4d96c457b7b687a5f5a715abe1e818da303e562b6",
+      "nominalParametersBillions": 7,
+      "priorFullModelMeasurement": "not-established"
+    },
+    {
+      "model": "qwen-coder-7b",
+      "package": "qwen2.5-coder-7b-instruct-q4_k_m@1",
+      "modelHash": "1664fccab734674a50763490a8c6931b70e3f2f8ec10031b54806d30e5f956b6",
+      "nominalParametersBillions": 7,
+      "priorFullModelMeasurement": "not-established"
+    },
+    {
+      "model": "llama31-8b",
+      "package": "meta-llama-3.1-8b-instruct-q4_k_m@1",
+      "modelHash": "7b064f5842bf9532c91456deda288a1b672397a54fa729aa665952863033557c",
+      "nominalParametersBillions": 8,
+      "priorFullModelMeasurement": "not-established"
+    },
+    {
+      "model": "gemma3-12b",
+      "package": "google_gemma-3-12b-it-q4_k_m@1",
+      "modelHash": "fc57f67efa46d711c346e587cbef7d049e95f3df8db2eb2271153343ef0acc7b",
+      "nominalParametersBillions": 12,
+      "priorFullModelMeasurement": "not-established"
+    },
+    {
+      "model": "qwen25-14b",
+      "package": "qwen2.5-14b-instruct-q4_k_m@1",
+      "modelHash": "e47ad95dad6ff848b431053b375adb5d39321290ea2c638682577dafca87c008",
+      "nominalParametersBillions": 14,
+      "priorFullModelMeasurement": "not-established"
+    },
+    {
+      "model": "phi-4",
+      "package": "phi-4-q4_k_m@1",
+      "modelHash": "009aba717c09d4a35890c7d35eb59d54e1dba884c7c526e7197d9c13ab5911d9",
+      "nominalParametersBillions": 14,
+      "priorFullModelMeasurement": "not-established"
+    },
+    {
+      "model": "mistral-small-24b",
+      "package": "mistral-small-24b-instruct-2501-q4_k_m@1",
+      "modelHash": "d1a6d049f09730c3f8ba26cf6b0b60c89790b5fdafa9a59c819acdfe93fffd1b",
+      "nominalParametersBillions": 24,
+      "priorFullModelMeasurement": "not-established"
+    },
+    {
+      "model": "gemma3-27b",
+      "package": "google_gemma-3-27b-it-q4_k_m@1",
+      "modelHash": "4e83142e3ad3719ac61334f70a956dcc60bbba8adb29de5114161310bb9f7170",
+      "nominalParametersBillions": 27,
+      "priorFullModelMeasurement": "not-established"
+    },
+    {
+      "model": "qwen25-32b",
+      "package": "qwen2.5-32b-instruct-q4_k_m@1",
+      "modelHash": "2e5f6daea180dbc59f65a40641e94d3973b5dbaa32b3c0acf54647fa874e519e",
+      "nominalParametersBillions": 32,
+      "priorFullModelMeasurement": "not-established"
+    },
+    {
+      "model": "qwen-coder-32b",
+      "package": "qwen2.5-coder-32b-instruct-q4_k_m@1",
+      "modelHash": "8e2fd78ff55e7cdf577fda257bac2776feb7d73d922613caf35468073807e815",
+      "nominalParametersBillions": 32,
+      "priorFullModelMeasurement": "not-established"
+    },
+    {
+      "model": "deepseek-r1-32b",
+      "package": "deepseek-r1-distill-qwen-32b-q4_k_m@1",
+      "modelHash": "bed9b0f551f5b95bf9da5888a48f0f87c37ad6b72519c4cbd775f54ac0b9fc62",
+      "nominalParametersBillions": 32,
+      "priorFullModelMeasurement": "not-established"
+    }
+  ],
+  "rationale": [
+    "The owner requested all selected compatible installed models be offered without manually changing the loaded model. This extends the same fixed objective twelve-case gate to each exact public catalog package.",
+    "Every provider/model must independently pass all twelve fresh signed network answers within the unchanged thirty-second per-case deadline. Adding a policy never creates or renews an eligibility record.",
+    "The existing Smart policy is preserved byte-for-byte as an object to retain its review/evidence identity. Other policies commit this criteria review, not a fabricated measured model observation.",
+    "Tokenizers and rendered candidate prompts have independent native vocabulary reference checks. Those checks do not establish loaded model quality, performance, or prior qualification.",
+    "Reward weights continue the existing square-root formula using nominal package model sizes. Free-credit budgets, eligibility list, tariffs, daily emissions, payout ownership and financial ceilings are unchanged.",
+    "On-demand models become requestable only with exact selected package pins, individual fresh qualification and fresh signed device readiness. Capacity rewards still count only the actually loaded model."
+  ],
+  "limits": [
+    "No measurements, passing scores, runtime identity attestations or provider eligibility are asserted for unmeasured models.",
+    "The public twelve-case suite is a provisional operator gate and can be memorized. It is not Byzantine proof or broad model/security certification.",
+    "A model that fails or times out remains unavailable and retries automatically. Larger or reasoning models may not satisfy the unchanged exact-answer/deadline gate.",
+    "Native inference speed and physical Pi behavior require actual hardware testing. No financial transfer or reward pool funding is performed by this review."
+  ]
+}
