@@ -1,0 +1,175 @@
+{
+  "schema": 2,
+  "kind": "runtime-readiness-policy-review",
+  "purpose": "Admit catalog models by fresh runtime readiness rather than perfect generic knowledge or format scores",
+  "scope": {
+    "mode": "mainnet-pilot",
+    "schedulerUrl": "https://credits.koinosai.com/scheduler",
+    "policyHash": "9a4d812014a210d0d9fa083c479c0c0d82341ece2bde33b596ea8bb3826b9089",
+    "deployment": {
+      "network": "mainnet",
+      "chainId": "EiBZK_GGVP0H_fXVAM3j6EAuz3-B-l3ejxRSewi7qIBfSA==",
+      "product": "prepaid-usd-v1",
+      "credits": "18QmSHrMszxmYPaDB1jxzY35vYDcG6aomN",
+      "creditsHash": "0x1220e87d504fa312b8a5c6d3a45f31d191cbc2577d3fa91c6d5750d0f2a80c7ea24d",
+      "rewards": "19G5nydrp3YTqG5jfVGjdonbLEnAW3xN5K",
+      "rewardsHash": "0x1220883bcdfb87cfdf1ad4529468bc890db194c077e4ea0523d948c24bb572524a9e",
+      "masterNode": "15CM9Qr4GKREDgqnyXJ8tckPj2biERTM1T"
+    }
+  },
+  "previousCatalogReviewHash": "5891bc4b4af960060e7f5bc67a5c3709d57ddc68395eaebfcc267640f1cde9a4",
+  "previousPoliciesSha256": "52d3329a080a7b43965a8036d47400dc346167870bac19f39cf705a326bc5dac",
+  "readinessImplementationSha256": "c754ddcb4542beb58db99746ea647267cc695593821c6199619c8bae0bc0434d",
+  "criteria": {
+    "kind": "runtime-readiness",
+    "version": 1,
+    "minPass": 2,
+    "total": 2,
+    "maxOutput": 256,
+    "maxLatencyMs": 30000,
+    "renewBeforeMs": 3600000,
+    "retryMs": 300000,
+    "qualificationLifetimeMs": 86400000
+  },
+  "models": [
+    {
+      "model": "koinos-fast",
+      "package": "qwen2.5-1.5b-instruct-q4_k_m@1",
+      "modelHash": "1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370",
+      "nominalParametersBillions": 1.5
+    },
+    {
+      "model": "koinos-balanced",
+      "package": "llama-3.2-3b-instruct-q4_k_m@1",
+      "modelHash": "6c1a2b41161032677be168d354123594c0e6e67d2b9227c84f296ad037c728ff",
+      "nominalParametersBillions": 3
+    },
+    {
+      "model": "gemma3-4b",
+      "package": "google_gemma-3-4b-it-q4_k_m@1",
+      "modelHash": "4996030242583a40aa151ff93f49ed787ac8c25e4120c3ae4588b2e2a7d1ae94",
+      "nominalParametersBillions": 4
+    },
+    {
+      "model": "koinos-smart",
+      "package": "qwen2.5-7b-instruct-q4_k_m@1",
+      "modelHash": "65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423",
+      "nominalParametersBillions": 7
+    },
+    {
+      "model": "mistral-7b",
+      "package": "mistral-7b-instruct-v0.3-q4_k_m@1",
+      "modelHash": "1270d22c0fbb3d092fb725d4d96c457b7b687a5f5a715abe1e818da303e562b6",
+      "nominalParametersBillions": 7
+    },
+    {
+      "model": "qwen-coder-7b",
+      "package": "qwen2.5-coder-7b-instruct-q4_k_m@1",
+      "modelHash": "1664fccab734674a50763490a8c6931b70e3f2f8ec10031b54806d30e5f956b6",
+      "nominalParametersBillions": 7
+    },
+    {
+      "model": "llama31-8b",
+      "package": "meta-llama-3.1-8b-instruct-q4_k_m@1",
+      "modelHash": "7b064f5842bf9532c91456deda288a1b672397a54fa729aa665952863033557c",
+      "nominalParametersBillions": 8
+    },
+    {
+      "model": "gemma3-12b",
+      "package": "google_gemma-3-12b-it-q4_k_m@1",
+      "modelHash": "fc57f67efa46d711c346e587cbef7d049e95f3df8db2eb2271153343ef0acc7b",
+      "nominalParametersBillions": 12
+    },
+    {
+      "model": "qwen25-14b",
+      "package": "qwen2.5-14b-instruct-q4_k_m@1",
+      "modelHash": "e47ad95dad6ff848b431053b375adb5d39321290ea2c638682577dafca87c008",
+      "nominalParametersBillions": 14
+    },
+    {
+      "model": "phi-4",
+      "package": "phi-4-q4_k_m@1",
+      "modelHash": "009aba717c09d4a35890c7d35eb59d54e1dba884c7c526e7197d9c13ab5911d9",
+      "nominalParametersBillions": 14
+    },
+    {
+      "model": "mistral-small-24b",
+      "package": "mistral-small-24b-instruct-2501-q4_k_m@1",
+      "modelHash": "d1a6d049f09730c3f8ba26cf6b0b60c89790b5fdafa9a59c819acdfe93fffd1b",
+      "nominalParametersBillions": 24
+    },
+    {
+      "model": "gemma3-27b",
+      "package": "google_gemma-3-27b-it-q4_k_m@1",
+      "modelHash": "4e83142e3ad3719ac61334f70a956dcc60bbba8adb29de5114161310bb9f7170",
+      "nominalParametersBillions": 27
+    },
+    {
+      "model": "qwen25-32b",
+      "package": "qwen2.5-32b-instruct-q4_k_m@1",
+      "modelHash": "2e5f6daea180dbc59f65a40641e94d3973b5dbaa32b3c0acf54647fa874e519e",
+      "nominalParametersBillions": 32
+    },
+    {
+      "model": "qwen-coder-32b",
+      "package": "qwen2.5-coder-32b-instruct-q4_k_m@1",
+      "modelHash": "8e2fd78ff55e7cdf577fda257bac2776feb7d73d922613caf35468073807e815",
+      "nominalParametersBillions": 32
+    },
+    {
+      "model": "deepseek-r1-32b",
+      "package": "deepseek-r1-distill-qwen-32b-q4_k_m@1",
+      "modelHash": "bed9b0f551f5b95bf9da5888a48f0f87c37ad6b72519c4cbd775f54ac0b9fc62",
+      "nominalParametersBillions": 32
+    }
+  ],
+  "rationale": [
+    "Catalog packages have different inherent capabilities; a perfect shared twelve-answer knowledge, formatting and system-role test is not runtime availability.",
+    "Each admission now needs two fresh unpredictable label checks: direct echo and multi-turn recall, executed through the original pinned template and exact native token IDs, with signed results from the same registered device.",
+    "The expected label is generated per challenge and bound by the signed quote. Only the exact complete answer or enumerated presentation wrappers pass; arbitrary nonempty text does not.",
+    "The original quality policies, failed runs and signed evidence remain preserved separately. Old failures never become readiness evidence; every model, including previously qualified Smart, performs fresh checks.",
+    "Model hashes, tariff policy, reward weights, coverage, expiration, free-credit grants and financial ceilings remain unchanged. Availability rewards still count one actual capacity rather than every installed model."
+  ],
+  "limits": [
+    "Readiness is not broad answer quality, secure instruction hierarchy, or cryptographic loaded-weight attestation.",
+    "The app observes a managed runtime and verifies the installed package/tokenizer; a malicious provider can spoof public software observations.",
+    "Only updated workers advertising complete-inference checking may participate. Token-limit cutoffs, missing or stale answers, wrong devices and invalid signatures cannot pass.",
+    "The existing model tariff permits at most 256 output tokens. A model that cannot complete these short checks within that bound and the 30-second deadline remains unavailable; no hardware-wide success is claimed.",
+    "No credit purchases, reward transfers, free grants or fabricated model measurements are created by migration."
+  ],
+  "measurements": [
+    {
+      "file": "model-readiness-2026-10-27.koinos-fast.observation.json",
+      "sha256": "ad53dba4d64055c8910fa2bd63567fd21fa64bd3b734d1fe7734030d2837166d",
+      "model": "koinos-fast",
+      "modelHash": "1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370",
+      "passed": 10,
+      "total": 10
+    },
+    {
+      "file": "model-readiness-2026-10-27.gemma3-4b.observation.json",
+      "sha256": "88a5524a5c94be5fbc28a3f87dbdc8e6ff9d6c65fd883b81cc6f70c6380032d4",
+      "model": "gemma3-4b",
+      "modelHash": "4996030242583a40aa151ff93f49ed787ac8c25e4120c3ae4588b2e2a7d1ae94",
+      "passed": 10,
+      "total": 10
+    },
+    {
+      "file": "model-readiness-2026-10-27.llama31-8b.observation.json",
+      "sha256": "2816287cf6c2e96343c3ada38eb26a3d5d6161af83c3901a40429f0eb85ee4b4",
+      "model": "llama31-8b",
+      "modelHash": "7b064f5842bf9532c91456deda288a1b672397a54fa729aa665952863033557c",
+      "passed": 10,
+      "total": 10
+    },
+    {
+      "file": "model-readiness-2026-10-27.mistral-7b.observation.json",
+      "sha256": "024190857b9cc3302b45a09316f5cae8758616b0c54d2f88f0151c667e839cd7",
+      "model": "mistral-7b",
+      "modelHash": "1270d22c0fbb3d092fb725d4d96c457b7b687a5f5a715abe1e818da303e562b6",
+      "passed": 10,
+      "total": 10
+    }
+  ],
+  "measurementScope": "Four exact GGUF packages measured on the recorded Linux x64 CPU runtime, five fresh echo and five fresh recall cases each. The final case messages and grader are replay-validated against these observations. No claim is made for unmeasured packages or the user hardware."
+}

@@ -1,0 +1,488 @@
+{
+  "schema": 1,
+  "kind": "local-runtime-readiness-measurement",
+  "model": "mistral-7b",
+  "modelHash": "1270d22c0fbb3d092fb725d4d96c457b7b687a5f5a715abe1e818da303e562b6",
+  "modelSize": 4372812000,
+  "fullModelSha256Verified": true,
+  "source": {
+    "repository": "bartowski/Mistral-7B-Instruct-v0.3-GGUF",
+    "revision": "61fd4167fff3ab01ee1cfe0da183fa27a944db48",
+    "filename": "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf"
+  },
+  "hardware": {
+    "platform": "linux",
+    "arch": "x64",
+    "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCores": 9,
+    "totalMemoryBytes": 10451439616
+  },
+  "runtime": {
+    "tag": "b10423",
+    "commit": "a94d563ed801d1da1b8c2432946de07d0231bb3d",
+    "binarySha256": "bf747c23411764741b57f9cc6af7d532ed30033cb3c439127c434d2045aad584",
+    "cpuOnly": true,
+    "threads": 6,
+    "args": [
+      "-m",
+      "/tmp/kai-mistral7-real.gguf",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "41459",
+      "-c",
+      "4096",
+      "-t",
+      "6",
+      "-np",
+      "1",
+      "-ngl",
+      "0",
+      "--no-context-shift"
+    ]
+  },
+  "tokenizerHash": "d7cb022d1a861f61d05dd071460f9b12d41125440bee9446ff5ad2da100792d8",
+  "configHash": "0533dec9cfe319163801b6618d0f3ec9cfa126b6288e3df5deca6e32acb09cd2",
+  "templateHash": "e16746b40344d6c5b5265988e0328a0bf7277be86f1c335156eae07e29c82826",
+  "policySourceSha256": "c754ddcb4542beb58db99746ea647267cc695593821c6199619c8bae0bc0434d",
+  "cases": [
+    {
+      "id": "echo-label",
+      "maxOutput": 256
+    },
+    {
+      "id": "recall-label",
+      "maxOutput": 256
+    }
+  ],
+  "rounds": 5,
+  "startedAt": "2026-10-27T22:20:36.604Z",
+  "results": [
+    {
+      "round": 1,
+      "id": "echo-label",
+      "nonce": "KAI-7C6CB4515F3D140A",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Copy the following label exactly. Reply with only the label, without explanation.\nLabel: KAI-7C6CB4515F3D140A"
+        }
+      ],
+      "promptHash": "ca16428c1bf9cbccccb93438594258f77360c199324e19637032798fdca5f3ed",
+      "inputTokens": 41,
+      "inputIdsHash": "55a608b8482f450bef28c5ae475830c887aa8847b76745b1d5fa39f83a27f406",
+      "nativeInputIdsHash": "55a608b8482f450bef28c5ae475830c887aa8847b76745b1d5fa39f83a27f406",
+      "tokenizerMatch": true,
+      "maxOutput": 256,
+      "elapsedMs": 3634,
+      "output": " KAI-7C6CB4515F3D140A",
+      "outputHash": "c70c2af10638cd762e2f27c914e97d32e7ab004166bc093069256c70b6bc98b0",
+      "tokensPredicted": 19,
+      "stop": true,
+      "stopType": "eos",
+      "truncated": false,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 41,
+        "prompt_ms": 1805.255,
+        "prompt_per_token_ms": 44.03060975609756,
+        "prompt_per_second": 22.71147289441104,
+        "predicted_n": 19,
+        "predicted_ms": 1825.325,
+        "predicted_per_token_ms": 101.40694444444445,
+        "predicted_per_second": 9.861257584265816
+      },
+      "answerPassed": true,
+      "completedNaturally": true,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "id": "recall-label",
+      "nonce": "KAI-3A4848A96968AD53",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Remember this label for the next message: KAI-3A4848A96968AD53"
+        },
+        {
+          "role": "assistant",
+          "content": "I will remember the label."
+        },
+        {
+          "role": "user",
+          "content": "What label did I ask you to remember? Reply with only the label, without explanation."
+        }
+      ],
+      "promptHash": "cfa3ca4c21be8ad878d4a9f25189bfd514451e0e0792676f132d818d0fc5e1f6",
+      "inputTokens": 60,
+      "inputIdsHash": "2b456aedaccf8394a2a5b340aafe78bedbd4ba78e8f632f139732d3569c8c499",
+      "nativeInputIdsHash": "2b456aedaccf8394a2a5b340aafe78bedbd4ba78e8f632f139732d3569c8c499",
+      "tokenizerMatch": true,
+      "maxOutput": 256,
+      "elapsedMs": 3006,
+      "output": " KAI-3A4848A96968AD53",
+      "outputHash": "1f264c658b3eb30f1ac8c7991062c4074bfb063cebef5f0f36c281cb71c41dd8",
+      "tokensPredicted": 19,
+      "stop": true,
+      "stopType": "eos",
+      "truncated": false,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 60,
+        "prompt_ms": 1744.77,
+        "prompt_per_token_ms": 29.0795,
+        "prompt_per_second": 34.38848673464124,
+        "predicted_n": 19,
+        "predicted_ms": 1256.152,
+        "predicted_per_token_ms": 69.78622222222222,
+        "predicted_per_second": 14.329476050669026
+      },
+      "answerPassed": true,
+      "completedNaturally": true,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "id": "echo-label",
+      "nonce": "KAI-A2B5A2C6803AB927",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Copy the following label exactly. Reply with only the label, without explanation.\nLabel: KAI-A2B5A2C6803AB927"
+        }
+      ],
+      "promptHash": "fcee30df35b92cf0b51ddef83e94b53432ff240e3340417f1a850ec3f3b76708",
+      "inputTokens": 41,
+      "inputIdsHash": "e3c2dfa552f3f164906e7d09b42a8b43de826e98c04831ac8ce3bfdedbe38a51",
+      "nativeInputIdsHash": "e3c2dfa552f3f164906e7d09b42a8b43de826e98c04831ac8ce3bfdedbe38a51",
+      "tokenizerMatch": true,
+      "maxOutput": 256,
+      "elapsedMs": 2552,
+      "output": " KAI-A2B5A2C6803AB927",
+      "outputHash": "a36588dbe465f3e73b3de7cab0fb9dc4f1cba64346655c75cf1412f17ce592d8",
+      "tokensPredicted": 19,
+      "stop": true,
+      "stopType": "eos",
+      "truncated": false,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 41,
+        "prompt_ms": 1177.442,
+        "prompt_per_token_ms": 28.71809756097561,
+        "prompt_per_second": 34.821248095447594,
+        "predicted_n": 19,
+        "predicted_ms": 1367.469,
+        "predicted_per_token_ms": 75.9705,
+        "predicted_per_second": 13.16300406078675
+      },
+      "answerPassed": true,
+      "completedNaturally": true,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "id": "recall-label",
+      "nonce": "KAI-C6049A2BE19441AC",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Remember this label for the next message: KAI-C6049A2BE19441AC"
+        },
+        {
+          "role": "assistant",
+          "content": "I will remember the label."
+        },
+        {
+          "role": "user",
+          "content": "What label did I ask you to remember? Reply with only the label, without explanation."
+        }
+      ],
+      "promptHash": "d2322a2de56fbc1c9fcec8f4b0811d1d2770605ef67a343c48d9a833b0ba3b1b",
+      "inputTokens": 59,
+      "inputIdsHash": "d03ec68b0a50572a1ff4daf86272b757c18ff5041ccbb1c22e04eb440648c6d9",
+      "nativeInputIdsHash": "d03ec68b0a50572a1ff4daf86272b757c18ff5041ccbb1c22e04eb440648c6d9",
+      "tokenizerMatch": true,
+      "maxOutput": 256,
+      "elapsedMs": 4621,
+      "output": " KAI-C6049A2BE19441AC",
+      "outputHash": "75217e752b52d8c09bbcc79c311ff033e151946451f264f8be49f09f012414d9",
+      "tokensPredicted": 18,
+      "stop": true,
+      "stopType": "eos",
+      "truncated": false,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 59,
+        "prompt_ms": 2544.174,
+        "prompt_per_token_ms": 43.12159322033898,
+        "prompt_per_second": 23.190237774617618,
+        "predicted_n": 18,
+        "predicted_ms": 2070.148,
+        "predicted_per_token_ms": 121.77341176470588,
+        "predicted_per_second": 8.211973250221723
+      },
+      "answerPassed": true,
+      "completedNaturally": true,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "id": "echo-label",
+      "nonce": "KAI-128B3DEEE1C32559",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Copy the following label exactly. Reply with only the label, without explanation.\nLabel: KAI-128B3DEEE1C32559"
+        }
+      ],
+      "promptHash": "f0c16c93bbf953122339d86766a9556d3aa4f805c72e9b3396d026ce5b5babad",
+      "inputTokens": 40,
+      "inputIdsHash": "e7f9f5ac18f343b7e747389a6ef59fdcf7bc59cd9af4dab194309003e17cf3cc",
+      "nativeInputIdsHash": "e7f9f5ac18f343b7e747389a6ef59fdcf7bc59cd9af4dab194309003e17cf3cc",
+      "tokenizerMatch": true,
+      "maxOutput": 256,
+      "elapsedMs": 3576,
+      "output": " KAI-128B3DEEE1C32559",
+      "outputHash": "3f57497646d9f73389df2d53fd2308cb6f044d7b8f6994ebbed4c319f29ec380",
+      "tokensPredicted": 18,
+      "stop": true,
+      "stopType": "eos",
+      "truncated": false,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 40,
+        "prompt_ms": 1732.137,
+        "prompt_per_token_ms": 43.303425,
+        "prompt_per_second": 23.092861592356723,
+        "predicted_n": 18,
+        "predicted_ms": 1831.205,
+        "predicted_per_token_ms": 107.71794117647059,
+        "predicted_per_second": 9.28350457758689
+      },
+      "answerPassed": true,
+      "completedNaturally": true,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "id": "recall-label",
+      "nonce": "KAI-6AF1237D1D1A3394",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Remember this label for the next message: KAI-6AF1237D1D1A3394"
+        },
+        {
+          "role": "assistant",
+          "content": "I will remember the label."
+        },
+        {
+          "role": "user",
+          "content": "What label did I ask you to remember? Reply with only the label, without explanation."
+        }
+      ],
+      "promptHash": "5f53c74f31d4dc179b5c3c519b5fea2eab06088a79d7f12a42b9be11d85b3660",
+      "inputTokens": 60,
+      "inputIdsHash": "7dd4af18cf33f141ebc8d122663d24d09f2d7b6644d5eefcac0da05a0848050c",
+      "nativeInputIdsHash": "7dd4af18cf33f141ebc8d122663d24d09f2d7b6644d5eefcac0da05a0848050c",
+      "tokenizerMatch": true,
+      "maxOutput": 256,
+      "elapsedMs": 3964,
+      "output": " KAI-6AF1237D1D1A3394",
+      "outputHash": "80b02e73f05155fb227fc09d52547a4e786cd771618f34d613e4d980791de222",
+      "tokensPredicted": 19,
+      "stop": true,
+      "stopType": "eos",
+      "truncated": false,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 60,
+        "prompt_ms": 2407.623,
+        "prompt_per_token_ms": 40.127050000000004,
+        "prompt_per_second": 24.920845165542943,
+        "predicted_n": 19,
+        "predicted_ms": 1550.408,
+        "predicted_per_token_ms": 86.13377777777777,
+        "predicted_per_second": 11.609847214410658
+      },
+      "answerPassed": true,
+      "completedNaturally": true,
+      "passed": true
+    },
+    {
+      "round": 4,
+      "id": "echo-label",
+      "nonce": "KAI-109E55AC47A8123E",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Copy the following label exactly. Reply with only the label, without explanation.\nLabel: KAI-109E55AC47A8123E"
+        }
+      ],
+      "promptHash": "193bc8726551aca7fafe68b216097ad0cdc9a6895a3a46ffd2380e38b6d3106f",
+      "inputTokens": 41,
+      "inputIdsHash": "f75724d087fc3949fbac8860ba1e56f283818b05771b6519d19539095b4ec2bd",
+      "nativeInputIdsHash": "f75724d087fc3949fbac8860ba1e56f283818b05771b6519d19539095b4ec2bd",
+      "tokenizerMatch": true,
+      "maxOutput": 256,
+      "elapsedMs": 3632,
+      "output": " KAI-109E55AC47A8123E",
+      "outputHash": "b9954a83d1e67f4150e77d012b47255b450f37fb03bc4e12e0da09a9a768c9d6",
+      "tokensPredicted": 19,
+      "stop": true,
+      "stopType": "eos",
+      "truncated": false,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 41,
+        "prompt_ms": 1717.679,
+        "prompt_per_token_ms": 41.894609756097566,
+        "prompt_per_second": 23.86941914059612,
+        "predicted_n": 19,
+        "predicted_ms": 1904.707,
+        "predicted_per_token_ms": 105.81705555555556,
+        "predicted_per_second": 9.450272404102048
+      },
+      "answerPassed": true,
+      "completedNaturally": true,
+      "passed": true
+    },
+    {
+      "round": 4,
+      "id": "recall-label",
+      "nonce": "KAI-55EADD2477B3DF6B",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Remember this label for the next message: KAI-55EADD2477B3DF6B"
+        },
+        {
+          "role": "assistant",
+          "content": "I will remember the label."
+        },
+        {
+          "role": "user",
+          "content": "What label did I ask you to remember? Reply with only the label, without explanation."
+        }
+      ],
+      "promptHash": "45f0dabc2341f5a42a0b0e1fc0f530147692ab9661cb10b90d0121fe40b46080",
+      "inputTokens": 58,
+      "inputIdsHash": "50c3e5af90df195462cc56000dd4848adbbd2b3e408479efce64abd0265c1c5a",
+      "nativeInputIdsHash": "50c3e5af90df195462cc56000dd4848adbbd2b3e408479efce64abd0265c1c5a",
+      "tokenizerMatch": true,
+      "maxOutput": 256,
+      "elapsedMs": 3621,
+      "output": " KAI-55EADD2477B3DF6B",
+      "outputHash": "4c117aeee6b29995a55aa81e605fd2ebe709590b0a4438dd24c0dfaa3887b946",
+      "tokensPredicted": 17,
+      "stop": true,
+      "stopType": "eos",
+      "truncated": false,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 58,
+        "prompt_ms": 2270.987,
+        "prompt_per_token_ms": 39.15494827586207,
+        "prompt_per_second": 25.53955614893436,
+        "predicted_n": 17,
+        "predicted_ms": 1346.613,
+        "predicted_per_token_ms": 84.1633125,
+        "predicted_per_second": 11.881661620673496
+      },
+      "answerPassed": true,
+      "completedNaturally": true,
+      "passed": true
+    },
+    {
+      "round": 5,
+      "id": "echo-label",
+      "nonce": "KAI-31E6816834C998CE",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Copy the following label exactly. Reply with only the label, without explanation.\nLabel: KAI-31E6816834C998CE"
+        }
+      ],
+      "promptHash": "e91f75fd7e12496db462cef19f6e027de2e83a18a1062cde1baad7ef13b893c8",
+      "inputTokens": 41,
+      "inputIdsHash": "257df08a78fe2cb01a2a23459fdc71816c4e077d1529638f123622fed48509f1",
+      "nativeInputIdsHash": "257df08a78fe2cb01a2a23459fdc71816c4e077d1529638f123622fed48509f1",
+      "tokenizerMatch": true,
+      "maxOutput": 256,
+      "elapsedMs": 3227,
+      "output": " KAI-31E6816834C998CE",
+      "outputHash": "10a9a8e8d009dce40c314f5f6f319cac9a26f05eb694b22ef1f91ca2106758e5",
+      "tokensPredicted": 19,
+      "stop": true,
+      "stopType": "eos",
+      "truncated": false,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 41,
+        "prompt_ms": 1378.057,
+        "prompt_per_token_ms": 33.61114634146342,
+        "prompt_per_second": 29.752034930340326,
+        "predicted_n": 19,
+        "predicted_ms": 1840.109,
+        "predicted_per_token_ms": 102.22827777777778,
+        "predicted_per_second": 9.782029216747487
+      },
+      "answerPassed": true,
+      "completedNaturally": true,
+      "passed": true
+    },
+    {
+      "round": 5,
+      "id": "recall-label",
+      "nonce": "KAI-EF4891F0BCCA0591",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Remember this label for the next message: KAI-EF4891F0BCCA0591"
+        },
+        {
+          "role": "assistant",
+          "content": "I will remember the label."
+        },
+        {
+          "role": "user",
+          "content": "What label did I ask you to remember? Reply with only the label, without explanation."
+        }
+      ],
+      "promptHash": "37b43527b2a160e10d681c2a466ce98da48eab45b93e12047fbbfb4509080360",
+      "inputTokens": 59,
+      "inputIdsHash": "53ffee4997c25cdfd765d3fa098bea02ce73beb64c3caf10e6cdda7f1a56eaa1",
+      "nativeInputIdsHash": "53ffee4997c25cdfd765d3fa098bea02ce73beb64c3caf10e6cdda7f1a56eaa1",
+      "tokenizerMatch": true,
+      "maxOutput": 256,
+      "elapsedMs": 3927,
+      "output": " KAI-EF4891F0BCCA0591",
+      "outputHash": "b2d5ef2756bb4cf4810d5f14ba0ca4c9407b6c941500ccd573831c645a8e2257",
+      "tokensPredicted": 18,
+      "stop": true,
+      "stopType": "eos",
+      "truncated": false,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 59,
+        "prompt_ms": 2167.51,
+        "prompt_per_token_ms": 36.73745762711865,
+        "prompt_per_second": 27.220174301387303,
+        "predicted_n": 18,
+        "predicted_ms": 1755.557,
+        "predicted_per_token_ms": 103.26805882352942,
+        "predicted_per_second": 9.683536336330862
+      },
+      "answerPassed": true,
+      "completedNaturally": true,
+      "passed": true
+    }
+  ],
+  "networkEligibilityCreated": false,
+  "productionCredentialsUsed": false,
+  "modelLoadMs": 4550,
+  "completedAt": "2026-10-27T22:21:16.970Z",
+  "passed": 10,
+  "total": 10
+}

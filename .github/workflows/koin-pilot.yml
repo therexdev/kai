@@ -19,5 +19,5 @@ jobs:
           node-version: 22
       - run: npm ci --ignore-scripts
       - run: npm audit --omit=dev --audit-level=high
-      - run: node --test --test-concurrency=2 scripts/probe-koin*.js scripts/probe-purchase-quotes-http.js deploy/koin-mainnet/update-purchase-quotes.test.js deploy/koin-mainnet/update-provider-qualification.test.js
+      - run: node --test --test-concurrency=2 scripts/probe-koin*.js scripts/probe-purchase-quotes-http.js deploy/koin-mainnet/update-purchase-quotes.test.js deploy/koin-mainnet/update-provider-qualification.test.js deploy/koin-mainnet/update-model-readiness.test.js
       - run: node --check test-server.js
