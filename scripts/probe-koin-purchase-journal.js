@@ -149,3 +149,28 @@ test("quote journal failure leaves existing purchased credits and finality attri
   credits.purchase("finalized-after-quote-error", "1000");
   assert.equal(BigInt(credits.ledger.balance(credits.owner).purchased), BigInt(prior) + 1000n);
 });
+
+test("automatic price previews read current evidence without creating quote authorizations or signing", async t => {
+  const f = await fixture(t), readPreview = require("../lib/koin-network/purchase-price").preview;
+  let signs = 0;
+  const issuer = f.create({ signer: { getAddress: () => f.signer.getAddress(), signHash: async value => { signs++; return f.signer.signHash(value); } } });
+  for (let i = 0; i < 20; i++) {
+    const preview = await readPreview(f.oracle, f.scope.pricingPolicyHash, () => f.clock.now);
+    assert.equal(preview.pricingPolicyHash, f.scope.pricingPolicyHash);
+    assert.ok(BigInt(Q.nativeForDollars("1.00", preview.usdPerKoinAtoms)) > 0n);
+    assert.equal(Object.hasOwn(preview, "price_signature"), false); assert.equal(Object.hasOwn(preview, "id"), false);
+  }
+  assert.equal(signs, 0); assert.equal(issuer.journal, null); assert.equal(fs.existsSync(f.directory), false);
+  await f.issue(issuer); const authorized = issuer.journal.db.prepare("SELECT authorized FROM days").get().authorized;
+  for (let i = 0; i < 20; i++) await readPreview(f.oracle, f.scope.pricingPolicyHash, () => f.clock.now);
+  assert.equal(signs, 1); assert.equal(issuer.journal.db.prepare("SELECT COUNT(*) AS n FROM quotes").get().n, 1);
+  assert.equal(issuer.journal.db.prepare("SELECT authorized FROM days").get().authorized, authorized);
+  const snapshot = await f.oracle.readEvidence();
+  for (const [reader, expected, now] of [
+    [f.oracle, hex(999), f.clock.now],
+    [{ readEvidence: async () => snapshot }, f.scope.pricingPolicyHash, snapshot.summary.expiresAt],
+    [{ readEvidence: async () => snapshot }, f.scope.pricingPolicyHash, snapshot.summary.marketObservedAt - 1],
+    [{ readEvidence: async () => ({ ...snapshot, price: { ...snapshot.price, usdPerKoin: "1" } }) }, f.scope.pricingPolicyHash, f.clock.now],
+    [{ readEvidence: async () => ({ ...snapshot, summary: { ...snapshot.summary, privateUrl: "https://private.invalid" } }) }, f.scope.pricingPolicyHash, f.clock.now]
+  ]) await assert.rejects(readPreview(reader, expected, () => now), e => e.code === "PURCHASE_PRICE_UNAVAILABLE");
+});

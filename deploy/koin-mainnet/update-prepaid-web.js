@@ -10,6 +10,21 @@ const DEPENDENCIES = {
   required: ["package.json", "package-lock.json"],
   label: "Credit service dependency fix",
 };
+// The running service still uses the dependency release; the later Smart
+// admission change touched configuration only. Review new code against that
+// source branch while preserving every live configuration byte and ledger.
+const PREFERENCES = {
+  base: "5e3403bbe28982315e522602e264f62c72dadf1b",
+  installedBase: "cbdb3a581bf6b1e188379f18b99654a496626142",
+  allowed: new Set(["lib/koin-network/credit-funding.js", "lib/koin-network/credit-runs.js", "lib/koin-network/prepaid-ledger.js",
+    "lib/koin-network/prepaid-router.js", "lib/koin-network/purchase-price.js", "lib/koin-network/test-runtime.js",
+    "scripts/probe-koin-credit-priority.js", "scripts/probe-koin-purchase-journal.js",
+    "scripts/fixtures/credit-preferences/prepaid-ledger-cbdb3a5.js.txt", "scripts/fixtures/credit-preferences/credit-runs-cbdb3a5.js.txt",
+    "scripts/probe-prepaid-preferences-update.js", "deploy/koin-mainnet/update-prepaid-web.js", "deploy/koin-mainnet/CREDIT_PREFERENCES.md"]),
+  required: ["lib/koin-network/credit-funding.js", "lib/koin-network/prepaid-ledger.js", "lib/koin-network/prepaid-router.js",
+    "lib/koin-network/purchase-price.js", "lib/koin-network/test-runtime.js", "scripts/probe-koin-credit-priority.js"],
+  label: "Credit preview and spending preference update",
+};
 const PATHS = { work: "/root", releases: "/opt/kai-koin-prepaid/releases", config: "/etc/kai-koin-prepaid", unit: "/etc/systemd/system/" + UNIT };
 function command(exe, args, cwd, capture = false) {
   return execFileSync(exe, args, { cwd, encoding: "utf8", stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit", env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } }) || "";
@@ -49,19 +64,22 @@ async function health() {
   throw Error("Updated HTTPS account page, dashboard handoff or service heartbeat did not verify");
 }
 async function update({ repo = process.cwd(), paths: p = PATHS, run = command, checkHealth = health, log = console.log, kind = "web" } = {}) {
-  if (!["web", "dependencies"].includes(kind)) throw Error("Unknown update kind");
-  const review = kind === "dependencies" ? DEPENDENCIES : { base: OLD, allowed: ALLOWED, required: ["test-server.js"], label: "Credit account web fix" };
+  if (!["web", "dependencies", "preferences"].includes(kind)) throw Error("Unknown update kind");
+  const review = kind === "preferences" ? PREFERENCES : kind === "dependencies" ? DEPENDENCIES : { base: OLD, allowed: ALLOWED, required: ["test-server.js"], label: "Credit account web fix" };
   const target = run("git", ["rev-parse", "HEAD"], repo, true).trim();
   if (!/^[a-f0-9]{40}$/.test(target) || target === review.base || run("git", ["status", "--porcelain"], repo, true).trim()) throw Error("Use the clean reviewed fix checkout");
   const changed = run("git", ["diff", "--name-only", review.base, target], repo, true).trim().split("\n");
-  if (review.required.some(name => !changed.includes(name)) || changed.some(name => !review.allowed.has(name))) throw Error("This updater accepts only the reviewed " + (kind === "web" ? "web-page" : "dependency") + " change, not payment or configuration changes");
+  if (review.required.some(name => !changed.includes(name)) || changed.some(name => !review.allowed.has(name))) throw Error("This updater accepts only the reviewed " + (kind === "web" ? "web-page" : kind === "preferences" ? "credit-preference" : "dependency") + " change, not unrelated changes");
   const show = prop => run("systemctl", ["show", UNIT, "--value", "--property=" + prop], undefined, true).trim();
-  const oldDir = path.join(p.releases, review.base), targetDir = path.join(p.releases, target), current = show("WorkingDirectory");
+  const oldDir = path.join(p.releases, review.installedBase || review.base), targetDir = path.join(p.releases, target), current = show("WorkingDirectory");
   if (![oldDir, targetDir].includes(current) || show("ActiveState") !== "active" || show("FragmentPath") !== p.unit || show("DropInPaths")) throw Error("Unexpected prepaid service version or overrides; no service changes made");
   if (current === targetDir) { await checkHealth(); log(review.label + " already installed."); return; }
   for (const dir of [p.releases, p.config]) if (!fs.lstatSync(dir).isDirectory() || fs.lstatSync(dir).isSymbolicLink()) throw Error("Expected real service directories");
   if (!fs.lstatSync(p.unit).isFile() || fs.lstatSync(p.unit).isSymbolicLink()) throw Error("Expected a regular systemd unit");
   if (fs.existsSync(targetDir)) throw Error("Target release directory already exists; preserve it for review");
+  // Run accounting, backwards-recovery and read-only pricing checks before
+  // preparing or stopping the installed service. The probes use fixtures only.
+  if (kind === "preferences") run(process.execPath, ["--test", "scripts/probe-koin-credit-priority.js", "scripts/probe-koin-purchase-journal.js"], repo);
   const digest = configDigest(p.config), oldUnit = fs.readFileSync(p.unit), mode = fs.statSync(p.unit).mode & 0o777;
   const nextUnit = replacementUnit(oldUnit, oldDir, targetDir), backup = fs.mkdtempSync(path.join(p.work, "kai-credit-web-"));
   fs.chmodSync(backup, 0o700); fs.writeFileSync(path.join(backup, "previous.service"), oldUnit, { mode: 0o600 });
@@ -85,7 +103,9 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, c
     await checkHealth();
   } catch (error) {
     if (stopped) {
-      try { run("systemctl", ["stop", UNIT]); writeUnit(oldUnit); run("systemctl", ["daemon-reload"]); run("systemctl", ["start", UNIT]); log("Previous code restored using the current account and payment databases."); }
+      try { run("systemctl", ["stop", UNIT]);
+        if (show("ActiveState") !== "inactive" || show("ExecMainStatus") !== "0") throw Error("Updated service did not shut down cleanly; keep its current code and records");
+        writeUnit(oldUnit); run("systemctl", ["daemon-reload"]); run("systemctl", ["start", UNIT]); log("Previous code restored using the current account and payment databases."); }
       catch { log("Service recovery needs attention. Original unit: " + path.join(backup, "previous.service")); }
     }
     throw error;
@@ -96,7 +116,7 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, c
 if (require.main === module) {
   if (process.getuid?.() !== 0 || Number(process.versions.node.split(".")[0]) < 22 || /^\/(root|home)\//.test(process.execPath)) throw Error("Use system Node 22+ as root");
   const args = process.argv.slice(2);
-  if (args.length && (args.length !== 1 || args[0] !== "--dependencies")) throw Error("Usage: node deploy/koin-mainnet/update-prepaid-web.js [--dependencies]");
-  process.umask(0o077); update({ kind: args.length ? "dependencies" : "web" }).catch(error => { console.error(error.message); process.exitCode = 1; });
+  if (args.length && (args.length !== 1 || !["--dependencies", "--preferences"].includes(args[0]))) throw Error("Usage: node deploy/koin-mainnet/update-prepaid-web.js [--dependencies|--preferences]");
+  process.umask(0o077); update({ kind: args.length ? args[0].slice(2) : "web" }).catch(error => { console.error(error.message); process.exitCode = 1; });
 }
-module.exports = { update, replacementUnit, configDigest, OLD, UNIT, ALLOWED, DEPENDENCIES };
+module.exports = { update, replacementUnit, configDigest, OLD, UNIT, ALLOWED, DEPENDENCIES, PREFERENCES };
