@@ -76,6 +76,8 @@ test("after a later model fails the provider returns to qualified selected capac
   const options = { ...f.options, providerDevices: { workerActive: () => true, verify: (sig, _action, digest, wallet) => P.signatureMatches(digest, sig, wallet) }, preparePresence: () => presence };
   let engine = new ProviderQualificationSet(options);
   const alpha = engine.next(worker); engine.result(worker, await f.body(alpha));
+  assert.equal(engine.next(worker), null, "newly qualified capacity gets a short serving interval before another model check");
+  f.time(30000); presence.at = f.ledger.clock();
   const betaPrepare = engine.next(worker); assert.equal(betaPrepare.type, "koin-provider-prepare"); assert.equal(betaPrepare.model, "beta");
   const other = { ...worker, providerAuthorization: "d".repeat(64), providerDeviceId: "other", fingerprint: "d".repeat(16) };
   assert.equal(engine.next(other), null, "second device cannot switch to another benchmark during preparation");
