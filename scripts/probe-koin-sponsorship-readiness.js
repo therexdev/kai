@@ -23,3 +23,35 @@ test("sponsorship outage leaves purchased credits usable and lets allocated free
   const view = f.ledger.creditView(f.owner, identity); assert.equal(view.free.state, "unavailable"); assert.equal(view.purchased.available, "1000");
   const paid = f.ledger.reserve({ ...f.request("paid-during-outage"), identity }); assert.equal(paid.funding.freeHold, "0"); assert.ok(BigInt(paid.funding.paidHold) > 0n);
 });
+
+test("independent allowance refresh stays current while settlement is blocked, coalesces reads and expires failed observations", async t => {
+  const { TestRuntime } = require("../lib/koin-network/test-runtime");
+  t.mock.timers.enable({ apis: ["setInterval", "setTimeout"] });
+  let now = 100000, checks = 0, finish, blocked = false, fail = false;
+  const gate = new SponsorshipReadiness({ freePolicy, version: 1, clock: () => now });
+  const client = { d: { network: "isolated" }, verify: async () => { checks++; if (blocked) await new Promise(resolve => { finish = resolve; }); if (fail) throw Error("RPC down"); return verified; }, read: async () => pool };
+  // The payment loop never resolves; allowance checks must still run.
+  const runtime = { sponsorship: gate, client, prices: {}, prepaid: false, tick: () => new Promise(() => {}) };
+  TestRuntime.prototype.start.call(runtime);
+  t.after(() => { gate.close(); clearInterval(runtime.timer); });
+  await gate.check(); assert.equal(gate.ready(), true);
+  for (let i = 0; i < 8; i++) { now += 5000; t.mock.timers.tick(5000); await gate.check(); assert.equal(gate.ready(), true); }
+  assert.equal(checks, 9);
+  blocked = true; now += 5000; const pending = gate.check(); await Promise.resolve();
+  assert.equal(gate.check(), pending); assert.equal(checks, 10);
+  now += 31000; assert.equal(gate.ready(), false);
+  finish(); await pending; assert.equal(gate.ready(), false, "late response cannot renew stale proof");
+  blocked = false; await gate.check(); assert.equal(gate.ready(), true);
+  fail = true; now += 5000; await gate.check(); assert.equal(gate.ready(), true, "transport failure does not erase an unexpired proof");
+  now += 25000; assert.equal(gate.ready(), false, "failure does not extend the proof");
+  fail = false; await gate.check(); assert.equal(gate.ready(), true);
+  gate.close(); assert.equal(gate.ready(), false); assert.equal(await gate.check(), false);
+});
+
+test("stopping a pending allowance read prevents late results from restoring access", async () => {
+  const gate = new SponsorshipReadiness({ freePolicy, version: 1 });
+  let finish;
+  gate.start({ verify: () => new Promise(resolve => { finish = resolve; }), read: async () => pool });
+  const pending = gate.check(); await Promise.resolve(); gate.close(); finish(verified); await pending;
+  assert.equal(gate.ready(), false);
+});
