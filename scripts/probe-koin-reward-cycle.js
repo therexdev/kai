@@ -30,6 +30,11 @@ test("daily cycle opens, seals a signed root, observes the full review and durab
   await opened(f);
   assert.equal((await decision(f)).reason, "await_signed_manifest");
   f.cycle.importManifest(f.envelope);
+  const firstAllocation = f.envelope.manifest.allocations[0];
+  assert.deepEqual(f.cycle.accountAllocation("1", firstAllocation.address), {
+    availability: firstAllocation.availability, work: firstAllocation.work, rootHash: f.envelope.manifest.root.hash
+  });
+  assert.equal(f.cycle.accountAllocation("1", "unrelated-wallet"), null);
   assert.equal((await tick(f)).reason, "reward_day_open"); assert.equal(f.signed.length, 1);
   f.advance(DAY); assert.equal((await tick(f)).action, "await_finality");
   const proposal = f.sent.at(-1);

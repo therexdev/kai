@@ -11,7 +11,7 @@ function createHandler({ runtime, config, secret, authApp }) {
     try {
       const url = new URL(req.url, "http://test");
       if (authApp && require("./lib/credit-account-web").handles(url.pathname)) return authApp(req, res);
-      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, product: config.deployment.product || "legacy-reservations", purchaseQuotesUnlimited: require("./lib/koin-network/product").isUsd(config.deployment), providerQualificationRecovery: runtime.qualifier?.recoveryVersion === 1 ? 1 : 0, modelReadinessAdmission: runtime.qualifier?.readinessVersion === 1 ? 1 : 0, lastSuccess: (runtime.prepaid ? runtime.lastServing : runtime.lastSuccess) || null, lastSettlementSuccess: runtime.lastSuccess || null });
+      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, product: config.deployment.product || "legacy-reservations", purchaseQuotesUnlimited: require("./lib/koin-network/product").isUsd(config.deployment), providerQualificationRecovery: runtime.qualifier?.recoveryVersion === 1 ? 1 : 0, modelReadinessAdmission: runtime.qualifier?.readinessVersion === 1 ? 1 : 0, lastSuccess: (runtime.prepaid ? runtime.lastServing : runtime.lastSuccess) || null, lastSettlementSuccess: runtime.lastSuccess || null, rewardSummaryVersion: typeof runtime.rewardSummary === "function" ? 1 : 0 });
       if (url.pathname === "/operator/status" && req.method === "GET") {
         const presented = crypto.createHash("sha256").update(String(req.headers["x-operator-secret"] || "")).digest();
         if (!crypto.timingSafeEqual(presented, crypto.createHash("sha256").update(secret).digest())) return json(res, 403, { error: "Test operator access required" });
@@ -36,7 +36,8 @@ function createHandler({ runtime, config, secret, authApp }) {
         const wallets = runtime.accounts.accountView(account).wallets;
         return json(res, 200, { mode: config.mode, mainnetPaymentsEnabled: wire.paymentsEnabled, automaticPayouts: true, observedAt: runtime.clock(),
           providers: wallets.map(w => require("./lib/koin-network/provider-readiness").providerReadiness(runtime, w.address)),
-          payouts: wallets.flatMap(w => runtime.claims.accountStatus(w.address)), lastCycleCheck: runtime.lastSuccess || null });
+          payouts: wallets.flatMap(w => runtime.claims.accountStatus(w.address)), lastCycleCheck: runtime.lastSuccess || null,
+          rewardSummaries: wallets.map(w => runtime.rewardSummary(w.address)).filter(Boolean) });
       }
       if (url.pathname === "/scheduler/consume/chat/completions") {
         if (req.method !== "POST") return json(res, 405, { error: "POST required" });
