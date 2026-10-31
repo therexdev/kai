@@ -44,12 +44,16 @@ function fixture(t, installed = INSTALLED[0]) {
     } };
 }
 test("repair accepts the OOM restart loop, preflights after stopping and preserves financial/configuration bytes", async t => {
-  for (const installed of INSTALLED) {
-    const f = fixture(t, installed); const result = await repair(f.options); f.preserved(); assert.equal(result.commit, f.target);
+  // The real installer uses umask 0077. Exercise that environment in CI too,
+  // and verify preservation of both private and ordinary systemd unit modes.
+  const previousMask = process.umask(0o077); t.after(() => process.umask(previousMask));
+  for (const installed of INSTALLED) for (const unitMode of [0o600, 0o644]) {
+    const f = fixture(t, installed); fs.chmodSync(f.p.unit, unitMode);
+    const result = await repair(f.options); f.preserved(); assert.equal(result.commit, f.target);
     const stop = f.calls.findIndex(c => c[0] === "systemctl" && c[1] === "stop"), preflight = f.calls.findIndex(c => c[0] === "runuser"), start = f.calls.findIndex(c => c[0] === "systemctl" && c[1] === "start");
     assert.ok(stop >= 0 && preflight > stop && start > preflight); assert.ok(f.calls[preflight].includes("--max-old-space-size=768"));
     assert.deepEqual(fs.readFileSync(path.join(result.backup, "previous.service")), f.unit);
-    assert.equal(fs.statSync(f.p.unit).mode & 0o777, 0o644);
+    assert.equal(fs.statSync(f.p.unit).mode & 0o777, unitMode);
     assert.equal((await repair(f.options)).unchanged, true); f.preserved();
     assert.equal(f.calls.filter(c => c[0] === "systemctl" && c[1] === "start").length, 1);
   }
