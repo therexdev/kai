@@ -14,12 +14,12 @@
     "node": "22.x"
   },
   "dependencies": {
-    "express": "^4.21.2",
-    "koilib": "^9.3.0",
-    "nodemailer": "^9.0.6"
+    "express": "^4.22.3",
+    "koilib": "9.4.1",
+    "nodemailer": "^10.3.1"
   },
   "overrides": {
-    "protobufjs": "7.4.0"
+    "protobufjs": "7.6.6"
   },
   "devDependencies": {
     "jsdom": "^26.1.0",

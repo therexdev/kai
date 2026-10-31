@@ -27,6 +27,8 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - name: Check production dependency advisories
+        run: npm audit --omit=dev
       - name: Execute the shipped builder contracts
         run: |
           npm ci --prefix contracts/build-app

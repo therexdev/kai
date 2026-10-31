@@ -5,7 +5,7 @@ Copyright (c) Julian Gonzalez (joticajulian@gmail.com)
 Source: https://github.com/joticajulian/kondor-js
 Pinned commit: e319c5f190ec6d4c3c644270ded85a1256cd8e7c
 
-Koilib 9.3.0 browser build is served from the website's locked npm installation.
+Koilib 9.4.1 browser build is served from the website's locked npm installation.
 Source: https://github.com/joticajulian/koilib
 Its third-party license notices are at koinos.min.js.LICENSE.txt.
 
