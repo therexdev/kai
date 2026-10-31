@@ -100,3 +100,41 @@ for (const [format, firstDay, secondDay] of [["%Y-%m-%d", "2026-10-20", "2026-10
   assert.throws(() => adapter.render(messages), /integer/);
   assert.throws(() => adapter.render(messages, NaN), /integer/);
 });
+
+test("catalog loader shares identical engines but retains per-model identity and calibration", async t => {
+  const f = fixture(t); await install(f.directory, f.manifest, { fetchImpl: f.fetchImpl });
+  const load = require("../lib/koin-network/tokenizer").createTokenizerLoader();
+  const first = load(f.directory, f.manifest), secondManifest = { ...f.manifest, model: "another-model", modelHash: "b".repeat(64) };
+  const second = load(f.directory, secondManifest);
+  assert.notEqual(first, second); assert.equal(first.encode, second.encode); assert.equal(first.render, second.render);
+  assert.equal(first.modelHash, f.manifest.modelHash); assert.equal(second.modelHash, secondManifest.modelHash);
+  assert.deepEqual(second.encode("hello world"), [1, 2]);
+  const bad = structuredClone(secondManifest); bad.vectors[0].count++;
+  assert.throws(() => load(f.directory, bad), /calibration mismatch/);
+  // A separate runtime must not keep the previous runtime's engine alive.
+  assert.notEqual(require("../lib/koin-network/tokenizer").createTokenizerLoader()(f.directory, f.manifest).encode, first.encode);
+});
+
+test("cached engines still reject modified, missing and symbolic-link artifacts", async t => {
+  const f = fixture(t); await install(f.directory, f.manifest, { fetchImpl: f.fetchImpl });
+  const load = require("../lib/koin-network/tokenizer").createTokenizerLoader(); load(f.directory, f.manifest);
+  const file = path.join(f.directory, "tokenizer.json"); fs.writeFileSync(file, "{}");
+  assert.throws(() => load(f.directory, f.manifest), /hash mismatch/);
+  fs.unlinkSync(file); assert.throws(() => load(f.directory, f.manifest), /ENOENT/);
+  const alternate = path.join(f.directory, "alternate.json"); fs.writeFileSync(alternate, f.artifacts["tokenizer.json"]);
+  fs.symlinkSync(alternate, file); assert.throws(() => load(f.directory, f.manifest), /artifact/);
+});
+
+test("equal vocabulary with different configuration cannot share a template or engine", async t => {
+  const f = fixture(t); await install(f.directory, f.manifest, { fetchImpl: f.fetchImpl });
+  const load = require("../lib/koin-network/tokenizer").createTokenizerLoader(), first = load(f.directory, f.manifest);
+  const config = JSON.parse(f.artifacts["tokenizer_config.json"]); config.chat_template += " ";
+  const bytes = Buffer.from(JSON.stringify(config)), changed = structuredClone(f.manifest);
+  changed.configHash = P.hash(bytes); changed.templateHash = P.hash(config.chat_template);
+  changed.vectors[2].promptHash = P.hash("hello world  ");
+  fs.writeFileSync(path.join(f.directory, "tokenizer_config.json"), bytes);
+  const second = load(f.directory, changed);
+  assert.notEqual(first.render, second.render); assert.notEqual(first.encode, second.encode);
+  assert.equal(first.render([{ role: "user", content: "hello" }]), "hello ");
+  assert.equal(second.render([{ role: "user", content: "hello" }]), "hello  ");
+});
