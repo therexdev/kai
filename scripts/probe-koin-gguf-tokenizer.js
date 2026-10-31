@@ -98,3 +98,23 @@ test("external Mistral chat configuration requires exact immutable source identi
     assert.throws(() => G.sourceIdentity({ ...source, configSource: config }));
   }
 });
+
+test('Liquid converter commits the upstream non-thinking choice and preserves user-defined tokens', t => {
+  const f = fixture(t), entries = structuredClone(f.entries);
+  entries.find(e => e[0] === 'tokenizer.ggml.pre')[2] = 'lfm2';
+  entries.find(e => e[0] === 'tokenizer.ggml.token_type')[2][1][5] = 4;
+  const original = '{{ bos_token }}{% if enable_thinking | default(true) %}<think>{% else %}<think></think>{% endif %}';
+  entries.find(e => e[0] === 'tokenizer.chat_template')[2] = original;
+  const bytes = gguf(entries), source = {...f.source, prefixBytes:bytes.length, prefixHash:hash(bytes), converter:'lfm2-bpe-no-thinking-v1'};
+  const artifacts = G.derive(bytes, source), config = JSON.parse(artifacts['tokenizer_config.json']);
+  const template = new (require('@huggingface/jinja').Template)(config.chat_template);
+  assert.equal(template.render({bos_token:'<s>'}), '<s><think></think>');
+  assert.equal(config.chat_template, '{%- set enable_thinking = false -%}' + original);
+  assert.notEqual(hash(config.chat_template), hash(original));
+  const tokenizer = JSON.parse(artifacts['tokenizer.json']);
+  assert.equal(tokenizer.added_tokens.find(x => x.id === 5).special, false);
+  assert.throws(()=>G.derive(bytes,{...source,converter:'llama3-bpe-v1'}),/metadata required/);
+  entries.find(e => e[0] === 'tokenizer.chat_template')[2] = '{{bos_token}}';
+  const invalid = gguf(entries);
+  assert.throws(()=>G.derive(invalid,{...source,prefixBytes:invalid.length,prefixHash:hash(invalid)}),/thinking-switch/);
+});
