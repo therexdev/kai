@@ -37,6 +37,7 @@ function releaseCard(r, isLatest) {
     <div class="rel-head">
       <a class="ver" href="#v${esc(r.version)}">v${esc(r.version)}</a>
       <span class="date">${when(r.date)}</span>
+      ${r.product ? `<span class="tag">${esc(r.product)}</span>` : ""}
       ${isLatest ? KaiI18n.html`<span class="tag">Latest</span>` : ""}
     </div>
     ${r.title ? `<h2 lang="en">${esc(r.title)}</h2>` : ""}

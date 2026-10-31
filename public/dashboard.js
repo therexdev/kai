@@ -276,7 +276,10 @@ async function load() {
   try {
     const r = await fetch("/account/api/nodes", { headers: { accept: "application/json" }, cache: "no-store" });
     if (r.status === 401 || r.status === 403) { location.href = "/account?next=/dashboard"; return; }
-    nodes = (await r.json()).nodes || [];
+    if (!r.ok) throw Error("Dashboard unavailable");
+    const data = await r.json();
+    if (!Array.isArray(data.nodes)) throw Error("Invalid dashboard response");
+    nodes = data.nodes;
   } catch {
     KaiI18n.setText($("stamp"), "Could not reach the network just now — showing the last successful reading.");
     return;
@@ -289,10 +292,10 @@ async function load() {
 
   const aiHtml = ai.length
     ? ai.map(aiCard).join("")
-    : KaiI18n.html`<p class="empty">No machine has connected yet. Run Koinos AI and switch on Earning to put one to work.</p>`;
+    : KaiI18n.html`<p class="empty">No legacy Alpha machine reports. Use Core’s Earn KOIN page for current mainnet provider activity.</p>`;
   const koinosHtml = koinos.length
     ? koinos.map(koinosCard).join("")
-    : KaiI18n.html`<p class="empty">No Koinos node is reporting. A machine shows up here once it is producing blocks AND Earning is on — the node's report travels with the app's connection to the network.</p>`;
+    : KaiI18n.html`<p class="empty">No legacy Node report is available. View current node status in the KAI Koinos Node plugin.</p>`;
 
   /*
    * Only touch the DOM when something actually changed. Replacing innerHTML

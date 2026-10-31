@@ -1,7 +1,35 @@
 {
-  "_comment": "The source of truth for koinosai.com/updates and for the What's new link in the app's update popup. Newest first. Every kaiapp [release] MUST add an entry here in the same session it ships, or a tester gets a popup pointing at a version the page has never heard of. `kind` is one of: new, fix, change.",
-  "latest": "0.54.11",
+  "_comment": "Release notes for Core Beta and historical Koinos AI Alpha. Newest product first; versions are independent per product. Keep old version anchors for existing app links.",
+  "latest": "0.7.14",
   "releases": [
+    {
+      "version": "0.7.14",
+      "date": "2026-10-31",
+      "title": "KAI Core Beta is live — Core, plugins and mainnet KOIN earning",
+      "changes": [
+        {
+          "kind": "new",
+          "text": "KAI Core Beta replaces Alpha with a focused desktop foundation for local models, chat, wallet, network credits and KOIN earning on mainnet."
+        },
+        {
+          "kind": "new",
+          "text": "Install independent plugins from Plugins, including Assistant, Brain, Workflows, Connections, Documents, Koinos Code, Tools, Model Compare, Koinos Node, Remote Access and Agent Network. Paid agent rentals are not enabled."
+        },
+        {
+          "kind": "change",
+          "text": "Use Settings migration for Alpha models and the encrypted wallet. Migrate Node chain data separately in the Node plugin and use a dedicated Node wallet."
+        },
+        {
+          "kind": "change",
+          "text": "Core and plugins update separately. Windows Setup and supported Linux AppImages offer reviewed in-app updates; other builds use the release page."
+        },
+        {
+          "kind": "change",
+          "text": "Website network stats now use the mainnet service. Account pages distinguish website access from Core credits; the privacy notice explains plugin and network data flows."
+        }
+      ],
+      "product": "KAI Core Beta"
+    },
     {
       "version": "0.54.11",
       "date": "2026-09-22",
@@ -19,7 +47,8 @@
           "kind": "change",
           "text": "Local node health and synchronization checks still query the local node directly. Transaction transport retries reuse the same signed transaction, while chain and contract rejections retain their original error instead of being retried through another provider."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.54.10",
@@ -58,7 +87,8 @@
           "kind": "change",
           "text": "This alpha release promotes the tested app updates together. Unsigned macOS builds continue to require a fresh manual download for each update; Windows and Linux keep their existing update flows."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.54.7",
@@ -81,7 +111,8 @@
           "kind": "change",
           "text": "The signing page verifies Mainnet and current canonical contract addresses, decodes actual operations, and checks exact burn approvals. Drafts expire in KAI after 15 minutes. Kondor can contact its RPC for simulation; the page requests signing and KAI performs the separately confirmed broadcast. Test and live include the same signing flow."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.54.6",
@@ -100,7 +131,8 @@
           "kind": "change",
           "text": "The node dashboard now places Node Details in its own card under running status, followed by Node value, Profit & return, Koinos network and Activity. Network footer text was removed and section/button spacing improved."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.54.1",
@@ -111,7 +143,8 @@
           "kind": "fix",
           "text": "v0.54.0 announced the macOS build but did not attach it: the step that uploads the Mac disk image was waiting for a git tag, and this project releases from a marked commit instead, so it skipped without failing anything. Every check was green and Mac testers had nothing to download. The Mac disk image is attached from this version on. Everything else in v0.54.0 is unchanged and already live — if you are on Windows or Linux there is nothing new for you here."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.54.0",
@@ -138,7 +171,8 @@
           "kind": "fix",
           "text": "In Koinos Code, typing or pasting a project path while the folder browser was still loading could see your path replaced a moment later by the folder it had been fetching. Whichever you chose most recently now wins."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.53.1",
@@ -153,7 +187,8 @@
           "kind": "change",
           "text": "Inspecting a move used to add up the whole folder twice over — once for the size shown to you and once for the is-there-room check — so the wait was double what it needed to be. It measures once now."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.53.0",
@@ -172,7 +207,8 @@
           "kind": "fix",
           "text": "The device pairing code on the account screen — the one you read off this app and type into koinosai.com/link — was rendering at ordinary body size with its characters run together, instead of large and spaced out as intended. A security rule in the app was silently discarding that formatting. It now looks the way it was meant to, which is the way that makes a code hard to misread."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.52.0",
@@ -195,7 +231,8 @@
           "kind": "fix",
           "text": "Email dependencies updated to clear a batch of security advisories in the mail-parsing chain. No change to how mail works."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.51.0",
@@ -222,7 +259,8 @@
           "kind": "fix",
           "text": "Qwen 2.5 14B no longer describes itself as the biggest model in the list. It stopped being that several releases ago."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.50.1",
@@ -233,7 +271,8 @@
           "kind": "fix",
           "text": "The new Remote access switch in v0.50.0 was invisible — the button was there, its visual toggle wasn't. It now looks like every other switch in the app. Reported within the hour; thanks."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.50.0",
@@ -256,7 +295,8 @@
           "kind": "change",
           "text": "Plain honesty about remote access: traffic to your public address passes through koinosai.com on its way to your computer. The switch's own description says the same."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.49.0",
@@ -283,7 +323,8 @@
           "kind": "change",
           "text": "The pause is automatic only on NVIDIA graphics cards for now (the ones the app uses for GPU serving). Dedicated earning rigs that never share the machine can switch it off with the earn.courtesy setting."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.48.0",
@@ -302,7 +343,8 @@
           "kind": "new",
           "text": "Settings shows a What's new link next to the version you are running."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.47.2",
@@ -321,7 +363,8 @@
           "kind": "change",
           "text": "The check is one-directional and tolerates 2%: VHP is consumed as blocks are produced, so the log figure trails the balance slightly, and a false alarm telling you to restart a node is worse than silence."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.47.1",
@@ -336,7 +379,8 @@
           "kind": "change",
           "text": "The Earn tab's block-producer row now points at your dashboard, which is where those figures moved."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.47.0",
@@ -359,7 +403,8 @@
           "kind": "change",
           "text": "The account page is an account page again — sign-in methods and linked wallets, with the node detail moved to the dashboard."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.46.2",
@@ -370,7 +415,8 @@
           "kind": "fix",
           "text": "An absent producer card had several possible causes and none were visible. The Earn tab now names the reason: node stopped, log unreadable, or Earning switched off — the report travels with the worker connection, so there is no report without it."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.46.1",
@@ -385,7 +431,8 @@
           "kind": "new",
           "text": "A test now scans every relative require in the packaged source, so a path that only breaks after packaging cannot ship again."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.46.0",
@@ -396,7 +443,8 @@
           "kind": "new",
           "text": "The app reads its own block_producer log and reports your producing VHP, your share of the network, and how often you should expect a block. Small producers go quiet for hours perfectly normally, so the app puts a probability on the silence rather than implying a fault."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.45.1",
@@ -407,7 +455,8 @@
           "kind": "fix",
           "text": "KOIN was reading about 1.9% high. A quote taken from a pool includes the 1% fee and the price impact of the trade size — that is what you would pay, not what the market says. Both are now removed, which brings it within 0.06% of what other venues show."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.45.0",
@@ -422,7 +471,8 @@
           "kind": "change",
           "text": "Earnings estimates say \"not enough history yet\" until there is measured history, rather than printing $0.00 at you."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.44.0",
@@ -433,7 +483,8 @@
           "kind": "new",
           "text": "Installed from a git checkout there is no update feed and no installer, so nothing ever mentioned a new version. The app now checks git, offers to fast-forward and restart itself, and when it cannot, says exactly why and prints the commands that finish the job."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.43.5",
@@ -444,7 +495,8 @@
           "kind": "fix",
           "text": "On arm64 the updater asks for latest-linux-arm64.yml. No arm64 build was publishing one, so every check quietly 404'd into an empty catch. There is now an arm64 AppImage, and failed checks are logged instead of discarded."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.43.4",
@@ -455,7 +507,8 @@
           "kind": "fix",
           "text": "Pressing Run now appeared to do nothing. The feedback was being wiped by the list's own 5-second repaint before anyone could see it."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.43.3",
@@ -466,7 +519,8 @@
           "kind": "fix",
           "text": "A scheduled task failed with \"Missing or invalid API key\" as soon as you created any API key of your own. Tasks were going out through the public API instead of the local path."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.43.2",
@@ -477,7 +531,8 @@
           "kind": "fix",
           "text": "Uninstalling a large model froze the entire app — no typing, no clicking, dropdowns dead. The delete was synchronous and running on the thread that routes every keystroke and draws every menu. Deleting 4.7 GB stopped the window for as long as it took."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.43.1",
@@ -488,7 +543,8 @@
           "kind": "fix",
           "text": "The uninstall × on a model was invisible until hovered, and it was shoving the Use button into the middle of the row. The same invisible-until-hover bug was also hiding the delete control on scheduled tasks."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     },
     {
       "version": "0.43.0",
@@ -503,7 +559,8 @@
           "kind": "new",
           "text": "Uninstall installed models to free disk."
         }
-      ]
+      ],
+      "product": "Koinos AI Alpha"
     }
   ]
 }

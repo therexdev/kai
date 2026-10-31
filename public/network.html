@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <title>Koinos Network — live status</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="The Koinos Network, live: every computer serving right now, the model classes online, measured speeds, and delivery reliability — straight from the scheduler.">
+<meta name="description" content="Live Koinos mainnet provider presence, reported models and queued jobs, with verified observation times.">
 <meta property="og:title" content="Koinos Network — live status">
-<meta property="og:description" content="Computers online, model classes served, measured speeds and reliability — the live state of the Koinos Network.">
+<meta property="og:description" content="Koinos mainnet provider presence and reported models. Stale observations are clearly labelled.">
 <meta name="twitter:card" content="summary">
 
 <style>
@@ -30,21 +30,21 @@
 </head>
 <body>
 
-<header class="kai-site-header"><div class="kai-header-inner"><a class="kai-brand" href="/"><img src="/redesign/brand-mark.svg" alt=""><span>Koinos<em>AI</em></span></a><nav class="kai-site-links" aria-label="Main"><a href="/">Home</a><a href="/network" aria-current="page">Network</a><a href="/testers">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account">Account</a></nav><a class="btn btn-signal" href="/app#chat">Open KAI ↗</a><details class="kai-site-menu"><summary>Menu</summary><nav aria-label="Mobile"><a href="/">Home</a><a href="/network" aria-current="page">Network</a><a href="/testers">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account">Account</a><a href="/app#chat">Open KAI</a></nav></details></div></header>
+<header class="kai-site-header"><div class="kai-header-inner"><a class="kai-brand" href="/"><img src="/redesign/brand-mark.svg" alt=""><span>Koinos<em>AI</em></span></a><nav class="kai-site-links" aria-label="Main"><a href="/">Home</a><a href="/network" aria-current="page">Network</a><a href="/beta">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account">Account</a></nav><a class="btn btn-signal" href="/beta">Get Core Beta ↗</a><details class="kai-site-menu"><summary>Menu</summary><nav aria-label="Mobile"><a href="/">Home</a><a href="/network" aria-current="page">Network</a><a href="/beta">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account">Account</a><a href="/beta">Get Core Beta</a></nav></details></div></header>
 
 <main class="wrap">
-  <div class="kai-page-heading"><div><div class="live-flag"><span class="pulse" aria-hidden="true"></span>Live network status</div><h1>AI, powered by people.</h1><p class="lead">Independent computers put their capacity to work. See the machines, models, and performance powering the Koinos AI network, refreshed every 10 seconds.</p></div><img src="/redesign/kai-companion.svg" alt="KAI, your AI companion"></div>
+  <div class="kai-page-heading"><div><div class="live-flag"><span class="pulse" aria-hidden="true"></span><span id="network-state">Checking mainnet status</span></div><h1>AI, powered by people.</h1><p class="lead">KAI Core Beta uses Koinos mainnet for KOIN earning and purchased credits. These public stats come from the mainnet service and show recently observed computers and advertised models.</p></div><img src="/redesign/kai-companion.svg" alt="KAI, your AI companion"></div>
 <div class="err" id="err" role="status">Can’t reach the network right now — retrying. Showing the last data received.</div>
 
   <div class="tiles" aria-live="polite">
     <div class="tile"><div class="k">Computers online</div><div class="v tnum" id="tWorkers">—</div><div class="s" id="tWorkersSub">&nbsp;</div></div>
-    <div class="tile"><div class="k">Model classes live</div><div class="v tnum" id="tModels">—</div><div class="s">priced classes served right now</div></div>
-    <div class="tile"><div class="k">Jobs in flight</div><div class="v tnum" id="tJobs">—</div><div class="s" id="tJobsSub">queued + being served</div></div>
-    <div class="tile"><div class="k">Updated</div><div class="v tnum" id="tAge">—</div><div class="s">straight from the scheduler</div></div>
+    <div class="tile"><div class="k">Models advertised</div><div class="v tnum" id="tModels">—</div><div class="s">advertised by online providers</div></div>
+    <div class="tile"><div class="k">Scheduler jobs</div><div class="v tnum" id="tJobs">—</div><div class="s" id="tJobsSub">queued + being served</div></div>
+    <div class="tile"><div class="k">Updated</div><div class="v tnum" id="tAge">—</div><div class="s">verified observation time</div></div>
   </div>
 
   <section>
-    <div class="sec-label">Model classes on the network</div>
+    <div class="sec-label">Models reported by providers</div>
     <div class="tbl-wrap"><table id="modelsTable" aria-label="Model classes and provider counts">
       <thead><tr><th>Class</th><th class="num">Providers</th></tr></thead>
       <tbody id="modelsBody"><tr><td colspan="2" class="mono" style="color:var(--muted)">Loading…</td></tr></tbody>
@@ -52,93 +52,18 @@
   </section>
 
   <section>
-    <div class="sec-label">Computers serving</div>
+    <div class="sec-label">Computers providing AI</div>
     <div class="cards" id="cards"></div>
     <div class="empty" id="emptyState" style="display:none">No computers are online right now. Open the app and press
-      <b>Start Earning</b> to be the first.</div>
-    <p class="note">Provider addresses are truncated — full addresses never appear on public surfaces. Speed is the
-    scheduler’s own measurement of delivered tokens per second; reliability is the share of accepted jobs delivered on time.
-    New machines show “measuring” until their first jobs land.</p>
+      <b>Earn KOIN</b> to be the first.</div>
+    <p class="note">Addresses are truncated. Presence does not establish credit qualification or guarantee a model is available for your request. Check Core for current model eligibility, credit prices and your own KOIN rewards. These figures exclude the retired Alpha scheduler.</p>
   </section>
 <section class="network-purpose"><div><h2>Independent by design.</h2><p>Distribute AI work across independent providers and reduce reliance on a single company’s models and data ecosystem. You choose when to use the network.</p></div><div><h2>Built to keep costs lower.</h2><p>Make use of existing hardware and pay for useful compute. Shared capacity and usage-based pricing are designed to make AI more affordable.</p></div><p class="note">The scheduler routes requests to a serving provider. Decentralized compute does not make those requests confidential; use the desktop app’s Local Only mode for work that must stay on your device.</p></section></main>
 
-<footer class="kai-site-footer"><div class="kai-footer-inner"><p class="kai-copyright">© 2026 Koinos AI · Think. Build. Grow.</p><nav aria-label="Footer"><a href="/docs/">Docs</a><a href="/updates">Updates</a><a href="/privacy">Privacy</a><a href="https://github.com/therexdev/kaiapp">GitHub</a><a href="mailto:contact@koinosai.com">Contact</a></nav></div></footer>
+<footer class="kai-site-footer"><div class="kai-footer-inner"><p class="kai-copyright">© 2026 Koinos AI · Think. Build. Grow.</p><nav aria-label="Footer"><a href="/docs/">Docs</a><a href="/updates">Updates</a><a href="/privacy">Privacy</a><a href="https://github.com/therexdev/kai-core">GitHub</a><a href="mailto:contact@koinosai.com">Contact</a></nav></div></footer>
 
 <script src="/i18n/catalogs.js"></script>
 <script src="/i18n/i18n.js"></script>
-<script>
-(function(){
-  "use strict";
-  var lastData = null, lastAt = 0;
-  var $ = function(id){ return document.getElementById(id); };
-
-  function fmtSpeed(p){
-    if (!p || !(p.srvTokPerSec > 0)) return KaiI18n.html`<span class="u">measuring…</span>`;
-    return KaiI18n.html`${p.srvTokPerSec.toFixed(1)} <span class="u">tok/s</span>`;
-  }
-  function fmtReliability(p){
-    if (!p || typeof p.sr !== "number") return KaiI18n.html`<span class="u">measuring…</span>`;
-    return KaiI18n.html`${Math.round(p.sr * 100)}<span class="u">%</span>`;
-  }
-  // Shadow trust score (§7.4): earned from age, reliability, verification
-  // history, and real paid work. Absent-safe against older schedulers.
-  function fmtTrust(rep){
-    if (!rep || typeof rep.r !== "number") return KaiI18n.html`<span class="u">building…</span>`;
-    return rep.r.toFixed(2);
-  }
-  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
-
-  function render(d){
-    $("tWorkers").textContent = d.workersOnline;
-    KaiI18n.setText($("tWorkersSub"), d.workersOnline === 1 ? "one machine holding the line" : "independent machines");
-    $("tModels").textContent = (d.models || []).length;
-    var jobs = (d.queueDepth || 0) + (d.pendingJobs || 0);
-    $("tJobs").textContent = jobs;
-    KaiI18n.setText($("tJobsSub"), jobs === 0 ? "quiet right now — capacity to spare" : "queued + being served");
-
-    var mb = $("modelsBody");
-    if ((d.models || []).length === 0){
-      mb.innerHTML = KaiI18n.html`<tr><td colspan="2" class="mono" style="color:var(--muted)">No classes live</td></tr>`;
-    } else {
-      mb.innerHTML = d.models.map(function(m){
-        return KaiI18n.html`<tr><td class="mono">${esc(m.model)}</td><td class="num tnum">${m.providers}</td></tr>`;
-      }).join("");
-    }
-
-    var cards = $("cards");
-    var ws = d.workers || [];
-    $("emptyState").style.display = ws.length ? "none" : "block";
-    cards.innerHTML = ws.map(function(w){
-      var st = w.busy ? KaiI18n.html`<span class="status serving"><span class="dot"></span>Serving</span>`
-                      : KaiI18n.html`<span class="status online"><span class="dot"></span>Online</span>`;
-      var chips = (w.models || []).map(function(m){ return KaiI18n.html`<span class="chip">${esc(m)}</span>`; }).join("");
-      return KaiI18n.html`<div class="card"><div class="top"><span class="addr">${esc(w.address)}</span>${st}</div><div class="meta">last contact ${w.lastSeenSecs}s ago</div><div class="models">${chips}</div><div class="stats"><div class="stat"><div class="k">Speed</div><div class="v tnum">${fmtSpeed(w.perf)}</div></div><div class="stat"><div class="k">Reliability</div><div class="v tnum">${fmtReliability(w.perf)}</div></div><div class="stat"><div class="k">Trust</div><div class="v tnum">${fmtTrust(w.reputation)}</div></div><div class="stat"><div class="k">Jobs this epoch</div><div class="v tnum">${w.jobsThisEpoch || 0}</div></div></div></div>`;
-    }).join("");
-  }
-
-  function tickAge(){
-    if (!lastAt){ return; }
-    var s = Math.max(0, Math.round((Date.now() - lastAt) / 1000));
-    $("tAge").innerHTML = KaiI18n.html`${s}<span class="u" style="font-family:var(--mono);font-size:13px;color:var(--muted)">s ago</span>`;
-  }
-
-  function refresh(){
-    fetch("/scheduler/network/status", { cache: "no-store" })
-      .then(function(r){ if (!r.ok) throw new Error("bad status"); return r.json(); })
-      .then(function(d){
-        lastData = d; lastAt = Date.now();
-        $("err").style.display = "none";
-        render(d); tickAge();
-      })
-      .catch(function(){
-        $("err").style.display = "block";
-      });
-  }
-
-  refresh();
-  setInterval(refresh, 10000);
-  setInterval(tickAge, 1000);
-})();
-</script>
+<script src="/network.js"></script>
 </body>
 </html>

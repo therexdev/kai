@@ -1,73 +1,21 @@
-# Getting started
+# Get started with KAI Core Beta
 
-Koinos AI is a private AI app that runs models on your own machine — and lets that same machine earn KAI by serving the network when you're not using it. This page takes you from download to your first chat in about five minutes.
+KAI Core Beta replaces Koinos AI Alpha. It provides local models, basic chat, a shared wallet, network credits, KOIN earning and plugin management. Optional features live in independently installed plugins.
 
-## Step 1 — Install
+1. [Download Core Beta](https://koinosai.com/beta) for your operating system.
+2. Close Alpha, including its tray icon. In Core Settings, choose **Migrate from Koinos AI Alpha** to transfer models, your encrypted wallet or both. Existing Core wallets are not overwritten.
+3. Open **Models** and choose a compatible local model. Local AI runs on your hardware without a per-token service bill.
+4. Open **Plugins**, review each publisher and permissions, and install the features you want. Open them from **Apps**.
+5. Start with **KAI Assistant** for advanced conversations, voice and your desktop companion.
 
-### Windows
-1. Go to the [latest release](https://github.com/therexdev/kaiapp/releases/latest).
-2. Download **Koinos-AI-Setup-\<version\>.exe** and run it. It installs in one click and starts automatically.
-   - Prefer not to install? The plain **Koinos-AI-\<version\>.exe** is portable — it runs from anywhere, including a USB stick.
+[Illustrated models, wallet and Node transfer guide](https://github.com/therexdev/kai-core/blob/main/docs/TRANSFER_GUIDE.md)
 
-### Linux
-1. Download **Koinos-AI-\<version\>.AppImage** from the same releases page.
-2. Make it executable and run it:
+Core and plugins update separately. Supported Windows Setup and Linux AppImage installations offer a reviewed download and **Restart and install** flow. Other builds use the release page. Check release notes for your platform.
 
-```
-chmod +x Koinos-AI-*.AppImage
-./Koinos-AI-*.AppImage
-```
+Beta software can still have rough edges. Report the version, operating system and steps to reproduce without including private keys or credentials.
 
-### Raspberry Pi / headless server
-Run Core from source (needs Node.js 22+):
+## Transfer snapshots
 
-```
-git clone https://github.com/therexdev/kaiapp
-cd kaiapp && npm install
-npm run core
-```
+These illustrations render the actual app interface with example paths and data. Your values will differ.
 
-Then open **http://localhost:41100** in any browser — the complete app runs there, same features, same look.
-
-> Desktop builds update themselves when a new version ships. On a Pi, update with `git pull` and restart (exact commands on the Troubleshooting page).
-
-## Step 2 — Get a model
-
-1. Click **Models** in the left sidebar.
-2. Pick a model that fits your machine and click its download button. If you're not sure, start with **Koinos Fast** — it's about 1 GB and runs on nearly anything, including a 4 GB Raspberry Pi.
-3. Wait for the download to verify (every model is checked against a pinned SHA-256 fingerprint — a corrupted file refuses to load).
-
-**You should see** the model marked ready, and the status pill in the bottom-left corner read "Model loaded".
-
-![The Models view — the catalog with size and memory requirements per model](img/models.png)
-
-### Removing a model you no longer want
-
-Every model card you have installed carries a **×**. What it does depends on where the model came from, and the two are deliberately not the same:
-
-- **A model you downloaded from the catalog** is removed from your disk. You are told how much space it frees and asked to confirm first, and you can download it again from this screen whenever you like. A part-finished download can be cleared the same way — useful if you cancelled one and want the space back.
-- **A model you imported from your own files** only leaves the list. **Your .gguf file is never deleted** — it is yours, it stays exactly where you put it, and you can import it again later.
-
-The model currently loaded has no × — switch to a different model first, then remove it. That is deliberate: pulling the weights out from under a running model is a good way to produce a confusing crash instead of a clean removal.
-
-## Step 3 — Chat
-
-Click **Chat** in the sidebar and type. Everything runs on your machine — nothing leaves it unless you switch it on yourself.
-
-![A fresh chat — model picker and tool toggles live in the composer](img/chat.png)
-
-## Step 4 — Know your privacy switch (30 seconds, worth it)
-
-The whole app obeys one switch: **Local API → Network & privacy**.
-
-- **Local-Only** — zero network egress, ever. Web search, network AI, earning and chain reads are all physically off.
-- **Local-First** — local by default; network features available when you use them.
-- **Network** — everything on.
-
-Every page of these docs that mentions the internet assumes you've left Local-Only.
-
-## Where to next
-
-- Put your idle machine to work → **Earn — serve the network**
-- Send and receive real KOIN → **Wallet — KOIN & VHP**
-- Give your AI abilities (files, search, code) → **Tools, agents & MCP**
+![Models interface](img/beta-models.png)

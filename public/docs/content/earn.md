@@ -1,38 +1,17 @@
-# Earn — serve the network
+# Earn KOIN on mainnet
 
-Your machine serves its downloaded models to the network and gets paid in KAI for verified work, settled every 15-minute epoch.
+KAI Core Beta supports AI provider earning in **KOIN on Koinos mainnet**. This replaces Alpha's testnet KAI earning instructions.
 
-## Setting up (first time, ~2 minutes)
+1. Open **Earn KOIN** in Core.
+2. Follow the wallet and provider authorization steps shown by the app.
+3. Install and select supported models that fit your hardware.
+4. Enable sharing and check that Core reports your provider as online.
+5. Keep Core and your computer running. Review the reward feed and confirmation state in the app.
 
-1. Click **Earn** in the sidebar.
-2. **Create your earning account**: type a password twice and click create. This makes your wallet — a real Koinos address.
-3. **Write down the backup code** the app shows once. It IS the wallet; anyone with it has your funds, and without it a lost disk means lost earnings.
-4. The scheduler field is pre-filled with `https://koinosai.com/scheduler`. Leave it.
-5. Click **Start Earning**.
+Rewards depend on eligibility, availability, accepted work and the configured reward policy. Estimates may change before settlement; they are not confirmed payouts. No fixed daily return is promised.
 
-**You should see** the status dot turn green with "Online — earning", and "last contact" ticking every few seconds.
+[Public mainnet network status](https://koinosai.com/network) shows provider presence and advertised models. Presence is not the same as eligibility to serve a particular credit request. Your private balance and rewards belong in Core, not the legacy website dashboard.
 
-![The Earn tab, set up and ready — stats grid, Start Earning, and the wallet card below](img/earn.png)
+## AI capacity and block production
 
-## Reading the stats
-
-- **Serving models** — which models this machine offers the network, and — when one is held back — the exact rule that held it, for example `needs 8 GB RAM — this machine reports 3 GB`. If nothing fits, download **Koinos Fast**; it serves on a 4 GB Pi.
-- **Jobs completed / Receipts accepted** — work the scheduler verified and credited.
-- **This epoch** — pending jobs and the live KAI estimate for the current 15-minute epoch.
-- **KAI balance** — settled earnings, updated after each epoch closes.
-
-## How pay works (alpha)
-
-- Each epoch, useful work divides a network-wide bootstrap pool; paid demand mints on top. Equal work earns equal pay.
-- The scheduler continuously spot-checks every worker with verification challenges and mystery chats. Honest machines never notice; dishonest output isn't paid.
-- Measured speed and reliability feed routing: faster, steadier machines receive more paid work over time. New machines get seeded fairly while they build a record.
-
-## Reputation
-
-Every worker accrues reputation from network age, reliability, verification history and real paid demand served. It's visible in the app's **Network** tab and publicly at [koinosai.com/network](https://koinosai.com/network). Informational today; anti-gaming gates arm later, with notice.
-
-## Keep it earning
-
-- Set your OS to never sleep while plugged in — standby pauses earning. The app reconnects on wake and tells you how many times it happened.
-- Stopping is instant: no job runs after you press **Stop Earning**.
-- The wallet stays unlocked for serving; anything that MOVES money still demands your password every time.
+AI provider earning does not require running a blockchain node. The optional **KAI Koinos Node** plugin provides a separate path to block production with its own wallet, VHP and economics.

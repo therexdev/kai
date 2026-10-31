@@ -1,35 +1,23 @@
-# Wallet — KOIN & VHP on mainnet
+# Your Core wallet and Node wallet
 
-Your earning account doubles as a real Koinos mainnet wallet. The **Wallet** card sits at the bottom of the Earn tab and works on every machine — Windows, Linux, Raspberry Pi, browser — with no node.
+Core's **Wallet** is used for Core network payments and earning. The **KAI Koinos Node** plugin owns a separate Node wallet.
 
-![The Wallet card — receive address, balances on demand, and the send form](img/earn-wallet.png)
+## Moving from Alpha
 
-## Receive
+Close Alpha and use **Settings → Migrate from Koinos AI Alpha → Wallet**. This copies the encrypted wallet and preserves its address and password; it does not send tokens to a new address. Unlock it in Core and verify the address. Core will not overwrite an existing wallet.
 
-1. Open **Earn** and scroll to **Wallet — send & receive on Koinos mainnet**.
-2. Click **Copy address** and share it. Any KOIN or VHP sent to that address on mainnet is yours.
+[Follow the illustrated transfer guide](https://github.com/therexdev/kai-core/blob/main/docs/TRANSFER_GUIDE.md).
 
-## Check balances
+## Keep a separate Node wallet
 
-Click **Show balances**. The app reads KOIN, VHP and mana from the chain at that moment — nothing polls in the background, by design.
+We recommend creating a new, dedicated wallet inside the Node plugin instead of using your Core wallet. Back up its private key securely offline. Import an existing dedicated Node wallet only if that is the address you intend to use.
 
-## Send (read once before your first send)
+Node chain migration does not move wallets, private production keys, KOIN or VHP. Funds remain at their original addresses until you deliberately transfer them.
 
-1. Pick the token — **KOIN** or **VHP**.
-2. Paste the recipient's address and enter the amount.
-3. Type your **wallet password**. It's required on every send, even though the wallet is unlocked — unlocked is for earning, never for moving money.
-4. Click **Send**. The first click only ARMS: the app repeats exactly what's about to happen — amount, token, recipient, and a MAINNET warning.
-5. Click **Send** again to confirm. Editing any field in between disarms it.
+Never paste a private key into a website account form or support message.
 
-> This is real value on a public chain. A transfer cannot be undone. Check the recipient address character by character.
+## Transfer snapshots
 
-**You should see** "Sent. Transaction …" with the transaction id. Balances update once the block settles.
+These illustrations render the actual app interface with example paths and data. Your values will differ.
 
-## Mana
-
-Every transaction spends mana, which recharges over about five days and scales with your KOIN balance. Keep a little KOIN in the wallet so sends always have fuel. If a send is refused for mana, wait a bit or send less.
-
-## Backup & restore
-
-- **Show backup code** (Earn tab, password required) reveals your key. Store it somewhere safe and offline.
-- **Restore from backup code** on the Earn tab's lock screen brings the same wallet to any machine.
+![Wallet interface](img/beta-wallet.png)

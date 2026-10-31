@@ -10,9 +10,9 @@ async function route(route){
  if(u.pathname==='/auth/methods')return json({signin:{email:true,google:true,passkey:true},canCreateAccount:true});
  if(u.pathname==='/account/sessions')return json({sessions:[]});
  if(u.pathname==='/account/api/nodes')return json({nodes:[]});
- if(u.pathname==='/scheduler/network/status')return json({workersOnline:1,models:[{model:'Home',providers:1}],queueDepth:0,workers:[{address:'1TestAddress',models:['Home'],lastSeenSecs:3,jobsThisEpoch:2}]});
+ if(u.pathname==='/api/network/mainnet')return json({ok:true,network:'mainnet',observedAt:Date.now(),validUntil:Date.now()+15000,workersOnline:1,models:[{model:'Home',providers:1}],queueDepth:0,pendingJobs:0,workers:[{address:'1Test…ress',models:['Home'],busy:false,lastSeenSecs:3}]});
  if(u.pathname.includes('/api/')||u.pathname.startsWith('/auth/')||u.pathname.startsWith('/account/'))return json({ok:true,chats:[],docs:[],tasks:[],memory:[],memories:[],models:[],projects:[],account:{email:'test@example.com'},model:'test-model',aiReady:false,network:'harbinger'});
- const aliases={'/':'public/index.html','/account':'public/account.html','/network':'public/network.html','/testers':'public/testers.html','/privacy':'public/privacy.html','/dashboard':'public/dashboard.html','/updates':'public/updates.html','/docs/':'public/docs/index.html','/app':'views/app.html','/app/app.js':'views/app.js','/build':'views/build/index.html','/build/assets/markdown.js':'public/docs/md.js'};
+ const aliases={'/':'public/index.html','/account':'public/account.html','/network':'public/network.html','/beta':'public/testers.html','/privacy':'public/privacy.html','/dashboard':'public/dashboard.html','/updates':'public/updates.html','/docs/':'public/docs/index.html','/app':'views/app.html','/app/app.js':'views/app.js','/build':'views/build/index.html','/build/assets/markdown.js':'public/docs/md.js'};
  const rel=aliases[u.pathname]||(u.pathname.startsWith('/build/assets/')?'views/build/'+u.pathname.split('/').pop():'public'+u.pathname);
  let file=path.join(root,rel);
  if(!fs.existsSync(file))return route.fulfill({status:404,body:'missing'});
@@ -50,7 +50,7 @@ async function checkLanguageLayout(page){
  const context=await browser.newContext({locale:'es-MX',viewport:{width:390,height:844}});await context.route('**/*',route);
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  const reports=[];
- for(const url of ['/','/network','/testers','/privacy','/account','/dashboard','/updates','/docs/','/app','/build']){
+ for(const url of ['/','/network','/beta','/privacy','/account','/dashboard','/updates','/docs/','/app','/build']){
   await page.goto('http://kai.test'+url);await page.waitForTimeout(150);
   const report=await page.evaluate(()=>({path:location.pathname,lang:document.documentElement.lang,selector:document.querySelectorAll('[data-language-select]').length,heading:document.querySelector('h1,h2')?.textContent,overflow:document.documentElement.scrollWidth>innerWidth+1}));reports.push(report);assert.equal(report.lang,'es',url);assert.equal(report.selector,1,url);assert.equal(report.overflow,false,url);
   if(url==='/app'){
@@ -64,9 +64,9 @@ async function checkLanguageLayout(page){
  }
  await page.goto('http://kai.test/');await openLanguageMenu(page);await page.selectOption('[data-language-select]','de');await page.locator('#waitlist-email').fill('user@example.com');
  await page.selectOption('[data-language-select]','fr');assert.equal(await page.inputValue('#waitlist-email'),'user@example.com');
- await page.click('[data-feature="brain"]');assert.equal(await page.locator('#tour-title').textContent(),'Une IA qui connaît votre univers.');
+ assert.equal(await page.locator('.plugin-card').count(),11);assert.equal(await page.locator('.plugin-card a[href="https://github.com/therexdev/kai-plugin-brain"]').count(),1);
  await page.goto('http://kai.test/network');assert.equal(await page.locator('html').getAttribute('lang'),'fr');
- assert.equal(await page.locator('#modelsBody .mono').textContent(),'Home');
+ assert.equal(await page.locator('#modelsBody tr td:first-child').textContent(),'Home');
  await openLanguageMenu(page);await page.selectOption('[data-language-select]','en');assert.equal(await page.locator('h1').textContent(),'AI, powered by people.');
  await page.evaluate(()=>localStorage.removeItem('kai-website-language'));await page.reload();
  assert.equal(await page.locator('html').getAttribute('lang'),'es');assert.equal(await page.inputValue('[data-language-select]'),'es');

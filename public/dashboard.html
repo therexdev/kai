@@ -25,16 +25,16 @@
 <link rel="icon" href="/redesign/brand-mark.svg" type="image/svg+xml"><meta name="theme-color" content="#f5f8ff">
 <link rel="stylesheet" href="/i18n/language.css">
 </head>
-<body><header class="kai-site-header"><div class="kai-header-inner"><a class="kai-brand" href="/"><img src="/redesign/brand-mark.svg" alt=""><span>Koinos<em>AI</em></span></a><nav class="kai-site-links" aria-label="Main"><a href="/">Home</a><a href="/network">Network</a><a href="/testers">Get KAI</a><a href="/dashboard" aria-current="page">Dashboard</a><a href="/account">Account</a></nav><a class="btn btn-signal" href="/app#chat">Open KAI ↗</a><details class="kai-site-menu"><summary>Menu</summary><nav aria-label="Mobile"><a href="/">Home</a><a href="/network">Network</a><a href="/testers">Get KAI</a><a href="/dashboard" aria-current="page">Dashboard</a><a href="/account">Account</a><a href="/app#chat">Open KAI</a></nav></details></div></header>
-<main class="wrap dashboard-wrap"><div class="kai-page-heading"><div><p class="eyebrow">Your dashboard</p><h1>Your machines, at a glance.</h1><p class="muted" id="lede">Everything your machines are doing, in one place.</p></div><img src="/redesign/kai-companion.svg" alt="KAI, keeping you company"></div>
+<body><header class="kai-site-header"><div class="kai-header-inner"><a class="kai-brand" href="/"><img src="/redesign/brand-mark.svg" alt=""><span>Koinos<em>AI</em></span></a><nav class="kai-site-links" aria-label="Main"><a href="/">Home</a><a href="/network">Network</a><a href="/beta">Get KAI</a><a href="/dashboard" aria-current="page">Dashboard</a><a href="/account">Account</a></nav><a class="btn btn-signal" href="/beta">Get Core Beta ↗</a><details class="kai-site-menu"><summary>Menu</summary><nav aria-label="Mobile"><a href="/">Home</a><a href="/network">Network</a><a href="/beta">Get KAI</a><a href="/dashboard" aria-current="page">Dashboard</a><a href="/account">Account</a><a href="/beta">Get Core Beta</a></nav></details></div></header>
+<main class="wrap dashboard-wrap"><div class="kai-page-heading"><div><p class="eyebrow">Your dashboard</p><h1>Your KAI workspace.</h1><p class="muted" id="lede">KAI Core Beta is live. Manage your mainnet credits, AI provider status and KOIN earnings in Core.</p></div><img src="/redesign/kai-companion.svg" alt="KAI, keeping you company"></div>
   <p class="nav">
-    <a class="btn" href="/app">Chat</a>
+    <a class="btn btn-signal" href="/beta">Get Core Beta</a><a class="btn" href="/network">Mainnet network</a>
     <a class="btn" href="/account">Account</a>
     <a class="btn" href="/producer-signer/">Sign with Kondor</a>
   </p>
 
 
-  <div class="sect">AI compute</div>
+  <section class="card"><h2>Credits and earning in Core</h2><p>Open <b>Credits and Usage</b> for your balance and activity, <b>Buy credits</b> for a reviewed KOIN purchase, and <b>Earn KOIN</b> for provider status and reward confirmations. Website account access is separate; a blank website history does not mean your Core balance is zero.</p></section><details><summary class="sect">Legacy Alpha machine reports</summary><p class="note">These retained reports come from the Alpha scheduler. They are not Core Beta mainnet availability, balances or KOIN earnings.</p><div class="sect">Alpha AI compute</div>
   <div id="ai"><p class="empty">Loading…</p></div>
 
   <div class="sect">Koinos block production</div>
@@ -42,17 +42,17 @@
     <h2 id="producer-signing-title">Keep your producer key in Kondor</h2>
     <p class="muted">Sign producer registration, KOIN burns and KOIN/VHP transfers on your secure computer. Your private key stays in Kondor.</p>
     <ol>
-      <li>In the desktop app, open <strong>Node → Producer wallet custody → External signing</strong>. Prepare your transaction and download the unsigned JSON.</li>
+      <li>In the Koinos Node plugin, open <strong>Node → Producer wallet custody → External signing</strong>. Prepare your transaction and download the unsigned JSON.</li>
       <li>On the computer with Kondor, open the signer below. Load the file, review the details and approve signing in Kondor.</li>
       <li>Return the signed JSON to KAI on the node computer, import it and confirm the broadcast. For registration, verify the on-chain key before starting production.</li>
     </ol>
-    <div class="producer-signing-actions"><a class="btn btn-signal" href="/producer-signer/">Open Kondor signer →</a><a class="body-link" href="https://github.com/therexdev/kaiapp/blob/test/docs/EXTERNAL_PRODUCER.md">Setup and backup guide</a></div>
-    <p class="note">Mainnet · Requires KAI v0.54.7 or the latest Test build. The signer needs no KAI website account. Keep Kondor's Use free mana off; Optimize mana can stay on within the prepared maximum.</p>
+    <div class="producer-signing-actions"><a class="btn btn-signal" href="/producer-signer/">Open Kondor signer →</a><a class="body-link" href="https://github.com/therexdev/kai-plugin-koinos-node">Setup and backup guide</a></div>
+    <p class="note">Mainnet · Use the KAI Koinos Node plugin in Core Beta. The signer needs no KAI website account. Keep Kondor's Use free mana off; Optimize mana can stay on within the prepared maximum.</p>
   </section>
   <div id="koinos"><p class="empty">Loading…</p></div>
 
-  <p class="stamp" id="stamp"></p>
-</main><footer class="kai-site-footer"><div class="kai-footer-inner"><p class="kai-copyright">© 2026 Koinos AI · Think. Build. Grow.</p><nav aria-label="Footer"><a href="/docs/">Docs</a><a href="/updates">Updates</a><a href="/privacy">Privacy</a><a href="https://github.com/therexdev/kaiapp">GitHub</a><a href="mailto:contact@koinosai.com">Contact</a></nav></div></footer>
+  <p class="stamp" id="stamp"></p></details>
+</main><footer class="kai-site-footer"><div class="kai-footer-inner"><p class="kai-copyright">© 2026 Koinos AI · Think. Build. Grow.</p><nav aria-label="Footer"><a href="/docs/">Docs</a><a href="/updates">Updates</a><a href="/privacy">Privacy</a><a href="https://github.com/therexdev/kai-core">GitHub</a><a href="mailto:contact@koinosai.com">Contact</a></nav></div></footer>
 <script src="/i18n/catalogs.js"></script>
 <script src="/i18n/i18n.js"></script>
 <script src="/dashboard.js"></script>

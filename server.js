@@ -362,6 +362,8 @@ app.get("/dashboard", (req, res) => {
 //
 // Caddy handles TLS for the subdomain automatically; this middleware routes
 // by Host header (trust proxy is on, so req.hostname is the real one).
+// Shared language assets must also resolve on the dedicated docs hostname.
+app.use("/i18n", express.static(path.join(PUBLIC_DIR, "i18n")));
 const DOCS_DIR = path.join(PUBLIC_DIR, "docs");
 const docsStatic = express.static(DOCS_DIR);
 app.use((req, res, next) => {
@@ -380,9 +382,10 @@ app.get("/docs", (req, res) => {
 
 /* --------------------------------------------------------- public routes */
 app.get("/", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
-// Clean URL for the tester quickstart (the static middleware only serves it
-// as /testers.html).
-app.get("/testers", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "testers.html")));
+// Beta replaces the Alpha landing page; preserve old shared URLs.
+app.get("/beta", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "testers.html")));
+app.get(["/alpha", "/alpha.html", "/testers", "/testers.html"], (_req, res) => res.redirect(301, "/beta"));
+require("./lib/beta-network").mount(app);
 
 // A privacy notice has to be reachable from wherever data is collected, not
 // only by guessing the URL (FIND-PRV-001). /privacy is the canonical path;

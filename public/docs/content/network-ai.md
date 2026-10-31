@@ -1,23 +1,15 @@
-# Network AI & billing
+# Network AI and credits
 
-Your app can rent bigger brains from the network: pick a **network model class** in the chat composer (needs Local-First or Network privacy mode).
+Core Beta's network credits and AI provider rewards use the live Koinos mainnet service. Local inference remains available without purchased credits.
 
-## Model classes & pricing
+- Open **Credits and Usage** for your verified credit balance and activity.
+- Eligible free network credits are available in Core. Availability depends on the service and eligible models.
+- Open **Buy credits** to purchase USD-pegged credits using KOIN. Review the quote, model pricing and transaction before approving.
+- Select an available network model for work served by another provider. A model advertised publicly is not necessarily available for your account or request.
+- View your AI provider rewards in **Earn KOIN**.
 
-Network AI bills like any modern AI API — by input and output tokens, per model class — and settles in KAI underneath. Current classes and rates are always live at [koinosai.com/scheduler/pricing](https://koinosai.com/scheduler/pricing). The ladder mirrors the local catalog: fast, balanced, smart, and the large specialist classes.
+A website sign-in does not automatically merge a Core wallet or credit session. If you imported a wallet with purchased credits, use Core's **Restore wallet credits** action and complete the same-wallet approval when offered.
 
-## The free tier
+Requests pass through the scheduler and a serving provider. Use **Local-Only** for work that must stay on your computer. External API providers used through Assistant bill separately.
 
-Every wallet gets a daily free token allowance, and there is a network-wide daily ceiling behind it. Both reset at 00:00 UTC — the same moment the app names when you reach a limit. (Epochs are a settlement cycle and run every fifteen minutes; they have nothing to do with when the allowance refreshes.) When the free tier is exhausted the app says so plainly and pauses gracefully — it never silently starts billing.
-
-## Adding funds
-
-Earn tab → **Add funds** converts your earned KAI into prepaid usage at the current reference price. Serving the network can cover your own usage — that's the loop the whole system is built around.
-
-## The price oracle
-
-The KAI reference price comes from a live median-of-sources oracle with hard breakers: a floor, a ceiling, and a maximum move per epoch. Status is public on the pricing endpoint — `live`, `anchor`, or `stale-hold`, never a silent jump.
-
-## Privacy
-
-Network requests carry your prompt to the worker that serves it, signed by your wallet. `Local-Only` mode makes all of this physically impossible — the app will not open a network path, full stop.
+[View mainnet provider presence](https://koinosai.com/network).

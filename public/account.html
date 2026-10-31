@@ -24,12 +24,12 @@
 <link rel="icon" href="/redesign/brand-mark.svg" type="image/svg+xml"><meta name="theme-color" content="#f5f8ff">
 <link rel="stylesheet" href="/i18n/language.css">
 </head>
-<body><header class="kai-site-header"><div class="kai-header-inner"><a class="kai-brand" href="/"><img src="/redesign/brand-mark.svg" alt=""><span>Koinos<em>AI</em></span></a><nav class="kai-site-links" aria-label="Main"><a href="/">Home</a><a href="/network">Network</a><a href="/testers">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account" aria-current="page">Account</a></nav><a class="btn btn-signal" href="/app#chat">Open KAI ↗</a><details class="kai-site-menu"><summary>Menu</summary><nav aria-label="Mobile"><a href="/">Home</a><a href="/network">Network</a><a href="/testers">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account" aria-current="page">Account</a><a href="/app#chat">Open KAI</a></nav></details></div></header>
-<main class="kai-account-layout"><aside class="kai-account-intro"><div><p class="eyebrow">Your KAI account</p><h2>KAI, wherever you are.</h2><p>Manage your devices, wallets, and access from one familiar place.</p></div><img src="/redesign/kai-companion.svg" alt="KAI, your AI companion"></aside><div class="kai-account-main">
-  <h1 id="title">Account</h1>
+<body><header class="kai-site-header"><div class="kai-header-inner"><a class="kai-brand" href="/"><img src="/redesign/brand-mark.svg" alt=""><span>Koinos<em>AI</em></span></a><nav class="kai-site-links" aria-label="Main"><a href="/">Home</a><a href="/network">Network</a><a href="/beta">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account" aria-current="page">Account</a></nav><a class="btn btn-signal" href="/beta">Get Core Beta ↗</a><details class="kai-site-menu"><summary>Menu</summary><nav aria-label="Mobile"><a href="/">Home</a><a href="/network">Network</a><a href="/beta">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account" aria-current="page">Account</a><a href="/beta">Get Core Beta</a></nav></details></div></header>
+<main class="kai-account-layout"><aside class="kai-account-intro"><div><p class="eyebrow">Your KAI account</p><h2>KAI, wherever you are.</h2><p>Manage your website sign-in, linked devices and existing web access.</p></div><img src="/redesign/kai-companion.svg" alt="KAI, your AI companion"></aside><div class="kai-account-main">
+  <h1 id="title">Account</h1><p class="muted">KAI Core Beta is live. Your Core wallet, network credit session and plugin connections are managed in the desktop app. This website account does not automatically merge or display those balances. <a class="body-link" href="/beta">Get Core Beta →</a></p>
   <!-- The way back. Arriving here from the app and having no route back to it
        is a dead end, and the app is where people actually spend their time. -->
-  <p style="margin:-6px 0 18px"><a class="btn" href="/app">← Back to Koinos AI</a></p>
+  <p style="margin:-6px 0 18px"><a class="btn" href="/app">Open legacy web workspace</a></p>
 
   <!-- ------------------------------------------------ signed OUT -------- -->
   <div id="signedOut" class="hide">
@@ -73,7 +73,7 @@
   <div id="signedIn" class="hide">
     <div class="card" id="linkCard">
       <h2>Approve a device</h2>
-      <p class="muted">Type the code the Koinos AI app is showing.</p>
+      <p class="muted">Approve only a device-link code shown by the website-account flow you started. Mainnet credit sign-in may use a separate flow in Core.</p>
       <label class="lbl" for="linkCode">Device code shown in the app</label>
       <div class="row"><input id="linkCode" placeholder="XXXX-XXXX" autocapitalize="characters" spellcheck="false" /></div>
       <button class="btn primary" id="linkBtn">Approve device</button>
@@ -92,16 +92,14 @@
     <div class="card">
       <h2>Linked wallets</h2>
       <div id="wallets"></div>
-      <p class="muted" style="margin-top:12px">Link a wallet from the Koinos AI app: Earn tab → Account → “Link this wallet”. The app signs the proof with the wallet's own key — the key never leaves your machine.</p>
-      <p style="margin-top:14px"><a class="btn" href="/dashboard">View node details on your dashboard →</a></p>
+      <p class="muted" style="margin-top:12px">These are wallets already linked to your website account. Core’s mainnet wallet and credit access are managed in Core; do not enter a private key on this page.</p>
+      <p style="margin-top:14px"><a class="btn" href="/dashboard">View your dashboard →</a></p>
     </div>
 
     <div class="card">
-      <h2>Web access</h2>
+      <h2>Legacy web access</h2>
       <p class="muted" style="margin-bottom:12px">
-        What <a href="/app">koinosai.com/app</a> may spend on your behalf. A grant is created in the
-        Koinos AI desktop app — that machine holds the wallet key, and this page has nothing to sign
-        with. Ending one here takes effect immediately.
+        Existing grants for the legacy <a href="/app">web workspace</a>. These are not Core Beta mainnet credit permissions. Ending a grant here revokes that website access; it does not transfer or reset Core credits.
       </p>
       <div id="grants"></div>
     </div>
@@ -122,7 +120,7 @@
   </div>
 
   <p class="muted" style="margin-top:26px"><a href="/">← koinosai.com</a></p>
-</div></main><footer class="kai-site-footer"><div class="kai-footer-inner"><p class="kai-copyright">© 2026 Koinos AI · Think. Build. Grow.</p><nav aria-label="Footer"><a href="/docs/">Docs</a><a href="/updates">Updates</a><a href="/privacy">Privacy</a><a href="https://github.com/therexdev/kaiapp">GitHub</a><a href="mailto:contact@koinosai.com">Contact</a></nav></div></footer>
+</div></main><footer class="kai-site-footer"><div class="kai-footer-inner"><p class="kai-copyright">© 2026 Koinos AI · Think. Build. Grow.</p><nav aria-label="Footer"><a href="/docs/">Docs</a><a href="/updates">Updates</a><a href="/privacy">Privacy</a><a href="https://github.com/therexdev/kai-core">GitHub</a><a href="mailto:contact@koinosai.com">Contact</a></nav></div></footer>
 
 <script src="/i18n/catalogs.js"></script>
 <script src="/i18n/i18n.js"></script>

@@ -1,46 +1,21 @@
-# Troubleshooting
+# Troubleshooting Core Beta
 
-## "My model isn't showing on the network"
+## Start with the right version
 
-Open **Earn** and read the **Serving models** row — it names the exact rule holding each model back:
+Update Core from Settings or the [release page](https://github.com/therexdev/kai-core/releases/latest). Update plugins separately in Plugins. Record both versions when reporting a problem.
 
-- `needs X GB RAM — this machine reports Y GB` — the model is too big for this machine to serve comfortably. Download a smaller one; **Koinos Fast serves on a 4 GB Pi**.
-- `private import — never advertised` — models you imported yourself stay private by design; only catalog models earn.
-- Row missing entirely? You're on an old version — update the app.
+## Models or wallet did not transfer
 
-## Pi: updating
+Close Alpha, including its tray icon. Review the profile selected in **Settings → Migrate from Koinos AI Alpha**. Core keeps an existing wallet rather than overwriting it. The tool transfers supported GGUF model files, not Ollama's cache or plugin accounts. [Transfer guide](https://github.com/therexdev/kai-core/blob/main/docs/TRANSFER_GUIDE.md).
 
-```
-cd kaiapp
-git checkout -- package-lock.json
-git pull origin claude/koinos-ai-takeover-co25fw
-npm install
-```
+## Credits or earning unavailable
 
-Then restart Core (`npm run core`). The first command only matters when the pull complains about local changes — the lockfile drift is disposable. Your wallet, chats and settings live in `~/.koinos-ai` and survive every update.
+Check your network connection, Core privacy mode and the status shown by Credits and Usage or Earn KOIN. Use the app's reconnect or recovery action when offered. Do not resend a payment just because a status read failed; review its saved state first.
 
-## Earning drops out on Windows
+## Node migration paused
 
-Windows standby pauses earning; the app reconnects on wake and shows how many times it happened. For 24/7 serving: Windows Settings → System → Power & battery → set Sleep to **Never** while plugged in.
+Keep the old app closed and resume the transfer before starting either node. Do not delete containers, data directories or wallet files to bypass a warning.
 
-## "Privacy is set to Local-Only…"
+## Need help
 
-That's the privacy system working as designed: Local-Only means nothing leaves this machine, which also disables web search, network AI, earning, email/calendar and chain reads. Change it under **Local API → Network & privacy**.
-
-## A send failed for mana
-
-Mana recharges over ~5 days and scales with your KOIN balance. Keep some KOIN in the wallet; wait or send a smaller amount.
-
-## The Earn tab says my balance is temporarily unavailable
-
-The app reads balances from the network only when allowed and reachable; it retries on its own. If it persists, check your privacy mode and connection — the app never shows a stale number as if it were fresh.
-
-## Where things live
-
-- App data, wallet, chats: `~/.koinos-ai`
-- Live network status: [koinosai.com/network](https://koinosai.com/network)
-- Downloads: [GitHub releases](https://github.com/therexdev/kaiapp/releases/latest)
-
-## Reporting a bug
-
-Use **Send feedback** at the bottom of the sidebar — it lands directly with the team, app version attached. The perfect report is three lines: what you did, what you expected, what happened.
+Report Core issues in [kai-core](https://github.com/therexdev/kai-core/issues), and plugin issues in that plugin's repository. Include reproduction steps and sanitized diagnostics; never include private keys, passwords or account tokens.

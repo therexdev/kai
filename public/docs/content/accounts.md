@@ -1,33 +1,21 @@
-# Accounts & sign-in
+# Accounts and sign in
 
-A Koinos AI **account** links you — one person — to your wallets and devices, so balances, claims and settings follow you across machines. Live now at [koinosai.com/account](https://koinosai.com/account).
+There are different kinds of access in KAI Core Beta. Keep them separate:
 
-## Ways to sign in
+- **Website account**: website sign-in, approved website devices, linked wallets and existing legacy web grants.
+- **Core credit session and wallet**: mainnet credits, purchases and provider authorization in the desktop app.
+- **Plugin connections**: accounts and credentials managed by the relevant installed plugin.
 
-- **Passkey** (recommended) — your device's fingerprint, face unlock or PIN. Nothing to remember, nothing typed, nothing reusable if a server ever leaked.
-- **Email code** — a 6-digit code mailed to you, valid 10 minutes, five attempts.
-- **Google** — the standard "Continue with Google"; only your email address is requested.
+Signing into the website does not automatically transfer or merge credit balances, plugin accounts or saved plugin work.
 
-### First sign-in, step by step
+## Website sign in
 
-1. Open **koinosai.com/account** in any browser.
-2. Pick a method. With email: type your address, click **Send code**, fetch the 6-digit code from your inbox, type it, done.
-3. Once signed in, click **Add a passkey to this account** — next time it's one touch.
+Open [Account](https://koinosai.com/account). Email codes and Google can create a website account when enabled. A passkey signs into an existing account; first sign in with email or Google, then add a passkey.
 
-## Connecting the app to your account (device link)
+Review your signed-in browsers and revoke unused sessions. Sign out everywhere also revokes this website's spending grants; it does not reset Core's purchased credits.
 
-The app never opens a login form. It shows a short code instead:
+Approve only a device code from a sign-in flow you started. Never enter a wallet private key on the account page.
 
-1. In the app: **Account → Sign in**. It displays a code like `ABCD-1234`.
-2. On any browser where you're signed in, open **koinosai.com/link**, type the code, click **Approve device**.
-3. **You should see** the app sign itself in within a few seconds.
+## Alpha migration
 
-## Linking wallets
-
-From the app: **Account → Link this wallet**. The app proves ownership by signing with the wallet's own key — the key never leaves your machine, and the proof can't be replayed elsewhere. Your account page lists every linked wallet; a wallet belongs to one account at a time (unlink before moving it).
-
-## Security notes
-
-- Sign out per browser from the account page; review sign-in methods and passkeys there too.
-- The server stores no passwords and no secrets — only public keys and one-way hashes.
-- The in-app Account panel is rolling out in an upcoming build; the web side above is live now.
+Core's migration tool transfers selected model files and the encrypted Alpha wallet. It does not migrate connected accounts or plugin data. Reconnect integrations through the plugin that owns them. [Transfer guide](https://github.com/therexdev/kai-core/blob/main/docs/TRANSFER_GUIDE.md).

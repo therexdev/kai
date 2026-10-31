@@ -1,41 +1,29 @@
-# Run a Koinos node
+# Run a Koinos Node
 
-The **Run Koinos Node** switch at the bottom of the Earn tab reveals the full node stack: a real Koinos mainnet node with funding, burning, block production and automatic reward returns — using the same wallet as the rest of the app.
+Install the regular **KAI Koinos Node** plugin in Core's **Plugins** page, then open it from **Apps**. It manages Docker, chain synchronization, the Node wallet, block production and reward returns.
 
-## Requirements
+## Wallet first
 
-- An **x86-64 machine** with Docker (the guided setup installs it on Windows), roughly 32 GB free disk and 8 GB+ RAM.
-- Raspberry Pi / ARM machines can't run the node yet — but the **wallet works everywhere** (see the Wallet page). Remote-node support for Pi is planned.
+Create a dedicated Node wallet rather than using the KAI Core wallet. Back up the key securely. Verify the selected network and address before funding or signing any operation.
 
-## Turning it on
+## Bring an existing Koinos AI node
 
-1. Open **Earn** and flip the **Run Koinos Node** switch.
-2. Seven new entries appear in the sidebar: **Node dashboard, Wallet, Fund node, Burn KOIN → VHP, Node, Reward returns, Node settings**.
-3. Start at **Node dashboard** — it shows node status and sync progress against the public chain head, so "connected" and "connected but 40,000 blocks behind" look different.
+1. Leave Docker available but close the old KAI app and its tray process.
+2. Open the plugin's Dashboard or Node page. If it identifies a supported node owned by another profile, choose **Migrate node to this plugin**.
+3. Review the locations and network, acknowledge that the old app is closed, and choose **Stop old node and migrate**.
+4. Wait for completion. If paused, resume before starting either node.
+5. Start the migrated node and let it catch up. Configure and register the intended production key separately before enabling block production.
 
-## The screens, briefly
+Migration moves chain data only. Wallets, production keys and funds are not migrated. Arbitrary standalone Docker deployments are not supported by this migration flow.
 
-- **Wallet** — balances and sends for KOIN and VHP, plus the ETH-side funding assets (ETH, USDT, vKOIN) used by Fund.
-- **Fund node** — on-ramp: buy or bridge into KOIN to capitalize the node.
-- **Burn KOIN → VHP** — become a block producer. Burning credits **your own address only**; it is deliberately not a transfer.
-- **Node** — lifecycle: download the snapshot (verified against a published SHA-256), start, stop, logs.
-- **Reward returns** — block-production rewards, with optional automatic re-burn to keep producing.
+[Full illustrated transfer guide](https://github.com/therexdev/kai-core/blob/main/docs/TRANSFER_GUIDE.md) · [Node plugin source and releases](https://github.com/therexdev/kai-plugin-koinos-node)
 
-## Where the chain data goes
+Use **Stop node** when you intend to stop Docker containers; closing to the tray does not stop the Node service.
 
-A fully synced node is **tens of gigabytes**, so where it lands is a choice, not something the app should make for you.
+## Transfer snapshots
 
-- **When you set up.** Before quick sync downloads anything, the app asks where the chain data should go. The default is already filled in — beside the app's own data — so you can accept it in one click, or point it at a second drive or an external disk instead. The free-space figure shown is for the drive you picked.
-- **Afterwards.** The **Node** screen has **Change data folder** next to the Data folder button. Pick a new location and the app moves everything there for you — useful when you buy a bigger drive.
+These illustrations render the actual app interface with example paths and data. Your values will differ.
 
-**How the move protects your data.** It copies everything to the new drive first, checks every file arrived at the right size, then **re-reads the whole copy and checks each file's SHA-256 against the original** before switching the node over — and only removes the original once all of that has passed. Nothing touches the old copy until the new one is proven, so if the move is interrupted — you close the app, the machine reboots, the drive is unplugged — your synced chain is still there and still the one the node uses. The worst case is a leftover part-copy on the new drive, which is safe to delete.
+![Node Wallet interface](img/beta-node-wallet.png)
 
-The checksum pass is why the move shows two progress bars: the second one is reading everything back to confirm it is identical, not merely present. It roughly doubles the time, and it is the only thing that catches a file that is the right length but the wrong content — which is what a failing drive or a bad cable actually produces.
-
-The node stops while the move runs and you can cancel at any point. A few things are refused up front, with the reason shown: a folder inside the current one, a folder that already has files in it, somewhere the app can't write, and any drive without enough room (it tells you both numbers).
-
-## Money rules (identical everywhere in the app)
-
-- Anything that moves value **to someone else** requires your wallet password on that exact action.
-- Burning and producer-key registration sign but move nothing away — still deliberate, still confirmed by you.
-- An unlocked wallet is never treated as "a human said yes".
+![Node Transfer interface](img/beta-node-transfer.png)

@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Koinos AI — Tester Quickstart</title>
+<title>Download KAI Core Beta — Plugins and mainnet KOIN earning</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Install the Koinos AI alpha in minutes: download for Windows, macOS or Linux, get past the first-launch warning, chat privately on your own hardware, and optionally earn testnet KAI for serving network jobs.">
-<meta property="og:title" content="Koinos AI — Tester Quickstart">
-<meta property="og:description" content="Install the Koinos AI alpha in minutes: download for Windows, macOS or Linux, chat privately on your own hardware, and optionally earn testnet KAI for serving network jobs.">
+<meta name="description" content="Download KAI Core Beta, migrate from Alpha, install plugins and earn KOIN on mainnet.">
+<meta property="og:title" content="KAI Core Beta — Plugins and mainnet KOIN earning">
+<meta property="og:description" content="Download KAI Core Beta, migrate from Alpha, install plugins and earn KOIN on mainnet.">
 <meta name="twitter:card" content="summary">
 
 <style>
@@ -24,143 +24,23 @@
 section{padding:36px 0}.head{padding:42px 0 28px}.tester-intro{display:grid;grid-template-columns:minmax(0,1fr) 220px;align-items:center;gap:44px}.tester-intro h1{margin:18px 0}.tester-kai{width:220px;height:310px;object-fit:contain}.badge{display:inline-flex;gap:8px;align-items:center;font-size:.8125rem;color:var(--signal);font-weight:600}.badge .dot{width:7px;height:7px;border-radius:50%;background:var(--signal)}.dl-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}.dl-note{margin-top:14px;max-width:86ch}.divider{height:1px;background:var(--line)}.req-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 32px;margin-top:20px}.req{display:flex;flex-direction:column;gap:6px}.req span{color:var(--muted);font-size:.875rem}.req b{font-weight:550;line-height:1.6}.qsteps{display:grid;grid-template-columns:1fr 1fr;gap:0 44px;margin-top:16px}.qstep{padding:26px 0;border-bottom:1px solid var(--line);min-width:0}.qstep h3{font-size:1.2rem;line-height:1.4;margin-bottom:10px}.qstep h3 .tag{display:inline-block;vertical-align:middle;font-size:.75rem;font-weight:500;letter-spacing:0;color:var(--muted);margin-left:7px}.qstep p{color:var(--muted);line-height:1.75}.qstep p b{color:var(--soft)}.callout{margin-top:13px;padding:12px 16px;border-left:2px solid #aac8f6;background:#edf3ff;color:var(--soft);font-size:.875rem;line-height:1.7}.k{font-family:var(--mono);font-size:.875rem;color:#204b91}.report-list{padding-left:20px;margin:20px 0;color:var(--muted)}.report-list li{padding:5px 0;line-height:1.7}.report-list b{color:var(--soft)}.report-cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}.honest{display:grid;grid-template-columns:1fr 1fr;gap:0 40px}.honest .cap{padding:22px 0;border-bottom:1px solid var(--line)}.honest .cap>b{display:block;font-weight:650;margin-bottom:8px}.honest .cap>span{color:var(--muted);font-size:.9375rem;line-height:1.7;display:block}.honest .cap>span b{font-weight:650;color:var(--soft)}
 @media(max-width:900px){.tester-intro{grid-template-columns:minmax(0,1fr) 150px;gap:26px}.tester-kai{width:150px;height:230px}.qsteps{gap:0 28px}}@media(max-width:680px){.tester-intro{grid-template-columns:1fr;gap:12px}.tester-kai{display:none}.tester-intro-copy{position:relative}.tester-intro h1{max-width:360px}.qsteps,.honest{grid-template-columns:1fr}.req-grid{grid-template-columns:1fr}.head{padding-top:32px}.dl-row .btn{flex:1 1 220px}.qstep{padding-block:22px}section{padding:28px 0}}
 
-</style>
+.beta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:18px;margin:22px 0}.beta-grid p{margin:12px 0}.beta-steps{padding-left:25px}.beta-steps li{padding:18px 0}.beta-steps h3{margin-bottom:10px}.section{padding:32px 0}.section h2{margin-bottom:20px}.section>p{margin:14px 0}.section>h3{margin-top:28px}.dl-row{display:flex;flex-wrap:wrap;gap:12px;margin:22px 0}code{overflow-wrap:anywhere}</style>
 <link rel="icon" href="/redesign/brand-mark.svg" type="image/svg+xml"><meta name="theme-color" content="#f5f8ff">
 <link rel="stylesheet" href="/i18n/language.css">
 </head>
 <body>
 
-<header class="kai-site-header"><div class="kai-header-inner"><a class="kai-brand" href="/"><img src="/redesign/brand-mark.svg" alt=""><span>Koinos<em>AI</em></span></a><nav class="kai-site-links" aria-label="Main"><a href="/">Home</a><a href="/network">Network</a><a href="/testers" aria-current="page">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account">Account</a></nav><a class="btn btn-signal" href="/app#chat">Open KAI ↗</a><details class="kai-site-menu"><summary>Menu</summary><nav aria-label="Mobile"><a href="/">Home</a><a href="/network">Network</a><a href="/testers" aria-current="page">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account">Account</a><a href="/app#chat">Open KAI</a></nav></details></div></header>
+<header class="kai-site-header"><div class="kai-header-inner"><a class="kai-brand" href="/"><img src="/redesign/brand-mark.svg" alt=""><span>Koinos<em>AI</em></span></a><nav class="kai-site-links" aria-label="Main"><a href="/">Home</a><a href="/network">Network</a><a href="/beta" aria-current="page">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account">Account</a></nav><a class="btn btn-signal" href="/beta">Get Core Beta ↗</a><details class="kai-site-menu"><summary>Menu</summary><nav aria-label="Mobile"><a href="/">Home</a><a href="/network">Network</a><a href="/beta" aria-current="page">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account">Account</a><a href="/beta">Get Core Beta</a></nav></details></div></header>
 
-<main>
+<main class="wrap">
+<section class="hero"><div class="tester-intro"><div><span class="badge">KAI Core Beta · Live on Koinos mainnet</span><h1>Your AI. Your plugins.<br>Your next chapter.</h1><p class="lead">KAI Core Beta replaces Koinos AI Alpha. Start with a focused desktop app for models, chat, wallet, credits and KOIN earning. Install the plugins that make it yours.</p><div class="dl-row" id="downloads"><a class="btn btn-signal" href="https://github.com/therexdev/kai-core/releases/download/v0.7.14/KAI-Core-Beta-Setup-0.7.14-x64.exe">Windows installer</a><a class="btn" href="https://github.com/therexdev/kai-core/releases/download/v0.7.14/KAI-Core-Beta-0.7.14-mac-arm64.dmg">Mac Apple silicon</a><a class="btn" href="https://github.com/therexdev/kai-core/releases/download/v0.7.14/KAI-Core-Beta-0.7.14-mac-x64.dmg">Mac Intel</a><a class="btn" href="https://github.com/therexdev/kai-core/releases/download/v0.7.14/Install-KAI-Core-Pi.sh">Linux / Raspberry Pi installer</a></div><p class="note">Core v0.7.14 · <a class="body-link" href="https://github.com/therexdev/kai-core/releases/latest">All downloads and latest release</a>. Linux AppImages: <a class="body-link" href="https://github.com/therexdev/kai-core/releases/download/v0.7.14/KAI-Core-Beta-0.7.14-linux-x86_64.AppImage">x64</a> / <a class="body-link" href="https://github.com/therexdev/kai-core/releases/download/v0.7.14/KAI-Core-Beta-0.7.14-linux-arm64.AppImage">ARM64</a>.</p></div><img class="tester-kai" src="/redesign/kai-companion.svg" alt="KAI is ready to help"></div></section>
+<section class="section" id="start"><h2>Get comfortable in Core</h2><ol class="beta-steps"><li><h3>Install and open KAI Core Beta</h3><p>Use the Windows Setup installer or the Mac build for your processor. On 64-bit Raspberry Pi OS or Linux, download the installer and run <code>bash ~/Downloads/Install-KAI-Core-Pi.sh</code> from your desktop account without sudo. It adds desktop and menu launchers.</p></li><li><h3>Bring your models and wallet</h3><p>Close Alpha, including its tray icon. In Core, open <b>Settings → Migrate from Koinos AI Alpha</b>, select Models, Wallet or both, and review the transfer. Existing Core wallets are not overwritten. Plugin data and connected accounts are not migrated.</p><p><a class="body-link" href="https://github.com/therexdev/kai-core/blob/main/docs/TRANSFER_GUIDE.md">Follow the illustrated transfer guide →</a></p></li><li><h3>Choose a model</h3><p>Open <b>Models</b> and install or migrate a compatible local model. Local inference runs on your computer. Choose network AI when you want another provider to serve the request; check available models and pricing in Core.</p></li><li><h3>Add your plugins</h3><p>Open <b>Plugins</b>, review each plugin’s publisher and permissions, install it, then open it from <b>Apps</b>. Start with Assistant for the companion and advanced chat. Add Brain, Workflows or Connections as you need them.</p></li></ol></section>
+<section class="section" id="plugins"><h2>A core that grows with you</h2><p class="lead">Install either one plugin or a whole workspace. Core and plugins have separate updates.</p><div class="beta-grid"><article class="card"><h3>Assistant</h3><p>Chat, voice and your desktop companion.</p><a class="body-link" href="https://github.com/therexdev/kai-plugin-assistant">Source and releases ↗</a></article><article class="card"><h3>Brain</h3><p>Memories, goals and selected sources.</p><a class="body-link" href="https://github.com/therexdev/kai-plugin-brain">Source and releases ↗</a></article><article class="card"><h3>Workflows</h3><p>Visual agents, branches, schedules and approvals.</p><a class="body-link" href="https://github.com/therexdev/kai-plugin-workflows">Source and releases ↗</a></article><article class="card"><h3>Connections</h3><p>Connect accounts and review app actions.</p><a class="body-link" href="https://github.com/therexdev/kai-plugin-connections">Source and releases ↗</a></article><article class="card"><h3>Documents</h3><p>A dedicated writing workspace.</p><a class="body-link" href="https://github.com/therexdev/kai-plugin-documents">Source and releases ↗</a></article><article class="card"><h3>Koinos Code</h3><p>Projects, coding and reviewed file changes.</p><a class="body-link" href="https://github.com/therexdev/kai-plugin-code">Source and releases ↗</a></article><article class="card"><h3>Tools</h3><p>Developer utilities, MCP and reusable teams.</p><a class="body-link" href="https://github.com/therexdev/kai-plugin-tools">Source and releases ↗</a></article><article class="card"><h3>Model Compare</h3><p>Compare model responses side by side.</p><a class="body-link" href="https://github.com/therexdev/kai-plugin-model-compare">Source and releases ↗</a></article><article class="card"><h3>Koinos Node</h3><p>Run a blockchain node with its own wallet.</p><a class="body-link" href="https://github.com/therexdev/kai-plugin-koinos-node">Source and releases ↗</a></article><article class="card"><h3>Remote Access</h3><p>Local API, project keys and gateway controls.</p><a class="body-link" href="https://github.com/therexdev/kai-plugin-remote-access">Source and releases ↗</a></article><article class="card"><h3>Agent Network</h3><p>Isolated services and free jobs. Paid rentals are not enabled.</p><a class="body-link" href="https://github.com/therexdev/kai-plugin-agent-network">Source and releases ↗</a></article></div><p class="note">Native plugins execute trusted code with full application and computer access available to KAI. A signature identifies the publisher; it is not a guarantee of safety.</p></section>
+<section class="section" id="earn"><h2>Mainnet KOIN earning is live</h2><p class="lead">Open <b>Earn KOIN</b>, complete the wallet and provider setup shown in Core, select supported installed models, and enable sharing. Keep your computer online and check its provider status and reward feed.</p><p>Rewards depend on eligibility, availability, accepted work and the network’s reward policy. An estimate is not a confirmed payout. View your own credits and rewards in Core; public network stats show provider presence, not a promise that every model can serve a paid request.</p><p><a class="body-link" href="/network">View the mainnet network →</a></p><h3>AI earning and block production are separate</h3><p>The optional Koinos Node plugin manages a blockchain node. We recommend a <b>new, dedicated Node wallet</b>, not your KAI Core wallet. Node migration moves chain data only; wallets, funds and production keys need separate setup.</p></section>
+<section class="section" id="developers"><h2>Build a plugin of your own</h2><p>Third-party developers use the same public SDK as KAI plugins. Start with a sandboxed example, or use a native service when your feature needs deeper integration. Package and sign your plugin before sharing it.</p><div class="dl-row"><a class="btn btn-signal" href="https://github.com/therexdev/kai-core/blob/docs/plugin-quickstart/docs/foundation/PLUGIN_QUICKSTART.md">Plugin quickstart ↗</a><a class="btn" href="https://github.com/therexdev/kai-core/blob/main/docs/foundation/PLUGIN_AUTHOR_GUIDE.md">Full author guide</a><a class="btn" href="https://github.com/therexdev/kai-core/blob/main/docs/foundation/api-v1.d.ts">API reference</a></div></section>
+<section class="section"><h2>A few things to know</h2><div class="beta-grid"><article class="card"><h3>Update deliberately</h3><p>Windows Setup and supported user-owned Linux AppImages can download verified updates inside Settings. Restart and install is your choice. macOS and portable builds use the release page. Plugins update separately.</p></article><article class="card"><h3>Keep your account boundaries clear</h3><p>Your website account manages website sign-in, linked devices and existing web access. Core’s credit session, wallet and plugin accounts are separate. Website sign-in does not automatically import credits or plugin data.</p></article><article class="card"><h3>Beta feedback matters</h3><p>Report the Core or plugin version, platform and steps to reproduce. Remove private keys, passwords and personal information before attaching diagnostics.</p><a class="body-link" href="https://github.com/therexdev/kai-core/issues">Report a Core issue ↗</a></article></div></section></main>
 
-<!-- HEAD + DOWNLOADS -->
-<section class="head"><div class="wrap tester-intro"><div class="tester-intro-copy">
-  <span class="badge"><span class="dot"></span> Alpha · Koinos testnet (harbinger)</span>
-  <h1>Meet your new sidekick.</h1>
-  <p class="lead">Bring KAI to your desktop. Start with local AI, explore the decentralized network, and help shape what comes next. Here’s how to install the alpha and get comfortable.</p>
-  <div class="dl-row">
-    <a class="btn btn-signal" href="https://github.com/therexdev/kaiapp/releases/latest" target="_blank" rel="noopener">Download for Windows — free <span class="arw">→</span></a>
-    <a class="btn btn-signal" href="https://github.com/therexdev/kaiapp/releases/latest" target="_blank" rel="noopener">Download for macOS — free <span class="arw">→</span></a>
-    <a class="btn btn-ghost" href="https://github.com/therexdev/kaiapp/releases/latest" target="_blank" rel="noopener">Linux AppImage · experimental</a>
-  </div>
-  <p class="dl-note">Every button goes to the <b>latest GitHub release</b>. Pick the <b>.exe</b> installer on Windows, the <b>.AppImage</b> on Linux, and on a Mac the <b>.dmg</b> — <b>arm64</b> for Apple Silicon (M1 to M4), <b>x64</b> for an older Intel Mac. Not sure which you have? Apple menu → About This Mac: a "Chip" line means Apple Silicon, a "Processor" line means Intel. The <b>.zip</b> files are for the updater, not for installing by hand.</p>
-  <p class="dl-note" style="margin-top:8px">New on macOS — please read <a class="body-link" href="#first-launch">the first-launch notes</a> before you double-click anything, and see <a class="body-link" href="#mac-notes">what is not finished yet on the Mac</a>.</p>
-</div><img class="tester-kai" src="/redesign/kai-companion.svg" alt="KAI is ready to help"></div></section>
-
-<!-- SYSTEM REQUIREMENTS -->
-<section><div class="wrap">
-  <div class="panel">
-    <span class="plabel">System requirements</span>
-    <div class="req-grid">
-      <div class="req"><span>OS</span><b>Windows 10/11 x64 · macOS 12+ (Apple Silicon or Intel) · Linux (AppImage, experimental)</b></div>
-      <div class="req"><span>Disk</span><b>~2 GB free (app + engine + model)</b></div>
-      <div class="req"><span>Memory</span><b>8 GB RAM recommended</b></div>
-      <div class="req"><span>GPU</span><b>NVIDIA optional · Apple Silicon uses Metal — CPU works fine</b></div>
-    </div>
-  </div>
-</div></section>
-
-<div class="wrap"><div class="divider"></div></div>
-
-<!-- STEPS -->
-<section><div class="wrap">
-  <span class="eyebrow">Make yourself at home</span>
-  <div class="qsteps">
-    <div class="qstep">
-      <div>
-        <h3>Download and run the installer</h3>
-        <p>Grab your file from the <a class="body-link" href="https://github.com/therexdev/kaiapp/releases/latest" target="_blank" rel="noopener">latest release</a>. On <b>Windows</b>, run the <b>.exe</b> — it installs per-user, no admin rights needed. On a <b>Mac</b>, open the <b>.dmg</b> and drag Koinos AI into your Applications folder.</p>
-      </div>
-    </div>
-    <div class="qstep">
-      <div>
-        <h3 id="first-launch">Get past the first-launch warning</h3>
-        <p>The alpha builds are <b>not yet code-signed</b>, so neither Windows nor macOS can verify the publisher. It is not a virus detection — just an unknown-publisher notice. Signing ships before beta, and both warnings go away.</p>
-        <div class="callout"><b>Windows.</b> SmartScreen says the app is unrecognized. Click <span class="k">More info</span> then <span class="k">Run anyway</span>.</div>
-        <div class="callout"><b>macOS.</b> Do not double-click the app the first time — macOS will refuse it. Instead <b>right-click</b> (or Control-click) <b>Koinos AI</b> in your Applications folder, choose <span class="k">Open</span>, then confirm. You only do this once.</div>
-        <div class="callout">On <b>macOS 15 and later</b> the right-click trick may not be offered at all — the app just gets blocked. If that happens, open <span class="k">System Settings</span> → <span class="k">Privacy &amp; Security</span>, scroll to the bottom, and click <span class="k">Open Anyway</span> next to the Koinos AI message.</div>
-      </div>
-    </div>
-    <div class="qstep">
-      <div>
-        <h3>Let the first run finish downloading</h3>
-        <p>On first launch the app downloads the AI engine and the Koinos Fast model (<b>~1 GB</b> total). Progress shows inside the app — leave it open until the download completes. This happens once.</p>
-      </div>
-    </div>
-    <div class="qstep">
-      <div>
-        <h3>Chat locally</h3>
-        <p>Choose <b>Local Only</b> to keep inference on your machine. Once a compatible model is installed, local chat works offline with no per-token API bill.</p>
-      </div>
-    </div>
-    <div class="qstep opt">
-      <div>
-        <h3>Start earning <span class="tag">optional</span></h3>
-        <p>Open the <b>Earn</b> tab, create your earning account, and press <b>Start Earning</b>. The app connects to the Koinos scheduler automatically and earns <span class="warm">testnet KAI</span> for serving network jobs while your machine is idle.</p>
-        <div class="callout"><b>Write down the backup code</b> when you create the account — it's the only way to recover your earnings account.</div>
-      </div>
-    </div>
-    <div class="qstep opt">
-      <div>
-        <h3>Try Local-First privacy mode <span class="tag">optional</span></h3>
-        <p>Switch privacy mode to <b>Local-First</b> to let chats overflow to the network when your machine can't serve them. The first <b>25,000 AI tokens per epoch are free</b>.</p>
-      </div>
-    </div>
-  </div>
-</div></section>
-
-<div class="wrap"><div class="divider"></div></div>
-
-<!-- WHAT TO REPORT -->
-<section><div class="wrap">
-  <span class="eyebrow">What to report</span>
-  <h2 style="margin:12px 0 10px">Anything that made you stop, squint, or swear.</h2>
-  <p class="lead">Every report makes the beta better. We especially want to hear about:</p>
-  <ul class="report-list">
-    <li>Crashes — on launch, mid-chat, or while earning</li>
-    <li>Confusing screens — anywhere you weren't sure what to do next</li>
-    <li>Stuck downloads — engine or model downloads that stall or never finish</li>
-    <li>Earnings that don't appear — jobs served but no testnet KAI credited</li>
-  </ul>
-  <div class="report-cta">
-    <a class="btn btn-signal" href="https://github.com/therexdev/kaiapp/issues" target="_blank" rel="noopener">Open a GitHub issue <span class="arw">→</span></a>
-    <a class="btn btn-ghost" href="mailto:contact@koinosai.com">Email us instead</a>
-  </div>
-</div></section>
-
-<div class="wrap"><div class="divider"></div></div>
-
-<!-- MAC NOTES -->
-<section id="mac-notes"><div class="wrap">
-  <span class="eyebrow">Mac testers · read this first</span>
-  <h2 style="margin:12px 0 10px">The Mac build is brand new. Here is exactly where it stands.</h2>
-  <p class="lead">macOS support arrived from a community tester, who built, signed and smoke-tested an Apple Silicon version on an M4 before offering it to us. It is real and it runs — and these four things are not finished. If you hit one, you have not found a bug.</p>
-  <ul class="report-list">
-    <li><span><b>Apple Silicon is the tested path.</b> On an M1–M4 Mac the local AI engine runs on Metal, so the GPU does the work.</span></li>
-    <li><span><b>Intel Macs are built but not yet proven on real hardware.</b> The Intel package is assembled and structurally checked in CI, and nobody has run it on an actual Intel Mac. It runs on the CPU either way — the AI engine has no Metal build for Intel. Tell us how it goes.</span></li>
-    <li><span><b>One extra step on first launch.</b> Some Macs need a <span class="k">Cmd</span>+<span class="k">R</span> refresh right after you approve the first keychain prompt, because approving it restarts part of the app underneath. Known, and being fixed.</span></li>
-    <li><span><b>Voice input is not available on macOS yet.</b> Everything else — chat, Koinos Code, Earn, running a node — is there.</span></li>
-  </ul>
-</div></section>
-
-<div class="wrap"><div class="divider"></div></div>
-
-<!-- HONESTY BLOCK -->
-<section><div class="wrap">
-  <span class="eyebrow" style="color:var(--value)">The honest fine print</span>
-  <div class="honest" style="margin-top:16px">
-    <div class="cap"><b>Alpha software</b><span>Expect rough edges, missing features, and the occasional crash. That's exactly what this phase is for.</span></div>
-    <div class="cap"><b>Testnet tokens only</b><span>KAI earned during alpha lives on Koinos testnet and has <b>no monetary value</b>. Mainnet economics come later.</span></div>
-    <div class="cap"><b>Unsigned installer</b><span>The builds are not yet code-signed, which is why SmartScreen warns on Windows and macOS blocks the first launch. Signing ships before beta.</span></div>
-    <div class="cap"><b>The Mac build cannot update itself</b><span>macOS refuses to replace an unsigned app in place, so Koinos AI on a Mac will <b>never prompt you to update</b>. Each new version is a fresh download from the releases page — check back rather than waiting for a prompt. Windows and Linux update themselves normally.</span></div>
-    <div class="cap"><b>Model answers can be wrong</b><span>Local models are small and can be confidently incorrect. Don't rely on answers for anything important without checking.</span></div>
-  </div>
-</div></section>
-
-</main>
-
-<footer class="kai-site-footer"><div class="kai-footer-inner"><p class="kai-copyright">© 2026 Koinos AI · Think. Build. Grow.</p><nav aria-label="Footer"><a href="/docs/">Docs</a><a href="/updates">Updates</a><a href="/privacy">Privacy</a><a href="https://github.com/therexdev/kaiapp">GitHub</a><a href="mailto:contact@koinosai.com">Contact</a></nav></div></footer>
+<footer class="kai-site-footer"><div class="kai-footer-inner"><p class="kai-copyright">© 2026 Koinos AI · Think. Build. Grow.</p><nav aria-label="Footer"><a href="/docs/">Docs</a><a href="/updates">Updates</a><a href="/privacy">Privacy</a><a href="https://github.com/therexdev/kai-core">GitHub</a><a href="mailto:contact@koinosai.com">Contact</a></nav></div></footer>
 
 <script src="/i18n/catalogs.js"></script>
 <script src="/i18n/i18n.js"></script>

@@ -99,7 +99,7 @@ async function main() {
         refs.add(m[1]);
       }
     }
-    check(refs.size >= 5, `pages reference ${refs.size} screenshots`);
+    check(["models", "wallet", "node-wallet", "node-transfer"].every(name => refs.has(`img/beta-${name}.png`)), `pages reference ${refs.size} screenshots`);
     const broken = [...refs].filter((r) => !fs.existsSync(path.join(imgDir, path.basename(r))));
     check(broken.length === 0, `no broken image reference (${broken.join(", ") || "all resolve"})`);
     let imgs200 = true;
@@ -114,6 +114,8 @@ async function main() {
     check(sub.status === 200 && sub.body.includes("Koinos AI Docs"), "the subdomain serves the shell from /");
     const subMd = await raw(port, "/content/wallet.md", "docs.koinosai.com");
     check(subMd.status === 200 && subMd.body.includes("KOIN"), "…and its assets from the subdomain root");
+    const subLanguage = await raw(port, "/i18n/i18n.js", "docs.koinosai.com");
+    check(subLanguage.status === 200 && subLanguage.body.includes("KaiI18n"), "shared language assets load on the docs hostname");
     const main404 = await raw(port, "/content/wallet.md");
     check(main404.status === 404, "the main hostname does NOT leak docs assets at the root");
 

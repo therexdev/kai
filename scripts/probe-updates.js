@@ -43,9 +43,13 @@ const cmp = (a, b) => {
   for (let i = 0; i < 3; i++) if (A[i] !== B[i]) return B[i] - A[i];
   return 0;
 };
-const sorted = [...rels].map((r) => r.version).sort(cmp);
-check(JSON.stringify(sorted) === JSON.stringify(rels.map((r) => r.version)),
-  "releases are in descending version order — the page renders them in file order");
+// Core Beta starts its own version sequence; Alpha's 0.54.x is historical.
+const products = [...new Set(rels.map(r => r.product))];
+check(products.every(product => {
+  const versions = rels.filter(r => r.product === product).map(r => r.version);
+  return JSON.stringify([...versions].sort(cmp)) === JSON.stringify(versions);
+}), "releases are in descending version order within each product");
+check(rels[0].product === "KAI Core Beta", "current Core release leads historical Alpha notes");
 check(data.latest === rels[0].version, `latest (${data.latest}) is the newest entry (${rels[0].version})`);
 
 console.log("\n3) the deep link the app sends actually lands");
