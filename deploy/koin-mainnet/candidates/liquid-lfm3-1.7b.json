@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "status": "prepared-not-live",
+  "status": "reviewed-additive-rollout-not-live",
   "label": "Liquid LFM3 1.7B",
   "package": "liquid-lfm3-1.7b-q4_k_m@1",
   "nominalParametersBillions": 1.7,
-  "approvedForActivation": false,
+  "approvedForActivation": true,
   "templateMode": "upstream-enable_thinking-false",
   "tariff": {
     "version": 1,
@@ -18,7 +18,7 @@
     "maxOutputTokens": 256,
     "maxLatencyMs": 120000
   },
-  "pricingStatus": "proposed-same-as-Qwen-1.5B; not installed",
+  "pricingStatus": "reviewed-same-as-Qwen-1.5B; requires explicit server rollout",
   "tokenizer": {
     "schema": 1,
     "mode": "shadow",
@@ -118,9 +118,8 @@
     "binarySha256": "005c789a278eff50500a864ee4736e7f4a7edf657acfba13e7a5cf19992927fa"
   },
   "activationRequirements": [
-    "Back up and inspect the deployed desktop manifest, credit journals and provider authorization stores.",
-    "Implement and test additive catalog policy migration without rewriting historic quotes or discarding credit balances or provider registrations.",
-    "Publish matching server and Core catalog commitments and runtime-readiness policy.",
+    "Run the reviewed additive updater on the exact supported scheduler release.",
+    "Install matching Core Beta 0.7.13 or later.",
     "Each provider must pass fresh signed runtime-readiness challenges before serving this model."
   ],
   "licenseUrl": "https://huggingface.co/LiquidAI/LFM3-1.7B/blob/ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7/LICENSE"

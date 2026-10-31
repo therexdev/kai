@@ -1,6 +1,6 @@
 # Liquid LFM3 1.7B network admission candidate
 
-The owner's requested model has passed local technical preparation. It is **not enabled on the live network** by this change. No deployed policy hash, balance, historical quote, provider registration, qualification policy or Core configuration is changed.
+The model has passed local technical preparation. The additive server rollout and matching Core catalog are implemented in [the activation guide](../LIQUID_CATALOG_UPDATE.md). Merging source alone does not install it on the live service or qualify any provider.
 
 The exact Core model is `lfm3-1.7b`, package `liquid-lfm3-1.7b-q4_k_m@1`, official LiquidAI GGUF revision `bad5729bba61d076fff20d2548e62526665af215`, SHA-256 `3793e1e6e2266919d6e015287221b41100175a98eddaba92e111aed3b05c93c4`.
 
@@ -22,11 +22,9 @@ node scripts/measure-koin-lfm3-readiness.js /path/LFM3-1.7B-Q4_K_M.gguf /path/ll
 
 The script rejects different model/runtime hashes, compares native IDs against the backend tokenizer, and records the exact generation results. It does not contact the scheduler or create transactions. The proposed tariff is the same as the existing Qwen 1.5B entry: 10 input / 40 output credits per million tokens, 4,096 context tokens and 256 maximum output tokens. Pricing is staged, not installed.
 
-## Remaining activation work
+## Activation
 
-The live configuration commits to all tariffs with policy hash `9a4d812014a210d0d9fa083c479c0c0d82341ece2bde33b596ea8bb3826b9089`. Appending a tariff changes that hash. `PrepaidLedger` and `ProviderDevices` bind their durable identity to the current target including that hash, and Core pins it too. A naive config edit prevents these stores from opening and makes old clients reject the catalog.
-
-Activation therefore requires an explicit additive catalog rollout, with the actual deployed manifest and databases inspected and backed up first. Its compatibility tests must retain purchased/spent balances, pending settlements, old accepted quote identities, signed reward evidence and provider authorizations. Do not delete journals or disable identity checks to permit a startup. Ship matching server/Core catalog commitments, migrate only reviewed metadata under a documented rollback plan, then run fresh signed readiness on each provider. Merely merging this candidate cannot accomplish that rollout.
+Use the reviewed additive updater in the activation guide. It retains the original account/provider identity, base tariffs, journals and readiness evidence. New clients negotiate the extended catalog; old clients retain their original catalog. The exact new model still requires signed readiness checks on each device.
 
 The existing deployment is the separate `kai-koin-prepaid.service` on the scheduler host, not the Hostinger website deployment. Server access was not available in this editing session. No live installation was attempted.
 
