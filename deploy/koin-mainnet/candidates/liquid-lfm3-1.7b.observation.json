@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "kind": "local-runtime-readiness-measurement",
+  "model": "lfm3-1.7b",
+  "modelHash": "3793e1e6e2266919d6e015287221b41100175a98eddaba92e111aed3b05c93c4",
+  "fullModelSha256Verified": true,
+  "runtime": {
+    "tag": "b11960",
+    "platform": "linux-x64",
+    "archiveSha256": "31cc3a6bc638ac6c48dc4b1b74888f1eaadf3d14227c1e5f67daf9a49541d97a",
+    "binarySha256": "005c789a278eff50500a864ee4736e7f4a7edf657acfba13e7a5cf19992927fa",
+    "cpuOnly": true,
+    "threads": 4
+  },
+  "templateMode": "upstream-enable_thinking-false",
+  "tokenizerHash": "e8c17214efe762a8c5a1f6717b819a0ff375ef20f80364585cfad1b33f460411",
+  "templateHash": "4f123bcdf40dc82ef3206ce81a0cf549f88b363742c37a767eb8f33bc515767d",
+  "productionApproved": false,
+  "providerRegistered": false,
+  "syntheticResponses": false,
+  "startedAt": "2026-10-31T18:07:57.894Z",
+  "vectors": [
+    {
+      "index": 0,
+      "count": 4,
+      "idsHash": "d1600dce23e1235d87a710e600033d7a22b29a8f5fc2a8882aa28ac5fb5c43b5",
+      "passed": true
+    },
+    {
+      "index": 1,
+      "count": 10,
+      "idsHash": "8a6f377b1541a46e0cad3bb3ce11030034f417485bea5bdba30bbfbf90065018",
+      "passed": true
+    },
+    {
+      "index": 2,
+      "count": 22,
+      "idsHash": "6f4f33f2c8d5e6d89c0f03eda38406c484604598e8dfdb3df4df5e5182e503a9",
+      "passed": true
+    },
+    {
+      "index": 3,
+      "count": 6,
+      "idsHash": "81b6972911941b018f16a6ce2b68285d8d70312e611628f83403f276ee464445",
+      "passed": true
+    },
+    {
+      "index": 4,
+      "count": 3,
+      "idsHash": "109818800fb8010e8fc47428529b3b3c6b3692d3dcca1e69ff828288d198ff81",
+      "passed": true
+    },
+    {
+      "index": 5,
+      "count": 3,
+      "idsHash": "0a9f527c5cef63c23159cd321fa324560fb6349453b56bd32b729875380775b3",
+      "passed": true
+    },
+    {
+      "index": 6,
+      "count": 10,
+      "idsHash": "9b68f128f2e2958d2e6fe44c43953403caf14479989bd18ec39b65ebbcc26bf4",
+      "passed": true
+    },
+    {
+      "index": 7,
+      "count": 10,
+      "idsHash": "a1cff0f80ca0004e47630c5c7c7e5b72d22919293af54834e10529db2c19774c",
+      "passed": true
+    },
+    {
+      "index": 8,
+      "count": 40,
+      "idsHash": "cad441d593819d9bb6c306535e2821b25a71ba4ed01d3f0259a6ed200db94bbe",
+      "passed": true
+    },
+    {
+      "index": 9,
+      "count": 67,
+      "idsHash": "3b207ff08693408215e8bedc96b4ecbcba7cf21c8609b085b2f80e28656238d4",
+      "passed": true
+    }
+  ],
+  "results": [
+    {
+      "round": 1,
+      "id": "echo-label",
+      "nonce": "KAI-FCF98326562C1DF0",
+      "promptHash": "943ac266578ea942a4ca3d290f549f6eefeae7ba7a62e2d93e9f83c215b570b5",
+      "inputIdsHash": "6ad17c64c8bd29c457f26342cb6d5b511876fd5241cc11835b53e63f6de3e021",
+      "inputTokens": 40,
+      "output": "KAI-FCF98326562C1DF0",
+      "outputTokens": 11,
+      "elapsedMs": 868,
+      "stop": "eos",
+      "passed": true
+    },
+    {
+      "round": 1,
+      "id": "recall-label",
+      "nonce": "KAI-80287449CFD76B7A",
+      "promptHash": "79e21cee24853fa227025f1545c8e221f72f3a910efaf29406e53eea71a0d4bb",
+      "inputIdsHash": "c6cfe30193d6c0de5bb70e9a00442460a9b41e029a5bba1a93238045280cf866",
+      "inputTokens": 68,
+      "output": "KAI-80287449CFD76B7A",
+      "outputTokens": 12,
+      "elapsedMs": 1106,
+      "stop": "eos",
+      "passed": true
+    },
+    {
+      "round": 2,
+      "id": "echo-label",
+      "nonce": "KAI-316451BA0585C066",
+      "promptHash": "c3fca20ad7fd34d7fcb9f48e68b723fb0f435e4bdcc6c69bb6a2911afc410366",
+      "inputIdsHash": "4611d0a9d0b51d40abf9e186919eea7a8f94e0e939fe23b9f4d51fa8f0881025",
+      "inputTokens": 39,
+      "output": "KAI-316451BA0585C066",
+      "outputTokens": 10,
+      "elapsedMs": 800,
+      "stop": "eos",
+      "passed": true
+    },
+    {
+      "round": 2,
+      "id": "recall-label",
+      "nonce": "KAI-3FFEFDE8970258DE",
+      "promptHash": "dd7a9cbd76b7320dcafeb638f9284e0ee82d64f8760a488bb4e07fee9db42769",
+      "inputIdsHash": "45c55809120180e65334f7da1c8045c853495206150f45c06f0ece59b6a6d3cc",
+      "inputTokens": 67,
+      "output": "KAI-3FFEFDE8970258DE",
+      "outputTokens": 11,
+      "elapsedMs": 1142,
+      "stop": "eos",
+      "passed": true
+    },
+    {
+      "round": 3,
+      "id": "echo-label",
+      "nonce": "KAI-89C901BDDFEA8CC0",
+      "promptHash": "b83918577823d1307ab629b085323ba1e7700be0358b0ab47e539eec3c7f8627",
+      "inputIdsHash": "83ae3591658d2c22295a38ede34c9235537a6b3290667d54f8630c917cda53ae",
+      "inputTokens": 41,
+      "output": "KAI-89C901BDDFEA8CC0",
+      "outputTokens": 12,
+      "elapsedMs": 882,
+      "stop": "eos",
+      "passed": true
+    },
+    {
+      "round": 3,
+      "id": "recall-label",
+      "nonce": "KAI-E5EE73F58A1C2B96",
+      "promptHash": "7c33e68db4a7de32beed6405477a6aadf91b535e1d13e4171b4d2ce4b205bfc5",
+      "inputIdsHash": "9cb48c1dd2242216244efeefc5d6c7fccb57222b8e4afebcde51f8fea8e5633b",
+      "inputTokens": 70,
+      "output": "KAI-E5EE73F58A1C2B96",
+      "outputTokens": 14,
+      "elapsedMs": 1173,
+      "stop": "eos",
+      "passed": true
+    },
+    {
+      "round": 4,
+      "id": "echo-label",
+      "nonce": "KAI-95D2D5CD108FA22D",
+      "promptHash": "86e7da3085f0a9828363c9a1647d9ff47c4af0065d2d066bcea359ddafdb5df9",
+      "inputIdsHash": "a3cacf5b3de10a20fe10936f23e8015185f76477a0f2c61d3b466ac2a197f373",
+      "inputTokens": 42,
+      "output": "KAI-95D2D5CD108FA22D",
+      "outputTokens": 13,
+      "elapsedMs": 913,
+      "stop": "eos",
+      "passed": true
+    },
+    {
+      "round": 4,
+      "id": "recall-label",
+      "nonce": "KAI-FA1FEDE7DBAF9242",
+      "promptHash": "ed6084c4a975148f93c7862afd54faf7c9363d21758ee016e4fd08ab07cf11ed",
+      "inputIdsHash": "0da6b7f4a073c26e402ea71498f4cf26b8a4a37429e9eced55b4638ac504efd4",
+      "inputTokens": 70,
+      "output": "KAI-FA1FEDE7DBAF9242",
+      "outputTokens": 14,
+      "elapsedMs": 1180,
+      "stop": "eos",
+      "passed": true
+    },
+    {
+      "round": 5,
+      "id": "echo-label",
+      "nonce": "KAI-F653781DCCC5B3F3",
+      "promptHash": "9b1b247c95368994eb7382cd304090b2c70fcadcbe31e7d23ba67017dfd342bc",
+      "inputIdsHash": "f9f07dfc0bcad05df4c0f60390cb9e3606bdeb22ace2e571487528ce1fa09285",
+      "inputTokens": 41,
+      "output": "KAI-F653781DCCC5B3F3",
+      "outputTokens": 12,
+      "elapsedMs": 860,
+      "stop": "eos",
+      "passed": true
+    },
+    {
+      "round": 5,
+      "id": "recall-label",
+      "nonce": "KAI-CE6BD89219725812",
+      "promptHash": "c755df5f10e8799e6847b6f302c96ce58107736e64e4fff2c2e0ba9542d0ec8c",
+      "inputIdsHash": "c120dc587d423b1527e3b40bff7920ea6c104846e533465026e9b874ec1239f4",
+      "inputTokens": 66,
+      "output": "KAI-CE6BD89219725812",
+      "outputTokens": 10,
+      "elapsedMs": 1007,
+      "stop": "eos",
+      "passed": true
+    }
+  ],
+  "status": "passed",
+  "finishedAt": "2026-10-31T18:08:09.538Z"
+}

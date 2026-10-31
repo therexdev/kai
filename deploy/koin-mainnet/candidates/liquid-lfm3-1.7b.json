@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "status": "prepared-not-live",
+  "label": "Liquid LFM3 1.7B",
+  "package": "liquid-lfm3-1.7b-q4_k_m@1",
+  "nominalParametersBillions": 1.7,
+  "approvedForActivation": false,
+  "templateMode": "upstream-enable_thinking-false",
+  "tariff": {
+    "version": 1,
+    "model": "lfm3-1.7b",
+    "modelHash": "3793e1e6e2266919d6e015287221b41100175a98eddaba92e111aed3b05c93c4",
+    "tokenizerHash": "e8c17214efe762a8c5a1f6717b819a0ff375ef20f80364585cfad1b33f460411",
+    "templateHash": "4f123bcdf40dc82ef3206ce81a0cf549f88b363742c37a767eb8f33bc515767d",
+    "inputAtomsPerMillion": "1000000",
+    "outputAtomsPerMillion": "4000000",
+    "contextTokens": 4096,
+    "maxOutputTokens": 256,
+    "maxLatencyMs": 120000
+  },
+  "pricingStatus": "proposed-same-as-Qwen-1.5B; not installed",
+  "tokenizer": {
+    "schema": 1,
+    "mode": "shadow",
+    "model": "lfm3-1.7b",
+    "repository": "LiquidAI/LFM3-1.7B-GGUF",
+    "revision": "bad5729bba61d076fff20d2548e62526665af215",
+    "artifactSource": {
+      "kind": "gguf-metadata-v1",
+      "filename": "LFM3-1.7B-Q4_K_M.gguf",
+      "modelSize": 1099627808,
+      "prefixBytes": 16000000,
+      "prefixHash": "26ff87155183a301a1ac76c0dc3f2bbfbb2bea668c2d99b42d9ed93b1f9eeeac",
+      "converter": "lfm2-bpe-no-thinking-v1"
+    },
+    "tokenizerHash": "e8c17214efe762a8c5a1f6717b819a0ff375ef20f80364585cfad1b33f460411",
+    "configHash": "1fd2b0f1a38da7b61374f79545bd84931365cf731c3134fd0c88b3ed047adb28",
+    "templateHash": "4f123bcdf40dc82ef3206ce81a0cf549f88b363742c37a767eb8f33bc515767d",
+    "reference": "llama.cpp b11960 Linux CPU native token IDs and full-weight readiness; non-thinking branch of the original GGUF template. Local evidence does not register a live provider.",
+    "modelHash": "3793e1e6e2266919d6e015287221b41100175a98eddaba92e111aed3b05c93c4",
+    "vectors": [
+      {
+        "text": "Hello, world!",
+        "count": 4,
+        "idsHash": "d1600dce23e1235d87a710e600033d7a22b29a8f5fc2a8882aa28ac5fb5c43b5"
+      },
+      {
+        "text": "你好，世界！ 🌍 café é",
+        "count": 10,
+        "idsHash": "8a6f377b1541a46e0cad3bb3ce11030034f417485bea5bdba30bbfbf90065018"
+      },
+      {
+        "text": "Line 1\r\n  0023 +\t42\n𝄞👩🏽‍💻",
+        "count": 22,
+        "idsHash": "6f4f33f2c8d5e6d89c0f03eda38406c484604598e8dfdb3df4df5e5182e503a9"
+      },
+      {
+        "text": "<|startoftext|><|im_start|>user\nHi<|im_end|>",
+        "count": 6,
+        "idsHash": "81b6972911941b018f16a6ce2b68285d8d70312e611628f83403f276ee464445"
+      },
+      {
+        "text": "<think>short</think>",
+        "count": 3,
+        "idsHash": "109818800fb8010e8fc47428529b3b3c6b3692d3dcca1e69ff828288d198ff81"
+      },
+      {
+        "text": "</s>",
+        "count": 3,
+        "idsHash": "0a9f527c5cef63c23159cd321fa324560fb6349453b56bd32b729875380775b3"
+      },
+      {
+        "text": "<|reserved_special_token_5|>",
+        "count": 10,
+        "idsHash": "9b68f128f2e2958d2e6fe44c43953403caf14479989bd18ec39b65ebbcc26bf4"
+      },
+      {
+        "text": " 0123456789 can’t café\u0000end",
+        "count": 10,
+        "idsHash": "a1cff0f80ca0004e47630c5c7c7e5b72d22919293af54834e10529db2c19774c"
+      },
+      {
+        "messages": [
+          {
+            "role": "user",
+            "content": "Copy the following label exactly. Reply with only the label, without explanation.\nLabel: KAI-7A4DB0581234ABCD"
+          }
+        ],
+        "count": 40,
+        "idsHash": "cad441d593819d9bb6c306535e2821b25a71ba4ed01d3f0259a6ed200db94bbe",
+        "promptHash": "47669419be315a2f76f19070f3c58025168c90e97984f536d771a1d6b6266b5b"
+      },
+      {
+        "messages": [
+          {
+            "role": "user",
+            "content": "Remember this label for the next message: KAI-7A4DB0581234ABCD"
+          },
+          {
+            "role": "assistant",
+            "content": "I will remember the label."
+          },
+          {
+            "role": "user",
+            "content": "What label did I ask you to remember? Reply with only the label, without explanation."
+          }
+        ],
+        "count": 67,
+        "idsHash": "3b207ff08693408215e8bedc96b4ecbcba7cf21c8609b085b2f80e28656238d4",
+        "promptHash": "ac790a28b2a65255645d913e9c79706b84fc7416393643d3993ecc89a053f120"
+      }
+    ]
+  },
+  "runtime": {
+    "tag": "b11960",
+    "platform": "linux-x64",
+    "archiveSha256": "31cc3a6bc638ac6c48dc4b1b74888f1eaadf3d14227c1e5f67daf9a49541d97a",
+    "binarySha256": "005c789a278eff50500a864ee4736e7f4a7edf657acfba13e7a5cf19992927fa"
+  },
+  "activationRequirements": [
+    "Back up and inspect the deployed desktop manifest, credit journals and provider authorization stores.",
+    "Implement and test additive catalog policy migration without rewriting historic quotes or discarding credit balances or provider registrations.",
+    "Publish matching server and Core catalog commitments and runtime-readiness policy.",
+    "Each provider must pass fresh signed runtime-readiness challenges before serving this model."
+  ],
+  "licenseUrl": "https://huggingface.co/LiquidAI/LFM3-1.7B/blob/ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7/LICENSE"
+}
