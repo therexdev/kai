@@ -8,11 +8,10 @@
  * so the range was satisfied, and all twenty-seven probes went green.
  *
  * They went green because not one of them resolves the Koinos descriptors.
- * protobufjs 7.6.3 tightened extension resolution, and Koinos's own protos
- * use `extend google.protobuf.FieldOptions` for the btype annotations that
- * mark addresses and hashes — so every version that fixes the advisories
- * refuses to build the root at all. Settling an epoch on chain would have
- * thrown on the first encode, in production, with a green suite behind it.
+ * Koilib 9.3.0 omitted Google descriptors needed by the stricter extension
+ * resolution in patched protobufjs. Koilib 9.4.1 includes them, so the old
+ * vulnerable protobufjs pin is no longer needed. Keep this coverage: a bare
+ * import is not enough to prove transaction encoding works.
  *
  * A dependency that cannot encode a transaction is not a passing build. So
  * this probe does the one thing the others never did: build the serializer

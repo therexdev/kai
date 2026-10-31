@@ -1,6 +1,6 @@
 {
   "format": "kai-producer-signer-v1",
-  "koilibVersion": "9.3.0",
+  "koilibVersion": "9.4.1",
   "kondorCommit": "e319c5f190ec6d4c3c644270ded85a1256cd8e7c",
   "files": {
     "index.html": "bbd7577c12284b2a504638ed834478e49d1687b3a25f2062d8e27046acb43e73",
@@ -9,6 +9,6 @@
     "validation.js": "99b27d9553a52eec9473c78f497afe9b5f00e3a036698570560f3dd74dd323c9",
     "abis.js": "7279f54496768256f6e2417f0d78d42486673ac392c9523cf7a39393084295c0",
     "kondor.min.js": "d7325a8118f2125c47ff7a2e06cf6b06b41964e2984d2107322e392aebf14fe7",
-    "NOTICE.txt": "5d37ce019281a1abb6d9483b3eec3612f767de86dcce3d833fab828914df5695"
+    "NOTICE.txt": "3f8293ca12b241c9efe263891166bd0eb2651d11beb8198eee9ba04ebffd888c"
   }
 }
