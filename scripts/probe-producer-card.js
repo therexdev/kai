@@ -297,8 +297,8 @@ async function main() {
     "…and the node data is no-store, so a cache cannot serve last hour's numbers");
 
   // The two links the owner asked for, in both directions.
-  check(/href="\/app"/.test(fs.readFileSync(path.join(__dirname, "..", "public", "dashboard.html"), "utf8")),
-    "the dashboard links to chat");
+  check(/href="\/beta"/.test(fs.readFileSync(path.join(__dirname, "..", "public", "dashboard.html"), "utf8")),
+    "the dashboard links to Core Beta");
   check(/href="\/account"/.test(fs.readFileSync(path.join(__dirname, "..", "public", "dashboard.html"), "utf8")),
     "…and to the account page");
   check(/href="\/dashboard"/.test(acctSrc), "and the account page links to the dashboard");

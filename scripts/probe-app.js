@@ -195,7 +195,7 @@ async function main() {
      */
     const acctPage = await raw(port, "/account", cookie);
     check(acctPage.status === 200, "the account page serves");
-    check(/Web access/.test(acctPage.body), "it has a web-access section");
+    check(/Legacy web access/.test(acctPage.body), "it labels retained web access as legacy");
     check(/Signed-in browsers/.test(acctPage.body), "…and a signed-in-browsers section");
     check(/\/account\/grants\//.test(acctPage.body), "it calls the grant revoke route");
     check(/\/account\/sessions/.test(acctPage.body), "…and the session routes");
