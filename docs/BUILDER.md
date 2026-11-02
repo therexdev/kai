@@ -12,6 +12,15 @@ DeFi and arbitrary AssemblyScript contracts require a later isolated compiler
 and contract review workflow. Neither a syntax check nor AI generation is an
 audit. No claim of one-person-one-vote is made.
 
+## AI-assisted IDE foundation
+
+A new contract source workspace extends this builder toward a full Koinos IDE.
+It provides nested source/test files, reviewed AI changes, source diagnostics and
+local-build exports. Hosted compilation, simulation and custom deployment are
+not yet connected. Existing managed app publishing still uses its bundled
+contract. See [KOINOS_IDE.md](KOINOS_IDE.md) for implemented behavior, integration
+boundaries and the create → edit → test → testnet roadmap.
+
 ## Enable on the existing Vultr host
 
 After the website commit is deployed, run in the server's SSH terminal:
@@ -154,9 +163,10 @@ and its exported bridge stop until supported explicitly.
 - The parent bridge handles only fixed reads and app actions. Wallet requests
   are reviewed in trusted UI outside the generated frame. Preview state is
   explicitly labelled sample data and never signs or writes to the chain.
-- Source is stored as immutable SQLite revisions, limited to four text files,
-  300 KB per version, 200 versions per project and 15 MB history per account.
-  Twenty projects per account. Jobs have daily quotas and a bounded model loop.
+- Source is stored as immutable SQLite revisions: four text files for managed
+  apps or up to 64 source files for contract workspaces, 300 KB per version,
+  200 versions per project and 15 MB history per account. Twenty projects per
+  account. AI jobs use a bounded model loop; there is no daily build allowance.
 - Jobs run independently of the browser. Leases survive server restarts; one
   job is active across processes. AI attempts may incur repeated API usage
   after an interruption. The last saved revision is retained on failure.

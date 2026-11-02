@@ -11,6 +11,7 @@
     <script src="/build/assets/wallets.js" defer></script>
     <script src="/build/assets/bridge.js" defer></script>
     <script src="/build/assets/markdown.js" defer></script>
+    <script src="/build/assets/ide.js" defer></script>
     <script src="/build/assets/build.js" defer></script>
   <link rel="stylesheet" href="/i18n/language.css">
 </head>
@@ -134,6 +135,7 @@
               ><small>Start your dApp ↗</small>
             </button>
           </div>
+          <button class="button secondary ide-start" data-template="contract">Open a Koinos contract workspace ↗</button>
           <p id="setup-note" class="setup-note" hidden></p>
         </section>
         <section id="workspace" class="workspace" hidden>
@@ -184,6 +186,13 @@
             </p>
           </div>
           <div class="canvas-panel">
+            <div id="review-pending" class="review-banner" hidden>
+              <span>KAI has proposed changes. Review them before saving.</span>
+              <button class="button secondary" data-tab="changes">Review changes</button>
+            </div>
+            <div id="contract-workspace-note" class="workspace-note" hidden>
+              Contract source workspace · Export to compile and test locally.
+            </div>
             <section
               id="published-app"
               class="published-app"
@@ -231,6 +240,8 @@
                 >
                   Versions
                 </button>
+                <button id="tab-changes" role="tab" aria-selected="false" data-tab="changes">Changes</button>
+                <button id="tab-problems" role="tab" aria-selected="false" data-tab="problems">Diagnostics</button>
               </div>
               <div class="preview-tools">
                 <button
@@ -287,10 +298,25 @@
                 <label class="sr-only" for="file-select">File</label
                 ><select id="file-select"></select
                 ><span id="file-dirty"></span
+                ><button id="check-files" class="button secondary">Check files</button
                 ><button id="save-files" class="button primary">
                   Save version
                 </button>
               </div>
+              <div class="source-workspace">
+                <aside class="file-explorer" aria-label="Project files">
+                  <label class="sr-only" for="file-filter">Filter files</label>
+                  <input id="file-filter" placeholder="Find a file…" type="search" />
+                  <div id="file-actions" class="file-actions" hidden>
+                    <button id="add-file" type="button">New</button>
+                    <button id="rename-file" type="button">Rename</button>
+                    <button id="delete-file" type="button">Delete</button>
+                  </div>
+                  <nav id="file-tree" aria-label="Source files"></nav>
+                </aside>
+                <div class="source-editor">
+                  <div class="editor-body">
+                    <pre id="line-numbers" aria-hidden="true">1</pre>
               <label class="sr-only" for="code-editor">Source code</label
               ><textarea
                 id="code-editor"
@@ -298,6 +324,27 @@
                 autocapitalize="off"
                 autocomplete="off"
               ></textarea>
+                  </div>
+                  <div id="editor-status" class="editor-status" aria-live="off"></div>
+                </div>
+              </div>
+            </div>
+            <div id="pane-changes" class="pane review-pane" role="tabpanel" aria-labelledby="tab-changes" hidden>
+              <h2>Review AI changes</h2>
+              <p id="proposal-summary">No proposed changes. Ask KAI to edit your project.</p>
+              <p id="proposal-conflict" role="status" hidden>The saved source changed. Discard this proposal and ask KAI again.</p>
+              <div class="review-actions">
+                <button id="apply-proposal" class="button primary" disabled>Apply changes</button>
+                <button id="discard-proposal" class="button secondary" disabled>Discard</button>
+              </div>
+              <div id="proposal-diff"></div>
+            </div>
+            <div id="pane-problems" class="pane diagnostics-pane" role="tabpanel" aria-labelledby="tab-problems" hidden>
+              <h2>Diagnostics</h2>
+              <p>Source checks and observed preview errors. Build and test results will appear here when a runner is connected.</p>
+              <div id="source-diagnostics" role="status">Run Check files to inspect the current editor contents.</div>
+              <h3>Preview observations</h3>
+              <div id="preview-diagnostics">No errors observed in this preview. This does not mean interactions have been tested.</div>
             </div>
             <div
               id="pane-history"
@@ -341,6 +388,7 @@
             <option value="voting">Community voting</option>
             <option value="board">Community board</option>
             <option value="blank">Blank canvas</option>
+            <option value="contract">Koinos contract · IDE source workspace</option>
           </select></label
         >
         <p class="muted">
@@ -350,6 +398,15 @@
         <button id="create-submit" class="button primary">
           Create project
         </button>
+      </form>
+    </dialog>
+    <dialog id="source-file-dialog">
+      <form id="source-file-form">
+        <div class="dialog-head"><h2 id="source-file-heading">New source file</h2><button type="button" class="icon-button" data-close="source-file-dialog" aria-label="Close">×</button></div>
+        <label>File path<input id="source-file-path" maxlength="160" required placeholder="assembly/MyContract.ts" /></label>
+        <p class="muted">Relative source paths only. Changes become a version when you save.</p>
+        <p id="source-file-error" role="status"></p>
+        <button type="submit" class="button primary">Continue</button>
       </form>
     </dialog>
     <dialog id="settings-dialog">
