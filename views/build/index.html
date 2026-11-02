@@ -190,8 +190,12 @@
               <span>KAI has proposed changes. Review them before saving.</span>
               <button class="button secondary" data-tab="changes">Review changes</button>
             </div>
-            <div id="contract-workspace-note" class="workspace-note" hidden>
-              Contract source workspace · Export to compile and test locally.
+            <div id="project-workflow" class="workspace-note project-workflow">
+              <div><strong id="project-workflow-title"></strong><p id="project-workflow-detail"></p></div>
+              <div class="workflow-actions">
+                <button id="open-full-project" class="button secondary" hidden>Open full project</button>
+                <button id="test-preview" class="button secondary">Check &amp; preview</button>
+              </div>
             </div>
             <section
               id="published-app"
@@ -231,7 +235,7 @@
                   aria-selected="false"
                   data-tab="code"
                 >
-                  Files</button
+                  Project files</button
                 ><button
                   id="tab-history"
                   role="tab"
@@ -392,8 +396,8 @@
           </select></label
         >
         <p class="muted">
-          Start with a working app, then shape it through chat or the file
-          editor.
+          Chat creates your project with editable frontend, contracts and tests.
+          Keep building here or open Project files whenever you need the code.
         </p>
         <button id="create-submit" class="button primary">
           Create project

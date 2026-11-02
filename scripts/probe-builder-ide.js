@@ -166,6 +166,33 @@ test("real HTTP and editor workflow creates, edits, checks, reviews, exports and
     await until(() => builder.store.owned(user.id, project.id).revision === 3 && $("review-pending").hidden);
     assert.match(builder.store.files(user.id, project.id).files["notes/plan.md"], /Proposed/);
     assert.equal($("send").disabled, false);
+    // The existing guided creation process opens the same full source model,
+    // keeping preview as the starting view for users who stay in chat.
+    w.document.querySelector('[data-template="voting"]').click();
+    $("project-title").value = "Guided voting";
+    $("create-form").dispatchEvent(new w.Event("submit", { cancelable: true }));
+    await until(() => $("project-crumb").textContent === "Guided voting" && !$("check-files").disabled);
+    const guidedProject = builder.store.list(user.id).find(p => p.title === "Guided voting");
+    assert.ok(guidedProject.source_contract_hash);
+    assert.match($("file-tree").textContent, /contract\/assembly\/App.ts/);
+    assert.equal($("file-actions").hidden, false);
+    $("test-preview").click();
+    await until(() => !$("pane-preview").hidden && !$("test-preview").disabled);
+    assert.match($("preview-label").textContent, /sample App v1/);
+    assert.equal($("publish").disabled, false);
+    $("tab-code").click();
+    $("file-select").value = "contract/assembly/App.ts";
+    $("file-select").dispatchEvent(new w.Event("change"));
+    $("code-editor").value += "\n// guided custom source edit";
+    $("code-editor").dispatchEvent(new w.Event("input"));
+    $("save-files").click();
+    await until(() => builder.store.owned(user.id, guidedProject.id).revision === 2 && !$("check-files").disabled);
+    assert.equal($("publish").disabled, true);
+    assert.match($("project-workflow-detail").textContent, /Contract sources changed/);
+    const blocked = await post("/build/api/projects/" + guidedProject.id + "/publish", { revision: 2 });
+    assert.equal(blocked.status, 409);
+    assert.match((await blocked.json()).error, /Contract sources changed/);
+    assert.equal(builder.store.list(user.id).filter(p => p.title === "Guided voting").length, 1);
   } finally {
     dom?.window.close();
     await new Promise(resolve => server.close(resolve));

@@ -17,7 +17,7 @@
     };
   let queuedIdea = "",
     poller = null;
-  const ide = KaiBuildIDE.create({ getState: () => state, api, base, action, refresh, controls, showTab });
+  const ide = KaiBuildIDE.create({ getState: () => state, api, base, action, refresh, controls, showTab, preview });
   const bridge = KaiBuildBridge.create($("preview"), {
     getProject: () => state.detail?.project,
     onError: (message) => {
@@ -90,7 +90,8 @@
       running || state.busy || state.dirty || !!state.detail?.proposal || !state.config?.aiReady;
     $("code-editor").readOnly = running || state.busy;
     $("save-files").disabled = running || state.busy || !state.dirty;
-    $("publish").disabled = running || state.busy || state.dirty || state.detail?.project.template === "contract";
+    $("publish").disabled = running || state.busy || state.dirty || !!state.detail?.proposal || state.detail?.workspace?.publishAvailable === false || state.detail?.project.template === "contract";
+    $("publish").title = state.detail?.workspace?.publishAvailable === false ? state.detail.workspace.reason : "Deploy this saved project";
     $("propose-owner").disabled =
       running || state.busy || !state.detail?.project.contract_id;
     $("job-status").hidden = !running;
@@ -228,6 +229,7 @@
       return;
     }
     state.previewRevision = state.detail.project.revision;
+    $("preview-label").textContent = state.detail.workspace?.fullSource ? "Preview · sample App v1 data" : "Preview · sample data";
     $("preview-error").hidden = true;
     $("preview").src =
       base() + "/preview?revision=" + state.detail.project.revision;

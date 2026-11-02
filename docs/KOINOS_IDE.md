@@ -1,7 +1,9 @@
 # Build on Koinos: AI-assisted IDE
 
 The product stays at `/build`, inside Koinos AI. A guided dApp launch is one
-workflow inside the IDE. The development workflow is:
+workflow inside the IDE. Guided chat and manual editing use the same project,
+source revisions, contracts, tests and deployment history. Opening the IDE must
+never fork or recreate the app. The development workflow is:
 
 **Create contract → edit and review → compile → test locally → deploy to testnet
 → refine → explicitly launch on mainnet.**
@@ -14,15 +16,24 @@ a desktop installation.
 
 ## Implemented in this foundation
 
+- Guided voting, board and blank-app creation now produces a full project:
+  the frontend plus editable app/guard contracts, schemas, ABI references,
+  portable unit tests and pinned build scripts in `contract/`.
+- Existing frontend-only projects can use **Open full project**. This adds the
+  current template sources in a new revision of the same project, preserving
+  its ID, slug, contract addresses, live release, source history and data.
+- **Check & preview** runs source checks and opens the sample frontend preview.
+  Users can continue in chat and deploy unchanged template contracts without
+  opening source files. It is deliberately not labelled a contract test run.
 - A new `contract` project type with nested source files, a file explorer, filter,
   create/rename/delete, line numbers, indentation and save shortcut.
 - An AssemblyScript counter starter with protobuf schema, explicit Koinos
   entrypoint, pinned dependencies, local build scripts and MockVM tests. It is a
   public counter; it does not hold funds or provide an ownership-transfer system.
 - Durable AI proposals, side-by-side saved/proposed source, apply/discard, and
-  revision conflict detection. Custom contract changes always require review.
-  The web chat also requests review for managed frontend edits. Legacy API
-  callers can still request automatic managed-frontend edits.
+  revision conflict detection. Full-project and standalone contract AI edits
+  always require review. Legacy frontend-only API callers can still request
+  automatic frontend edits.
 - Saved versions, restoration, source ZIP export and project JSON import. Import
   creates a new project and does not claim an existing deployment.
 - Source diagnostics (paths, size, file count, JSON format) and the existing
@@ -36,15 +47,36 @@ GitHub synchronization and custom contract deployment are not implemented in
 this foundation. The editor is currently a text editor with IDE navigation;
 Monaco/CodeMirror and language-aware completion are a subsequent editor upgrade.
 
-Managed app projects retain their existing fixed-template deployment and
-sandboxed frontend previews. Custom contract projects are explicitly rejected by
-preview, managed publish and wallet-prepare routes, with another guard in the
-publishing worker. Editing custom source cannot change the platform's bundled
-WASM or bypass its signer allowlist. Source export contains no platform key.
+Guided projects retain their existing deployment and sandboxed frontend preview.
+The server pins the contract-source snapshot and app/guard WASM hashes when a
+full project is created or attached. Unchanged contract sources can use the
+current deploy workflow; frontend edits continue to publish on the same address.
+Contract-folder changes pause managed publishing until a custom build/deploy
+path is connected. Source checks and sample preview remain available, with a
+clear indication that edited contracts have not run.
 
-The counter can be built today outside the web service: export ZIP, enter
-`source/`, then run the commands in its README. Its local compiler dependencies
-are not installed into the production web server by this change.
+Deleting every contract file cannot remove this requirement: the source binding
+is persisted on the project, outside user-editable files. Import ignores any
+claimed provenance and compares against the server's own template snapshot.
+Project creation/attachment does not assert that an older on-chain deployment
+matches these current sources; existing metadata/guard checks verify that
+separately before publication. A bundled WASM change invalidates publishing for
+older bound projects rather than silently substituting code.
+
+Standalone contract-only projects still have no frontend preview or managed
+deployment. Both managed publish and owner-wallet publish preparation enforce
+source eligibility; the publishing worker checks it again. Editing source cannot
+change the platform's bundled WASM or signer allowlist. Changed-contract exports
+contain all editable source, but no substitute template WASM or deployable site.
+Unchanged full-project exports include the existing standalone site and matching
+bundled artifacts, plus the actual editable source and tests. No export contains
+a platform key.
+
+Both project paths can be built outside the web service: export ZIP and run the
+README commands in `source/contract/` for a guided project, or `source/` for a
+contract-only project. These dependencies are not installed into the production
+web server. The guided bundle includes the existing 28 MockVM tests and builds
+app/guard WASM and ABI matching the platform artifacts byte for byte.
 
 ## Next: an isolated build and test runner
 
@@ -124,9 +156,10 @@ is the default direction; payment must not silently select a new chain or build.
 
 `template: "contract"` uses up to 64 text files and 300 KB total content, with
 canonical relative paths. Hidden files, path traversal, dependency/build folders,
-case collisions and file/directory conflicts are rejected. Existing per-account
-project and version-history limits remain. At most one pending proposal is
-retained per project; applying consumes a normal saved revision and discarding
+case collisions and file/directory conflicts are rejected. Guided full projects
+keep the four frontend files (300 KB) and a contract folder (300 KB), with at most 64 total files and an 800 KB serialized envelope.
+Existing per-account project and version-history limits remain. At most one
+pending proposal is retained per project; applying consumes a normal saved revision and discarding
 removes the proposal. A new AI request is blocked until review is resolved.
 
 - `POST /build/api/projects`: creates a managed app or `contract` workspace.
@@ -135,20 +168,28 @@ removes the proposal. A new AI request is blocked until review is resolved.
 - `POST /build/api/projects/:id/check`: checks supplied editor contents without
   executing them; returns diagnostics and `compiled: false`.
 - `POST /build/api/projects/:id/messages`: queues an AI job; contract jobs always
-  create a proposal when source changes. `review: true` opts managed apps in.
-- `GET /build/api/projects/:id`: includes the pending proposal, its base source
-  and proposed source for review.
+  create a proposal when source changes, as do full guided projects.
+  `review: true` opts older frontend-only apps in.
+- `GET /build/api/projects/:id`: includes source/deployment eligibility, the
+  pending proposal, its base source and proposed source for review.
+- `POST /build/api/projects/:id/workspace`: attaches contract sources to an
+  older frontend-only project using an exact current revision. It changes no
+  on-chain state and does not change the project ID or current live release.
 - `POST /build/api/projects/:id/proposals/:proposalId`: applies or discards a
   proposal. Apply checks the current revision against the proposal's base.
 - Existing version restoration and exports apply to both project types.
 
 ## Verification
 
-Run `node --test scripts/probe-builder-ide.js` and the existing builder probes.
+Run `node --test scripts/probe-builder-ide.js scripts/probe-builder-guided.js`
+and the existing builder probes.
 The IDE probe exercises real HTTP/session routes and the actual client scripts
 in a DOM environment: files, save, source checks, AI proposal, review and apply,
 export/import, account isolation, stale proposals and deployment refusal. AI
-responses are fixtures; no paid API call or chain transaction is made.
+responses are fixtures; no paid API call or chain transaction is made. The
+guided probes cover same-project source attachment, preserved live state,
+source/bytecode binding, frontend-only publishing, refusal before signer access,
+source import/export, and combined AI frontend/contract proposals.
 
 Copy `templates/builder/contract` to a temporary directory and run `npm ci
 --ignore-scripts`, `npm test`, and `npm run build` there. Keep generated outputs

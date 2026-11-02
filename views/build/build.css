@@ -858,6 +858,10 @@ button {
 .review-banner, .workspace-note { padding: 12px 18px; background: #f2edff; color: #514185; font-size: 12px; border-bottom: 1px solid var(--line); }
 .review-banner { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
 .workspace-note { background: #f7f8fc; color: #5b6b85; }
+.project-workflow { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.project-workflow p { margin: 4px 0 0; max-width: 700px; font-size: 11px; line-height: 1.5; }
+.workflow-actions { display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+@media (max-width: 1100px) { .project-workflow { flex-wrap: wrap; } }
 .source-workspace { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 .file-explorer { width: 200px; flex: none; border-right: 1px solid var(--line); padding: 12px 8px; overflow: auto; }
 .file-explorer input { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 11px; }

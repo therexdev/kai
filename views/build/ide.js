@@ -1,7 +1,7 @@
 "use strict";
 // The IDE renders source as text. Project code never runs in this document.
 window.KaiBuildIDE = {
-  create({ getState, api, base, action, refresh, controls, showTab }) {
+  create({ getState, api, base, action, refresh, controls, showTab, preview }) {
     const $ = id => document.getElementById(id);
     const el = (tag, text, cls) => {
       const n = document.createElement(tag);
@@ -11,6 +11,7 @@ window.KaiBuildIDE = {
     };
     let proposalKey = "", renameFrom = null, checkKey = "";
     const isContract = () => getState().detail?.project.template === "contract";
+    const hasSourceWorkspace = () => isContract() || getState().detail?.workspace?.fullSource;
     const locked = () => getState().busy || getState().detail?.jobs.some(j => ["queued", "running", "confirming"].includes(j.status));
     function editorStatus() {
       const input = $("code-editor"), text = input.value;
@@ -89,10 +90,14 @@ window.KaiBuildIDE = {
     }
     function updateControls() {
       const state = getState(), p = state.detail?.proposal;
-      $("file-actions").hidden = !isContract();
+      $("file-actions").hidden = !hasSourceWorkspace();
       for (const id of ["add-file", "rename-file", "delete-file", "check-files"]) $(id).disabled = !!locked() || !state.detail;
       $("apply-proposal").disabled = !p || !!locked() || state.dirty || p.base_revision !== state.detail.project.revision;
       $("discard-proposal").disabled = !p || !!locked();
+      $("open-full-project").hidden = !state.detail || hasSourceWorkspace();
+      $("open-full-project").disabled = !!locked() || state.dirty || !!p;
+      $("test-preview").hidden = isContract();
+      $("test-preview").disabled = !!locked() || state.dirty || !!p || !state.detail;
     }
     $("file-filter").oninput = renderTree;
     $("file-select").addEventListener("change", () => selectFile($("file-select").value));
@@ -113,10 +118,11 @@ window.KaiBuildIDE = {
       }
     });
     function fileDialog(rename) {
-      if (!isContract() || locked()) return;
+      if (!hasSourceWorkspace() || locked()) return;
       renameFrom = rename ? $("file-select").value : null;
       $("source-file-heading").textContent = rename ? "Rename source file" : "New source file";
       $("source-file-path").value = renameFrom || "";
+      $("source-file-path").placeholder = isContract() ? "assembly/MyContract.ts" : "contract/assembly/Feature.ts";
       $("source-file-error").textContent = "";
       $("source-file-dialog").showModal();
       $("source-file-path").focus();
@@ -125,10 +131,11 @@ window.KaiBuildIDE = {
     $("rename-file").onclick = () => fileDialog(true);
     $("source-file-form").onsubmit = event => {
       event.preventDefault();
-      if (!isContract() || locked()) return;
+      if (!hasSourceWorkspace() || locked()) return;
       const name = $("source-file-path").value.trim(), state = getState();
-      if (!/^[a-zA-Z0-9_][a-zA-Z0-9_./-]*\.(ts|js|cjs|json|proto|md|yaml|yml)$/.test(name) || name.split("/").some(p => !/^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/.test(p) || p.endsWith(".") || /^(node_modules|build|dist|vendor|con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(p)) || name.length > 160) {
-        $("source-file-error").textContent = "Use a safe relative source path, such as assembly/Feature.ts."; return;
+      const sourcePath = /^[a-zA-Z0-9_][a-zA-Z0-9_./-]*\.(ts|js|cjs|json|proto|md|yaml|yml)$/.test(name) && !name.split("/").some(p => !/^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/.test(p) || p.endsWith(".") || /^(node_modules|build|dist|vendor|con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(p)) && name.length <= 160;
+      if (!(isContract() ? sourcePath : ["index.html", "app.css", "app.js", "README.md"].includes(name) || (name.startsWith("contract/") && sourcePath))) {
+        $("source-file-error").textContent = isContract() ? "Use a safe relative source path, such as assembly/Feature.ts." : "Use a contract/ source path, such as contract/assembly/Feature.ts."; return;
       }
       if (Object.keys(state.files).some(n => n !== renameFrom && (n.toLowerCase() === name.toLowerCase() || n.toLowerCase().startsWith(name.toLowerCase() + "/") || name.toLowerCase().startsWith(n.toLowerCase() + "/")))) {
         $("source-file-error").textContent = "That path conflicts with an existing file."; return;
@@ -141,12 +148,12 @@ window.KaiBuildIDE = {
       $("source-file-dialog").close();
     };
     $("delete-file").onclick = () => {
-      if (!isContract() || locked() || Object.keys(getState().files).length <= 1) return;
+      if (!hasSourceWorkspace() || locked() || Object.keys(getState().files).length <= 1) return;
       const name = $("file-select").value;
       if (!confirm("Delete " + name + " from the draft? You can restore saved versions.")) return;
       delete getState().files[name]; rebuildFiles(); edited();
     };
-    $("check-files").onclick = () => action(async () => {
+    function checkFiles(openPreview = false) { return action(async () => {
       const state = getState(), key = JSON.stringify(state.files), project = state.detail.project.id;
       const result = await api(base() + "/check", { files: state.files });
       if (project !== getState().detail?.project.id || key !== JSON.stringify(getState().files)) return;
@@ -164,7 +171,16 @@ window.KaiBuildIDE = {
         }
         target.append(item);
       }
-      showTab("problems");
+      if (openPreview && result.ok && !state.dirty && !isContract()) {
+        preview(); showTab("preview");
+      } else showTab("problems");
+    }); }
+    $("check-files").onclick = () => checkFiles();
+    $("test-preview").onclick = () => checkFiles(true);
+    $("open-full-project").onclick = () => action(async () => {
+      if (getState().dirty) return;
+      await api(base() + "/workspace", { revision: getState().detail.project.revision });
+      await refresh(true); showTab("code");
     });
     for (const [id, verb] of [["apply-proposal", "apply"], ["discard-proposal", "discard"]]) {
       $(id).onclick = () => action(async () => {
@@ -178,7 +194,8 @@ window.KaiBuildIDE = {
       renderDiagnostics, controls: updateControls,
       render() {
         const state = getState();
-        $("contract-workspace-note").hidden = !isContract();
+        $("project-workflow-title").textContent = isContract() ? "Contract source workspace" : hasSourceWorkspace() ? "Your project · Frontend, contracts & tests" : "Your guided app";
+        $("project-workflow-detail").textContent = state.detail.workspace?.reason || "Chat, preview and deploy your app.";
         $("tab-preview").hidden = isContract();
         if (isContract() && state.tab === "preview") showTab("code");
         if (checkKey && checkKey !== state.detail.project.id + ":" + state.editRevision) {
