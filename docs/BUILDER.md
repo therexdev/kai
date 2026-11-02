@@ -4,13 +4,25 @@ KAI Build is integrated into the existing Koinos AI website and account system.
 It creates, edits, versions, previews, publishes, exports and transfers Koinos
 apps. The initial contract engine supports public records, author edits,
 wallet-authored polls and one vote per wallet. Its frontend is fully editable
-through the OpenAI tool loop or the file editor.
+through the OpenAI tool loop or the file editor. Guided creation also saves the
+app/guard contracts, schemas, ABI references, tests and build tools in the same
+editable project; source edits do not themselves change deployed bytecode.
 
 This release is a template-based beta. It does **not** execute arbitrary server
 code or compile user-written contracts on the production host. Custom token,
-DeFi and arbitrary AssemblyScript contracts require a later isolated compiler
-and contract review workflow. Neither a syntax check nor AI generation is an
-audit. No claim of one-person-one-vote is made.
+DeFi and edited AssemblyScript deployments require a later isolated compiler
+and contract review workflow. Their source can be edited and exported now.
+Neither a syntax check nor AI generation is an audit. No claim of one-person-one-vote is made.
+
+## AI-assisted IDE foundation
+
+A new contract source workspace extends this builder toward a full Koinos IDE.
+Guided chat and the IDE share one project, with frontend, nested contract/test
+files, reviewed AI changes, source diagnostics and local-build exports. Older
+projects can open full source without recreating the app. Hosted compilation,
+simulation and custom deployment are not yet connected. Existing managed app publishing still uses its bundled
+contract. See [KOINOS_IDE.md](KOINOS_IDE.md) for implemented behavior, integration
+boundaries and the create → edit → test → testnet roadmap.
 
 ## Enable on the existing Vultr host
 
@@ -154,9 +166,12 @@ and its exported bridge stop until supported explicitly.
 - The parent bridge handles only fixed reads and app actions. Wallet requests
   are reviewed in trusted UI outside the generated frame. Preview state is
   explicitly labelled sample data and never signs or writes to the chain.
-- Source is stored as immutable SQLite revisions, limited to four text files,
-  300 KB per version, 200 versions per project and 15 MB history per account.
-  Twenty projects per account. Jobs have daily quotas and a bounded model loop.
+- Source is stored as immutable SQLite revisions: standalone contract workspaces
+  allow 64 files / 300 KB. Guided full projects keep up to 300 KB of frontend
+  plus 300 KB of contract source, within 64 total files and an 800 KB serialized
+  envelope. Older frontend-only projects retain their four-file / 300 KB limit.
+  Limits remain 200 versions per project, 15 MB history and 20 projects per
+  account. AI jobs use a bounded model loop; there is no daily build allowance.
 - Jobs run independently of the browser. Leases survive server restarts; one
   job is active across processes. AI attempts may incur repeated API usage
   after an interruption. The last saved revision is retained on failure.

@@ -1,0 +1,4 @@
+syntax = "proto3";
+package counter;
+message Request {}
+message State { uint32 count = 1; }

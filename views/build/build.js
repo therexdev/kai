@@ -17,6 +17,7 @@
     };
   let queuedIdea = "",
     poller = null;
+  const ide = KaiBuildIDE.create({ getState: () => state, api, base, action, refresh, controls, showTab, preview });
   const bridge = KaiBuildBridge.create($("preview"), {
     getProject: () => state.detail?.project,
     onError: (message) => {
@@ -47,6 +48,7 @@
         state.previewDiagnostics = [...state.previewDiagnostics, entry].slice(
           -8,
         );
+      ide.renderDiagnostics();
     },
   });
   function note(message, error = false) {
@@ -68,7 +70,7 @@
     if (!r.ok) throw Error(data.error || "This request did not finish.");
     return data;
   }
-  const base = () => "/build/api/projects/" + state.detail.project.id;
+  function base() { return "/build/api/projects/" + state.detail.project.id; }
   const active = () =>
     state.detail?.jobs.find((j) => ["running", "queued", "confirming"].includes(j.status));
   function node(tag, text, cls) {
@@ -85,15 +87,17 @@
       $("live-draft-note").hidden =
         !state.dirty && project.revision === project.live_revision;
     $("send").disabled =
-      running || state.busy || state.dirty || !state.config?.aiReady;
+      running || state.busy || state.dirty || !!state.detail?.proposal || !state.config?.aiReady;
     $("code-editor").readOnly = running || state.busy;
     $("save-files").disabled = running || state.busy || !state.dirty;
-    $("publish").disabled = running || state.busy || state.dirty;
+    $("publish").disabled = running || state.busy || state.dirty || !!state.detail?.proposal || state.detail?.workspace?.publishAvailable === false || state.detail?.project.template === "contract";
+    $("publish").title = state.detail?.workspace?.publishAvailable === false ? state.detail.workspace.reason : "Deploy this saved project";
     $("propose-owner").disabled =
       running || state.busy || !state.detail?.project.contract_id;
     $("job-status").hidden = !running;
     if (running) $("job-stage").textContent = active().stage;
     KaiI18n.setText($("file-dirty"), state.dirty ? "Unsaved changes" : "");
+    ide.controls();
   }
   function renderProjects() {
     $("project-list").replaceChildren();
@@ -219,11 +223,18 @@
   function preview() {
     bridge.reset();
     state.previewDiagnostics = [];
+    if (state.detail.project.template === "contract") {
+      state.previewRevision = null;
+      $("preview").removeAttribute("src");
+      return;
+    }
     state.previewRevision = state.detail.project.revision;
+    $("preview-label").textContent = state.detail.workspace?.fullSource ? "Preview · sample App v1 data" : "Preview · sample data";
     $("preview-error").hidden = true;
     $("preview").src =
       base() + "/preview?revision=" + state.detail.project.revision;
     $("revision-label").textContent = "v" + state.detail.project.revision;
+    ide.renderDiagnostics();
   }
   function render(detail, force = false) {
     const old = state.detail,
@@ -236,7 +247,7 @@
     $("workspace").hidden = false;
     $("project-crumb").hidden = false;
     $("project-crumb").textContent = detail.project.title;
-    $("publish").hidden = false;
+    $("publish").hidden = detail.project.template === "contract";
     const published = !!detail.project.live_revision;
     $("live-link").hidden = !published;
     $("published-app").hidden = !published;
@@ -268,13 +279,15 @@
         }),
       );
       $("file-select").value =
-        state.files[selected] != null ? selected : "index.html";
+        state.files[selected] != null ? selected : (detail.project.template === "contract" ? "assembly/Counter.ts" : "index.html");
+      if (!$("file-select").value) $("file-select").selectedIndex = 0;
       $("code-editor").value = state.files[$("file-select").value] || "";
       preview();
     }
     renderMessages();
     renderVersions();
     renderProjects();
+    ide.render();
     controls();
   }
   async function refresh(force = false) {
@@ -316,10 +329,12 @@
   }
   function showTab(tab) {
     state.tab = tab;
-    for (const name of ["preview", "code", "history"]) {
+    for (const name of ["preview", "code", "history", "changes", "problems"]) {
       $("pane-" + name).hidden = name !== tab;
       $("tab-" + name).setAttribute("aria-selected", String(name === tab));
     }
+    $("device-toggle").hidden = tab !== "preview";
+    $("refresh-preview").hidden = tab !== "preview";
   }
   $("copy-live-link").onclick = async () => {
     try {
@@ -358,7 +373,7 @@
         ? "Community voting"
         : template === "board"
           ? "Community board"
-          : "My Koinos app";
+          : template === "contract" ? "My Koinos contract" : "My Koinos app";
     $("template-select").value = template;
     $("create-dialog").showModal();
     $("project-title").select();
@@ -415,6 +430,7 @@
     action(async () => {
       await api(base() + "/messages", {
         prompt,
+        review: true,
         diagnostics: {
           revision: state.previewRevision,
           errors: state.previewDiagnostics,
@@ -447,7 +463,7 @@
       );
       state.dirty = false;
       await refresh(true);
-      note(KaiI18n.message`Version saved. The preview is updated.`);
+      note(state.detail.project.template === "contract" ? "Source version saved." : KaiI18n.message`Version saved. The preview is updated.`);
     });
   $("refresh-preview").onclick = () => {
     if (state.detail) preview();
@@ -481,6 +497,12 @@
     action(async () => {
       $("settings-status").textContent = "";
       $("settings-dialog").showModal();
+      if (state.detail.project.template === "contract") {
+        $("ownership-info").textContent = "Contract source workspace. Export the project to build and test locally. Custom deployment and ownership actions are not connected yet.";
+        $("accept-owner").hidden = true;
+        $("propose-owner").disabled = true;
+        return;
+      }
       KaiI18n.setText($("ownership-info"), "Checking app ownership…");
       const { config, managed } = await chainInfo(),
         p = state.detail.project;
