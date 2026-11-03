@@ -53,7 +53,7 @@ async function main() {
     } else {
       const abi = generate(target);
       if (job.operation === "compile") {
-        command(process.execPath, [require.resolve("assemblyscript/bin/asc"), target.entry, "--config", TOOLCHAIN + "/asconfig.json", "--binaryFile", "/tmp/contract.wasm", "--optimizeLevel", "3", "--shrinkLevel", "0"]);
+        command(process.execPath, [TOOLCHAIN + "/node_modules/assemblyscript/bin/asc", target.entry, "--config", TOOLCHAIN + "/asconfig.json", "--binaryFile", "/tmp/contract.wasm", "--optimizeLevel", "3", "--shrinkLevel", "0"]);
         const wasm = fs.readFileSync("/tmp/contract.wasm"), abiBytes = Buffer.from(JSON.stringify(abi, null, 2));
         if (wasm.length > 2000000 || !wasm.subarray(0, 8).equals(Buffer.from([0,97,115,109,1,0,0,0]))) throw Error("Invalid WASM artifact");
         for (const [name, bytes] of [["contract.wasm", wasm], ["contract.abi.json", abiBytes]]) artifacts.push({ name, sha256: hash(bytes), bytes: bytes.length, base64: bytes.toString("base64") });

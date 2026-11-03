@@ -178,7 +178,7 @@ window.KaiBuildIDE = {
       if (!hasSourceWorkspace() || locked()) return;
       const name = $("source-file-path").value.trim(), state = getState();
       const sourcePath = ((isPlugin() || isApplication()) ? /^[a-zA-Z0-9_][a-zA-Z0-9_./-]*\.(ts|tsx|jsx|js|cjs|mjs|json|proto|md|yaml|yml|html|css|svg|txt|sql|toml)$/ : /^[a-zA-Z0-9_][a-zA-Z0-9_./-]*\.(ts|js|cjs|json|proto|md|yaml|yml)$/).test(name) && !name.split("/").some(p => !/^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/.test(p) || p.endsWith(".") || /^(node_modules|build|dist|vendor|con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(p)) && name.length <= 160;
-      if (!(sourceOnly() ? sourcePath : ["index.html", "app.css", "app.js", "README.md"].includes(name) || (name.startsWith("contract/") && sourcePath))) {
+      if (!(sourceOnly() ? sourcePath : ["index.html", "app.css", "app.js", "README.md", "kai.project.json"].includes(name) || (name.startsWith("contract/") && sourcePath))) {
         $("source-file-error").textContent = isPlugin() ? "Use a safe source path, such as plugin/features/panel.js." : isContract() ? "Use a safe relative source path, such as assembly/Feature.ts." : "Use a contract/ source path, such as contract/assembly/Feature.ts."; return;
       }
       if (Object.keys(state.files).some(n => n !== renameFrom && (n.toLowerCase() === name.toLowerCase() || n.toLowerCase().startsWith(name.toLowerCase() + "/") || name.toLowerCase().startsWith(n.toLowerCase() + "/")))) {

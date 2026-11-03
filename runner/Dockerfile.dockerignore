@@ -1,0 +1,10 @@
+**
+!templates
+!templates/builder
+!templates/builder/contract
+!templates/builder/contract/package.json
+!templates/builder/contract/package-lock.json
+!runner
+!runner/harness.cjs
+!runner/pect.cjs
+!runner/asconfig.json

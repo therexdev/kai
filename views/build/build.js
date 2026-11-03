@@ -509,8 +509,8 @@
     action(async () => {
       const f = $("import-file").files[0];
       if (!f) return;
-      if (f.size > 900000)
-        throw Error("Choose a project export smaller than 900 KB.");
+      if (f.size > 17000000)
+        throw Error("Choose a project export smaller than 17 MB.");
       const data = JSON.parse(await f.text());
       const { project } = await api("/build/api/projects/import", data);
       await listProjects();
