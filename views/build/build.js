@@ -133,9 +133,16 @@
   function renderMessages() {
     const area = $("messages"),
       nearBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 100;
+    const latestEdit = state.detail.jobs.find((j) => j.kind === "edit");
+    const failed = !active() && state.detail.jobs.find((j) => j.status === "failed" &&
+      j === state.detail.jobs.find((other) => other.kind === j.kind) &&
+      (j.kind !== "publish" || j.revision > state.detail.project.live_revision) &&
+      (j.kind !== "edit" || (j === latestEdit && j.revision === state.detail.project.revision)));
     const trackedTransactions = [...state.detail.releases.map(r => r.tx_id), active()?.txId].filter(Boolean);
     area.replaceChildren();
     for (const m of state.detail.messages) {
+      // The current error is rendered once with its available recovery action.
+      if (m.role === "assistant" && failed && m.content === failed.error) continue;
       // Older workers wrote normal finality waits into chat as errors. The
       // current status below now replaces those obsolete retry instructions.
       if (m.role === "assistant" && trackedTransactions.some(id => m.content.includes(id)) &&
@@ -160,16 +167,12 @@
       div.append(node("span", m.role === "user" ? KaiI18n.message`You` : KaiI18n.message`KAI`, "role"), body);
       area.append(div);
     }
-    const latestEdit = state.detail.jobs.find((j) => j.kind === "edit");
-    const failed = !active() && state.detail.jobs.find((j) => j.status === "failed" &&
-      j === state.detail.jobs.find((other) => other.kind === j.kind) &&
-      (j.kind !== "publish" || j.revision > state.detail.project.live_revision) &&
-      (j.kind !== "edit" || (j === latestEdit && j.revision === state.detail.project.revision)));
     if (failed && ["edit", "publish", "propose"].includes(failed.kind)) {
+      const errorText = failed.retryable === false ? failed.error.replace("Use Retry saved edit to resume.", "Send a smaller new request focused on one file or feature.") : failed.error;
       area.append(
         node(
           "p",
-          (failed.error) || (KaiI18n.message`This request needs attention. Your project is saved.`),
+          errorText || (KaiI18n.message`This request needs attention. Your project is saved.`),
           "publish-error",
         ),
       );
@@ -183,7 +186,7 @@
           await api(base() + "/jobs/" + failed.id + "/retry", {});
           await refresh();
         });
-      area.append(retry);
+      if (failed.retryable !== false) area.append(retry);
       if (failed.error_detail) {
         const copy = node("button", KaiI18n.message`Copy error details`, "retry-job");
         copy.onclick = () => action(async () => {
