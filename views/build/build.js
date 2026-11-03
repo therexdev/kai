@@ -167,7 +167,7 @@
       div.append(node("span", m.role === "user" ? KaiI18n.message`You` : KaiI18n.message`KAI`, "role"), body);
       area.append(div);
     }
-    if (failed && ["edit", "publish", "propose"].includes(failed.kind)) {
+    if (failed && ["edit", "publish", "propose", "build"].includes(failed.kind)) {
       const errorText = failed.retryable === false ? failed.error.replace("Use Retry saved edit to resume.", "Send a smaller new request focused on one file or feature.") : failed.error;
       area.append(
         node(
@@ -186,7 +186,10 @@
           await api(base() + "/jobs/" + failed.id + "/retry", {});
           await refresh();
         });
-      if (failed.retryable !== false) area.append(retry);
+      if (failed.kind === "build") {
+        const open = node("button", "Open Builds & tests", "retry-job");
+        open.onclick = () => showTab("runs"); area.append(open);
+      } else if (failed.retryable !== false) area.append(retry);
       if (failed.error_detail) {
         const copy = node("button", KaiI18n.message`Copy error details`, "retry-job");
         copy.onclick = () => action(async () => {

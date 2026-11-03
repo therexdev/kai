@@ -4,7 +4,8 @@ const { chromium } = require("playwright"), { Builder } = require("../lib/builde
 (async () => {
   const root = path.join(__dirname, ".."), dir = fs.mkdtempSync(path.join(os.tmpdir(), "kai-runner-browser-")), app = express();
   const server = await new Promise(resolve => { const s = app.listen(0, "127.0.0.1", () => resolve(s)); }), origin = "http://127.0.0.1:" + server.address().port;
-  const accounts = createAccounts({ stateDir: dir, siteOrigin: origin }), builder = new Builder({ stateDir: dir, autoStart: false, runner: { configured: true, async health() { return { ready: true, profile: config.PROFILE }; }, async run(input) { const job = config.job(input); return { ok: false, logs: "Fixture compiler output: services/feed.cjs:3 expected ten records\n<script>window.INJECTED=true</script>", artifacts: [], sourceHash: job.sourceHash, target: job.target.id, operation: job.operation, profile: config.PROFILE, runtime: "runsc", image: "sha256:" + "a".repeat(64), durationMs: 150 }; } } });
+  let unavailable = false;
+  const accounts = createAccounts({ stateDir: dir, siteOrigin: origin }), builder = new Builder({ stateDir: dir, autoStart: false, runner: { configured: true, async health() { return { ready: true, profile: config.PROFILE }; }, async run(input) { if (unavailable) throw Object.assign(Error("Worker offline fixture"), { status: 503 }); const job = config.job(input); return { ok: false, logs: "Fixture compiler output: services/feed.cjs:3 expected ten records\n<script>window.INJECTED=true</script>", artifacts: [], sourceHash: job.sourceHash, target: job.target.id, operation: job.operation, profile: config.PROFILE, runtime: "runsc", image: "sha256:" + "a".repeat(64), durationMs: 150 }; } } });
   app.use(express.json({ limit: "17mb" }), accounts.router, createBuilderRouter({ accounts, stateDir: dir, builder }).router, express.static(path.join(root, "public")));
   const user = accounts.service._newAccount({ email: "runner-browser@example.test" }), token = accounts.service._issueSession(user.id, "browser");
   let browser;
@@ -39,6 +40,14 @@ const { chromium } = require("playwright"), { Builder } = require("../lib/builde
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: path.join(__dirname, "builder-runner-mobile.png") });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+    unavailable = true;
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.locator("#build-target").selectOption("service"); await page.locator("#test-target").click();
+    for (let i = 0; !builder.store.detail(user.id, project.id).jobs.some(job => job.status === "queued") && i < 100; i++) await new Promise(resolve => setTimeout(resolve, 10));
+    await builder.tick(); await page.locator("#messages .publish-error").waitFor();
+    assert.match(await page.locator("#messages .publish-error").textContent(), /Worker offline fixture/);
+    await page.getByRole("button", { name: "Open Builds & tests", exact: true }).click();
+    assert.equal(await page.locator("#pane-runs").isVisible(), true);
     assert.deepEqual(errors, []);
     console.log("PASS actual browser: multi-target jobs, safe output, AI repair prompt, stale results and mobile layout (fixture runner; real execution covered separately)");
   } finally { await browser?.close(); await new Promise(resolve => server.close(resolve)); builder.close(); fs.rmSync(dir, { recursive: true, force: true }); }
