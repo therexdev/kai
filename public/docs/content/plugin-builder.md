@@ -1,6 +1,6 @@
 # Build KAI plugins with Koinos
 
-[Open Build Koinos](/build) to describe a KAI Core plugin, edit its complete
+[Open Build Koinos](https://koinosai.com/build) to describe a KAI Core plugin, edit its complete
 source and review AI proposals. Plugins and contracts can live in one project
 with the same chat, files and version history.
 

@@ -46,6 +46,14 @@ test("plugin checks catch incompatible manifests without executing source or wea
   assert.throws(() => docs.read("../../package.json"), /reference/);
   assert.match(docs.read("author-guide").content, /not an arbitrary transaction signer/);
   assert.match(docs.read("start").content, /Referral and developer rewards/);
+  const { mdToHtml } = require("../public/docs/md"), html = mdToHtml(docs.read("start").content);
+  const rendered = new JSDOM(html);
+  assert.equal(rendered.window.document.querySelectorAll("table").length, 2);
+  assert.equal(rendered.window.document.querySelector("a").href, "https://koinosai.com/build");
+  rendered.window.close();
+  const unsafe = mdToHtml('| Feature | Behavior |\n| --- | --- |\n| <img src=x onerror=alert(1)> | [bad](javascript:alert(1)) |\n');
+  assert.doesNotMatch(unsafe, /<img|href="javascript:/); assert.match(unsafe, /&lt;img/);
+  assert.doesNotMatch(mdToHtml("```\n| A | B |\n| --- | --- |\n```"), /<table>/);
 });
 
 test("sandboxed starter uses Core storage, local AI and shared locale without replacing unsaved input", async () => {

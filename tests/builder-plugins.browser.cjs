@@ -42,6 +42,8 @@ const { chromium } = require("playwright"), { Builder } = require("../lib/builde
     await page.locator("#composer-review").click(); await page.locator("#apply-proposal").click();
     await page.locator("#review-pending").waitFor({ state: "hidden" }); assert.equal(builder.store.owned(user.id, project.id).revision, 2);
     await page.locator("#tab-reference").click(); await page.locator("#reference-content").getByText("Core API boundaries", { exact: true }).waitFor();
+    assert.equal(await page.locator("#reference-content table").count(), 2);
+    assert.equal(await page.locator("#reference-content a").first().getAttribute("href"), "https://koinosai.com/build");
     await page.screenshot({ path: path.join(__dirname, "builder-plugins-reference.png") });
     await page.selectOption("#reference-topic", "api"); await page.locator("#reference-content pre").waitFor();
     assert.match(await page.locator("#reference-content").textContent(), /FoundationApi/);
