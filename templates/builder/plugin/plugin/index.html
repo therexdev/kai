@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>__PROJECT_NAME__</title><link rel="stylesheet" href="style.css"><script src="i18n.js" defer></script><script src="app.js" defer></script></head>
+<body><main><header><span class="eyebrow" data-text="local"></span><h1>__PROJECT_NAME__</h1><p data-text="aiHint"></p></header>
+<section class="card"><label for="note" data-text="note"></label><textarea id="note" maxlength="12000" data-placeholder="noteHint"></textarea><div class="actions"><button id="save" data-text="save"></button></div></section>
+<section class="card"><label for="model" data-text="model"></label><select id="model"></select><div class="actions"><button id="models" class="secondary" data-text="models"></button><button id="improve" data-text="improve"></button></div></section>
+<p id="status" role="status" aria-live="polite"></p><section id="suggestion" class="card" hidden><h2 data-text="suggestion"></h2><pre id="draft"></pre><button id="apply" data-text="apply"></button></section>
+</main></body></html>

@@ -4,6 +4,17 @@ Every publisher uses the same public plugin SDK. Core supplies generic models, l
 
 ## Build a plugin
 
+Use [Build Koinos](/build) for AI-assisted plugin projects, source editing,
+reviewed changes and the Core SDK reference. Choose **KAI Core plugin** for a
+local AI/storage starter, or **Plugin + Koinos contract** for a native plugin
+paired with editable contract source and tests.
+
+- [Plugin builder guide, concepts and on-chain integration](#plugin-builder)
+
+Export source to test, package and sign on your development computer. Plugin
+execution and installation happen in KAI Core. Custom contract compilation and
+deployment are not hosted by the web builder yet.
+
 - [Step-by-step plugin quickstart](https://github.com/therexdev/kai-core/blob/docs/plugin-quickstart/docs/foundation/PLUGIN_QUICKSTART.md)
 - [Full author guide](https://github.com/therexdev/kai-core/blob/main/docs/foundation/PLUGIN_AUTHOR_GUIDE.md)
 - [Public API types](https://github.com/therexdev/kai-core/blob/main/docs/foundation/api-v1.d.ts)

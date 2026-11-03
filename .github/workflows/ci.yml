@@ -78,9 +78,12 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: node tests/website-i18n.browser.cjs
+      - run: node tests/builder-plugins.browser.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: website-language-preview
-          path: tests/website-*.png
+          path: |
+            tests/website-*.png
+            tests/builder-plugins-*.png
           if-no-files-found: ignore

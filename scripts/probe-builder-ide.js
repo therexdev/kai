@@ -158,7 +158,8 @@ test("real HTTP and editor workflow creates, edits, checks, reviews, exports and
     await until(() => !$("review-pending").hidden);
     assert.equal($("proposal-diff").querySelector("img"), null);
     assert.match($("proposal-diff").textContent, /<img src=x/);
-    assert.equal($("send").disabled, true);
+    assert.equal($("send").disabled, false);
+    assert.match($("composer-hint").textContent, /refine/);
     assert.equal(builder.store.owned(user.id, project.id).revision, 2);
     const proposalId = builder.store.detail(user.id, project.id).proposal.id;
     assert.equal((await post(base + "/proposals/" + proposalId, { action: "apply", revision: 2 }, otherToken)).status, 404);

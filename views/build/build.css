@@ -857,6 +857,7 @@ button {
 }
 .review-banner, .workspace-note { padding: 12px 18px; background: #f2edff; color: #514185; font-size: 12px; border-bottom: 1px solid var(--line); }
 .review-banner { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.composer-review { align-self: center; margin: 0 12px 12px; padding: 7px 12px; border: 1px solid #ded5f3; border-radius: 7px; background: #f7f3ff; color: #664fa1; font-size: 11px; }
 .workspace-note { background: #f7f8fc; color: #5b6b85; }
 .project-workflow { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .project-workflow p { margin: 4px 0 0; max-width: 700px; font-size: 11px; line-height: 1.5; }
@@ -887,6 +888,28 @@ button {
 .diagnostic { padding: 10px; border-radius: 6px; background: #f2f4fa; overflow-wrap: anywhere; }
 .diagnostic.error, #proposal-conflict, #source-file-error { color: #a13c41; }
 .ide-start { margin-top: 20px; }
+.start-composer .build-kind { display: flex; align-items: center; gap: 8px; margin-right: auto; font-size: 11px; color: var(--muted); }
+.build-kind select { max-width: 225px; border: 1px solid var(--line); border-radius: 8px; padding: 9px; background: var(--bg); color: var(--text); font: inherit; }
+.plugin-start-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 27px; }
+.plugin-start-heading .starter-label { margin: 0 0 13px; }
+.plugin-start-heading a { font-size: 11px; color: var(--violet); text-decoration: none; margin-bottom: 13px; }
+.plugin-starters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.reference-pane { padding: 24px; overflow: auto; background: var(--panel); }
+.reference-heading h2 { font-size: 20px; margin: 0 0 16px; }
+.reference-heading label { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 12px; }
+.reference-heading select { max-width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--bg); }
+.reference-heading a { display: inline-block; margin-top: 14px; color: var(--violet); font-size: 12px; }
+#reference-version { color: var(--muted); font-size: 11px; line-height: 1.6; }
+.reference-prompts { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0; }
+.reference-prompts button { border: 1px solid #ded5f3; background: #f7f3ff; color: #664fa1; border-radius: 7px; padding: 9px; font-size: 11px; }
+.reference-content { max-width: 950px; line-height: 1.75; font-size: 13px; overflow-wrap: anywhere; }
+.reference-content h1 { font-size: 27px; letter-spacing: -.03em; }
+.reference-content h2 { font-size: 19px; margin-top: 28px; }
+.reference-content a { color: var(--violet); }
+.reference-content pre { padding: 16px; border: 1px solid var(--line); background: var(--bg); border-radius: 9px; overflow: auto; font-size: 11px; }
+.reference-content table { display: block; overflow: auto; border-collapse: collapse; font-size: 12px; }
+.reference-content th, .reference-content td { border: 1px solid var(--line); padding: 10px; min-width: 120px; text-align: left; vertical-align: top; }
+@media (max-width: 650px) { .plugin-starters { grid-template-columns: minmax(0, 1fr); } .reference-pane { padding: 16px; } .start-composer .build-kind { flex-direction: column; align-items: flex-start; gap: 5px; } .build-kind select { max-width: 180px; } }
 .tabs { flex-wrap: wrap; }
 @media (max-width: 1100px) { .file-explorer { width: 155px; } .file-toolbar { flex-wrap: wrap; } }
 @media (max-width: 650px) { .file-explorer { width: 125px; } .file-actions { flex-wrap: wrap; gap: 0; } .diff-columns { grid-template-columns: minmax(0,1fr); } .review-banner { align-items: flex-start; } .file-toolbar select { max-width: 100%; } }

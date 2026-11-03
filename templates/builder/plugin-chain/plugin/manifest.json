@@ -1,0 +1,14 @@
+{
+  "schema": 2,
+  "apiVersion": 3,
+  "id": "builder.chain-companion",
+  "version": "1.0.0",
+  "name": "My Koinos plugin",
+  "description": "A native KAI plugin reading an explicitly configured Koinos testnet counter.",
+  "entry": "index.html",
+  "runtime": "native",
+  "service": "service/index.js",
+  "permissions": ["native.execute", "storage.read", "storage.write", "network.fetch", "services.provide"],
+  "provides": ["builder.chain-companion.counter"],
+  "consumes": []
+}

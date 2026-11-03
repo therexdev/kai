@@ -1,0 +1,12 @@
+{
+  "network": "Foundation testnet",
+  "rpc": "https://testnet.koinosfoundation.org/jsonrpc",
+  "chainId": "EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==",
+  "contractId": "",
+  "abi": {
+    "methods": {
+      "get_count": { "entry_point": 1014409297, "argument": "counter.Request", "return": "counter.State", "read_only": true }
+    },
+    "schema": "contract/assembly/proto/counter.proto"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "schema": 2,
+  "apiVersion": 3,
+  "id": "builder.local-assistant",
+  "version": "1.0.0",
+  "name": "My KAI plugin",
+  "description": "A private notes workspace with shared local AI and Core language settings.",
+  "entry": "index.html",
+  "runtime": "sandboxed",
+  "permissions": ["storage.read", "storage.write", "models.read", "inference.local"],
+  "provides": [],
+  "consumes": []
+}

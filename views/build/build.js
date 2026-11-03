@@ -71,6 +71,8 @@
     return data;
   }
   function base() { return "/build/api/projects/" + state.detail.project.id; }
+  const sourceOnly = () => ["contract", "plugin", "plugin-chain"].includes(state.detail?.project.template);
+  const pluginProject = () => ["plugin", "plugin-chain"].includes(state.detail?.project.template);
   const active = () =>
     state.detail?.jobs.find((j) => ["running", "queued", "confirming"].includes(j.status));
   function node(tag, text, cls) {
@@ -87,11 +89,19 @@
       $("live-draft-note").hidden =
         !state.dirty && project.revision === project.live_revision;
     $("send").disabled =
-      running || state.busy || state.dirty || !!state.detail?.proposal || !state.config?.aiReady;
+      running || state.busy || state.dirty || !state.config?.aiReady ||
+      (!!state.detail?.proposal && state.detail.proposal.base_revision !== project.revision);
+    $("composer-review").hidden = !state.detail?.proposal;
+    $("composer-hint").textContent = state.dirty ? "Save your file edits before sending a message."
+      : state.detail?.proposal && state.detail.proposal.base_revision !== project.revision ? "Saved source changed after this proposal. Review and discard the outdated changes to continue."
+      : state.detail?.proposal ? "You can ask questions or refine these proposed changes. Review and apply them when ready."
+      : sourceOnly() ? "Review AI changes, save a version, then export to build and test locally."
+      : "Review AI changes before saving. Publish uses the bundled App v1 contract.";
     $("code-editor").readOnly = running || state.busy;
     $("save-files").disabled = running || state.busy || !state.dirty;
     $("publish").disabled = running || state.busy || state.dirty || !!state.detail?.proposal || state.detail?.workspace?.publishAvailable === false || state.detail?.project.template === "contract";
     $("publish").title = state.detail?.workspace?.publishAvailable === false ? state.detail.workspace.reason : "Deploy this saved project";
+    $("source-export").disabled = $("export").disabled = running || state.busy || state.dirty || !!state.detail?.proposal;
     $("propose-owner").disabled =
       running || state.busy || !state.detail?.project.contract_id;
     $("job-status").hidden = !running;
@@ -223,7 +233,7 @@
   function preview() {
     bridge.reset();
     state.previewDiagnostics = [];
-    if (state.detail.project.template === "contract") {
+    if (sourceOnly()) {
       state.previewRevision = null;
       $("preview").removeAttribute("src");
       return;
@@ -247,7 +257,8 @@
     $("workspace").hidden = false;
     $("project-crumb").hidden = false;
     $("project-crumb").textContent = detail.project.title;
-    $("publish").hidden = detail.project.template === "contract";
+    $("publish").hidden = sourceOnly();
+    $("source-export").hidden = !sourceOnly();
     const published = !!detail.project.live_revision;
     $("live-link").hidden = !published;
     $("published-app").hidden = !published;
@@ -279,7 +290,7 @@
         }),
       );
       $("file-select").value =
-        state.files[selected] != null ? selected : (detail.project.template === "contract" ? "assembly/Counter.ts" : "index.html");
+        state.files[selected] != null ? selected : (pluginProject() ? "plugin/manifest.json" : detail.project.template === "contract" ? "assembly/Counter.ts" : "index.html");
       if (!$("file-select").value) $("file-select").selectedIndex = 0;
       $("code-editor").value = state.files[$("file-select").value] || "";
       preview();
@@ -329,12 +340,13 @@
   }
   function showTab(tab) {
     state.tab = tab;
-    for (const name of ["preview", "code", "history", "changes", "problems"]) {
+    for (const name of ["preview", "code", "history", "changes", "problems", "reference"]) {
       $("pane-" + name).hidden = name !== tab;
       $("tab-" + name).setAttribute("aria-selected", String(name === tab));
     }
     $("device-toggle").hidden = tab !== "preview";
     $("refresh-preview").hidden = tab !== "preview";
+    if (tab === "reference") void ide.loadReference();
   }
   $("copy-live-link").onclick = async () => {
     try {
@@ -373,8 +385,9 @@
         ? "Community voting"
         : template === "board"
           ? "Community board"
-          : template === "contract" ? "My Koinos contract" : "My Koinos app";
+          : template === "contract" ? "My Koinos contract" : template === "plugin" ? "My KAI plugin" : template === "plugin-chain" ? "My Koinos plugin" : "My Koinos app";
     $("template-select").value = template;
+    createHelp();
     $("create-dialog").showModal();
     $("project-title").select();
   }
@@ -382,11 +395,23 @@
   document
     .querySelectorAll("[data-template]")
     .forEach((b) => (b.onclick = () => createDialog(b.dataset.template)));
+  function createHelp() {
+    const type = $("template-select").value;
+    $("create-help").textContent = type === "plugin" ? "Includes a sandboxed UI, local AI, plugin storage and Core language support. Export to test, sign and install in KAI Core."
+      : type === "plugin-chain" ? "Includes a native plugin with full computer trust, a public contract reader and editable contract tests. Custom signing and hosted deployment are not connected."
+      : "Chat and Project files share one saved project. Guided dApps include editable frontend, contracts and tests.";
+  }
+  $("template-select").onchange = createHelp;
+  $("start-kind").onchange = () => {
+    const type = $("start-kind").value;
+    $("idea-label").textContent = type === "dapp" ? "What is your dApp idea?" : "What should your KAI plugin do?";
+    $("idea").placeholder = type === "dapp" ? "A voting dApp where each Koinos wallet gets one vote…" : type === "plugin" ? "A local research assistant that uses my Core models and saves project notes…" : "A community dashboard that summarizes Koinos contract data with local AI…";
+  };
   $("start-form").onsubmit = (e) => {
     e.preventDefault();
     const idea = $("idea").value.trim();
     createDialog(
-      /vot|poll|decid/i.test(idea)
+      $("start-kind").value !== "dapp" ? $("start-kind").value : /vot|poll|decid/i.test(idea)
         ? "voting"
         : /post|board|community/i.test(idea)
           ? "board"
@@ -426,11 +451,12 @@
   $("chat-form").onsubmit = (e) => {
     e.preventDefault();
     const prompt = $("prompt").value.trim();
-    if (!prompt) return;
+    if (!prompt || $("send").disabled) return;
     action(async () => {
       await api(base() + "/messages", {
         prompt,
         review: true,
+        proposalId: state.detail.proposal?.id || null,
         diagnostics: {
           revision: state.previewRevision,
           errors: state.previewDiagnostics,
@@ -463,7 +489,7 @@
       );
       state.dirty = false;
       await refresh(true);
-      note(state.detail.project.template === "contract" ? "Source version saved." : KaiI18n.message`Version saved. The preview is updated.`);
+      note(sourceOnly() ? "Source version saved." : KaiI18n.message`Version saved. The preview is updated.`);
     });
   $("refresh-preview").onclick = () => {
     if (state.detail) preview();
@@ -497,8 +523,10 @@
     action(async () => {
       $("settings-status").textContent = "";
       $("settings-dialog").showModal();
-      if (state.detail.project.template === "contract") {
-        $("ownership-info").textContent = "Contract source workspace. Export the project to build and test locally. Custom deployment and ownership actions are not connected yet.";
+      $("ownership-section").hidden = sourceOnly();
+      $("export-description").textContent = sourceOnly() ? "Download all saved source, tests and project.json. Plugin packages must be tested and signed locally before installation in Core." : "Download your source and a site you can host independently. The ZIP includes a project.json file you can import later.";
+      if (sourceOnly()) {
+        $("ownership-info").textContent = state.detail.workspace.reason;
         $("accept-owner").hidden = true;
         $("propose-owner").disabled = true;
         return;
@@ -513,8 +541,10 @@ Owner: ${config.owner}${config.pending_owner ? "\nOffered to: " + config.pending
       $("owner-address").value = config?.pending_owner || "";
     });
   $("export").onclick = () => {
+    if (state.dirty || state.detail?.proposal) return;
     location.href = base() + "/export.zip";
   };
+  $("source-export").onclick = () => $("export").click();
   $("propose-owner").onclick = () =>
     action(async () => {
       const target = $("owner-address").value.trim();
@@ -546,7 +576,7 @@ Live URL: ${new URL(
           : "\nFirst publish: creates this app's contract on " +
             state.config.network +
             "."}`);
-      KaiI18n.setText($("publish-explanation"), updating ? "This updates your frontend and keeps the same contract, address, and stored data. A Koinos transaction records the new frontend version; it does not deploy or upgrade contract code." : "The first publish deploys the app's contract and makes your frontend live. Later frontend updates reuse this contract and its stored data.");
+      KaiI18n.setText($("publish-explanation"), (updating ? "This updates your frontend and keeps the same contract, address, and stored data. A Koinos transaction records the new frontend version; it does not deploy or upgrade contract code." : "This deploys the prebuilt App v1 community-data contract and makes your frontend live. Later frontend updates reuse this contract.") + " Custom tokens, purchases, game payouts and other new contract behavior require a separate build, test and deployment workflow, which is not connected yet.");
       KaiI18n.setText($("publish-platform"), alreadyLive ? "Already published" : updating ? "Publish frontend update" : "Deploy and publish");
       KaiI18n.setText($("publish-wallet"), "Approve frontend update");
       // Clear the previous project's actions while ownership is checked.
