@@ -4,13 +4,14 @@ set -euo pipefail
 [[ $(id -u) == 0 ]] || { printf 'Run as root.\n' >&2; exit 1; }
 runner_source=$(cd "$(dirname "$0")/.." && pwd)
 command -v node >/dev/null
+node -e 'if (process.versions.node.split(".")[0] !== "22") { console.error("System Node 22 is required."); process.exit(1); }'
 command -v docker >/dev/null
 getent group docker >/dev/null
 docker info --format '{{json .Runtimes}}' | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{if(!JSON.parse(s).runsc)process.exit(1)})'
 docker build --pull -f "$runner_source/runner/Dockerfile" -t kai-build-toolchain:v1 "$runner_source"
 runner_image=$(docker image inspect kai-build-toolchain:v1 --format '{{.Id}}')
 [[ $runner_image =~ ^sha256:[a-f0-9]{64}$ ]]
-id kai-build-runner >/dev/null 2>&1 || useradd --system --home-dir /nonexistent --shell /usr/sbin/nologin kai-build-runner
+id kai-build-runner >/dev/null 2>&1 || useradd --system --user-group --home-dir /nonexistent --shell /usr/sbin/nologin kai-build-runner
 install -d -m 755 -o root -g root /opt/kai-build-runner/runner /opt/kai-build-runner/lib/builder
 install -m 644 -o root -g root "$runner_source/runner/server.cjs" "$runner_source/runner/sandbox.cjs" /opt/kai-build-runner/runner/
 for runner_file in build-config.js workspace.js store.js; do

@@ -23,9 +23,9 @@ does not change the wallet signer. Run after updating the website checkout:
 
 ```bash
 sudo -u koinos git -C /opt/koinos/kai pull --ff-only
-# Skip this package installation if Docker is already installed.
 sudo apt-get update
-sudo apt-get install -y docker.io curl ca-certificates bzip2 openssl python3
+sudo apt-get install -y curl ca-certificates bzip2 openssl python3
+if ! command -v docker >/dev/null; then sudo apt-get install -y docker.io; fi
 sudo systemctl enable --now docker
 sudo bash /opt/koinos/kai/runner/install-gvisor.sh
 sudo bash /opt/koinos/kai/runner/install.sh
