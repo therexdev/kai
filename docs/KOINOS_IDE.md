@@ -34,6 +34,10 @@ a desktop installation.
   revision conflict detection. Full-project and standalone contract AI edits
   always require review. Legacy frontend-only API callers can still request
   automatic frontend edits.
+- Chat continues while a proposal is pending. Questions leave it intact and
+  refinements start from its proposed files. Only Apply creates a saved version.
+  A failed refinement preserves the prior proposal; a successful replacement
+  rotates its ID so another browser tab cannot apply an outdated review.
 - Saved versions, restoration, source ZIP export and project JSON import. Import
   creates a new project and does not claim an existing deployment.
 - Source diagnostics (paths, size, file count, JSON format) and the existing
@@ -77,6 +81,25 @@ README commands in `source/contract/` for a guided project, or `source/` for a
 contract-only project. These dependencies are not installed into the production
 web server. The guided bundle includes the existing 28 MockVM tests and builds
 app/guard WASM and ABI matching the platform artifacts byte for byte.
+
+## KAI Core plugin projects
+
+The workspace also supports `plugin` and `plugin-chain` source projects. These
+share the editor, revisions, reviewed AI proposals, checks and import/export.
+Plugin source supports packaged HTML/CSS and JS, a schema-2/API-3 manifest,
+offline localization and tests. The paired starter includes a native read-only
+chain adapter, a declared local read service and the existing counter contract
+toolchain. Its chain ID is checked before reading. It does not sign custom
+transactions, execute plugin code in the web server, or use managed deployment.
+
+The Reference tab and `read_plugin_docs` tool read a versioned Core author-guide
+and API snapshot from server-controlled files. The public
+[plugin builder guide](../public/docs/content/plugin-builder.md) describes
+concepts, runtime choices, actual capabilities, local packaging and installation.
+Plugin checks report source/manifest/JavaScript syntax only; tests and signature
+verification are separate. Use the matching Core package verifier to validate
+starters at development time. The official packer and publisher key remain on
+the author's computer, outside AI source and platform credentials.
 
 ## Next: an isolated build and test runner
 

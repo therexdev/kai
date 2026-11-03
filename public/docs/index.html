@@ -38,6 +38,8 @@ main li{margin:.25em 0}
 main code{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:1.5px 6px;font-size:12.8px}
 main pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto}
 main pre code{background:none;border:0;padding:0;font-size:13px}
+main table{display:block;overflow-x:auto;border-collapse:collapse;font-size:14px;margin:20px 0}
+main th,main td{border:1px solid var(--line-2);padding:10px;min-width:120px;text-align:left;vertical-align:top}
 main blockquote{margin:1em 0;padding:10px 16px;border-left:3px solid var(--value);background:var(--panel);border-radius:0 8px 8px 0;color:var(--soft)}
 main hr{border:0;border-top:1px solid var(--line);margin:24px 0}
 main figure{margin:18px 0}
@@ -67,7 +69,7 @@ main figcaption{font-size:12.5px;color:var(--faint);margin-top:7px;font-family:v
 
 <script src="/i18n/catalogs.js"></script>
 <script src="/i18n/i18n.js"></script>
-<script src="md.js"></script>
+<script src="md.js?v=plugins-20261103"></script>
 <script>
 "use strict";
 /* Hash-routed docs shell, no build step (repo posture): the sidebar manifest
@@ -87,6 +89,7 @@ const PAGES = [
   { id: "teams", title: "Agents & workflows" },
   { id: "koinos-code", title: "Koinos Code plugin" },
   { id: "developer-tools", title: "Developer Tools" },
+  { id: "plugin-builder", title: "Build plugins & contracts" },
   { id: "email-calendar", title: "Email, calendar, memory" },
   { id: "node", title: "Run a Koinos node" },
   { id: "web-app", title: "Website & legacy web access" },
