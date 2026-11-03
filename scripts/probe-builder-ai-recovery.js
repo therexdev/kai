@@ -74,6 +74,7 @@ test("access, billing and invalid requests are not retried; rate limiting respec
     } }), e => e.code === expected && e.details.requestId === "req_fixture" && !e.message.includes("private body"));
     assert.equal(calls, 1);
   }
+  await assert.rejects(() => request({ fetchImpl: async () => response(400, { error: { code: "context_length_exceeded" } }) }), e => e.code === "AI_CONTEXT_LIMIT" && !e.retryable);
   let calls = 0;
   const delays = [];
   await request({ pause: async ms => delays.push(ms), fetchImpl: async () => ++calls === 1
@@ -85,6 +86,54 @@ test("access, billing and invalid requests are not retried; rate limiting respec
     calls++; return response(429, { error: { code: "rate_limit_exceeded" } }, { "retry-after": "90" });
   } }), e => e.code === "AI_RATE_LIMIT");
   assert.equal(calls, 1);
+});
+
+test("bounded edits retain valid partial source as a review proposal, never apply it automatically", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kai-partial-"));
+  const agent = new BuildAgent({ key: "fixture", maxTurns: 1, fetchImpl: async () => response(200, complete([
+    { type: "function_call", name: "write_files", call_id: "partial", arguments: JSON.stringify({ files: [{ path: "README.md", content: "A completed source stage" }] }) },
+  ])) });
+  const builder = new Builder({ stateDir: dir, autoStart: false, agent });
+  try {
+    const p = builder.store.create("owner", "Partial", "blank", starter("blank", "Partial"));
+    builder.store.enqueue("owner", p.id, "edit", { prompt: "Implement many features", revision: 1, review: false });
+    await builder.tick(); const d = builder.store.detail("owner", p.id);
+    assert.equal(d.project.revision, 1); assert.equal(d.jobs[0].status, "completed");
+    assert.equal(d.proposal.files["README.md"], "A completed source stage");
+    assert.match(d.proposal.summary, /partial proposal/); assert.match(d.proposal.summary, /unfinished/);
+    assert.notEqual(d.files["README.md"], d.proposal.files["README.md"]);
+  } finally { builder.close(); fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("limits preserve the last valid checkpoint and never consume incomplete tool output", async () => {
+  const files = starter("contract", "Counter"); let step = 0;
+  const call = (name, args) => ({ type: "function_call", name, call_id: "limit-" + step++, arguments: JSON.stringify(args) });
+  const outputs = [
+    [call("write_files", { files: [{ path: "notes/stage.md", content: "Stage one" }] })],
+    [call("validate_project", {})],
+    [call("write_files", { files: [{ path: "broken.json", content: "{" }] })],
+  ];
+  const agent = new BuildAgent({ key: "fixture", maxTurns: 3, fetchImpl: async () => response(200, complete(outputs.shift())) });
+  const result = await agent.run({ files, template: "contract", prompt: "Stage work", messages: [] });
+  assert.equal(result.partial, true); assert.equal(result.files["notes/stage.md"], "Stage one"); assert.equal(result.files["broken.json"], undefined);
+  const incomplete = new BuildAgent({ key: "fixture", fetchImpl: async () => response(200, { status: "incomplete", incomplete_details: { reason: "max_output_tokens" }, output: [call("write_files", { files: [{ path: "README.md", content: "Never consume this" }] })] }) });
+  await assert.rejects(() => incomplete.run({ files, template: "contract", prompt: "Big change", messages: [] }), e => e.code === "AI_OUTPUT_LIMIT" && !e.retryable);
+});
+
+test("new and historic work-limit failures expose a smaller-request action and reject blind retry", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kai-work-limit-"));
+  const builder = new Builder({ stateDir: dir, autoStart: false, agent: new BuildAgent({ key: "fixture", maxWorkChars: 1, fetchImpl: async () => { assert.fail("Should not spend another request"); } }) });
+  const saved = console.error; console.error = () => {};
+  try {
+    const p = builder.store.create("owner", "Budget", "blank", starter("blank", "Budget"));
+    const job = builder.store.enqueue("owner", p.id, "edit", { prompt: "Big request", revision: 1 }); await builder.tick();
+    const failed = builder.store.detail("owner", p.id).jobs[0];
+    assert.equal(failed.retryable, false); assert.match(failed.error, /AI_WORK_LIMIT/); assert.doesNotMatch(failed.error, /Use Retry/);
+    assert.throws(() => builder.retry("owner", p.id, job.id), /smaller new request/);
+    builder.store.db.prepare("UPDATE jobs SET error=?,error_detail=NULL WHERE id=?").run("This edit reached the context limit. Try one smaller change at a time. Your saved version is unchanged. Use Retry saved edit to resume.", job.id);
+    assert.equal(builder.store.detail("owner", p.id).jobs[0].retryable, false);
+    assert.throws(() => builder.retry("owner", p.id, job.id), /smaller new request/);
+  } finally { console.error = saved; builder.close(); fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("truncated and invalid responses retain the request ID and transport cause", async () => {

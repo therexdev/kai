@@ -7,6 +7,7 @@ const { chromium } = require("playwright"), { Builder } = require("../lib/builde
   const server = await new Promise(resolve => { const s = app.listen(0, "127.0.0.1", () => resolve(s)); }), origin = "http://127.0.0.1:" + server.address().port;
   const accounts = createAccounts({ stateDir: dir, siteOrigin: origin }), builder = new Builder({ stateDir: dir, autoStart: false,
     agent: { configured: true, model: "fixture", async run({ files, prompt, pendingProposal }) {
+      if (prompt === "Exceed fixture budget") throw Object.assign(Error("This request reached the builder's work budget."), { status: 409, code: "AI_WORK_LIMIT" });
       if (prompt === "Explain this proposal") { assert.equal(pendingProposal, true); return { files, changed: false, summary: "The plugin and contract source remain proposed until you apply them." }; }
       return { files: { ...files, "notes/help.md": (files["notes/help.md"] || "") + "\n" + prompt }, changed: true, summary: "Proposed source documentation. No deployment performed." };
     } } });
@@ -47,6 +48,11 @@ const { chromium } = require("playwright"), { Builder } = require("../lib/builde
     await page.screenshot({ path: path.join(__dirname, "builder-plugins-reference.png") });
     await page.selectOption("#reference-topic", "api"); await page.locator("#reference-content pre").waitFor();
     assert.match(await page.locator("#reference-content").textContent(), /FoundationApi/);
+    await send("Exceed fixture budget");
+    assert.equal(await page.getByRole("button", { name: "Retry saved edit", exact: true }).count(), 0);
+    assert.equal(await page.locator("#messages .publish-error").count(), 1);
+    assert.equal(await page.locator("#messages .message").filter({ hasText: "This request reached the builder's work budget." }).count(), 0);
+    assert.match(await page.locator("#messages .publish-error").textContent(), /smaller new request/);
     await page.setViewportSize({ width: 390, height: 844 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
     await page.screenshot({ path: path.join(__dirname, "builder-plugins-mobile.png"), fullPage: true });
