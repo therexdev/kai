@@ -34,6 +34,7 @@ function generate(target) {
 }
 async function main() {
   let input = "";
+  process.stdin.setEncoding("utf8");
   for await (const chunk of process.stdin) { input += chunk; if (Buffer.byteLength(input) > 17000000) throw Error("Job input too large"); }
   const job = JSON.parse(input), target = job.target;
   fs.mkdirSync(ROOT, { recursive: true }); process.chdir(ROOT);

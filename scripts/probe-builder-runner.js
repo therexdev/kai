@@ -128,3 +128,20 @@ test("AI works in bounded file ranges, sees real diagnostics and proposes a focu
   assert.equal(runs.length, 2); assert.equal(result.changed, true); assert.match(result.files["services/feed.cjs"], /slice\(0, 10\)/);
   assert.notEqual(digest(runs[0].files), digest(runs[1].files)); assert.equal(files["services/feed.cjs"].includes("slice(0, 20)"), true);
 });
+
+test("worker preserves UTF-8 source split across transport chunks", async () => {
+  const files = starter("workspace", "Unicode"), token = "fixture-" + "u".repeat(32);
+  files["services/note.txt"] = "café 🚀";
+  const server = createServer({ token, image, run: async job => { assert.equal(job.files["services/note.txt"], files["services/note.txt"]); return report(job); } });
+  const url = await listen(server);
+  try {
+    const bytes = Buffer.from(JSON.stringify({ files, target: "service", operation: "test" })), at = bytes.indexOf(Buffer.from("é")) + 1;
+    const result = await new Promise((resolve, reject) => {
+      const request = require("node:http").request(url + "/run", { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" } }, response => {
+        let body = ""; response.setEncoding("utf8").on("data", chunk => { body += chunk; }).on("end", () => resolve({ status: response.statusCode, body: JSON.parse(body) }));
+      });
+      request.on("error", reject); request.write(bytes.subarray(0, at)); setImmediate(() => request.end(bytes.subarray(at)));
+    });
+    assert.equal(result.status, 200); assert.equal(result.body.sourceHash, digest(files));
+  } finally { await close(server); }
+});

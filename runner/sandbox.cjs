@@ -7,8 +7,8 @@ function processRun(bin, args, { input, timeout = 10000, maxBytes = 7000000 } = 
     let stdout = "", stderr = "", size = 0, error = "";
     const stop = message => { error = message; child.kill("SIGKILL"); };
     const timer = setTimeout(() => stop("Runner deadline exceeded"), timeout);
-    for (const [stream, name] of [[child.stdout, "stdout"], [child.stderr, "stderr"]]) stream.on("data", data => {
-      size += data.length;
+    for (const [stream, name] of [[child.stdout, "stdout"], [child.stderr, "stderr"]]) stream.setEncoding("utf8").on("data", data => {
+      size += Buffer.byteLength(data);
       if (size > maxBytes) return stop("Runner output exceeded its limit");
       if (name === "stdout") stdout += data; else stderr += data;
     });

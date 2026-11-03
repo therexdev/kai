@@ -17,9 +17,10 @@ function createServer({ token, image, run = sandbox.run, ready = sandbox.ready }
     busy = true;
     try {
       let body = "", bytes = 0;
+      req.setEncoding("utf8");
       req.setTimeout(15000, () => req.destroy());
       for await (const chunk of req) {
-        bytes += chunk.length;
+        bytes += Buffer.byteLength(chunk);
         if (bytes > 17000000) { send(413, { error: "Job too large" }); req.destroy(); return; }
         body += chunk;
       }

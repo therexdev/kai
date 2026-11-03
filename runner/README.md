@@ -61,7 +61,9 @@ See [build-workflow.md](../docs/builder-reference/build-workflow.md) for targets
 ABI declarations, pinned SDK references and constraints. Source projects support
 512 text files / 8 MB / 1 MB per file. Unchanged source blobs are deduplicated in
 revision history, with a 200-MB unique-source allowance per account. Existing
-raw snapshots remain readable. There are 60 runs per account per day and at most
+raw snapshots remain readable. New revisions use blob references; older website
+versions before this feature cannot read those new revisions. Keep the current
+store reader when rolling back unrelated website changes. There are 60 runs per account per day and at most
 two runs in one AI request. The latest eight artifact-producing runs per account
 retain downloads; logs retain at least the latest 30 per project.
 
