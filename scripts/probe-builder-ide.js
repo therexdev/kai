@@ -19,14 +19,14 @@ test("source workspaces reject unsafe paths and collisions, save incomplete code
   }
   assert.throws(() => validate({ ...files, "ASSEMBLY/counter.ts": "" }, "contract"), /unique/);
   assert.throws(() => validate({ "a.ts": "", "a.ts/b.ts": "" }, "contract"), /file and a folder/);
-  assert.throws(() => validate(Object.fromEntries(Array.from({ length: 65 }, (_, i) => [`a${i}.ts`, ""])), "contract"), /64/);
-  assert.throws(() => validate({ "a.ts": "x".repeat(300001) }, "contract"), /300 KB/);
+  assert.throws(() => validate(Object.fromEntries(Array.from({ length: 513 }, (_, i) => [`a${i}.ts`, ""])), "contract"), /512/);
+  assert.throws(() => validate({ "a.ts": "x".repeat(1000001) }, "contract"), /1 MB/);
   assert.equal(validate({ "assembly/Unfinished.ts": "export class {" }, "contract").ok, true);
   const report = inspectSource({ ...files, "settings.json": "{" });
   assert.equal(report.ok, false);
   assert.equal(report.compiled, false);
   assert.ok(report.diagnostics.some(d => d.path === "settings.json" && d.severity === "error"));
-  assert.match(report.note, /not connected/);
+  assert.match(report.note, /Source checks only/);
   assert.throws(() => validate(files), /Unsupported/); // Managed apps cannot smuggle custom source into publishing.
 });
 
@@ -147,7 +147,7 @@ test("real HTTP and editor workflow creates, edits, checks, reviews, exports and
     assert.equal(builder.store.files(user.id, project.id).files["notes/manual.md"], "Manual source note");
     $("check-files").click();
     await until(() => !$("pane-problems").hidden && !$("check-files").disabled);
-    assert.match($("source-diagnostics").textContent, /not connected/);
+    assert.match($("source-diagnostics").textContent, /Source checks only/);
     $("prompt").value = "Add documentation";
     $("chat-form").dispatchEvent(new w.Event("submit", { cancelable: true }));
     await until(() => builder.store.detail(user.id, project.id).jobs.length > 0);

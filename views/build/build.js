@@ -71,7 +71,7 @@
     return data;
   }
   function base() { return "/build/api/projects/" + state.detail.project.id; }
-  const sourceOnly = () => ["contract", "plugin", "plugin-chain"].includes(state.detail?.project.template);
+  const sourceOnly = () => ["contract", "workspace", "plugin", "plugin-chain"].includes(state.detail?.project.template);
   const pluginProject = () => ["plugin", "plugin-chain"].includes(state.detail?.project.template);
   const active = () =>
     state.detail?.jobs.find((j) => ["running", "queued", "confirming"].includes(j.status));
@@ -343,7 +343,7 @@
   }
   function showTab(tab) {
     state.tab = tab;
-    for (const name of ["preview", "code", "history", "changes", "problems", "reference"]) {
+    for (const name of ["preview", "code", "history", "changes", "problems", "reference", "runs"]) {
       $("pane-" + name).hidden = name !== tab;
       $("tab-" + name).setAttribute("aria-selected", String(name === tab));
     }
@@ -388,7 +388,7 @@
         ? "Community voting"
         : template === "board"
           ? "Community board"
-          : template === "contract" ? "My Koinos contract" : template === "plugin" ? "My KAI plugin" : template === "plugin-chain" ? "My Koinos plugin" : "My Koinos app";
+          : template === "workspace" ? "My Koinos application" : template === "contract" ? "My Koinos contract" : template === "plugin" ? "My KAI plugin" : template === "plugin-chain" ? "My Koinos plugin" : "My Koinos app";
     $("template-select").value = template;
     createHelp();
     $("create-dialog").showModal();
@@ -400,15 +400,15 @@
     .forEach((b) => (b.onclick = () => createDialog(b.dataset.template)));
   function createHelp() {
     const type = $("template-select").value;
-    $("create-help").textContent = type === "plugin" ? "Includes a sandboxed UI, local AI, plugin storage and Core language support. Export to test, sign and install in KAI Core."
+    $("create-help").textContent = type === "workspace" ? "A shared project for multiple contracts, services and frontend code. Compile and test declared targets with the isolated worker. Custom deployment is a separate step." : type === "plugin" ? "Includes a sandboxed UI, local AI, plugin storage and Core language support. Export to test, sign and install in KAI Core."
       : type === "plugin-chain" ? "Includes a native plugin with full computer trust, a public contract reader and editable contract tests. Custom signing and hosted deployment are not connected."
       : "Chat and Project files share one saved project. Guided dApps include editable frontend, contracts and tests.";
   }
   $("template-select").onchange = createHelp;
   $("start-kind").onchange = () => {
     const type = $("start-kind").value;
-    $("idea-label").textContent = type === "dapp" ? "What is your dApp idea?" : "What should your KAI plugin do?";
-    $("idea").placeholder = type === "dapp" ? "A voting dApp where each Koinos wallet gets one vote…" : type === "plugin" ? "A local research assistant that uses my Core models and saves project notes…" : "A community dashboard that summarizes Koinos contract data with local AI…";
+    $("idea-label").textContent = ["dapp", "workspace"].includes(type) ? "What is your dApp idea?" : "What should your KAI plugin do?";
+    $("idea").placeholder = type === "workspace" ? "A social app with profiles, posts, on-chain permissions and a feed service…" : type === "dapp" ? "A voting dApp where each Koinos wallet gets one vote…" : type === "plugin" ? "A local research assistant that uses my Core models and saves project notes…" : "A community dashboard that summarizes Koinos contract data with local AI…";
   };
   $("start-form").onsubmit = (e) => {
     e.preventDefault();

@@ -1418,3 +1418,6 @@ dialog pre {
   color: #b94747;
   overflow-wrap: anywhere;
 }
+
+/* Compiler and test output stays text-only in the trusted IDE. */
+.runs-pane{overflow:auto;padding:26px;min-height:0}.runs-pane>p{line-height:1.6;color:#60718e}.run-controls{display:flex;align-items:end;flex-wrap:wrap;gap:10px;margin:22px 0 12px}.run-controls label{display:grid;gap:7px;font-size:12px}.run-controls select{min-width:200px;max-width:100%;padding:10px;border:1px solid #dce1ee;border-radius:8px;background:#fff;color:#24395b}.build-result{border:1px solid #dfe5f1;border-radius:12px;padding:18px;margin:15px 0;background:#fff}.build-result summary{font-weight:600;cursor:pointer}.build-result pre{background:#152038;color:#dce7ff;white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto;padding:16px;border-radius:8px;font:12px/1.6 ui-monospace,monospace}.build-hash{font:11px/1.6 ui-monospace,monospace;overflow-wrap:anywhere;color:#60718e}.build-result a{color:#6555d4}.canvas-toolbar .tabs{min-width:0;overflow-x:auto;white-space:nowrap}@media(max-width:650px){.runs-pane{padding:18px}.run-controls label{width:100%}.run-controls select{width:100%}.build-result{padding:12px}}

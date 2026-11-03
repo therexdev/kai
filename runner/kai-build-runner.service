@@ -1,0 +1,24 @@
+[Unit]
+Description=KAI isolated Koinos build and test worker
+After=docker.service network.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=kai-build-runner
+Group=kai-build-runner
+SupplementaryGroups=docker
+EnvironmentFile=/etc/kai-build-runner.env
+ExecStart=/usr/bin/node /opt/kai-build-runner/runner/server.cjs
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077
+LimitNOFILE=1024
+
+[Install]
+WantedBy=multi-user.target

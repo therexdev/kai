@@ -79,6 +79,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: node tests/website-i18n.browser.cjs
       - run: node tests/builder-plugins.browser.cjs
+      - run: node tests/builder-runner.browser.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -86,4 +87,21 @@ jobs:
           path: |
             tests/website-*.png
             tests/builder-plugins-*.png
+            tests/builder-runner-*.png
           if-no-files-found: ignore
+
+  isolated-runner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - name: Install pinned gVisor runtime
+        run: sudo bash runner/install-gvisor.sh
+      - name: Build the fixed toolchain image
+        run: docker build -f runner/Dockerfile -t kai-runner-ci .
+      - name: Compile and test real source inside gVisor
+        run: KAI_RUNNER_IMAGE=$(docker image inspect kai-runner-ci --format '{{.Id}}') node runner/probe-integration.cjs

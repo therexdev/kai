@@ -11,8 +11,9 @@ window.KaiBuildIDE = {
     };
     let proposalKey = "", renameFrom = null, checkKey = "";
     const isContract = () => getState().detail?.project.template === "contract";
+    const isApplication = () => getState().detail?.project.template === "workspace";
     const isPlugin = () => ["plugin", "plugin-chain"].includes(getState().detail?.project.template);
-    const sourceOnly = () => isContract() || isPlugin();
+    const sourceOnly = () => isContract() || isApplication() || isPlugin();
     const hasSourceWorkspace = () => isContract() || getState().detail?.workspace?.fullSource;
     const locked = () => getState().busy || getState().detail?.jobs.some(j => ["queued", "running", "confirming"].includes(j.status));
     function editorStatus() {
@@ -98,9 +99,50 @@ window.KaiBuildIDE = {
       $("discard-proposal").disabled = !p || !!locked();
       $("open-full-project").hidden = !state.detail || hasSourceWorkspace();
       $("open-full-project").disabled = !!locked() || state.dirty || !!p;
+      const target = state.detail?.buildTargets?.targets?.find(t => t.id === $("build-target").value);
+      const runLocked = !!locked() || state.dirty || !!p || !state.config?.ide?.runnerConfigured || !target;
+      $("compile-target").disabled = runLocked || target?.type !== "koinos-as";
+      $("test-target").disabled = runLocked || !target?.tests.length;
+      $("check-runner").disabled = !!locked() || !state.config?.ide?.runnerConfigured;
       $("test-preview").hidden = sourceOnly();
       $("test-preview").disabled = !!locked() || state.dirty || !!p || !state.detail;
     }
+    let buildKey = "";
+    function renderBuilds() {
+      const state = getState(), target = $("build-target"), selected = target.value;
+      target.replaceChildren(...(state.detail.buildTargets?.targets || []).map(t => { const option = el("option", t.id + " · " + t.type); option.value = t.id; return option; }));
+      if ([...target.options].some(o => o.value === selected)) target.value = selected;
+      $("runner-status").textContent = state.config?.ide?.runnerConfigured ? "Worker configured. Start a run to check this source, or check worker availability." : "Build worker needs setup on the server. You can write and export source now; compilation and test execution become available after setup.";
+      $("build-target-note").textContent = state.detail.buildTargets?.error || (!target.options.length ? "Add build and test targets to kai.project.json. Ask KAI to configure targets for this project." : state.dirty || state.detail.proposal ? "Save your editor changes and review the proposal before running a saved version." : "Choose a target to compile or test.");
+      const key = state.detail.project.id + ":" + JSON.stringify(state.detail.builds || []);
+      if (key === buildKey) return;
+      buildKey = key;
+      const results = $("build-results"); results.replaceChildren();
+      if (!state.detail.builds?.length) results.append(el("p", "No compiler or test runs yet. Source checks are shown separately in Diagnostics."));
+      for (const run of state.detail.builds || []) {
+        const row = el("details", null, "build-result"); row.open = results.childElementCount === 0;
+        row.append(el("summary", `${run.target} · ${run.operation} · ${run.ok ? "Passed" : "Failed"} · ${run.matchesSource ? "Saved source" : "Different source / proposal"}`));
+        row.append(el("p", `${new Date(run.createdAt).toLocaleString()} · ${run.profile} · ${(run.durationMs / 1000).toFixed(1)}s`, "muted"));
+        row.append(el("p", "Source SHA-256: " + run.sourceHash, "build-hash"), el("pre", run.logs || "No output."));
+        for (const artifact of run.artifacts || []) {
+          const link = el("a", "Download " + artifact.name); link.href = base() + "/runs/" + encodeURIComponent(run.id) + "/" + encodeURIComponent(artifact.name); link.download = artifact.name;
+          row.append(link, el("p", artifact.sha256, "build-hash"));
+        }
+        const repair = el("button", "Ask KAI to inspect this run", "button secondary");
+        repair.onclick = () => { $("prompt").value = `Read build result ${run.id} for ${run.target}. Compare its source hash with the working files, inspect the errors and propose a focused repair with tests. Do not deploy.`; $("prompt").focus(); };
+        row.append(repair); results.append(row);
+      }
+    }
+    $("build-target").onchange = updateControls;
+    $("check-runner").onclick = () => action(async () => {
+      try { const status = await api("/build/api/runner"); $("runner-status").textContent = status.busy ? "Worker is ready and currently busy." : "Isolated worker is ready · " + status.profile; }
+      catch (error) { $("runner-status").textContent = error.message; }
+    });
+    for (const [id, operation] of [["compile-target", "compile"], ["test-target", "test"]]) $(id).onclick = () => action(async () => {
+      const state = getState();
+      await api(base() + "/runs", { revision: state.editRevision, target: $("build-target").value, operation });
+      await refresh(); showTab("runs");
+    });
     $("file-filter").oninput = renderTree;
     $("file-select").addEventListener("change", () => selectFile($("file-select").value));
     $("code-editor").addEventListener("input", edited);
@@ -135,14 +177,14 @@ window.KaiBuildIDE = {
       event.preventDefault();
       if (!hasSourceWorkspace() || locked()) return;
       const name = $("source-file-path").value.trim(), state = getState();
-      const sourcePath = (isPlugin() ? /^[a-zA-Z0-9_][a-zA-Z0-9_./-]*\.(ts|js|cjs|mjs|json|proto|md|yaml|yml|html|css|svg|txt)$/ : /^[a-zA-Z0-9_][a-zA-Z0-9_./-]*\.(ts|js|cjs|json|proto|md|yaml|yml)$/).test(name) && !name.split("/").some(p => !/^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/.test(p) || p.endsWith(".") || /^(node_modules|build|dist|vendor|con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(p)) && name.length <= 160;
+      const sourcePath = ((isPlugin() || isApplication()) ? /^[a-zA-Z0-9_][a-zA-Z0-9_./-]*\.(ts|tsx|jsx|js|cjs|mjs|json|proto|md|yaml|yml|html|css|svg|txt|sql|toml)$/ : /^[a-zA-Z0-9_][a-zA-Z0-9_./-]*\.(ts|js|cjs|json|proto|md|yaml|yml)$/).test(name) && !name.split("/").some(p => !/^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/.test(p) || p.endsWith(".") || /^(node_modules|build|dist|vendor|con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(p)) && name.length <= 160;
       if (!(sourceOnly() ? sourcePath : ["index.html", "app.css", "app.js", "README.md"].includes(name) || (name.startsWith("contract/") && sourcePath))) {
         $("source-file-error").textContent = isPlugin() ? "Use a safe source path, such as plugin/features/panel.js." : isContract() ? "Use a safe relative source path, such as assembly/Feature.ts." : "Use a contract/ source path, such as contract/assembly/Feature.ts."; return;
       }
       if (Object.keys(state.files).some(n => n !== renameFrom && (n.toLowerCase() === name.toLowerCase() || n.toLowerCase().startsWith(name.toLowerCase() + "/") || name.toLowerCase().startsWith(n.toLowerCase() + "/")))) {
         $("source-file-error").textContent = "That path conflicts with an existing file."; return;
       }
-      if (!renameFrom && Object.keys(state.files).length >= 64) { $("source-file-error").textContent = "The limit is 64 files."; return; }
+      if (!renameFrom && Object.keys(state.files).length >= 512) { $("source-file-error").textContent = "The limit is 512 files."; return; }
       const content = renameFrom ? state.files[renameFrom] : "";
       if (renameFrom) delete state.files[renameFrom];
       state.files[name] = content;
@@ -215,7 +257,7 @@ window.KaiBuildIDE = {
       renderDiagnostics, controls: updateControls, loadReference,
       render() {
         const state = getState();
-        $("project-workflow-title").textContent = isPlugin() ? (state.detail.project.template === "plugin-chain" ? "KAI plugin + Koinos contract" : "KAI Core plugin workspace") : isContract() ? "Contract source workspace" : hasSourceWorkspace() ? "Your project · Frontend, contracts & tests" : "Your guided app";
+        $("project-workflow-title").textContent = isPlugin() ? (state.detail.project.template === "plugin-chain" ? "KAI plugin + Koinos contract" : "KAI Core plugin workspace") : isApplication() ? "Application workspace · Contracts, services & frontend" : isContract() ? "Contract source workspace" : hasSourceWorkspace() ? "Your project · Frontend, contracts & tests" : "Your guided app";
         $("project-workflow-detail").textContent = state.detail.workspace?.reason || "Chat, preview and deploy your app.";
         $("tab-preview").hidden = sourceOnly();
         $("tab-reference").hidden = !isPlugin();
@@ -223,7 +265,7 @@ window.KaiBuildIDE = {
         if (checkKey && checkKey !== state.detail.project.id + ":" + state.editRevision) {
           checkKey = ""; $("source-diagnostics").textContent = "Source version changed. Run Check files for current results.";
         }
-        renderTree(); editorStatus(); renderProposal(); renderDiagnostics(); updateControls();
+        renderTree(); editorStatus(); renderProposal(); renderDiagnostics(); renderBuilds(); updateControls();
       },
     };
   },
