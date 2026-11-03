@@ -96,11 +96,16 @@ function fixtureAgent() {
     if (step === 2) {
       const project = JSON.parse(body.input.filter(r => r.type === "function_call_output").at(-1).output);
       assert.equal(project.files["contract/package-lock.json"], undefined);
-      contract = project.files["contract/assembly/Counter.ts"];
+      assert.equal(project.files["contract/assembly/Counter.ts"], undefined);
+      output = [call("read_file", { path: "contract/assembly/Counter.ts", start_line: 1, line_count: 200 })];
+    }
+    if (step === 3) {
+      contract = JSON.parse(body.input.filter(r => r.type === "function_call_output").at(-1).output).content;
+      assert.match(contract, /export class Counter/);
       output = [call("write_files", { files: [{ path: "plugin/help.html", content: "<!doctype html><html><body>Project help</body></html>" }, { path: "contract/assembly/Counter.ts", content: contract + "\n// Reviewed paired-project edit\n" }] })];
     }
-    if (step === 3) output = [call("validate_project", {})];
-    if (step === 4) output = [{ type: "message", content: [{ type: "output_text", text: "Proposed paired plugin/contract edits. Static checks only." }] }];
+    if (step === 4) output = [call("validate_project", {})];
+    if (step === 5) output = [{ type: "message", content: [{ type: "output_text", text: "Proposed paired plugin/contract edits. Static checks only." }] }];
     step++; return new Response(JSON.stringify({ status: "completed", output, usage: { total_tokens: 1 } }));
   } });
 }

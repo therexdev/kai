@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Build on Koinos with KAI</title>
     <link rel="icon" href="/redesign/brand-mark.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/build/assets/build.css?v=plugins-20261102" />
+    <link rel="stylesheet" href="/build/assets/build.css?v=runner-20261103" />
     <script src="/producer-signer/kondor.min.js" defer></script>
     <script src="/build/assets/qrcode.js" defer></script>
     <script src="/build/assets/wallets.js" defer></script>
     <script src="/build/assets/bridge.js" defer></script>
     <script src="/build/assets/markdown.js?v=plugins-20261103" defer></script>
-    <script src="/build/assets/ide.js?v=plugins-20261102" defer></script>
-    <script src="/build/assets/build.js?v=edit-limits-20261103" defer></script>
+    <script src="/build/assets/ide.js?v=runner-20261103" defer></script>
+    <script src="/build/assets/build.js?v=runner-20261103" defer></script>
   <link rel="stylesheet" href="/i18n/language.css">
 </head>
   <body>
@@ -112,7 +112,7 @@
               rows="3"
             ></textarea>
             <div>
-              <label class="build-kind">Build type<select id="start-kind"><option value="dapp">Koinos dApp</option><option value="plugin">KAI Core plugin</option><option value="plugin-chain">Plugin + Koinos contract</option></select></label>
+              <label class="build-kind">Build type<select id="start-kind"><option value="workspace">Full Koinos application</option><option value="dapp">Guided dApp</option><option value="plugin">KAI Core plugin</option><option value="plugin-chain">Plugin + Koinos contract</option></select></label>
               <button class="button primary" type="submit">
                 Start building <span aria-hidden="true">↑</span>
               </button>
@@ -137,6 +137,7 @@
               ><small>Start your dApp ↗</small>
             </button>
           </div>
+          <button class="button secondary ide-start" data-template="workspace">Open a full application workspace ↗</button>
           <button class="button secondary ide-start" data-template="contract">Open a Koinos contract workspace ↗</button>
           <div class="plugin-start-heading"><span class="starter-label">BUILD FOR KAI CORE</span><a href="/docs/#plugin-builder" target="_blank" rel="noopener">Plugin docs &amp; ideas ↗</a></div>
           <div class="starters plugin-starters">
@@ -254,6 +255,7 @@
                 </button>
                 <button id="tab-changes" role="tab" aria-selected="false" data-tab="changes">Changes</button>
                 <button id="tab-problems" role="tab" aria-selected="false" data-tab="problems">Diagnostics</button>
+                <button id="tab-runs" role="tab" aria-selected="false" data-tab="runs">Builds &amp; tests</button>
                 <button id="tab-reference" role="tab" aria-selected="false" data-tab="reference" hidden>Reference</button>
               </div>
               <div class="preview-tools">
@@ -354,10 +356,19 @@
             </div>
             <div id="pane-problems" class="pane diagnostics-pane" role="tabpanel" aria-labelledby="tab-problems" hidden>
               <h2>Diagnostics</h2>
-              <p>Source checks and observed preview errors. Build and test results will appear here when a runner is connected.</p>
+              <p>Source checks and observed preview errors. Compiler and test output is in Builds &amp; tests.</p>
               <div id="source-diagnostics" role="status">Run Check files to inspect the current editor contents.</div>
               <h3>Preview observations</h3>
               <div id="preview-diagnostics">No errors observed in this preview. This does not mean interactions have been tested.</div>
+            </div>
+            <div id="pane-runs" class="pane runs-pane" role="tabpanel" aria-labelledby="tab-runs" hidden>
+              <h2>Builds &amp; tests</h2>
+              <p>Compile custom contracts and run tests for each part of your application.</p>
+              <p id="runner-status" role="status"></p>
+              <div class="run-controls"><label for="build-target">Target<select id="build-target"></select></label><button id="compile-target" class="button primary">Compile</button><button id="test-target" class="button secondary">Run tests</button><button id="check-runner" class="button secondary">Check worker</button></div>
+              <p id="build-target-note"></p>
+              <p class="muted">Runs use saved files, or KAI’s working proposal when started in chat. Results apply only to their source hash. Compile and unit tests do not deploy an app or test a live wallet.</p>
+              <div id="build-results"></div>
             </div>
             <div id="pane-reference" class="pane reference-pane" role="tabpanel" aria-labelledby="tab-reference" hidden>
               <div class="reference-heading"><h2>Build with the Core SDK</h2><label for="reference-topic">Documentation<select id="reference-topic"><option value="start">Plugin builder guide &amp; ideas</option><option value="author-guide">Core plugin author guide</option><option value="api">Core SDK type reference</option></select></label><a id="reference-source" target="_blank" rel="noopener">Open source documentation ↗</a><p id="reference-version"></p></div>
@@ -403,7 +414,7 @@
             placeholder="My community app" /></label
         ><label
           >Starting point<select id="template-select">
-            <option value="voting">Community voting</option>
+            <option value="workspace">Full application · contracts, services &amp; frontend</option><option value="voting">Community voting</option>
             <option value="board">Community board</option>
             <option value="blank">Blank canvas</option>
             <option value="contract">Koinos contract · IDE source workspace</option>

@@ -71,7 +71,7 @@
     return data;
   }
   function base() { return "/build/api/projects/" + state.detail.project.id; }
-  const sourceOnly = () => ["contract", "plugin", "plugin-chain"].includes(state.detail?.project.template);
+  const sourceOnly = () => ["contract", "workspace", "plugin", "plugin-chain"].includes(state.detail?.project.template);
   const pluginProject = () => ["plugin", "plugin-chain"].includes(state.detail?.project.template);
   const active = () =>
     state.detail?.jobs.find((j) => ["running", "queued", "confirming"].includes(j.status));
@@ -95,7 +95,7 @@
     $("composer-hint").textContent = state.dirty ? "Save your file edits before sending a message."
       : state.detail?.proposal && state.detail.proposal.base_revision !== project.revision ? "Saved source changed after this proposal. Review and discard the outdated changes to continue."
       : state.detail?.proposal ? "You can ask questions or refine these proposed changes. Review and apply them when ready."
-      : sourceOnly() ? "Review AI changes, save a version, then export to build and test locally."
+      : sourceOnly() ? "Review AI changes, then compile or test targets in Builds & tests."
       : "Review AI changes before saving. Publish uses the bundled App v1 contract.";
     $("code-editor").readOnly = running || state.busy;
     $("save-files").disabled = running || state.busy || !state.dirty;
@@ -167,7 +167,7 @@
       div.append(node("span", m.role === "user" ? KaiI18n.message`You` : KaiI18n.message`KAI`, "role"), body);
       area.append(div);
     }
-    if (failed && ["edit", "publish", "propose"].includes(failed.kind)) {
+    if (failed && ["edit", "publish", "propose", "build"].includes(failed.kind)) {
       const errorText = failed.retryable === false ? failed.error.replace("Use Retry saved edit to resume.", "Send a smaller new request focused on one file or feature.") : failed.error;
       area.append(
         node(
@@ -186,7 +186,10 @@
           await api(base() + "/jobs/" + failed.id + "/retry", {});
           await refresh();
         });
-      if (failed.retryable !== false) area.append(retry);
+      if (failed.kind === "build") {
+        const open = node("button", "Open Builds & tests", "retry-job");
+        open.onclick = () => showTab("runs"); area.append(open);
+      } else if (failed.retryable !== false) area.append(retry);
       if (failed.error_detail) {
         const copy = node("button", KaiI18n.message`Copy error details`, "retry-job");
         copy.onclick = () => action(async () => {
@@ -343,7 +346,7 @@
   }
   function showTab(tab) {
     state.tab = tab;
-    for (const name of ["preview", "code", "history", "changes", "problems", "reference"]) {
+    for (const name of ["preview", "code", "history", "changes", "problems", "reference", "runs"]) {
       $("pane-" + name).hidden = name !== tab;
       $("tab-" + name).setAttribute("aria-selected", String(name === tab));
     }
@@ -388,7 +391,7 @@
         ? "Community voting"
         : template === "board"
           ? "Community board"
-          : template === "contract" ? "My Koinos contract" : template === "plugin" ? "My KAI plugin" : template === "plugin-chain" ? "My Koinos plugin" : "My Koinos app";
+          : template === "workspace" ? "My Koinos application" : template === "contract" ? "My Koinos contract" : template === "plugin" ? "My KAI plugin" : template === "plugin-chain" ? "My Koinos plugin" : "My Koinos app";
     $("template-select").value = template;
     createHelp();
     $("create-dialog").showModal();
@@ -400,15 +403,15 @@
     .forEach((b) => (b.onclick = () => createDialog(b.dataset.template)));
   function createHelp() {
     const type = $("template-select").value;
-    $("create-help").textContent = type === "plugin" ? "Includes a sandboxed UI, local AI, plugin storage and Core language support. Export to test, sign and install in KAI Core."
+    $("create-help").textContent = type === "workspace" ? "A shared project for multiple contracts, services and frontend code. Compile and test declared targets with the isolated worker. Custom deployment is a separate step." : type === "plugin" ? "Includes a sandboxed UI, local AI, plugin storage and Core language support. Export to test, sign and install in KAI Core."
       : type === "plugin-chain" ? "Includes a native plugin with full computer trust, a public contract reader and editable contract tests. Custom signing and hosted deployment are not connected."
       : "Chat and Project files share one saved project. Guided dApps include editable frontend, contracts and tests.";
   }
   $("template-select").onchange = createHelp;
   $("start-kind").onchange = () => {
     const type = $("start-kind").value;
-    $("idea-label").textContent = type === "dapp" ? "What is your dApp idea?" : "What should your KAI plugin do?";
-    $("idea").placeholder = type === "dapp" ? "A voting dApp where each Koinos wallet gets one vote…" : type === "plugin" ? "A local research assistant that uses my Core models and saves project notes…" : "A community dashboard that summarizes Koinos contract data with local AI…";
+    $("idea-label").textContent = ["dapp", "workspace"].includes(type) ? "What is your dApp idea?" : "What should your KAI plugin do?";
+    $("idea").placeholder = type === "workspace" ? "A social app with profiles, posts, on-chain permissions and a feed service…" : type === "dapp" ? "A voting dApp where each Koinos wallet gets one vote…" : type === "plugin" ? "A local research assistant that uses my Core models and saves project notes…" : "A community dashboard that summarizes Koinos contract data with local AI…";
   };
   $("start-form").onsubmit = (e) => {
     e.preventDefault();
@@ -509,8 +512,8 @@
     action(async () => {
       const f = $("import-file").files[0];
       if (!f) return;
-      if (f.size > 900000)
-        throw Error("Choose a project export smaller than 900 KB.");
+      if (f.size > 17000000)
+        throw Error("Choose a project export smaller than 17 MB.");
       const data = JSON.parse(await f.text());
       const { project } = await api("/build/api/projects/import", data);
       await listProjects();
