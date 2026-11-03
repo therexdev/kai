@@ -95,7 +95,7 @@
     $("composer-hint").textContent = state.dirty ? "Save your file edits before sending a message."
       : state.detail?.proposal && state.detail.proposal.base_revision !== project.revision ? "Saved source changed after this proposal. Review and discard the outdated changes to continue."
       : state.detail?.proposal ? "You can ask questions or refine these proposed changes. Review and apply them when ready."
-      : sourceOnly() ? "Review AI changes, save a version, then export to build and test locally."
+      : sourceOnly() ? "Review AI changes, then compile or test targets in Builds & tests."
       : "Review AI changes before saving. Publish uses the bundled App v1 contract.";
     $("code-editor").readOnly = running || state.busy;
     $("save-files").disabled = running || state.busy || !state.dirty;

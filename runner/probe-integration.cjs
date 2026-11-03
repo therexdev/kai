@@ -25,6 +25,13 @@ async function execute(files, target, operation, options = {}) {
   const tests = await execute(files, "counter", "test");
   assert.equal(tests.ok, true, tests.logs); assert.match(tests.logs, /3 pass|3\/3|3 passed/i);
   console.log("PASS actual counter MockVM tests");
+  const guided = require("../lib/builder/guided").augment(starter("board", "Guided app"));
+  const appCompile = await execute(guided, "app", "compile");
+  assert.equal(appCompile.ok, true, appCompile.logs);
+  const appTests = await execute(guided, "app", "test");
+  assert.equal(appTests.ok, true, appTests.logs);
+  assert.match(appTests.logs, /App.spec.ts/); assert.match(appTests.logs, /Guard.spec.ts/);
+  console.log("PASS existing guided App and Guard source compiles/tests in the runner");
   const service = await execute(files, "service", "test");
   assert.equal(service.ok, true, service.logs); assert.match(service.logs, /# pass 1/);
   const broken = { ...files, "contracts/counter/assembly/Counter.ts": "export class Counter { this is invalid; }" };
