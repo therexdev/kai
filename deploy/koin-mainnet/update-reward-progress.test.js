@@ -18,7 +18,7 @@ function fixture(t, prior = BASE) {
   for (const [name, file] of Object.entries(records)) fs.writeFileSync(file, "existing:" + name);
   const unit = Buffer.from(`[Service]\nUser=kai-koin-prepaid\nGroup=kai-koin-prepaid\nWorkingDirectory=${current}\nExecStart=${process.execPath} ${current}/test-server.js\nEnvironment=KAI_KOIN_TEST_CONFIG_DIR=${p.config}\nEnvironment=KAI_KOIN_TEST_STATE_DIR=${p.state}\nEnvironment=KAI_KOIN_TEST_PORT=3109\nEnvironmentFile=${p.config}/account.env\nReadWritePaths=${p.state}\nReadOnlyPaths=${p.config}\nNoNewPrivileges=yes\nProtectSystem=strict\nProtectHome=yes\nUMask=0077\n`);
   fs.writeFileSync(p.unit, unit);
-  let active = "active", changed = REQUIRED.join("\n"), dirty = "", failProbe = false, hook = () => {}, dropins = "", stopStatus = "0";
+  let active = "active", changed = REQUIRED.join("\n"), dirty = "", failProbe = false, hook = () => {}, dropins = "", stopStatus = "0", stopPid = "0";
   const run = (exe, args) => {
     calls.push([exe, ...args]); hook(exe, args);
     if (exe === "git") {
@@ -29,15 +29,16 @@ function fixture(t, prior = BASE) {
     }
     if (exe === process.execPath && args[0] === "--test" && failProbe) throw Error("Quote probe failed");
     if (exe === "systemctl") {
-      if (args[0] === "stop") active = "inactive";
+      if (args[0] === "stop") active = stopStatus === "0" ? "inactive" : "failed";
       if (args[0] === "start") active = "active";
-      if (args[0] === "show") return { WorkingDirectory: fs.readFileSync(p.unit, "utf8").match(/^WorkingDirectory=(.+)$/m)?.[1], ActiveState: active, ExecMainStatus: stopStatus, DropInPaths: dropins, FragmentPath: p.unit }[args.at(-1).split("=")[1]];
+      if (args[0] === "show") return { WorkingDirectory: fs.readFileSync(p.unit, "utf8").match(/^WorkingDirectory=(.+)$/m)?.[1], ActiveState: active, ExecMainStatus: stopStatus, MainPID: active === "active" ? "42" : stopPid, DropInPaths: dropins, FragmentPath: p.unit }[args.at(-1).split("=")[1]];
     }
     return "";
   };
   return { p, target, calls, logs, policy, keys, records, unit, run,
     options: { paths: p, run, log: s => logs.push(s), checkHealth: async () => {}, beforeStop: async () => {} },
     set changed(v) { changed = v; }, set dirty(v) { dirty = v; }, set failProbe(v) { failProbe = v; }, set hook(v) { hook = v; }, set dropins(v) { dropins = v; }, set stopStatus(v) { stopStatus = v; },
+    get active() { return active; }, set active(v) { active = v; }, set stopPid(v) { stopPid = v; },
     preserved() { assert.equal(fs.readFileSync(policy, "utf8"), originalPolicy); assert.equal(fs.statSync(policy).mode & 0o777, 0o640); assert.equal(fs.readFileSync(keys, "utf8"), "private-fixture-key"); assert.ok(!logs.join("\n").includes("private-fixture")); },
   };
 }
@@ -161,4 +162,43 @@ test("missing pass boundary and status-read failures never stop or change the ol
     assert.equal(fs.existsSync(path.join(f.p.releases, f.target)), false);
     assert.equal((await update(f.options)).installed, true);
   }
+});
+test("failed shutdown restarts and verifies the unchanged old release without rolling back current journal writes", async t => {
+  const f = fixture(t), checks = []; f.stopStatus = "1";
+  f.hook = (exe, args) => {
+    if (exe === "systemctl" && args[0] === "stop")
+      for (const [name, file] of Object.entries(f.records)) fs.writeFileSync(file, "latest:" + name);
+  };
+  await assert.rejects(update({ ...f.options, checkHealth: async o => { checks.push(o.summary); } }), /did not stop cleanly/);
+  assert.equal(f.active, "active"); assert.deepEqual(checks, [false]);
+  assert.deepEqual(fs.readFileSync(f.p.unit), f.unit); f.preserved();
+  for (const [name, file] of Object.entries(f.records)) assert.equal(fs.readFileSync(file, "utf8"), "latest:" + name);
+  assert.equal(f.calls.filter(c => c[0] === "systemctl" && c[1] === "reset-failed").length, 1);
+  assert.equal(f.calls.filter(c => c[0] === "systemctl" && c[1] === "start").length, 1);
+  assert.equal(f.calls.some(c => c[0] === "systemctl" && c[1] === "daemon-reload"), false);
+  assert.equal(fs.existsSync(path.join(f.p.releases, f.target)), false);
+  f.stopStatus = "0"; assert.equal((await update(f.options)).installed, true);
+});
+test("a surviving process or changed old unit prevents automatic recovery after failed shutdown", async t => {
+  for (const kind of ["process", "unit"]) {
+    const f = fixture(t); f.stopStatus = "1";
+    if (kind === "process") f.stopPid = "123";
+    else f.hook = (exe, args) => { if (exe === "systemctl" && args[0] === "stop") fs.writeFileSync(f.p.unit, "operator-changed-unit"); };
+    await assert.rejects(update(f.options), /did not stop cleanly/);
+    assert.equal(f.calls.some(c => c[0] === "systemctl" && ["start", "reset-failed", "daemon-reload"].includes(c[1])), false);
+    assert.deepEqual(fs.readFileSync(f.p.unit), kind === "unit" ? Buffer.from("operator-changed-unit") : f.unit); f.preserved();
+  }
+});
+test("failed recovery health is reported without claiming recovery succeeded", async t => {
+  const f = fixture(t); f.stopStatus = "1";
+  await assert.rejects(update({ ...f.options, checkHealth: async () => { throw Error("Still unavailable"); } }), /did not stop cleanly/);
+  assert.match(f.logs.join("\n"), /Automatic code recovery could not finish/);
+  assert.doesNotMatch(f.logs.join("\n"), /Previous code restarted after unsuccessful shutdown/);
+  assert.deepEqual(fs.readFileSync(f.p.unit), f.unit); f.preserved();
+});
+test("an initially failed service gets an accurate error before any preparation or mutation", async t => {
+  const f = fixture(t); f.active = "failed";
+  await assert.rejects(update(f.options), /start the existing release and verify health/);
+  assert.equal(f.calls.some(c => c[0] === "npm" || c[0] === process.execPath || (c[0] === "systemctl" && c[1] !== "show")), false);
+  assert.deepEqual(fs.readFileSync(f.p.unit), f.unit); f.preserved();
 });

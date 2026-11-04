@@ -40,6 +40,11 @@ completed pass is observed, for up to three minutes. This reduces the chance
 of interrupting a long RPC pass; a clean process exit is still mandatory.
 If no boundary is observed, the old process remains running and its unit is
 unchanged. Configuration and financial state are never restored from backup.
+If the old process exits unsuccessfully during shutdown, the upgrade aborts.
+When the old unit and configuration are unchanged and no main process remains,
+the installer restarts the old release and verifies its health, including when
+systemd reports `failed` instead of `inactive`. An already failed service must
+be started and its health verified before beginning an update.
 If activation or health checks fail, rollback restores only the previous code
 and retains current accounts, credits, keys, quotes and transaction journals.
 

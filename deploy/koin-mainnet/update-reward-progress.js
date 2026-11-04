@@ -79,7 +79,8 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, c
     if (REQUIRED.some(name => !changed.includes(name)) || changed.some(name => !ALLOWED.has(name))) throw Error("Only the reviewed reward-progress update can be installed");
     const show = key => run("systemctl", ["show", UNIT, "--value", "--property=" + key], undefined, true).trim();
     const current = show("WorkingDirectory"), targetDir = path.join(p.releases, target);
-    if (![...PRIOR_RELEASES.map(commit => path.join(p.releases, commit)), targetDir].includes(current) || show("ActiveState") !== "active" || show("FragmentPath") !== p.unit || show("DropInPaths")) throw Error("Unexpected prepaid service version or overrides; service unchanged");
+    if (![...PRIOR_RELEASES.map(commit => path.join(p.releases, commit)), targetDir].includes(current) || show("FragmentPath") !== p.unit || show("DropInPaths")) throw Error("Unexpected prepaid service version or overrides; service unchanged");
+    if (show("ActiveState") !== "active") throw Error("Prepaid service is not active; start the existing release and verify health before updating. Service unchanged");
     real(p.unit, false); real(current, true);
     const oldUnit = fs.readFileSync(p.unit), nextUnit = validateUnit(oldUnit, p, current, targetDir);
     const expected = runtimeTarget(path.join(p.config, "runtime.json")), digest = configDigest(p.config);
@@ -143,8 +144,14 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, c
           writeUnit(oldUnit, nextUnit); run("systemctl", ["daemon-reload"]); run("systemctl", ["start", UNIT]);
           await checkHealth({ ...ready, summary: false });
           log("Previous code restored. Current accounts, credits, quotes and payment records were retained.");
-        } else if (attemptedStop && unchanged(oldUnit) && show("ActiveState") === "inactive") {
-          run("systemctl", ["start", UNIT]);
+        } else if (attemptedStop && unchanged(oldUnit) &&
+            ["inactive", "failed"].includes(show("ActiveState")) && show("MainPID") === "0") {
+          // A shutdown deadline can leave systemd in failed rather than
+          // inactive even though the process is gone. Abort the upgrade, but
+          // restart the unchanged old code against its current durable journals.
+          run("systemctl", ["reset-failed", UNIT]); run("systemctl", ["start", UNIT]);
+          await checkHealth({ ...ready, summary: false });
+          log("Previous code restarted after unsuccessful shutdown; service health verified. Update was not installed and current payment records were retained.");
         } else if (attemptedStop) log("Concurrent changes or incomplete shutdown preserved; service recovery needs attention. Previous unit: " + path.join(backup, "previous.service"));
       } catch { log("Automatic code recovery could not finish. Previous unit: " + path.join(backup, "previous.service")); }
       try { preserveUnused(); } catch { log("Prepared source retained at " + targetDir); }
