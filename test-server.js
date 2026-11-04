@@ -11,7 +11,7 @@ function createHandler({ runtime, config, secret, authApp }) {
     try {
       const url = new URL(req.url, "http://test");
       if (authApp && require("./lib/credit-account-web").handles(url.pathname)) return authApp(req, res);
-      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, product: config.deployment.product || "legacy-reservations", purchaseQuotesUnlimited: require("./lib/koin-network/product").isUsd(config.deployment), providerQualificationRecovery: runtime.qualifier?.recoveryVersion === 1 ? 1 : 0, modelReadinessAdmission: runtime.qualifier?.readinessVersion === 1 ? 1 : 0, lastSuccess: (runtime.prepaid ? runtime.lastServing : runtime.lastSuccess) || null, lastSettlementSuccess: runtime.lastSuccess || null, lastRewardSuccess: runtime.lastRewardSuccess || null, rewardSummaryVersion: typeof runtime.rewardSummary === "function" ? 1 : 0, freeAllowanceRefreshVersion: typeof runtime.sponsorship?.check === "function" ? 1 : 0 });
+      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, product: config.deployment.product || "legacy-reservations", purchaseQuotesUnlimited: require("./lib/koin-network/product").isUsd(config.deployment), providerQualificationRecovery: runtime.qualifier?.recoveryVersion === 1 ? 1 : 0, modelReadinessAdmission: runtime.qualifier?.readinessVersion === 1 ? 1 : 0, lastSuccess: (runtime.prepaid ? runtime.lastServing : runtime.lastSuccess) || null, lastSettlementSuccess: runtime.lastSuccess || null, lastRewardSuccess: runtime.lastRewardSuccess || null, claimSponsorshipVersion: typeof runtime.claims?.sponsorshipStatus === "function" ? 1 : 0, rewardSummaryVersion: typeof runtime.rewardSummary === "function" ? 1 : 0, freeAllowanceRefreshVersion: typeof runtime.sponsorship?.check === "function" ? 1 : 0 });
       if (url.pathname === "/operator/status" && req.method === "GET") {
         const presented = crypto.createHash("sha256").update(String(req.headers["x-operator-secret"] || "")).digest();
         if (!crypto.timingSafeEqual(presented, crypto.createHash("sha256").update(secret).digest())) return json(res, 403, { error: "Test operator access required" });
@@ -76,6 +76,7 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
     authApp = require("./lib/credit-account-web").createCreditAccountWeb(publicAccounts.router);
   }
   const runtime = new TestRuntime({ config, stateDir, signers: loadKeys(path.join(directory, "runtime-keys.json"), config),
+    claimSponsorship: require("./lib/koin-network/claim-sponsorship").reader(path.join(directory, require("./lib/koin-network/claim-sponsorship").FILE)),
     accountService: publicAccounts?.service,
     accountsFile: path.join(directory, "invitations.json"), tokenizerDir: path.join(directory, "tokenizer"),
     qualificationsFile: path.join(directory, "qualifications.json"), operatorSecret: secret });
