@@ -202,3 +202,11 @@ test("an initially failed service gets an accurate error before any preparation 
   assert.equal(f.calls.some(c => c[0] === "npm" || c[0] === process.execPath || (c[0] === "systemctl" && c[1] !== "show")), false);
   assert.deepEqual(fs.readFileSync(f.p.unit), f.unit); f.preserved();
 });
+test("a fresh recoverable error cannot authorize shutdown while the runtime reports an active stage", async t => {
+  const f = fixture(t); fs.writeFileSync(path.join(f.p.config, "operator-secret"), "private-fixture-secret");
+  let now = 100000, reads = 0;
+  await waitForBoundary({ paths: f.p, clock: () => now, wait: async ms => { now += ms; },
+    fetchImpl: async () => new Response(JSON.stringify({ lastSuccess: null, errors: [{ at: now }],
+      processingStage: ["payout_confirmation", "reward_collection", null][reads++] })) });
+  assert.equal(reads, 3);
+});

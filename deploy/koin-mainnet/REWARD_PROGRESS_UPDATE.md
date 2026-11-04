@@ -1,61 +1,58 @@
-# Reward progress isolation and RPC diagnostics
+# Wait for coherent reward evidence without blocking unrelated work
 
-The prepaid runtime processes older payouts before daily reward cycles. A
-retryable RPC error while confirming an older payout previously ended the
-whole pass, preventing the current day from opening and saved availability
-from progressing. Standalone contract and epoch reads can succeed while the
-long-running service fails elsewhere in that pass.
+A new block or RPC endpoint change during reward reads invalidates that read
+window. Previously the observer threw an exception, which could end an entire
+runtime pass while checking an older payout. Repeated moving-head errors could
+therefore delay daily rewards even while individual RPC calls succeeded.
 
-In prepaid mode only, a retryable `koin_rpc_unavailable` from the payout
-runner is now recorded and the independently verified daily reward cycle and
-collection stages continue. Prepaid usage settlement still runs first. Contract,
-manifest, signing and financial validation failures still stop processing;
-the legacy combined settlement runner retains its original failure gate.
-Claim reconciliation continues through its existing durable journal and
-irreversible observer. No transaction is marked paid by this update.
+The observer now returns its existing unverified `changed` state for these
+specific read-window changes. Existing claim and cycle gates wait for fresh
+evidence on the next tick, and independent stages can continue. Mixed reads
+are discarded and never authorize a signature, submission, manifest, or paid
+state. There is no immediate retry loop or extra RPC load. An earlier verified
+snapshot cannot be returned when its current revalidation is inconsistent.
 
-The operator status now reports `processingStage`, `processingStartedAt`, and
-the stage of each failure. RPC failures include bounded, sanitized endpoint
-origins, methods, failure categories, numeric HTTP/RPC codes, known network
-codes, and queue counts. Request parameters, transaction signatures, raw
-upstream messages, and URL query strings are excluded.
-
-`lastRewardSuccess` in `/health` and `/operator/status` means the daily reward
-cycle and collection pass completed. It does not prove every epoch is final
-or that a particular provider was paid. `lastSettlementSuccess` in `/health`
-and `lastSuccess` in operator status retain their full-pass meaning and do
-not advance when the payout stage throws.
+Chain identity, bytecode, policy, custody, malformed responses, finality and
+clock validation errors still throw. A private error type identifies only
+observer-detected window changes; matching an arbitrary error message does
+not suppress it. Original signed bytes, nonce fences, attempt limits and
+irreversible confirmation requirements remain unchanged.
 
 ## Installation
 
 Use system Node 22+ and a clean checkout of this commit descended from
-`b6490e74db28908b96ab7e223846843c02d3c1f9`, with locked production dependencies
+`fe1a6b27ea44cafefacb2e506254edc517242b91`, with locked production dependencies
 installed. Run `sudo node deploy/koin-mainnet/update-reward-progress.js`.
 The installer accepts only that observed prior release or an idempotent
-repeat of the target, verifies the seven-file source scope and service
+repeat of the target, verifies the five-file source scope and service
 identity, and runs isolated regression tests before staging the new code.
 
-Before shutdown it reads authenticated loopback status until a freshly
-completed pass is observed, for up to three minutes. This reduces the chance
-of interrupting a long RPC pass; a clean process exit is still mandatory.
+Before shutdown it reads authenticated loopback status until the runtime
+reports an idle stage, for up to three minutes. A fresh recoverable error
+timestamp does not count as idle. A clean process exit is still mandatory.
 If no boundary is observed, the old process remains running and its unit is
-unchanged. Configuration and financial state are never restored from backup.
-If the old process exits unsuccessfully during shutdown, the upgrade aborts.
-When the old unit and configuration are unchanged and no main process remains,
-the installer restarts the old release and verifies its health, including when
-systemd reports `failed` instead of `inactive`. An already failed service must
-be started and its health verified before beginning an update.
-If activation or health checks fail, rollback restores only the previous code
-and retains current accounts, credits, keys, quotes and transaction journals.
+unchanged. If the old process exits unsuccessfully during shutdown, the
+upgrade aborts; when the old unit and configuration are unchanged and no main
+process remains, the installer restarts the old release and verifies health.
+An already failed service must be started and checked before updating.
+
+Configuration and financial journals are never restored from backup. Startup
+and health checks retain the previous code-only rollback behavior and current
+accounts, credits, keys, quotes and transaction records.
 
 ## Verification
 
-After installation, inspect both health timestamps and authenticated operator
-status. Confirm the current epoch opens and the older epoch advances through
-the existing root review and finality rules. If errors continue, use the stage
-and RPC details to identify the actual failing request in the running process.
-This update does not establish the cause of all remaining RPC failures, fix an
-inaccessible fallback, or guarantee payout recovery.
+Check the authenticated operator status for cycle progress and unexpected
+errors. A normal moving read window can leave a particular claim or epoch
+waiting until a coherent snapshot becomes irreversible; the update does not
+shorten finality or the root-review hold. Read-only regressions cover movement
+during initial capture and revalidation, normal recovery, no signing from mixed
+evidence, no duplicate payout after a finalized transaction, continued runtime
+progress, and fatal validation errors.
 
-Do not reset claim states, signing fences or attempt counters, resend saved
-transactions manually, or treat an empty transaction lookup as proof of failure.
+`lastRewardSuccess` means the daily cycle and collection pass completed.
+`lastSettlementSuccess` in public health and `lastSuccess` in operator status
+mean the full pass returned without a thrown error. Waiting on incomplete
+evidence is a normal outcome: these timestamps do not prove that every epoch
+is final or that every provider was paid. Check the actual cycle and claim
+states before reporting payment completion.

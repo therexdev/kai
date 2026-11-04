@@ -5,12 +5,12 @@ const fs = require("node:fs"), path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { configDigest } = require("./update-prepaid-web");
 const { validateUnit, runtimeTarget, health: walletHealth, UNIT, PATHS } = require("./update-wallet-access");
-const BASE = "b6490e74db28908b96ab7e223846843c02d3c1f9";
-const REQUIRED = ["lib/koin-network/rpc-provider.js", "lib/koin-network/test-runtime.js", "test-server.js",
-  "scripts/probe-koin-reward-progress.js", "deploy/koin-mainnet/update-reward-progress.js",
+const BASE = "fe1a6b27ea44cafefacb2e506254edc517242b91";
+const REQUIRED = ["lib/koin-network/reward-observer.js", "scripts/probe-koin-reward-observer.js",
+  "deploy/koin-mainnet/update-reward-progress.js",
   "deploy/koin-mainnet/update-reward-progress.test.js", "deploy/koin-mainnet/REWARD_PROGRESS_UPDATE.md"];
 const ALLOWED = new Set(REQUIRED), PRIOR_RELEASES = [BASE];
-const PROBES = ["scripts/probe-koin-reward-progress.js", "scripts/probe-koin-rpc-pressure.js",
+const PROBES = ["scripts/probe-koin-reward-observer.js", "scripts/probe-koin-reward-progress.js", "scripts/probe-koin-rpc-pressure.js",
   "scripts/probe-koin-rpc-transport.js", "scripts/probe-koin-automatic-claims.js",
   "scripts/probe-koin-reward-cycle.js", "scripts/probe-koin-epoch-completeness.js",
   "deploy/koin-mainnet/update-reward-progress.test.js"];
@@ -60,9 +60,17 @@ async function waitForBoundary({ paths: p = PATHS, fetchImpl = fetch, clock = Da
       status = JSON.parse(body);
     } catch { throw Error("Cannot read processing status before shutdown; service unchanged"); }
     if (!status || !Array.isArray(status.errors)) throw Error("Invalid processing status; service unchanged");
-    const markers = [status.lastSuccess, ...status.errors.map(row => row?.at)].filter(Number.isSafeInteger);
-    const newest = Math.max(0, ...markers), age = clock() - newest;
-    if (newest > 0 && age >= 0 && age <= 1500) return;
+    if (Object.hasOwn(status, "processingStage")) {
+      // Newer runtimes can record a recoverable error in the middle of a pass.
+      // Their explicit idle marker is authoritative over a fresh error time.
+      if (status.processingStage === null) return;
+      if (typeof status.processingStage !== "string" || !status.processingStage)
+        throw Error("Invalid processing stage; service unchanged");
+    } else {
+      const markers = [status.lastSuccess, ...status.errors.map(row => row?.at)].filter(Number.isSafeInteger);
+      const newest = Math.max(0, ...markers), age = clock() - newest;
+      if (newest > 0 && age >= 0 && age <= 1500) return;
+    }
     await wait(Math.min(500, Math.max(0, deadline - clock())));
   }
   throw Error("No fresh completed reward pass within three minutes; service unchanged");
@@ -158,7 +166,7 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, c
       throw error;
     }
     log("Reward progress fix installed; service health verified on loopback and HTTPS: " + target);
-    log("Transient payout RPC errors no longer block independently verified daily rewards. Accounts, credits, keys, runtime configuration and transaction records were preserved. Check lastRewardSuccess, lastSettlementSuccess and operator status to verify live progress.");
+    log("Moving reward read windows now wait for fresh evidence without blocking independent work. Accounts, credits, keys, runtime configuration and transaction records were preserved. Check cycle and claim states before reporting payment completion.");
     return { installed: true, unchanged: false, commit: target, backup };
   } finally { for (const lock of locks.reverse()) fs.rmdirSync(lock); }
 }
