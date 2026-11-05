@@ -47,6 +47,8 @@ test("RPC recovery update preserves configuration, keys and every journal byte w
   const allowance = path.join(f.p.config, "claim-sponsorship.json");
   const savedAllowance = '{"schema":1,"ledgerIdentityHash":"fixture","maxRcPerDay":"12500000000"}';
   fs.writeFileSync(allowance, savedAllowance, { mode: 0o640 });
+  // Fixture setup must match installed permissions even under the CLI's 0077 umask.
+  fs.chmodSync(allowance, 0o640);
   const options = { ...f.options, checkHealth: async o => { assert.equal(o.summary, true); assert.equal(o.expected.chainId, CHAIN); checks++; } };
   assert.equal((await update(options)).commit, f.target); f.preserved();
   for (const [name, file] of Object.entries(f.records)) assert.equal(fs.readFileSync(file, "utf8"), "existing:" + name);
