@@ -89,26 +89,41 @@ test("a reward snapshot cancels both nested pin reads and contract reads when a 
   assert.ok(pending.states.every(row => row.aborted && row.settled), "Snapshot failure must drain both levels before the next cycle");
 });
 
-test("a failed pinned read group removes queued siblings, closes active reads, and later uses healthy fallback", { timeout: 5000 }, async () => {
+test("a failed pinned read group removes queued siblings, closes active reads, and later uses healthy fallback", { timeout: 5000 }, async t => {
   const { readGroup } = require("../lib/koin-network/read-group");
   const endpoints = ["https://group-primary.invalid", "https://group-backup.invalid"], calls = [], closed = [];
-  let mode = "failing", active = 0, peak = 0;
+  const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
+  const twoStarted = deferred(), firstResponse = deferred(), allowClose = deferred(), scope = new AsyncLocalStorage();
+  let active = 0, peak = 0, groupSignal, rejected;
+  t.after(async () => {
+    firstResponse.resolve(); allowClose.resolve();
+    await rejected?.catch(() => {});
+    await Promise.all(closed);
+  });
   const p = new PinnedRpcProvider(endpoints, "fixture-chain", {
     fetchImpl: async (endpoint, request) => {
-      const body = JSON.parse(request.body), call = { endpoint, method: body.method, params: body.params, mode };
+      const body = JSON.parse(request.body), signal = scope.getStore();
+      const call = { endpoint, method: body.method, params: body.params, signal,
+        abortedAtSend: signal?.aborted === true || request.signal.aborted, closed: false };
       calls.push(call); active++; peak = Math.max(peak, active);
+      if (active === 2) twoStarted.resolve();
       let finish;
-      closed.push(new Promise(resolve => { finish = () => { active--; resolve(); }; }));
-      if (mode === "failing") {
+      closed.push(new Promise(resolve => { finish = () => {
+        if (call.closed) return;
+        call.closed = true; active--; resolve();
+      }; }));
+      if (signal) {
         if (calls.length === 1) {
-          await pause(90); finish();
+          await firstResponse.promise; finish();
           return new Response(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { chain_id: "wrong-chain" } }));
         }
-        return new Promise((_resolve, reject) => {
-          const stop = () => setTimeout(() => { finish(); reject(Error("Transport closed after abort")); }, 15);
+        const aborted = deferred(), stop = () => aborted.resolve();
+        try {
           request.signal.addEventListener("abort", stop, { once: true });
           if (request.signal.aborted) stop();
-        });
+          await Promise.all([aborted.promise, allowClose.promise]);
+          throw Error("Transport closed after abort");
+        } finally { request.signal.removeEventListener("abort", stop); finish(); }
       }
       finish();
       if (endpoint === endpoints[0]) return new Response("primary unavailable", { status: 503 });
@@ -116,14 +131,30 @@ test("a failed pinned read group removes queued siblings, closes active reads, a
         result: body.method === "chain.get_chain_id" ? { chain_id: "fixture-chain" } : { ok: true } }));
     },
   });
-  await assert.rejects(readGroup(p, Array.from({ length: 12 }, (_, index) => () => p.call("chain.read_contract", { index }))),
+  const withSignal = p.withSignal.bind(p);
+  p.withSignal = (signal, run) => {
+    groupSignal = signal;
+    return scope.run(signal, () => withSignal(signal, run));
+  };
+  rejected = assert.rejects(readGroup(p, Array.from({ length: 12 }, (_, index) => () => p.call("chain.read_contract", { index }))),
     error => error.code === "koin_rpc_chain_mismatch");
-  assert.equal(calls.length, 2, "Only the two active chain probes may reach the endpoint");
-  assert.ok(calls.every(call => call.endpoint === endpoints[0] && call.method === "chain.get_chain_id"));
-  mode = "healthy";
-  assert.deepEqual(await p.call("chain.read_contract", { recovery: true }), { ok: true });
+  await twoStarted.promise;
+  assert.equal(calls.length, 2, "Two held probes leave the other ten group reads queued");
+  firstResponse.resolve();
+  await rejected;
+  assert.equal(groupSignal.aborted, true);
+  assert.ok(active > 0, "Caller cancellation can finish before physical transport cleanup");
+  // Releasing the completed HTTP slot can start another queued probe before
+  // its chain mismatch reaches the group. Only sends after cancellation are forbidden.
+  const recovery = p.call("chain.read_contract", { recovery: true });
+  allowClose.resolve();
+  assert.deepEqual(await recovery, { ok: true });
   await Promise.all(closed);
   assert.equal(active, 0); assert.ok(peak <= 2);
+  assert.ok(calls.every(call => !call.abortedAtSend), "No request may start after its group or attempt is cancelled");
+  assert.ok(calls.filter(call => call.signal === groupSignal).every(call =>
+    call.closed && call.endpoint === endpoints[0] && call.method === "chain.get_chain_id"),
+  "Cancelled group probes must close without sending contract reads or trying a fallback");
   assert.ok(calls.filter(call => call.method === "chain.read_contract").every(call => call.params.recovery === true), "Cancelled queued requests cannot send later");
   assert.ok(calls.some(call => call.endpoint === endpoints[1]), "A fresh independent read may use the healthy fallback");
 });
