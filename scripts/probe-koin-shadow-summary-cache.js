@@ -78,3 +78,33 @@ test("compatibility methods preserve exact evidence order, detach reads and avoi
   assert.deepEqual(ledger.getDayProgress(1), { present: true, sealed: true, intervalCount: 1, nextStart: interval(0).end, lastIntervalEnd: interval(0).end });
   assert.deepEqual(ledger.getUnsealedEpochs(), []);
 });
+test("manifest projection preserves signed evidence bytes and both existing work allocation bases", t => {
+  const { ledger } = fixture(t);
+  ledger.state.days[1].intervals = [interval(0), interval(1)];
+  ledger.commitWork(1, [{ address: "provider-2", jobId: "job-\"quoted\"-\\escaped-\u2603", epoch: 1,
+    points: "301", charged: "301", verified: true, finalized: true, free: false, refunded: false },
+  { epoch: 1, jobId: "sponsored", address: "provider-1", points: "99", charged: "99", verified: true,
+    finalized: true, free: true, sponsored: true, refunded: false }]);
+  const evidence = ledger.getClosedEvidence(1), bytes = JSON.stringify(evidence);
+  for (const workBasis of [undefined, "usd-pool"]) {
+    const actual = ledger.getManifestEvidence(1, { workBasis });
+    assert.equal(actual.evidenceHash, require("../lib/koin-network/job-protocol").hash(bytes));
+    assert.deepEqual(actual.allocation, P.allocate({ ...evidence, workBasis }));
+    actual.allocation.allocations[0].availability = "999999";
+    assert.equal(JSON.stringify(ledger.getClosedEvidence(1)), bytes);
+  }
+});
+test("startup sealing validates the whole batch, preserves accounting evidence, and avoids repeated rewrites", t => {
+  const { ledger, dir } = fixture(t);
+  ledger.importBudget(2, P.dailyBudget({ balance: "300003", liabilities: "0", openedAt: 2 * P.DAY }));
+  const before = [1, 2].map(epoch => JSON.stringify(ledger.getClosedEvidence(epoch)));
+  let saves = 0; const save = ledger.save.bind(ledger); ledger.save = () => { saves++; save(); };
+  assert.throws(() => ledger.markSealedMany([1, 999]), /unavailable/);
+  assert.throws(() => ledger.markSealedMany([1, "__proto__"]), /unavailable/);
+  assert.equal(ledger.getDayProgress(1).sealed, false); assert.equal(saves, 0);
+  assert.equal(ledger.markSealedMany([1, "1", 2]), 2); assert.equal(saves, 1);
+  assert.equal(ledger.markSealedMany([1, 2]), 0); assert.equal(ledger.markSealedMany([]), 0); assert.equal(saves, 1);
+  const reopened = new KoinShadow(dir);
+  assert.deepEqual(reopened.getUnsealedEpochs(), []);
+  assert.deepEqual([1, 2].map(epoch => JSON.stringify(reopened.getClosedEvidence(epoch))), before);
+});

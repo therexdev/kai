@@ -71,6 +71,16 @@ test("legacy providers remain loaded-model-only even if they claim on-demand sup
   assert.deepEqual(providerReadiness(f.runtime, f.address).readyModels, ["alpha"]);
   assert.equal(providerReadiness(f.runtime, f.address, "beta").state, "preparing");
 });
+test("provider readiness supports a storage adapter without exposing its internal state", () => {
+  for (const delegated of [false, true]) {
+    const f = fixture({ delegated }), expected = providerReadiness(f.runtime, f.address);
+    f.runtime.scheduler.koinShadow.ledger = {
+      getPresence: address => address === f.address ? structuredClone(f.presence) : null,
+      get state() { throw Error("Storage internals are unavailable"); },
+    };
+    assert.deepEqual(providerReadiness(f.runtime, f.address), expected);
+  }
+});
 
 test("another device cannot borrow readiness or hide an older authorized ready device", () => {
   const f = fixture(), other = { ...f.worker, lastSeen: f.now, fingerprint: "b".repeat(16), providerAuthorization: "auth-b", providerDeviceId: "device-b" };
