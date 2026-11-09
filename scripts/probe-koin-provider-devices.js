@@ -162,6 +162,7 @@ test("distinct authorized devices cannot borrow presence or multiply the wallet'
   f.devices.observePresence(a.sign("presence", require("../lib/koin-network/presence").presenceHash(f.provider, schedulerUrl, report)), f.provider, report);
   assert.equal(f.devices.presence(wa).ready, true); assert.equal(f.devices.presence(wb), null);
   const shadow = { state: { qualifications: {}, presence: {} }, save() {}, qualify(q) { this.state.qualifications[q.capacityId] = q; } };
+  Object.setPrototypeOf(shadow, require("../lib/koin-network/shadow").KoinShadow.prototype);
   const Runtime = require("../lib/koin-network/test-runtime").TestRuntime;
   const runtime = Object.assign(Object.create(Runtime.prototype), { clock: () => f.ledger.clock(), qualifier: engine, reviewedQualifications: () => [], providerDevices: f.devices, config: { tariff: f.tariff },
     scheduler: { workers: new Map([["a", wa], ["b", wb]]), koinShadow: { ledger: shadow } }, target: f.target, cycle: { days: () => [] }, prepaid: true, lastServing: f.ledger.clock() });

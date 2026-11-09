@@ -105,3 +105,60 @@ test("device, authority, failed-run, target and expiry checks remain current on 
   f.time(DAY - 10);
   assert.equal(f.set.qualifiedEngines(f.worker).length, 0, "own evidence expires at its exact deadline");
 });
+
+test("a full sixteen-model poll validates each model once at100 and256 retained records, then starts fresh next poll", t => {
+  for (const recordsPerModel of [100, 256]) {
+    const f = setup(t, 16, recordsPerModel), calls = new Map();
+    for (const engine of f.set.engines.values()) {
+      const records = engine.records.bind(engine);
+      engine.records = () => { calls.set(engine, (calls.get(engine) || 0) + 1); return records(); };
+    }
+    assert.equal(f.set.next(f.worker), null);
+    assert.deepEqual([...calls.values()], Array(16).fill(1), "record hashing/cloning is linear in stored qualification rows per poll");
+    assert.equal(f.set.next(f.worker), null);
+    assert.deepEqual([...calls.values()], Array(16).fill(2), "no read view survives between polls");
+  }
+});
+
+test("finishing another wallet's qualification invalidates the shared view before a later model can issue work", t => {
+  const f = setup(t, 2, 1), [first, second] = [...f.set.engines.values()];
+  delete second.state.records.current;
+  first.next = () => {
+    first.finish({ address: f.owner, fingerprint: f.worker.fingerprint,
+      providerAuthorization: P.hash("other-wallet-authority"), providerDeviceId: "other-wallet-device",
+      capacityId: "other-wallet-capacity", recordId: "other-wallet-record", results: [{ passed: true }] });
+    return null;
+  };
+  assert.equal(f.set.next(f.worker), null);
+  assert.equal(first.state.records["other-wallet-record"].qualification.address, f.owner);
+  assert.equal(second.state.runs[f.worker.address], undefined, "fresh cross-wallet ownership prevents a later challenge in the same poll");
+});
+
+test("an in-poll save or expiry reloads evidence before the next model decides whether to renew", t => {
+  for (const change of ["save", "expiry"]) {
+    const f = setup(t, 2, 1), [first, second] = [...f.set.engines.values()];
+    first.next = () => {
+      if (change === "expiry") f.time(DAY);
+      else { delete second.state.records.current; second.save(); }
+      return null;
+    };
+    const job = f.set.next(f.worker);
+    assert.equal(job?.type, "koin-provider-prepare", change);
+    assert.equal(job.model, second.policy.model, "missing or expired evidence cannot suppress fresh qualification");
+    assert.equal(second.state.runs[f.worker.address].state, "testing");
+  }
+});
+
+test("device revocation and external reviewed ownership stay live during a poll", t => {
+  for (const change of ["revoked", "reviewed"]) {
+    const f = setup(t, 2, 1), [first, second] = [...f.set.engines.values()];
+    delete second.state.records.current;
+    first.next = () => {
+      if (change === "revoked") f.active = false;
+      else f.reviewed = [{ address: f.owner, fingerprint: f.worker.fingerprint }];
+      return null;
+    };
+    assert.equal(f.set.next(f.worker), null);
+    assert.equal(second.state.runs[f.worker.address], undefined, change);
+  }
+});

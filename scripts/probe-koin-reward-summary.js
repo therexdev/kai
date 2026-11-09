@@ -1,6 +1,7 @@
 "use strict";
 const { test } = require("node:test"), assert = require("node:assert/strict");
 const { rewardSummary } = require("../lib/koin-network/reward-summary"), { DAY } = require("../lib/koin-network/policy");
+const { KoinShadow } = require("../lib/koin-network/shadow");
 function fixture() {
   const state = { budgets: { "2": { epoch: 2, version: 1, openedAt: 2 * DAY, total: "100000000", availability: "70000000", work: "30000000" } },
     days: { "2": { intervals: [{ start: 2 * DAY, end: 2 * DAY + DAY / 2, slots: [
@@ -9,7 +10,8 @@ function fixture() {
       { address: "unqualified", capacityId: "c", eligible: false, verified: true }
     ] }], work: [] } } };
   let payouts = [], now = 2 * DAY + DAY / 2 + 50000;
-  const r = { clock: () => now, scheduler: { koinShadow: { ledger: { state } } }, rewardTarget: { rewardBasis: "usd-pool" },
+  const ledger = Object.assign(Object.create(KoinShadow.prototype), { state });
+  const r = { clock: () => now, scheduler: { koinShadow: { ledger } }, rewardTarget: { rewardBasis: "usd-pool" },
     claims: { accountStatus: () => payouts },
     cycle: { days: () => ["1", "2"], readyDays: () => [], accountAllocation: (e, account) => account === "alice" ? { availability: "10000000", work: "2000000", rootHash: "hash" } : null,
       status: () => ({ complete: false, steps: [{ method: "propose_root", state: "complete" }] }) },

@@ -73,18 +73,26 @@ function runtime(metrics) {
   const closed = [], service = name => ({ close() { closed.push(name); } });
   const r = Object.assign(Object.create(TestRuntime.prototype), { processMetrics: metrics, prices: {}, busy: false,
     tick: async () => { assert.equal(metrics.eventLoopSnapshot().available, true); },
+    availabilityTick: async () => { assert.equal(metrics.eventLoopSnapshot().available, true); },
     scheduler: service("scheduler"), claims: service("claims"), cycle: service("cycle"), signing: service("signing"), hosts: service("hosts") });
   return { r, closed };
 }
 test("runtime starts monitoring before its first pass and releases it when journals close", async () => {
   const f = fixture(), { r, closed } = runtime(f.metrics);
   try { await r.start(); assert.equal(f.enabled, 1); await r.close(); }
-  finally { clearInterval(r.timer); r.releaseProcessMetrics?.(); }
+  finally { r.stopScheduling(); r.releaseProcessMetrics?.(); }
   assert.equal(f.disabled, 1); assert.equal(f.timers.size, 0); assert.deepEqual(closed, ["scheduler", "claims", "cycle", "signing", "hosts"]);
 });
-test("an unfinished pass cannot leak telemetry or cause journals to close", async () => {
-  const f = fixture(), { r, closed } = runtime(f.metrics);
-  try { await r.start(); r.busy = true; await assert.rejects(r.close(), /active Test settlement pass/); }
-  finally { clearInterval(r.timer); r.releaseProcessMetrics?.(); }
-  assert.equal(f.timers.size, 0); assert.equal(f.disabled, 1); assert.deepEqual(closed, []);
+test("unfinished financial and availability passes retain telemetry and keep journals open until they drain", async () => {
+  for (const flag of ["busy", "availabilityBusy"]) {
+    const f = fixture(), { r, closed } = runtime(f.metrics);
+    try {
+      await r.start(); r[flag] = true;
+      await assert.rejects(r.close(), /active settlement and availability passes/);
+      assert.deepEqual(closed, []); assert.equal(f.disabled, 0);
+      r[flag] = false; await r.close();
+      assert.equal(f.timers.size, 0); assert.equal(f.disabled, 1);
+      assert.deepEqual(closed, ["scheduler", "claims", "cycle", "signing", "hosts"]);
+    } finally { r.stopScheduling(); r.releaseProcessMetrics?.(); }
+  }
 });

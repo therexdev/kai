@@ -102,10 +102,11 @@ test("failed new health restores only code, retains new accounts, credits, quote
   assert.equal((await update(f.options)).installed, true);
 });
 test("unreviewed source, failed probes, dirty checkout, overrides, identity changes and a concurrent updater cannot stop the service", async t => {
-  for (const kind of ["dirty", "source", "probe", "override", "lock", "identity"]) {
+  for (const kind of ["dirty", "source", "missing-source", "probe", "override", "lock", "identity"]) {
     const f = fixture(t);
     if (kind === "dirty") f.dirty = " M lib/accounts.js";
     if (kind === "source") f.changed = REQUIRED.join("\n") + "\nlib/koin-network/reward-policy.js";
+    if (kind === "missing-source") f.changed = REQUIRED.slice(1).join("\n");
     if (kind === "probe") f.failProbe = true;
     if (kind === "override") f.dropins = "/etc/systemd/system/override.conf";
     if (kind === "lock") fs.mkdirSync(path.join(f.p.work, "kai-reward-progress-update.lock"));
@@ -151,11 +152,11 @@ test("Reward runtime health verifies the capability on loopback and public HTTPS
   for (const absentAt of [null, "http://127.0.0.1:3109", ORIGIN]) {
     const seen = [], fetchImpl = async url => {
       seen.push(url);
-      const body = url.endsWith("/health") ? { mode: "mainnet-pilot", product: "prepaid-usd-v1", mainnetPaymentsEnabled: true, chainId: CHAIN, lastSuccess: now, rewardRuntimeVersion: (!absentAt || !url.startsWith(absentAt)) ? 2 : 0, freeAllowanceRefreshVersion: (!absentAt || !url.startsWith(absentAt)) ? 1 : 0, rewardSummaryVersion: 1, rpcReadGroupVersion: (!absentAt || !url.startsWith(absentAt)) ? 1 : 0, rpcTransportVersion: (!absentAt || !url.startsWith(absentAt)) ? 1 : 0, claimSponsorshipVersion: (!absentAt || !url.startsWith(absentAt)) ? 1 : 0, ...(!absentAt || !url.startsWith(absentAt) ? { lastRewardSuccess: null } : {}) } : url.includes("provider/device") ? provider : buyer;
+      const body = url.endsWith("/health") ? { mode: "mainnet-pilot", product: "prepaid-usd-v1", mainnetPaymentsEnabled: true, chainId: CHAIN, lastSuccess: now, rewardRuntimeVersion: (!absentAt || !url.startsWith(absentAt)) ? 3 : 0, freeAllowanceRefreshVersion: (!absentAt || !url.startsWith(absentAt)) ? 1 : 0, rewardSummaryVersion: 1, rpcReadGroupVersion: (!absentAt || !url.startsWith(absentAt)) ? 1 : 0, rpcTransportVersion: (!absentAt || !url.startsWith(absentAt)) ? 1 : 0, claimSponsorshipVersion: (!absentAt || !url.startsWith(absentAt)) ? 1 : 0, ...(!absentAt || !url.startsWith(absentAt) ? { lastRewardSuccess: null } : {}) } : url.includes("provider/device") ? provider : buyer;
       return { ok: true, text: async () => JSON.stringify(body) };
     };
     const options = { fetchImpl, clock: () => now, timeoutMs: 0 };
-    if (absentAt) await assert.rejects(health(options), /Reward runtime diagnostics version 2/);
+    if (absentAt) await assert.rejects(health(options), /Reward runtime diagnostics version 3/);
     else { await health(options); assert.equal(seen.length, 6); }
     await health({ ...options, summary: false });
   }
@@ -167,16 +168,16 @@ test("Reward runtime update accepts the observed release", async t => {
   }
 });
 
-test("old transport and version 1 capabilities cannot substitute for diagnostics version 2", async () => {
+test("prior runtime capabilities cannot substitute for reliability version 3", async () => {
   const now = 1800000000000;
-  for (const marker of [undefined, 0, 1]) {
+  for (const marker of [undefined, 0, 1, 2]) {
     const fetchImpl = async () => new Response(JSON.stringify({
       mode: "mainnet-pilot", product: "prepaid-usd-v1", mainnetPaymentsEnabled: true,
       chainId: CHAIN, lastSuccess: now, lastRewardSuccess: now,
       freeAllowanceRefreshVersion: 1, rewardSummaryVersion: 1,
       rpcTransportVersion: 1, claimSponsorshipVersion: 1, rpcReadGroupVersion: 1, rewardRuntimeVersion: marker,
     }));
-    await assert.rejects(health({ fetchImpl, clock: () => now, timeoutMs: 0 }), /Reward runtime diagnostics version 2/);
+    await assert.rejects(health({ fetchImpl, clock: () => now, timeoutMs: 0 }), /Reward runtime diagnostics version 3/);
   }
 });
 
@@ -230,13 +231,16 @@ test("lightweight progress uses internal authentication and does not query full 
   const output = await progress({ paths: f.p, log: row => logs.push(row), fetchImpl: async (url, options) => {
     assert.equal(url, "http://127.0.0.1:3109/operator/progress"); assert.equal(options.headers["x-operator-secret"], secret);
     assert.equal(options.redirect, "error"); assert.ok(options.signal);
-    return new Response(JSON.stringify({ rewardRuntimeVersion: 2, observedAt: now, lastServing: now, busy: true,
+    return new Response(JSON.stringify({ rewardRuntimeVersion: 3, observedAt: now, lastServing: now, busy: true, availabilityBusy: true, lastAvailabilitySuccess: now,
+      earningHealth: { schema: 1, ready: false, observedAt: now, lastAvailabilitySuccess: now, reasons: ["awaiting_funded_epoch"], secret },
       processTelemetry: { version: 1, pid: 42, secret, memory: { rssBytes: 1000000000, secret }, eventLoop: { available: true, current: { durationMs: 1000, samples: 3, maxMs: 500, p99Ms: 500, utilization: 0.9, secret } }, qualificationModelCount: 6 },
       lastRewardCycle: { observedAt: now, openCurrentDay: true, results: [{ epoch: "20833", action: "wait", reason: "lifecycle_nonce_busy", transaction: { secret } }] }, stopped: false, processingStage: "reward_collection",
       processingStartedAt: now - 2000, lastRewardSuccess: null, lastSettlementSuccess: null,
       currentEpoch: { epoch: "20833", budgetPresent: false, dayPresent: false, openedAt: null, intervalCount: 0, lastIntervalEnd: null },
       errors: [{ at: now, stage: "reward_pool", message: secret, rpc: [] }], secret }));
   } });
+  assert.equal(output.availabilityBusy, true); assert.equal(output.lastAvailabilitySuccess, now);
+  assert.equal(output.earningHealth.ready, false); assert.deepEqual(output.earningHealth.reasons, ["awaiting_funded_epoch"]);
   assert.equal(output.processTelemetry.memory.rssBytes, 1000000000);
   assert.equal(output.processTelemetry.eventLoop.current.maxMs, 500);
   assert.equal(output.lastRewardCycle.results[0].reason, "lifecycle_nonce_busy");
@@ -286,7 +290,7 @@ test("the exited PID and restart counter remain pinned through the code replacem
   }
 });
 test("diagnostics updater refuses the predecessor of the deployed runtime release", async t => {
-  const f = fixture(t, "45277dd1a63d54d773e472b891520ce4a12ffe67");
+  const f = fixture(t, "605eb5a6e8654b918d6659952936d1cc9537b751");
   await assert.rejects(update(f.options), /Unexpected prepaid service version/);
   assert.equal(f.calls.some(c => c[0] === "systemctl" && ["kill", "start", "daemon-reload"].includes(c[1])), false);
   assert.deepEqual(fs.readFileSync(f.p.unit), f.unit); f.preserved();

@@ -5,26 +5,93 @@ const fs = require("node:fs"), path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { configDigest } = require("./update-prepaid-web");
 const { validateUnit, runtimeTarget, health: walletHealth, UNIT, PATHS } = require("./update-wallet-access");
-const BASE = "605eb5a6e8654b918d6659952936d1cc9537b751";
-const REQUIRED = ["lib/koin-network/rpc-http.js", "lib/koin-network/rpc-provider.js", "lib/koin-network/rpc-diagnostics.js",
-  "scripts/probe-koin-rpc-diagnostics.js", "scripts/probe-koin-reward-progress.js",
-  "lib/koin-network/runtime-metrics.js", "lib/koin-network/test-runtime.js", "lib/koin-network/operator-progress.js",
-  "scripts/probe-koin-runtime-metrics.js", "scripts/probe-koin-operator-progress.js",
-  "deploy/koin-mainnet/diagnose-reward-opening.js", "scripts/probe-koin-reward-opening-diagnostic.js",
-  "lib/koin-network/provider-qualification-set.js", "lib/koin-network/provider-qualification.js", "scripts/probe-koin-qualification-pressure.js",
-  "lib/koin-network/reward-observer.js", "lib/koin-network/reward-cycle.js", "lib/koin-network/reward-claims.js",
+const BASE = "d44918441a328a1391a1d4df9dbe9bde00c9c3ad";
+const REQUIRED = [
+  "deploy/koin-mainnet/REWARD_RUNTIME.md",
+  "deploy/koin-mainnet/update-reward-runtime.js",
+  "deploy/koin-mainnet/update-reward-runtime.test.js",
+  "docs/koin-reliability-operations.md",
+  "lib/koin-network/availability-runtime.js",
+  "lib/koin-network/earning-health.js",
+  "lib/koin-network/operator-progress.js",
+  "lib/koin-network/provider-qualification-set.js",
+  "lib/koin-network/provider-qualification.js",
+  "lib/koin-network/read-group.js",
+  "lib/koin-network/reward-claims.js",
+  "lib/koin-network/reward-cycle-runner.js",
+  "lib/koin-network/reward-cycle.js",
+  "lib/koin-network/reward-observer.js",
+  "lib/koin-network/reward-summary.js",
+  "lib/koin-network/rpc-provider.js",
+  "lib/koin-network/rpc-scheduler.js",
+  "lib/koin-network/shadow.js",
+  "lib/koin-network/sponsorship-readiness.js",
+  "lib/koin-network/test-runtime.js",
+  "scripts/bench-koin-reliability.js",
+  "scripts/benchmarks/README.md",
+  "scripts/benchmarks/koin-reliability-d449184-node22.jsonl",
+  "scripts/benchmarks/koin-reliability-v3-node22.jsonl",
+  "scripts/probe-koin-automatic-claims.js",
+  "scripts/probe-koin-availability-runtime.js",
+  "scripts/probe-koin-cycle-fairness.js",
+  "scripts/probe-koin-epoch-completeness.js",
   "scripts/probe-koin-finalized-cycle-evidence.js",
-  "deploy/koin-mainnet/update-reward-runtime.js", "deploy/koin-mainnet/update-reward-runtime.test.js", "deploy/koin-mainnet/REWARD_RUNTIME.md"];
+  "scripts/probe-koin-on-demand-readiness.js",
+  "scripts/probe-koin-operator-progress.js",
+  "scripts/probe-koin-provider-devices.js",
+  "scripts/probe-koin-qualification-pressure.js",
+  "scripts/probe-koin-reliability-bench.js",
+  "scripts/probe-koin-reward-intent-evidence.js",
+  "scripts/probe-koin-reward-summary.js",
+  "scripts/probe-koin-rpc-fairness.js",
+  "scripts/probe-koin-runtime-metrics.js",
+  "scripts/probe-koin-runtime-startup.js",
+  "scripts/probe-koin-shadow-capacity.js",
+  "scripts/probe-koin-shadow-index.js",
+  "scripts/probe-koin-shadow-summary-cache.js",
+  "scripts/probe-koin-sponsorship-readiness.js",
+  "test-server.js"];
 const ALLOWED = new Set(REQUIRED), PRIOR_RELEASES = [BASE];
-const PROBES = ["scripts/probe-koin-finalized-cycle-evidence.js", "scripts/probe-koin-rpc-diagnostics.js", "scripts/probe-koin-runtime-metrics.js",
-  "scripts/probe-koin-reward-opening-diagnostic.js", "scripts/probe-koin-qualification-pressure.js", "scripts/probe-koin-qualification-scheduling.js",
-  "scripts/probe-koin-reward-checkpoints.js", "scripts/probe-koin-operator-progress.js", "scripts/probe-koin-verified-manifest-cache.js",
-  "scripts/probe-koin-rpc-read-groups.js", "scripts/probe-koin-rpc-recovery.js",
-  "scripts/probe-koin-reward-progress.js", "scripts/probe-koin-reward-cycle.js",
-  "scripts/probe-koin-automatic-claims.js", "scripts/probe-koin-claim-capacity.js",
-  "scripts/probe-koin-reward-observer.js", "scripts/probe-koin-reward-summary.js",
-  "scripts/probe-koin-shadow.js", "scripts/probe-koin-epoch-completeness.js",
-  "deploy/koin-mainnet/update-reward-runtime.test.js"];
+const PROBES = [
+  "deploy/koin-mainnet/update-reward-runtime.test.js",
+  "scripts/probe-koin-automatic-claims.js",
+  "scripts/probe-koin-availability-fairness.js",
+  "scripts/probe-koin-availability-runtime.js",
+  "scripts/probe-koin-claim-capacity.js",
+  "scripts/probe-koin-cycle-fairness.js",
+  "scripts/probe-koin-epoch-completeness.js",
+  "scripts/probe-koin-finalized-cycle-evidence.js",
+  "scripts/probe-koin-model-readiness.js",
+  "scripts/probe-koin-multi-model-readiness.js",
+  "scripts/probe-koin-on-demand-readiness.js",
+  "scripts/probe-koin-operator-progress.js",
+  "scripts/probe-koin-provider-devices.js",
+  "scripts/probe-koin-qualification-evaluation.js",
+  "scripts/probe-koin-qualification-preparation.js",
+  "scripts/probe-koin-qualification-pressure.js",
+  "scripts/probe-koin-qualification-scheduling.js",
+  "scripts/probe-koin-reliability-bench.js",
+  "scripts/probe-koin-reward-checkpoints.js",
+  "scripts/probe-koin-reward-cycle.js",
+  "scripts/probe-koin-reward-intent-evidence.js",
+  "scripts/probe-koin-reward-observer.js",
+  "scripts/probe-koin-reward-opening-diagnostic.js",
+  "scripts/probe-koin-reward-progress.js",
+  "scripts/probe-koin-reward-summary.js",
+  "scripts/probe-koin-rpc-diagnostics.js",
+  "scripts/probe-koin-rpc-fairness.js",
+  "scripts/probe-koin-rpc-pressure.js",
+  "scripts/probe-koin-rpc-read-groups.js",
+  "scripts/probe-koin-rpc-recovery.js",
+  "scripts/probe-koin-rpc-transport.js",
+  "scripts/probe-koin-runtime-metrics.js",
+  "scripts/probe-koin-runtime-startup.js",
+  "scripts/probe-koin-shadow-capacity.js",
+  "scripts/probe-koin-shadow-index.js",
+  "scripts/probe-koin-shadow-summary-cache.js",
+  "scripts/probe-koin-shadow.js",
+  "scripts/probe-koin-sponsorship-readiness.js",
+  "scripts/probe-koin-verified-manifest-cache.js"];
 const LOCKS = ["kai-reward-runtime-update.lock", ...require("./update-rpc-read-groups").LOCKS];
 function command(exe, args, cwd, capture = false) {
   return execFileSync(exe, args, { cwd, encoding: "utf8", stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit", env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } }) || "";
@@ -43,8 +110,8 @@ async function health({ summary = true, fetchImpl = fetch, ...options } = {}) {
     const body = await response.text();
     if (Buffer.byteLength(body) > 32768) throw Error("Reward health response is too large");
     const value = JSON.parse(body);
-    if (value.rewardRuntimeVersion !== 2 || value.rpcReadGroupVersion !== 1 || value.rpcTransportVersion !== 1 || value.claimSponsorshipVersion !== 1 || value.rewardSummaryVersion !== 1 || value.freeAllowanceRefreshVersion !== 1 || !Object.hasOwn(value, "lastRewardSuccess"))
-      throw Error("Reward runtime diagnostics version 2 is not active");
+    if (value.rewardRuntimeVersion !== 3 || value.rpcReadGroupVersion !== 1 || value.rpcTransportVersion !== 1 || value.claimSponsorshipVersion !== 1 || value.rewardSummaryVersion !== 1 || value.freeAllowanceRefreshVersion !== 1 || !Object.hasOwn(value, "lastRewardSuccess"))
+      throw Error("Reward runtime diagnostics version 3 is not active");
     return { ok: response.ok, status: response.status, text: async () => body };
   } });
 }
@@ -104,19 +171,25 @@ async function progress({ paths: p = PATHS, fetchImpl = fetch, log = console.log
   } catch { throw Error("Lightweight reward progress could not be verified"); }
   const stamp = v => v === null || (Number.isSafeInteger(v) && v >= 0);
   const stage = v => v === null || (typeof v === "string" && /^[a-z_]{1,64}$/.test(v));
-  const epoch = value?.currentEpoch;
-  if (value?.rewardRuntimeVersion !== 2 || typeof value.busy !== "boolean" || typeof value.stopped !== "boolean" ||
+  const epoch = value?.currentEpoch, earning = value?.earningHealth;
+  const earningReasons = new Set(["stopping", "awaiting_funded_epoch", "availability_processing_stale", "availability_processing_error", "earning_intervals_stale"]);
+  if (value?.rewardRuntimeVersion !== 3 || typeof value.busy !== "boolean" || typeof value.stopped !== "boolean" || typeof value.availabilityBusy !== "boolean" ||
       !Number.isSafeInteger(value.observedAt) || !stage(value.processingStage) ||
-      ["processingStartedAt", "lastServing", "lastRewardSuccess", "lastSettlementSuccess"].some(key => !stamp(value[key])) ||
+      ["processingStartedAt", "lastServing", "lastRewardSuccess", "lastSettlementSuccess", "lastAvailabilitySuccess"].some(key => !stamp(value[key])) ||
       !epoch || typeof epoch.epoch !== "string" || !/^\d{1,12}$/.test(epoch.epoch) ||
       typeof epoch.budgetPresent !== "boolean" || typeof epoch.dayPresent !== "boolean" ||
       !stamp(epoch.openedAt) || !stamp(epoch.lastIntervalEnd) || !Number.isSafeInteger(epoch.intervalCount) || epoch.intervalCount < 0 ||
+      earning?.schema !== 1 || typeof earning.ready !== "boolean" || !Number.isSafeInteger(earning.observedAt) ||
+      !stamp(earning.lastAvailabilitySuccess) || !Array.isArray(earning.reasons) || earning.reasons.length > earningReasons.size ||
+      earning.reasons.some(reason => !earningReasons.has(reason)) || earning.ready !== (earning.reasons.length === 0) ||
       !Array.isArray(value.errors) || value.processTelemetry?.version !== 1 || !Number.isSafeInteger(value.processTelemetry?.pid) ||
       value.processTelemetry.pid < 0 || !(value.lastRewardCycle === null || typeof value.lastRewardCycle === "object"))
     throw Error("Invalid lightweight reward progress response");
   const output = { observation: "Reward diagnostics after code activation" };
-  for (const key of ["observedAt", "busy", "stopped", "processingStage", "processingStartedAt", "lastServing", "lastRewardSuccess", "lastSettlementSuccess"])
+  for (const key of ["observedAt", "busy", "availabilityBusy", "stopped", "processingStage", "processingStartedAt", "lastServing", "lastRewardSuccess", "lastSettlementSuccess", "lastAvailabilitySuccess"])
     output[key] = value[key];
+  output.earningHealth = { schema: 1, ready: earning.ready, observedAt: earning.observedAt,
+    lastAvailabilitySuccess: earning.lastAvailabilitySuccess, reasons: [...earning.reasons] };
   output.currentEpoch = Object.fromEntries(["epoch", "budgetPresent", "dayPresent", "openedAt", "intervalCount", "lastIntervalEnd"].map(key => [key, epoch[key]]));
   const { rpcDiagnostics } = require("../../lib/koin-network/rpc-provider");
   const { safeError } = require("../../lib/koin-network/rpc-transport");
@@ -149,7 +222,7 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, c
     const expected = runtimeTarget(path.join(p.config, "runtime.json")), digest = configDigest(p.config);
     const ready = { expected, paths: p, summary: true };
     if (current === targetDir) {
-      await checkHealth(ready); await reportProgress({ paths: p, log }); log("Reward runtime diagnostics version 2 is already installed and service health verified: " + target);
+      await checkHealth(ready); await reportProgress({ paths: p, log }); log("Reward runtime diagnostics version 3 is already installed and service health verified: " + target);
       return { installed: true, unchanged: true, commit: target };
     }
     if (fs.existsSync(targetDir)) throw Error("Target release already exists; preserve it for review");
@@ -234,8 +307,8 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, c
       try { preserveUnused(); } catch { log("Prepared source retained at " + targetDir); }
       throw error;
     }
-    log("Reward completion recovery and runtime diagnostics version 2 installed; lightweight progress verified: " + target);
-    log("Code activation alone does not prove recovery. Confirm the old finalized lifecycle step completes, today's budget and day exist, and reward intervals and timestamps advance.");
+    log("Reward reliability runtime version 3 installed; lightweight progress verified: " + target);
+    log("Code activation alone does not prove recovery. Confirm earning health is ready, availability intervals advance, and pending reward cycles and payouts progress with verified chain evidence.");
     return { installed: true, unchanged: false, commit: target, backup };
   } finally { for (const lock of locks.reverse()) fs.rmdirSync(lock); }
 }

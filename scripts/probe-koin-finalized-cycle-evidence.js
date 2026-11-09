@@ -75,20 +75,21 @@ test("completion requires a positive own-finality height and never returns a low
 test("new openings, new finalizations and claims cannot use completion evidence", async t => {
   for (const phase of ["opening", "finalization"]) {
     const f = phase === "opening" ? await fixture(t) : await finalization(t, { prepare: false });
-    const o = new RewardObserver(f.rpc, { target: f.target, clock: f.clock }), inspect = o.inspectCycle.bind(o);
-    o.inspectCycle = async args => ({ ...await inspect(args), scope: "finalized_cycle" });
+    const o = new RewardObserver(f.rpc, { target: f.target, clock: f.clock });
+    const method = phase === "opening" ? "inspectCycle" : "inspectFundedCycle", inspect = o[method].bind(o);
+    o[method] = async args => ({ ...await inspect(args), scope: "finalized_cycle" });
     o.inspectFinalizedCycle = async () => { throw Error("Unsigned lifecycle must not request completion evidence"); };
     const cycle = f.open({ observer: o }), signed = f.signed.length, sent = f.sent.length;
     await assert.rejects(cycle.advance("1"), /Completion evidence requires/);
     assert.equal(f.signed.length, signed); assert.equal(f.sent.length, sent);
   }
-  const f = await require("./helpers/koin-claims-fixture").fixture(t), inspect = f.observer.inspect.bind(f.observer);
-  f.observer.inspect = async args => ({ ...await inspect(args), scope: "finalized_cycle" });
+  const f = await require("./helpers/koin-claims-fixture").fixture(t), inspect = f.observer.inspectClaim.bind(f.observer);
+  f.observer.inspectClaim = async args => ({ ...await inspect(args), scope: "finalized_cycle" });
   await assert.rejects(f.ledger.advance(f.ids[0]), /Completion evidence cannot authorize/);
   assert.equal(f.signed.length, 0); assert.equal(f.sent.length, 0);
 });
 
-test("unknown, pending, reversible and reverted finalizations retain the full evidence path", async t => {
+test("unknown, pending, reversible and reverted finalizations retain admission evidence rather than completion scope", async t => {
   for (const state of ["unknown", "pending", "reversible", "reverted"]) {
     const f = await finalization(t), tx = f.sent.at(-1);
     if (state === "pending") f.lookups.set(tx.id, { transaction: tx, containing_blocks: [] });

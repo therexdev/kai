@@ -86,7 +86,7 @@ test("zero-valued reward categories and epoch zero use the contract's canonical 
 test("the review hold, irreversible root, custody, bytecode, native token and per-provider paid cap gate signing", async t => {
   for (const kind of ["review", "reversible", "custody", "code", "native", "cap", "root", "hold", "policy"]) {
     const f = await fixture(t);
-    if (kind === "review") f.epoch.finalized = false;
+    if (kind === "review") { f.epoch.finalized = false; f.balances.liabilities = f.epoch.budget; }
     if (kind === "reversible") f.head.last_irreversible_block = "99";
     if (kind === "custody") f.balances.liquid = "1";
     if (kind === "code") f.metadata[f.target.rewards].value.hash = "0x1220" + P.hash("upgrade");
