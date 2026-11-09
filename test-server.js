@@ -3,6 +3,7 @@
 const http = require("http"), path = require("path"), crypto = require("crypto");
 const { configuration, read, loadKeys } = require("./lib/koin-network/test-config");
 const { TestRuntime } = require("./lib/koin-network/test-runtime");
+const { operatorProgress, version: rewardRuntimeVersion } = require("./lib/koin-network/operator-progress");
 function createHandler({ runtime, config, secret, authApp }) {
   const wire = require("./lib/koin-network/payment-network").protocol({ chainId: config.deployment.chainId, domain: require("./lib/koin-network/payment-mode").testDomain(config.deployment, config.schedulerUrl) });
   const json = (res, code, value) => { res.writeHead(code, { "content-type": "application/json", "cache-control": "no-store" }); res.end(JSON.stringify(value)); };
@@ -11,11 +12,11 @@ function createHandler({ runtime, config, secret, authApp }) {
     try {
       const url = new URL(req.url, "http://test");
       if (authApp && require("./lib/credit-account-web").handles(url.pathname)) return authApp(req, res);
-      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, product: config.deployment.product || "legacy-reservations", purchaseQuotesUnlimited: require("./lib/koin-network/product").isUsd(config.deployment), providerQualificationRecovery: runtime.qualifier?.recoveryVersion === 1 ? 1 : 0, modelReadinessAdmission: runtime.qualifier?.readinessVersion === 1 ? 1 : 0, lastSuccess: (runtime.prepaid ? runtime.lastServing : runtime.lastSuccess) || null, lastSettlementSuccess: runtime.lastSuccess || null, lastRewardSuccess: runtime.lastRewardSuccess || null, rpcTransportVersion: require("./lib/koin-network/rpc-provider").transportVersion, rpcReadGroupVersion: require("./lib/koin-network/read-group").version, claimSponsorshipVersion: typeof runtime.claims?.sponsorshipStatus === "function" ? 1 : 0, rewardSummaryVersion: typeof runtime.rewardSummary === "function" ? 1 : 0, freeAllowanceRefreshVersion: typeof runtime.sponsorship?.check === "function" ? 1 : 0 });
-      if (url.pathname === "/operator/status" && req.method === "GET") {
+      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, product: config.deployment.product || "legacy-reservations", purchaseQuotesUnlimited: require("./lib/koin-network/product").isUsd(config.deployment), providerQualificationRecovery: runtime.qualifier?.recoveryVersion === 1 ? 1 : 0, modelReadinessAdmission: runtime.qualifier?.readinessVersion === 1 ? 1 : 0, lastSuccess: (runtime.prepaid ? runtime.lastServing : runtime.lastSuccess) || null, lastSettlementSuccess: runtime.lastSuccess || null, lastRewardSuccess: runtime.lastRewardSuccess || null, rewardRuntimeVersion, rpcTransportVersion: require("./lib/koin-network/rpc-provider").transportVersion, rpcReadGroupVersion: require("./lib/koin-network/read-group").version, claimSponsorshipVersion: typeof runtime.claims?.sponsorshipStatus === "function" ? 1 : 0, rewardSummaryVersion: typeof runtime.rewardSummary === "function" ? 1 : 0, freeAllowanceRefreshVersion: typeof runtime.sponsorship?.check === "function" ? 1 : 0 });
+      if (["/operator/status", "/operator/progress"].includes(url.pathname) && req.method === "GET") {
         const presented = crypto.createHash("sha256").update(String(req.headers["x-operator-secret"] || "")).digest();
         if (!crypto.timingSafeEqual(presented, crypto.createHash("sha256").update(secret).digest())) return json(res, 403, { error: "Test operator access required" });
-        return json(res, 200, runtime.status());
+        return json(res, 200, url.pathname === "/operator/progress" ? operatorProgress(runtime) : runtime.status());
       }
       if (!url.pathname.startsWith("/scheduler/")) return json(res, 404, { error: "Unknown Test route" });
       req.url = req.url.slice("/scheduler".length);
