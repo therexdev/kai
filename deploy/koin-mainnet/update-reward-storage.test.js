@@ -1,6 +1,9 @@
 "use strict";
-const test = require("node:test"), assert = require("node:assert/strict"), fs = require("node:fs"), os = require("node:os"), path = require("node:path"), crypto = require("node:crypto");
+const test = require("node:test"), assert = require("node:assert/strict"), fs = require("node:fs"), os = require("node:os"), path = require("node:path"), crypto = require("node:crypto"), { execFileSync } = require("node:child_process");
 const U = require("./update-reward-storage");
+// The CLI sets this before spawning its preflight test process. Keep every
+// installer regression under the same private file-creation policy.
+process.umask(0o077);
 const blob = bytes => crypto.createHash("sha1").update("blob " + Buffer.byteLength(bytes) + "\0").update(bytes).digest("hex");
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "reward-storage-update-")); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -30,7 +33,7 @@ function fixture(t) {
     activateStorage(o) { calls.push(["activate"]); o.assertQuiescent(); fs.writeFileSync(paths.sourceFile, "unsupported sentinel"); fs.writeFileSync(paths.markerFile, "active marker"); },
     inspectStorage() { return { mode: fs.existsSync(paths.markerFile) ? "sqlite-shadow" : "legacy" }; } };
   const options = { paths: p, run, storage, log: message => logs.push(message),
-    prepareSource({ targetDir }) { calls.push(["stage"]); fs.mkdirSync(targetDir); fs.writeFileSync(path.join(targetDir, "test-server.js"), "source", { mode: 0o644 }); },
+    prepareSource({ targetDir }) { calls.push(["stage"]); fs.mkdirSync(targetDir); const file = path.join(targetDir, "test-server.js"); fs.writeFileSync(file, "source", { mode: 0o644 }); fs.chmodSync(file, 0o644); },
     async drain(o) { calls.push(["drain", o.timeoutMs]); o.assertUnchanged(); active = "inactive"; pid = "0"; return state(); },
     chownCandidate() { calls.push(["ownership", fs.existsSync(paths.markerFile)]); }, assertSourceIdle() { calls.push(["source-idle"]); },
     async checkHealth() { calls.push(["health"]); if (failHealth) throw Error("new health unavailable"); } };
@@ -52,7 +55,10 @@ test("dirty, unreviewed, overridden and locked deployments cannot stop productio
     const f = fixture(t); if (kind === "dirty") f.dirty = " M anything"; if (kind === "extra") f.changed = U.REQUIRED.join("\n") + "\nsecret.js"; if (kind === "missing") f.changed = U.REQUIRED.slice(1).join("\n");
     if (kind === "restart") f.restart = "always"; if (kind === "lock") fs.mkdirSync(path.join(f.p.work, U.LOCKS.at(-1)));
     if (kind === "probe") f.hook = (exe, args) => { if (exe === process.execPath && args[0] === "--test") throw Error("probe failure"); };
-    await assert.rejects(U.update(f.options)); assert.equal(f.calls.some(row => row[0] === "drain"), false); assert.deepEqual(fs.readFileSync(f.p.unit), f.oldUnit); f.assertPreserved();
+    await assert.rejects(U.update(f.options)); assert.equal(f.calls.some(row => ["stage", "drain", "prepare", "activate"].includes(row[0])), false);
+    assert.equal(f.active, "active"); assert.equal(fs.existsSync(f.targetDir), false);
+    assert.equal(fs.readdirSync(f.p.work).some(name => name.startsWith("kai-reward-storage-plan-")), false);
+    assert.deepEqual(fs.readFileSync(f.p.unit), f.oldUnit); f.assertPreserved();
   }
 });
 test("failed preflight leaves the old writer active and a verified staged plan supports exact retry", async t => {
@@ -99,7 +105,7 @@ test("linked public configuration is rejected before reading its target or stopp
 });
 test("release verification rejects missing, extra, changed and linked code", async t => {
   const f = fixture(t), directory = path.join(f.p.releases, "verify"); fs.mkdirSync(directory); const file = path.join(directory, "entry.js"), manifest = [{ name: "entry.js", mode: "100644", blob: blob("safe") }];
-  fs.writeFileSync(file, "safe", { mode: 0o644 }); U.verifyRelease(directory, manifest);
+  fs.writeFileSync(file, "safe", { mode: 0o644 }); fs.chmodSync(file, 0o644); U.verifyRelease(directory, manifest);
   fs.chmodSync(file, 0o666); assert.throws(() => U.verifyRelease(directory, manifest), /mode/); fs.chmodSync(file, 0o644);
   const linked = path.join(f.p.work, "external-link"); fs.linkSync(file, linked); assert.throws(() => U.verifyRelease(directory, manifest), /link count/); fs.unlinkSync(linked);
   fs.writeFileSync(file, "changed"); assert.throws(() => U.verifyRelease(directory, manifest)); fs.writeFileSync(file, "safe");
@@ -112,4 +118,36 @@ test("health requires v4 SQLite worker readiness and fresh earnings on both orig
     const fetchImpl = async url => new Response(JSON.stringify(url.endsWith("/health") ? { chainId: "chain", rewardRuntimeVersion: 4, rewardStorage: { schema: 1, mode: broken === "mode" ? "legacy-json" : "sqlite-shadow", ready: broken !== "worker" && !(broken === "public" && url.startsWith("https:")) } } : { schema: 1, ready: true, observedAt: now, reasons: [], lastAvailabilitySuccess: now - (broken === "stale" ? 100000 : 1000), currentEpoch: { epoch: String(Math.floor(now / 86400000)), budgetPresent: true, dayPresent: true, openedAt: now - 100000, intervalCount: 1, lastIntervalEnd: now - 30000 } }));
     let wallets = 0; const options = { expected, fetchImpl, clock: () => now, timeoutMs: 0, checkWallet: async o => { wallets++; assert.equal(o.capabilities, true); } }; if (broken) await assert.rejects(U.health(options)); else await U.health(options); assert.equal(wallets, 1);
   }
+});
+test("real git archive and tar staging apply exact source modes under the installer's 0077 umask", t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "reward-storage-real-stage-")), prior = process.umask(0o077);
+  try {
+    const repo = path.join(root, "repo"), releases = path.join(root, "releases"); fs.mkdirSync(repo); fs.mkdirSync(releases);
+    const execute = (exe, args, cwd) => execFileSync(exe, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    execute("git", ["init", "-q"], repo);
+    for (const [name, mode] of [["plain.js", 0o644], ["executable.js", 0o755]]) {
+      const file = path.join(repo, name); fs.writeFileSync(file, "fixture " + name); fs.chmodSync(file, mode);
+    }
+    execute("git", ["add", "."], repo);
+    execute("git", ["-c", "user.name=Storage fixture", "-c", "user.email=fixture@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", "commit", "-qm", "fixture"], repo);
+    const target = execute("git", ["rev-parse", "HEAD"], repo).trim(); let failNpm = false, npmCalls = 0;
+    const run = (exe, args, cwd) => {
+      if (exe === "npm") {
+        npmCalls++; assert.equal(process.umask(), 0o022); assert.deepEqual(args, ["ci", "--omit=dev", "--ignore-scripts"]);
+        if (failNpm) throw Error("Injected dependency preparation failure"); return "";
+      }
+      // Exercise git's usual archive modes even if this host overrides them.
+      if (exe === "git" && args[0] === "archive") args = ["-c", "tar.umask=0002", ...args];
+      return execute(exe, args, cwd);
+    };
+    const manifest = U.treeManifest(repo, target, run), targetDir = path.join(releases, target), options = { repo, target, targetDir, paths: { work: root, releases }, run, manifest };
+    U.stageRelease(options); U.verifyRelease(targetDir, manifest);
+    assert.equal(fs.statSync(path.join(targetDir, "plain.js")).mode & 0o777, 0o644);
+    assert.equal(fs.statSync(path.join(targetDir, "executable.js")).mode & 0o777, 0o755);
+    assert.equal(process.umask(), 0o077);
+    failNpm = true; const failedTarget = path.join(releases, "failed");
+    assert.throws(() => U.stageRelease({ ...options, targetDir: failedTarget }), /Injected dependency preparation failure/);
+    assert.equal(process.umask(), 0o077); assert.equal(npmCalls, 2); assert.equal(fs.existsSync(failedTarget), false);
+    assert.deepEqual(fs.readdirSync(releases), [target]); assert.equal(fs.existsSync(path.join(root, "kai-reward-storage-" + target + ".tar")), false);
+  } finally { process.umask(prior); fs.rmSync(root, { recursive: true, force: true }); }
 });

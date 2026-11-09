@@ -117,7 +117,9 @@ function stageRelease({ repo, target, targetDir, paths: p, run, manifest }) {
   fs.chmodSync(stage, 0o755);
   try {
     run("git", ["archive", "--format=tar", "--output=" + archive, target], repo);
-    const mask = process.umask(0o022); try { run("tar", ["-xf", archive, "-C", stage]); run("npm", ["ci", "--omit=dev", "--ignore-scripts"], stage); } finally { process.umask(mask); }
+    // GNU tar run as root otherwise preserves git archive's 0664/0775 modes,
+    // ignoring this staging umask. Explicitly apply 0022 to extracted entries.
+    const mask = process.umask(0o022); try { run("tar", ["--no-same-permissions", "-xf", archive, "-C", stage]); run("npm", ["ci", "--omit=dev", "--ignore-scripts"], stage); } finally { process.umask(mask); }
     verifyRelease(stage, manifest); fs.renameSync(stage, targetDir); syncDirectory(p.releases);
   } finally { if (fs.existsSync(stage)) fs.rmSync(stage, { recursive: true }); if (fs.existsSync(archive)) fs.unlinkSync(archive); }
 }
