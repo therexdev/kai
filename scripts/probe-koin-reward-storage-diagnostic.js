@@ -112,6 +112,12 @@ test("native health reads accept local 200/503 JSON and discard arbitrary fields
   assert.equal(JSON.stringify(result).includes(SECRET), false);
   assert.equal(D.healthProjection(health("runtime"), "runtime").lastRewardSuccess, null);
 });
+test("storage failure preserves unknown current-day fields instead of reporting a missing budget", () => {
+  const value = { ...earning(), ready: false, reasons: ["reward_storage_unavailable"], currentEpoch: {
+    epoch: "20766", budgetPresent: null, dayPresent: null, openedAt: null, intervalCount: null, lastIntervalEnd: null } };
+  assert.deepEqual(D.healthProjection(value, "earnings"), value);
+  assert.throws(() => D.healthProjection({ ...value, reasons: ["availability_processing_stale"] }, "earnings"), /Invalid earning health/);
+});
 test("native health deadline includes stalled bodies and redirects never reach another path", async t => {
   let forbidden = false;
   const origin = await server(t, (req, res) => {

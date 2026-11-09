@@ -257,6 +257,20 @@ test("progress errors never print the operator secret", async t => {
   for (const fetchImpl of [async () => { throw Error(secret); }, async () => new Response("private", { status: 403 }), async () => new Response("x".repeat(32769))])
     await assert.rejects(progress({ paths: f.p, fetchImpl }), error => !error.message.includes(secret) && /progress could not/.test(error.message));
 });
+test("version 4 storage failure remains readable with unknown current earnings", async t => {
+  const f = fixture(t), secret = "a".repeat(64); fs.writeFileSync(path.join(f.p.config, "operator-secret"), secret);
+  const now = 1800000000000, value = { rewardRuntimeVersion: 4, observedAt: now, busy: false, stopped: false,
+    availabilityBusy: false, processingStage: null, processingStartedAt: null, lastServing: now,
+    lastRewardSuccess: null, lastSettlementSuccess: null, lastAvailabilitySuccess: null,
+    earningHealth: { schema: 1, ready: false, observedAt: now, lastAvailabilitySuccess: null, reasons: ["reward_storage_unavailable"] },
+    currentEpoch: { epoch: "20833", budgetPresent: null, dayPresent: null, openedAt: null, intervalCount: null, lastIntervalEnd: null },
+    processTelemetry: { version: 1, pid: 42 }, lastRewardCycle: null, errors: [] };
+  const output = await progress({ paths: f.p, log() {}, fetchImpl: async () => new Response(JSON.stringify(value)) });
+  assert.equal(output.rewardRuntimeVersion, 4); assert.equal(output.earningHealth.ready, false);
+  assert.deepEqual(output.currentEpoch, value.currentEpoch);
+  value.earningHealth.reasons = ["availability_processing_stale"];
+  await assert.rejects(progress({ paths: f.p, log() {}, fetchImpl: async () => new Response(JSON.stringify(value)) }), /Invalid lightweight/);
+});
 test("default SIGTERM termination is refused even when systemd reports success", async t => {
   const f = fixture(t); f.signalMode = "default-signal";
   await assert.rejects(update(f.options), /did not exit cleanly/);

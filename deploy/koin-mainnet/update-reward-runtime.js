@@ -172,20 +172,23 @@ async function progress({ paths: p = PATHS, fetchImpl = fetch, log = console.log
   const stamp = v => v === null || (Number.isSafeInteger(v) && v >= 0);
   const stage = v => v === null || (typeof v === "string" && /^[a-z_]{1,64}$/.test(v));
   const epoch = value?.currentEpoch, earning = value?.earningHealth;
-  const earningReasons = new Set(["stopping", "awaiting_funded_epoch", "availability_processing_stale", "availability_processing_error", "earning_intervals_stale"]);
-  if (value?.rewardRuntimeVersion !== 3 || typeof value.busy !== "boolean" || typeof value.stopped !== "boolean" || typeof value.availabilityBusy !== "boolean" ||
+  const earningReasons = new Set(["stopping", "awaiting_funded_epoch", "availability_processing_stale", "availability_processing_error", "earning_intervals_stale", "reward_storage_unavailable"]);
+  const storageUnavailable = Array.isArray(earning?.reasons) && earning.reasons.includes("reward_storage_unavailable");
+  const knownBoolean = v => typeof v === "boolean" || (storageUnavailable && v === null);
+  const intervalCount = v => Number.isSafeInteger(v) && v >= 0 || (storageUnavailable && v === null);
+  if (![3, 4].includes(value?.rewardRuntimeVersion) || typeof value.busy !== "boolean" || typeof value.stopped !== "boolean" || typeof value.availabilityBusy !== "boolean" ||
       !Number.isSafeInteger(value.observedAt) || !stage(value.processingStage) ||
       ["processingStartedAt", "lastServing", "lastRewardSuccess", "lastSettlementSuccess", "lastAvailabilitySuccess"].some(key => !stamp(value[key])) ||
       !epoch || typeof epoch.epoch !== "string" || !/^\d{1,12}$/.test(epoch.epoch) ||
-      typeof epoch.budgetPresent !== "boolean" || typeof epoch.dayPresent !== "boolean" ||
-      !stamp(epoch.openedAt) || !stamp(epoch.lastIntervalEnd) || !Number.isSafeInteger(epoch.intervalCount) || epoch.intervalCount < 0 ||
+      !knownBoolean(epoch.budgetPresent) || !knownBoolean(epoch.dayPresent) ||
+      !stamp(epoch.openedAt) || !stamp(epoch.lastIntervalEnd) || !intervalCount(epoch.intervalCount) ||
       earning?.schema !== 1 || typeof earning.ready !== "boolean" || !Number.isSafeInteger(earning.observedAt) ||
       !stamp(earning.lastAvailabilitySuccess) || !Array.isArray(earning.reasons) || earning.reasons.length > earningReasons.size ||
       earning.reasons.some(reason => !earningReasons.has(reason)) || earning.ready !== (earning.reasons.length === 0) ||
       !Array.isArray(value.errors) || value.processTelemetry?.version !== 1 || !Number.isSafeInteger(value.processTelemetry?.pid) ||
       value.processTelemetry.pid < 0 || !(value.lastRewardCycle === null || typeof value.lastRewardCycle === "object"))
     throw Error("Invalid lightweight reward progress response");
-  const output = { observation: "Reward diagnostics after code activation" };
+  const output = { observation: "Reward diagnostics after code activation", rewardRuntimeVersion: value.rewardRuntimeVersion };
   for (const key of ["observedAt", "busy", "availabilityBusy", "stopped", "processingStage", "processingStartedAt", "lastServing", "lastRewardSuccess", "lastSettlementSuccess", "lastAvailabilitySuccess"])
     output[key] = value[key];
   output.earningHealth = { schema: 1, ready: earning.ready, observedAt: earning.observedAt,

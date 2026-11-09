@@ -14,7 +14,7 @@ function createHandler({ runtime, config, secret, authApp }) {
       if (runtime.stopped && !["/health", "/health/earnings", "/operator/progress"].includes(url.pathname))
         return json(res, 503, { error: "Service is restarting. Try again shortly." });
       if (authApp && require("./lib/credit-account-web").handles(url.pathname)) return authApp(req, res);
-      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, product: config.deployment.product || "legacy-reservations", purchaseQuotesUnlimited: require("./lib/koin-network/product").isUsd(config.deployment), providerQualificationRecovery: runtime.qualifier?.recoveryVersion === 1 ? 1 : 0, modelReadinessAdmission: runtime.qualifier?.readinessVersion === 1 ? 1 : 0, lastSuccess: (runtime.prepaid ? runtime.lastServing : runtime.lastSuccess) || null, lastSettlementSuccess: runtime.lastSuccess || null, lastRewardSuccess: runtime.lastRewardSuccess || null, rewardRuntimeVersion, rpcTransportVersion: require("./lib/koin-network/rpc-provider").transportVersion, rpcReadGroupVersion: require("./lib/koin-network/read-group").version, claimSponsorshipVersion: typeof runtime.claims?.sponsorshipStatus === "function" ? 1 : 0, rewardSummaryVersion: typeof runtime.rewardSummary === "function" ? 1 : 0, freeAllowanceRefreshVersion: typeof runtime.sponsorship?.check === "function" ? 1 : 0 });
+      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, product: config.deployment.product || "legacy-reservations", purchaseQuotesUnlimited: require("./lib/koin-network/product").isUsd(config.deployment), providerQualificationRecovery: runtime.qualifier?.recoveryVersion === 1 ? 1 : 0, modelReadinessAdmission: runtime.qualifier?.readinessVersion === 1 ? 1 : 0, lastSuccess: (runtime.prepaid ? runtime.lastServing : runtime.lastSuccess) || null, lastSettlementSuccess: runtime.lastSuccess || null, lastRewardSuccess: runtime.lastRewardSuccess || null, rewardRuntimeVersion, rewardStorage: (() => { const { schema, mode, ready } = require("./lib/koin-network/earning-health").rewardStorageStatus(runtime); return { schema, mode, ready }; })(), rpcTransportVersion: require("./lib/koin-network/rpc-provider").transportVersion, rpcReadGroupVersion: require("./lib/koin-network/read-group").version, claimSponsorshipVersion: typeof runtime.claims?.sponsorshipStatus === "function" ? 1 : 0, rewardSummaryVersion: typeof runtime.rewardSummary === "function" ? 1 : 0, freeAllowanceRefreshVersion: typeof runtime.sponsorship?.check === "function" ? 1 : 0 });
       if (url.pathname === "/health/earnings" && req.method === "GET") {
         const health = require("./lib/koin-network/earning-health").earningHealth(runtime);
         return json(res, health.ready ? 200 : 503, health);
@@ -100,7 +100,10 @@ async function startRuntimeServer({ runtime, server, port, onReady = () => {}, s
   signals.on("SIGTERM", close); signals.on("SIGINT", close);
   server.on("listening", closeAfterListen);
   try {
-    await runtime.client.verify();
+    // Storage initialization seals signed history and replays accepted reports.
+    // No socket, verifier or financial pass may run before that barrier finishes.
+    await runtime.initialize?.();
+    if (!closing) await runtime.client.verify();
     if (!closing) {
       await new Promise((resolve, reject) => {
         const settle = (fn, value) => { server.removeListener("error", failed); server.removeListener("close", stopped); fn(value); };

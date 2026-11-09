@@ -16,7 +16,7 @@ function fixture() {
 }
 test("progress reads bounded memory even when every financial status scan is unavailable", () => {
   const r = fixture(), p = operatorProgress(r);
-  assert.equal(p.rewardRuntimeVersion, 3); assert.equal(p.busy, true);
+  assert.equal(p.rewardRuntimeVersion, 4); assert.equal(p.busy, true);
   assert.equal(p.processTelemetry.version, 1); assert.ok(Number.isSafeInteger(p.processTelemetry.pid));
   assert.equal(p.processTelemetry.qualificationModelCount, null); assert.equal(p.lastRewardCycle, null);
   r.qualifier = { engines: new Map([["approved", {}]]) }; assert.equal(operatorProgress(r).processTelemetry.qualificationModelCount, 1);
@@ -64,7 +64,7 @@ test("HTTP progress requires the existing operator secret and never invokes full
   assert.equal(p.currentEpoch.budgetPresent, true);
   assert.equal((await fetch(url + "/operator/progress", { method: "POST", headers: { "x-operator-secret": secret } })).status, 404);
   const health = await (await fetch(url + "/health")).json();
-  assert.equal(health.rewardRuntimeVersion, 3); assert.equal(health.lastRewardSuccess, now - 3600000);
+  assert.equal(health.rewardRuntimeVersion, 4); assert.equal(health.lastRewardSuccess, now - 3600000);
   assert.equal(health.processingStage, undefined); assert.equal(health.errors, undefined);
   assert.equal(health.processTelemetry, undefined); assert.equal(health.lastRewardCycle, undefined);
   const stale = await fetch(url + "/health/earnings");

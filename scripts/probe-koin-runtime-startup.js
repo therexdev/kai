@@ -5,7 +5,7 @@ const { startRuntimeServer, createHandler } = require("../test-server");
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 const turn = () => new Promise(resolve => setImmediate(resolve));
 
-for (const phase of ["verify", "tick"]) test(`real SIGTERM during initial ${phase} drains safely and exits normally`, { timeout: 10000 }, async t => {
+for (const phase of ["initialize", "verify", "tick"]) test(`real SIGTERM during initial ${phase} drains safely and exits normally`, { timeout: 10000 }, async t => {
   const script = `
     const http = require('node:http');
     const { startRuntimeServer } = require(${JSON.stringify(require.resolve("../test-server"))});
@@ -14,7 +14,8 @@ for (const phase of ["verify", "tick"]) test(`real SIGTERM during initial ${phas
     const send = type => process.send({ type, busy: runtime.busy, availabilityBusy: runtime.availabilityBusy, closed });
     const runtime = {
       busy: false, availabilityBusy: false,
-      client: { verify: async () => { if (${JSON.stringify(phase)} === 'verify') { send('waiting'); await pending; } } },
+      initialize: async () => { if (${JSON.stringify(phase)} === 'initialize') { send('waiting'); await pending; } },
+      client: { verify: async () => { send('verify'); if (${JSON.stringify(phase)} === 'verify') { send('waiting'); await pending; } } },
       start: async () => { runtime.busy = true; runtime.availabilityBusy = true; send('waiting'); await pending; },
       stopScheduling: () => send('stopping'),
       close: async () => {
@@ -49,6 +50,18 @@ for (const phase of ["verify", "tick"]) test(`real SIGTERM during initial ${phas
   assert.equal(code, 0, stderr); assert.equal(signal, null);
   assert.equal(messages.filter(v => v.type === "closed").length, 1);
   assert.ok(!messages.some(v => v.type === "ready"), "interrupted startup must not announce ready or schedule another pass");
+  if (phase === "initialize") assert.ok(!messages.some(v => v.type === "verify"), "interrupted storage startup must not verify contracts");
+});
+
+test("storage initialization failure closes resources before verification, listening or scheduling", async () => {
+  const signals = new EventEmitter(), exited = deferred(), closed = deferred(), server = http.createServer();
+  let closes = 0, verifies = 0, starts = 0;
+  const runtime = { initialize: async () => { throw Error("Storage replay failed"); },
+    client: { verify: async () => { verifies++; } }, start: async () => { starts++; },
+    stopScheduling() {}, close: async () => { closes++; await closed.promise; } };
+  await assert.rejects(startRuntimeServer({ runtime, server, port: 0, signals, exit: exited.resolve }), /Storage replay failed/);
+  await turn(); assert.equal(closes, 1); assert.equal(verifies, 0); assert.equal(starts, 0); assert.equal(server.listening, false);
+  closed.resolve(); assert.equal(await exited.promise, 1); assert.equal(signals.listenerCount("SIGTERM"), 0);
 });
 
 test("shutdown waits for active HTTP work and repeated signals do not close runtime twice", async t => {

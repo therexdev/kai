@@ -9,7 +9,7 @@ const LEGACY = "scheduler/koin-shadow/koin-shadow.json";
 const FILES = [LEGACY, ...["cycle", "claims"].flatMap(name => ["", "-wal", "-shm"].map(suffix => `${name}/reward-${name}.sqlite${suffix}`))];
 const STATES = new Set(["queued", "signing", "staged", "unknown", "pending", "reversible", "needs_review", "complete", "observed_external", "paid", "paid_elsewhere"]);
 const METHODS = new Set(["open_epoch", "propose_root", "finalize_root"]);
-const REASONS = new Set(["stopping", "awaiting_funded_epoch", "availability_processing_stale", "availability_processing_error", "earning_intervals_stale"]);
+const REASONS = new Set(["stopping", "awaiting_funded_epoch", "availability_processing_stale", "availability_processing_error", "earning_intervals_stale", "reward_storage_unavailable"]);
 const integer = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
 const epoch = value => typeof value === "string" && /^\d{1,12}$/.test(value) ? value : null;
 const state = value => STATES.has(value) ? value : "unrecognized";
@@ -126,10 +126,12 @@ async function hashLegacy(file, { maxBytes = 67108864, timeoutMs = 5000 } = {}) 
 }
 function earningProjection(value) {
   const current = value?.currentEpoch;
+  const unknown = Array.isArray(value?.reasons) && value.reasons.includes("reward_storage_unavailable");
+  const knownBoolean = v => typeof v === "boolean" || (unknown && v === null);
   if (value?.schema !== 1 || typeof value.ready !== "boolean" || integer(value.observedAt) === null ||
       !Array.isArray(value.reasons) || value.reasons.length > REASONS.size || value.reasons.some(reason => !REASONS.has(reason)) ||
       value.ready !== (value.reasons.length === 0) || !current || epoch(current.epoch) === null ||
-      typeof current.budgetPresent !== "boolean" || typeof current.dayPresent !== "boolean") throw Error("Invalid earning health");
+      !knownBoolean(current.budgetPresent) || !knownBoolean(current.dayPresent)) throw Error("Invalid earning health");
   return { schema: 1, ready: value.ready, observedAt: value.observedAt, lastAvailabilitySuccess: integer(value.lastAvailabilitySuccess),
     reasons: [...value.reasons], currentEpoch: { epoch: current.epoch, budgetPresent: current.budgetPresent, dayPresent: current.dayPresent,
       openedAt: integer(current.openedAt), intervalCount: integer(current.intervalCount), lastIntervalEnd: integer(current.lastIntervalEnd) } };

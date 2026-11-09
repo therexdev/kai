@@ -24,10 +24,11 @@ function setup(t, overrides = {}) {
   }
   return { ...f, options, directory, enroll, report, get devices() { return devices; },
     observe(p, rewardQualified = true) { return devices.observePresence(p.signature, f.provider, p.report, { rewardQualified }); },
-    restart() { devices.close(); devices = new ProviderDevices(options); },
+    restart() { devices?.close(); devices = new ProviderDevices(options); },
     close() { devices?.close(); devices = null; } };
 }
 function crash(f, p, beforeCommit) {
+  f.close();
   const script = `const fs=require('node:fs'); const {ProviderDevices}=require(${JSON.stringify(path.resolve(__dirname, "../lib/koin-network/provider-devices"))});
     const a=JSON.parse(fs.readFileSync(0,'utf8')); const devices=new ProviderDevices({...a.options,clock:()=>a.now});
     if(a.beforeCommit){const write=devices.write.bind(devices);devices.write=fn=>write(()=>{fn();process.kill(process.pid,'SIGKILL');});}
@@ -135,24 +136,13 @@ test("eligibility and monotonic acceptance are explicit and roll back on admissi
   assert.equal(f.devices.presence(b.binding), null); f.time(1);
   const second = f.observe(f.report(b)).presenceEvent; assert.equal(second.acceptedAt, first.acceptedAt); assert.equal(second.sequence, 2);
 });
-test("competing source writers recheck exact receipts and revocation under the writer lock", async t => {
-  const f = setup(t), d = await f.enroll(), p = f.report(d), other = new ProviderDevices(f.options);
-  try {
-    const write = f.devices.write.bind(f.devices);
-    f.devices.write = fn => {
-      f.devices.write = write;
-      other.observePresence(p.signature, f.provider, p.report, { rewardQualified: true });
-      return write(fn);
-    };
-    assert.equal(f.observe(p).duplicate, true); assert.equal(f.devices.pendingPresenceStatus().pending, 1);
-    f.time(10000); const next = f.report(d, 2);
-    f.devices.write = fn => {
-      f.devices.write = write;
-      other.revoke(d.sign("revoke", D.hash("revoke:" + d.authorizationId)));
-      return write(fn);
-    };
-    assert.throws(() => f.observe(next), /revoked/); assert.equal(f.devices.pendingPresenceStatus().pending, 1);
-  } finally { other.close(); }
+test("activated source rejects competing same-process and cross-process writers on every reopen", async t => {
+  const f = setup(t), d = await f.enroll(), p = f.report(d);
+  assert.throws(() => new ProviderDevices(f.options), /Stop every provider device writer/);
+  const script = `const {ProviderDevices}=require(${JSON.stringify(path.resolve(__dirname, "../lib/koin-network/provider-devices"))});new ProviderDevices(${JSON.stringify({ ...f.options, clock: undefined })});`;
+  const child = spawnSync(process.execPath, ["-e", script], { encoding: "utf8" });
+  assert.notEqual(child.status, 0); assert.match(child.stderr, /Stop every provider device writer/);
+  assert.equal(f.observe(p).duplicate, false); f.restart(); assert.equal(f.observe(p).duplicate, true);
 });
 test("activation is opt-in, refuses another live legacy writer, and establishes a persistent rollback floor", async t => {
   const f = setup(t, { presenceOutbox: false }), d = await f.enroll(), p = f.report(d);
@@ -162,7 +152,7 @@ test("activation is opt-in, refuses another live legacy writer, and establishes 
   f.close(); const upgraded = new ProviderDevices({ ...f.options, presenceOutbox: true }); upgraded.close();
   assert.throws(() => new ProviderDevices(f.options), /rollback is not supported/);
   const reopened = new ProviderDevices({ ...f.options, presenceOutbox: true });
-  assert.equal(JSON.parse(reopened.db.prepare("SELECT data FROM identity WHERE id=1").get().data).presenceOutbox, 1);
+  assert.equal(JSON.parse(reopened.db.prepare("SELECT data FROM identity WHERE id=1").get().data).presenceOutbox, 2);
   assert.equal(reopened.presence(d.binding).sequence, 1); assert.deepEqual(reopened.pendingPresenceEvents(), []);
   reopened.close();
 });
