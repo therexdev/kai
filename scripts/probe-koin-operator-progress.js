@@ -7,6 +7,7 @@ function fixture() {
   const forbidden = () => { throw Error("Financial history must not be read by progress"); };
   const state = { budgets: { 20766: { openedAt: 20766 * DAY } },
     days: { 20766: { intervals: [{ end: 20766 * DAY + 60000 }] } } };
+  state.qualifications = state.presence = new Proxy({}, { ownKeys: forbidden });
   return { clock: () => now, busy: true, stopped: false, processingStage: "reward_cycles",
     processingStartedAt: now - 10000, lastServing: now - 1000, lastSuccess: now - 3600000,
     lastRewardSuccess: now - 3600000, errors: [], scheduler: { koinShadow: { ledger: { state } } },
@@ -15,7 +16,10 @@ function fixture() {
 }
 test("progress reads bounded memory even when every financial status scan is unavailable", () => {
   const r = fixture(), p = operatorProgress(r);
-  assert.equal(p.rewardRuntimeVersion, 1); assert.equal(p.busy, true);
+  assert.equal(p.rewardRuntimeVersion, 2); assert.equal(p.busy, true);
+  assert.equal(p.processTelemetry.version, 1); assert.ok(Number.isSafeInteger(p.processTelemetry.pid));
+  assert.equal(p.processTelemetry.qualificationModelCount, null); assert.equal(p.lastRewardCycle, null);
+  r.qualifier = { engines: new Map([["approved", {}]]) }; assert.equal(operatorProgress(r).processTelemetry.qualificationModelCount, 1);
   assert.equal(p.processingStage, "reward_cycles"); assert.equal(p.lastRewardSuccess, now - 3600000);
   assert.equal(p.lastSettlementSuccess, now - 3600000); assert.equal(p.lastServing, now - 1000);
   assert.deepEqual(p.currentEpoch, { epoch: "20766", budgetPresent: true, dayPresent: true,
@@ -60,6 +64,7 @@ test("HTTP progress requires the existing operator secret and never invokes full
   assert.equal(p.currentEpoch.budgetPresent, true);
   assert.equal((await fetch(url + "/operator/progress", { method: "POST", headers: { "x-operator-secret": secret } })).status, 404);
   const health = await (await fetch(url + "/health")).json();
-  assert.equal(health.rewardRuntimeVersion, 1); assert.equal(health.lastRewardSuccess, now - 3600000);
+  assert.equal(health.rewardRuntimeVersion, 2); assert.equal(health.lastRewardSuccess, now - 3600000);
   assert.equal(health.processingStage, undefined); assert.equal(health.errors, undefined);
+  assert.equal(health.processTelemetry, undefined); assert.equal(health.lastRewardCycle, undefined);
 });

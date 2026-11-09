@@ -5,15 +5,20 @@ const fs = require("node:fs"), path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { configDigest } = require("./update-prepaid-web");
 const { validateUnit, runtimeTarget, health: walletHealth, UNIT, PATHS } = require("./update-wallet-access");
-const BASE = "45277dd1a63d54d773e472b891520ce4a12ffe67";
-const REQUIRED = ["test-server.js", "lib/koin-network/test-runtime.js",
-  "lib/koin-network/operator-progress.js", "scripts/probe-koin-operator-progress.js", "scripts/probe-koin-reward-checkpoints.js",
-  "lib/koin-network/reward-claims.js", "lib/koin-network/reward-cycle.js",
-  "lib/koin-network/verified-manifest-cache.js", "scripts/probe-koin-verified-manifest-cache.js",
-  "deploy/koin-mainnet/update-reward-runtime.js", "deploy/koin-mainnet/update-reward-runtime.test.js",
-  "deploy/koin-mainnet/REWARD_RUNTIME.md"];
+const BASE = "605eb5a6e8654b918d6659952936d1cc9537b751";
+const REQUIRED = ["lib/koin-network/rpc-http.js", "lib/koin-network/rpc-provider.js", "lib/koin-network/rpc-diagnostics.js",
+  "scripts/probe-koin-rpc-diagnostics.js", "scripts/probe-koin-reward-progress.js",
+  "lib/koin-network/runtime-metrics.js", "lib/koin-network/test-runtime.js", "lib/koin-network/operator-progress.js",
+  "scripts/probe-koin-runtime-metrics.js", "scripts/probe-koin-operator-progress.js",
+  "deploy/koin-mainnet/diagnose-reward-opening.js", "scripts/probe-koin-reward-opening-diagnostic.js",
+  "lib/koin-network/provider-qualification-set.js", "lib/koin-network/provider-qualification.js", "scripts/probe-koin-qualification-pressure.js",
+  "lib/koin-network/reward-observer.js", "lib/koin-network/reward-cycle.js", "lib/koin-network/reward-claims.js",
+  "scripts/probe-koin-finalized-cycle-evidence.js",
+  "deploy/koin-mainnet/update-reward-runtime.js", "deploy/koin-mainnet/update-reward-runtime.test.js", "deploy/koin-mainnet/REWARD_RUNTIME.md"];
 const ALLOWED = new Set(REQUIRED), PRIOR_RELEASES = [BASE];
-const PROBES = ["scripts/probe-koin-reward-checkpoints.js", "scripts/probe-koin-operator-progress.js", "scripts/probe-koin-verified-manifest-cache.js",
+const PROBES = ["scripts/probe-koin-finalized-cycle-evidence.js", "scripts/probe-koin-rpc-diagnostics.js", "scripts/probe-koin-runtime-metrics.js",
+  "scripts/probe-koin-reward-opening-diagnostic.js", "scripts/probe-koin-qualification-pressure.js", "scripts/probe-koin-qualification-scheduling.js",
+  "scripts/probe-koin-reward-checkpoints.js", "scripts/probe-koin-operator-progress.js", "scripts/probe-koin-verified-manifest-cache.js",
   "scripts/probe-koin-rpc-read-groups.js", "scripts/probe-koin-rpc-recovery.js",
   "scripts/probe-koin-reward-progress.js", "scripts/probe-koin-reward-cycle.js",
   "scripts/probe-koin-automatic-claims.js", "scripts/probe-koin-claim-capacity.js",
@@ -38,8 +43,8 @@ async function health({ summary = true, fetchImpl = fetch, ...options } = {}) {
     const body = await response.text();
     if (Buffer.byteLength(body) > 32768) throw Error("Reward health response is too large");
     const value = JSON.parse(body);
-    if (value.rewardRuntimeVersion !== 1 || value.rpcReadGroupVersion !== 1 || value.rpcTransportVersion !== 1 || value.claimSponsorshipVersion !== 1 || value.rewardSummaryVersion !== 1 || value.freeAllowanceRefreshVersion !== 1 || !Object.hasOwn(value, "lastRewardSuccess"))
-      throw Error("Reward runtime progress and reward monitoring are not active");
+    if (value.rewardRuntimeVersion !== 2 || value.rpcReadGroupVersion !== 1 || value.rpcTransportVersion !== 1 || value.claimSponsorshipVersion !== 1 || value.rewardSummaryVersion !== 1 || value.freeAllowanceRefreshVersion !== 1 || !Object.hasOwn(value, "lastRewardSuccess"))
+      throw Error("Reward runtime diagnostics version 2 is not active");
     return { ok: response.ok, status: response.status, text: async () => body };
   } });
 }
@@ -100,23 +105,28 @@ async function progress({ paths: p = PATHS, fetchImpl = fetch, log = console.log
   const stamp = v => v === null || (Number.isSafeInteger(v) && v >= 0);
   const stage = v => v === null || (typeof v === "string" && /^[a-z_]{1,64}$/.test(v));
   const epoch = value?.currentEpoch;
-  if (value?.rewardRuntimeVersion !== 1 || typeof value.busy !== "boolean" || typeof value.stopped !== "boolean" ||
+  if (value?.rewardRuntimeVersion !== 2 || typeof value.busy !== "boolean" || typeof value.stopped !== "boolean" ||
       !Number.isSafeInteger(value.observedAt) || !stage(value.processingStage) ||
       ["processingStartedAt", "lastServing", "lastRewardSuccess", "lastSettlementSuccess"].some(key => !stamp(value[key])) ||
       !epoch || typeof epoch.epoch !== "string" || !/^\d{1,12}$/.test(epoch.epoch) ||
       typeof epoch.budgetPresent !== "boolean" || typeof epoch.dayPresent !== "boolean" ||
       !stamp(epoch.openedAt) || !stamp(epoch.lastIntervalEnd) || !Number.isSafeInteger(epoch.intervalCount) || epoch.intervalCount < 0 ||
-      !Array.isArray(value.errors)) throw Error("Invalid lightweight reward progress response");
-  const output = { observation: "Reward progress after code activation" };
+      !Array.isArray(value.errors) || value.processTelemetry?.version !== 1 || !Number.isSafeInteger(value.processTelemetry?.pid) ||
+      value.processTelemetry.pid < 0 || !(value.lastRewardCycle === null || typeof value.lastRewardCycle === "object"))
+    throw Error("Invalid lightweight reward progress response");
+  const output = { observation: "Reward diagnostics after code activation" };
   for (const key of ["observedAt", "busy", "stopped", "processingStage", "processingStartedAt", "lastServing", "lastRewardSuccess", "lastSettlementSuccess"])
     output[key] = value[key];
   output.currentEpoch = Object.fromEntries(["epoch", "budgetPresent", "dayPresent", "openedAt", "intervalCount", "lastIntervalEnd"].map(key => [key, epoch[key]]));
   const { rpcDiagnostics } = require("../../lib/koin-network/rpc-provider");
   const { safeError } = require("../../lib/koin-network/rpc-transport");
+  const { sanitizeEventLoopSnapshot, sanitizeProcessTelemetry, rewardCycleObservation } = require("../../lib/koin-network/runtime-metrics");
+  output.processTelemetry = sanitizeProcessTelemetry(value.processTelemetry);
+  output.lastRewardCycle = rewardCycleObservation(value.lastRewardCycle, value.lastRewardCycle?.observedAt, value.lastRewardCycle?.openCurrentDay);
   output.recentErrors = value.errors.slice(-5).map(error => ({
     at: stamp(error?.at) ? error.at : null, stage: stage(error?.stage) ? error.stage : null,
     message: safeError(error?.message || "Unknown processing error").replaceAll(secret, "[redacted]").replace(/[A-Za-z0-9_+/=-]{40,}/g, "[redacted]"),
-    rpc: rpcDiagnostics({ rpcDiagnostics: error?.rpc }),
+    rpc: rpcDiagnostics({ rpcDiagnostics: error?.rpc }), eventLoop: sanitizeEventLoopSnapshot(error?.eventLoop),
   }));
   log(JSON.stringify(output)); return output;
 }
@@ -139,7 +149,7 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, c
     const expected = runtimeTarget(path.join(p.config, "runtime.json")), digest = configDigest(p.config);
     const ready = { expected, paths: p, summary: true };
     if (current === targetDir) {
-      await checkHealth(ready); await reportProgress({ paths: p, log }); log("Reward runtime progress is already installed and service health verified: " + target);
+      await checkHealth(ready); await reportProgress({ paths: p, log }); log("Reward runtime diagnostics version 2 is already installed and service health verified: " + target);
       return { installed: true, unchanged: true, commit: target };
     }
     if (fs.existsSync(targetDir)) throw Error("Target release already exists; preserve it for review");
@@ -224,8 +234,8 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, c
       try { preserveUnused(); } catch { log("Prepared source retained at " + targetDir); }
       throw error;
     }
-    log("Reward runtime update installed and lightweight progress verified: " + target);
-    log("Code activation is not reward recovery. Confirm advancing reward timestamps, the current epoch and payout progress.");
+    log("Reward completion recovery and runtime diagnostics version 2 installed; lightweight progress verified: " + target);
+    log("Code activation alone does not prove recovery. Confirm the old finalized lifecycle step completes, today's budget and day exist, and reward intervals and timestamps advance.");
     return { installed: true, unchanged: false, commit: target, backup };
   } finally { for (const lock of locks.reverse()) fs.rmdirSync(lock); }
 }

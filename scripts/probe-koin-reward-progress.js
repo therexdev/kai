@@ -57,6 +57,24 @@ test("the current stage is visible while a pass is blocked and concurrent ticks 
   await r.tick(); assert.equal(calls.filter(c => c === "verify").length, 1);
   release(); await pending; assert.equal(r.processingStage, null);
 });
+test("normal reward waits retain a bounded completed observation without signing data or claiming payout completion", async () => {
+  const { r } = runtime();
+  const result = { results: [{ epoch: "20767", method: "finalize_day", action: "wait", reason: "root_under_review",
+    transaction: { signatures: ["private"] }, outbox: "private" }] };
+  r.cycleRunner.tick = async options => { assert.equal(options.openCurrentDay, true); return result; };
+  await r.tick();
+  assert.deepEqual(r.rewardCycleObservation, { observedAt: 100000, openCurrentDay: true,
+    results: [{ epoch: "20767", method: "finalize_day", action: "wait", reason: "root_under_review", state: null }] });
+  assert.doesNotMatch(JSON.stringify(r.rewardCycleObservation), /private|transaction|outbox/);
+  result.results[0].reason = "changed"; assert.equal(r.rewardCycleObservation.results[0].reason, "root_under_review");
+  const previous = r.rewardCycleObservation; r.clock = () => 110000;
+  r.processMetrics = { eventLoopSnapshot: () => ({ available: true, windowMs: 60000, resolutionMs: 20,
+    current: { durationMs: 2000, samples: 20, maxMs: 550, p99Ms: 450, utilization: 0.9 }, previous: null }) };
+  r.cycleRunner.tick = async () => { throw offline(); }; await r.tick();
+  assert.equal(r.rewardCycleObservation, previous, "a failed pass cannot overwrite the last complete observation");
+  assert.equal(r.lastRewardSuccess, 100000); assert.equal(r.errors.at(-1).eventLoop.windowMs, 60000);
+  assert.equal(r.errors.at(-1).eventLoop.current.maxMs, 550); assert.equal(r.errors.at(-1).stage, "reward_cycles");
+});
 test("operator diagnostics retain HTTP fallback failures without retaining any secret payload", async () => {
   const urls = ["https://diag-one.invalid/rpc?key=private", "https://diag-two.invalid"], bodies = [];
   const p = new PinnedRpcProvider(urls, "chain", { fetchImpl: async (url, req) => {
@@ -93,6 +111,6 @@ test("attempt timeouts identify the method and queued work without issuing a lat
   let failure; try { await p.call("chain.submit_transaction", { broadcast: true, transaction: { signature: "private" } }); } catch (e) { failure = e; }
   const [row] = rpcDiagnostics(failure);
   assert.equal(row.kind, "timeout"); assert.equal(row.method, "chain.get_chain_id");
-  assert.equal(row.elapsedMs, 20); assert.equal(row.active, 1);
+  assert.equal(row.budgetMs, 20); assert.ok(row.elapsedMs >= 19); assert.equal(row.active, 1);
   assert.doesNotMatch(JSON.stringify(row), /private|signature/);
 });
