@@ -5,6 +5,7 @@ const { execFileSync } = require("node:child_process");
 const { once } = require("node:events");
 const { PinnedRpcProvider, rpcDiagnostics } = require("../lib/koin-network/rpc-provider");
 const { createRpcTransport, MAX_BODY_BYTES } = require("../lib/koin-network/rpc-http");
+const { endpointStats } = require("../lib/koin-network/rpc-scheduler");
 const chainId = "recovery-fixture-chain";
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function fixture(t) {
@@ -88,7 +89,14 @@ test("unfinished HTTP errors, truncated responses and oversized bodies cannot po
       if (mode === "error") assert.equal(rpcDiagnostics(error)[0].httpStatus, 503);
       return true;
     });
-    assert.equal(f.active, 0); f.mode = "healthy"; assert.equal(await p.getChainId(), chainId);
+    assert.equal(f.active, 0); f.mode = "healthy";
+    if (mode === "error") {
+      const before = f.calls.length;
+      await assert.rejects(p.getChainId(), error => rpcDiagnostics(error)[0]?.kind === "cooldown");
+      assert.equal(f.calls.length, before, "A throttled endpoint stays quiet until recovery is due");
+      await pause(endpointStats(f.url).cooldownRemainingMs + 5);
+    }
+    assert.equal(await p.getChainId(), chainId);
   }
 });
 test("real transport preserves safe read fallback, redirect refusal and chain pinning", { timeout: 10000 }, async t => {
@@ -99,6 +107,7 @@ test("real transport preserves safe read fallback, redirect refusal and chain pi
   assert.deepEqual(await p.call("chain.get_head_info", {}), { ok: true });
   assert.equal(p.readGeneration, 1);
   for (const mode of ["redirect", "wrong-chain"]) {
+    await pause(endpointStats(f.url).cooldownRemainingMs + 5);
     f.mode = mode; const before = f.calls.length, backupBefore = g.calls.length;
     await assert.rejects(new PinnedRpcProvider([f.url, g.url], chainId, { fetchImpl }).call("chain.read_contract", {}),
       mode === "redirect" ? /refused/ : /chain mismatch/);

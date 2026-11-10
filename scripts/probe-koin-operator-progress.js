@@ -65,6 +65,7 @@ test("HTTP progress requires the existing operator secret and never invokes full
   assert.equal((await fetch(url + "/operator/progress", { method: "POST", headers: { "x-operator-secret": secret } })).status, 404);
   const health = await (await fetch(url + "/health")).json();
   assert.equal(health.rewardRuntimeVersion, 4); assert.equal(health.lastRewardSuccess, now - 3600000);
+  assert.equal(health.rpcBackoffVersion, 1);
   assert.equal(health.processingStage, undefined); assert.equal(health.errors, undefined);
   assert.equal(health.processTelemetry, undefined); assert.equal(health.lastRewardCycle, undefined);
   const stale = await fetch(url + "/health/earnings");
