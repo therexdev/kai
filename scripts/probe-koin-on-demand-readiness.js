@@ -17,6 +17,7 @@ function fixture({ delegated = true } = {}) {
   const presence = { ...tariffs[0], ready: true, at: now }, presences = new Map([["auth-a", presence]]), revoked = new Set();
   const shadow = { state: { qualifications: {}, presence: { [address]: presence } }, save() {},
     qualify(q) { this.state.qualifications[q.capacityId] = q; } };
+  Object.setPrototypeOf(shadow, require("../lib/koin-network/shadow").KoinShadow.prototype);
   const runtime = Object.assign(Object.create(TestRuntime.prototype), { clock: () => now, target, config: { models: tariffs.map(tariff => ({ tariff })) },
     reviewedQualifications: () => qualifications, prepaid: true, lastServing: now, cycle: { days: () => [] },
     providerDevices: delegated ? { active: id => !revoked.has(id), workerActive: w => !revoked.has(w.providerAuthorization), presence: w => presences.get(w.providerAuthorization) || null } : null,
@@ -69,6 +70,16 @@ test("legacy providers remain loaded-model-only even if they claim on-demand sup
   const f = fixture({ delegated: false });
   assert.deepEqual(providerReadiness(f.runtime, f.address).readyModels, ["alpha"]);
   assert.equal(providerReadiness(f.runtime, f.address, "beta").state, "preparing");
+});
+test("provider readiness supports a storage adapter without exposing its internal state", () => {
+  for (const delegated of [false, true]) {
+    const f = fixture({ delegated }), expected = providerReadiness(f.runtime, f.address);
+    f.runtime.scheduler.koinShadow.ledger = {
+      getPresence: address => address === f.address ? structuredClone(f.presence) : null,
+      get state() { throw Error("Storage internals are unavailable"); },
+    };
+    assert.deepEqual(providerReadiness(f.runtime, f.address), expected);
+  }
 });
 
 test("another device cannot borrow readiness or hide an older authorized ready device", () => {

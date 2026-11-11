@@ -14,10 +14,11 @@ partial reply cannot complete a workflow step.
 
 ## Update the credit server
 
-Run as root on the credit VPS using system Node 22 or newer. The updater accepts
-the reviewed RPC read-group releases `45277dd1a63d54d773e472b891520ce4a12ffe67`
-and `7fcc44bf6554986c91e488e76da8b791e23456c4`. It refuses an unexpected service
-version, storage path, dirty checkout or concurrent update before stopping it.
+Run as root on the credit VPS using system Node 22 or newer. This release builds
+on the installed RPC-backoff and SQLite reward runtime
+`f25c7d8ddb1aee29ea3a26082d9864b766a67f3b`. It refuses an unexpected service
+version, missing SQLite activation, dirty checkout or concurrent update before
+stopping it. It does not migrate storage or restore older reward code.
 
 ```bash
 cd /root
@@ -27,12 +28,14 @@ npm ci --omit=dev --ignore-scripts
 node deploy/koin-mainnet/update-credit-stream.js
 ```
 
-The code-only updater runs isolated tests, verifies the existing pinned RPC
-contracts, waits for the reward-processing boundary and requires a clean stop.
-It preserves configuration, keys and all current financial journals. Failed
-activation restores the previous code while retaining current journal writes.
-Both loopback and public HTTPS must report `streamKeepaliveVersion: 1` before
-the updater reports success.
+The code-only updater runs the existing storage, reward and RPC regressions plus
+stream tests, verifies the pinned RPC contracts, drains the running service and
+verifies its clean exit and both storage writer leases. Configuration, keys,
+SQLite databases, recovery anchors and all financial journals stay in place.
+The update records a durable deployment plan and resumes the same release after
+an interruption, without rolling back code or databases. Both loopback and
+public HTTPS must report `streamKeepaliveVersion: 1`, the existing RPC-backoff
+capability and ready SQLite/earnings processing before it reports success.
 
 ```bash
 curl -fsS https://credits.koinosai.com/health

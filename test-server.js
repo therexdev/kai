@@ -3,6 +3,7 @@
 const http = require("http"), path = require("path"), crypto = require("crypto");
 const { configuration, read, loadKeys } = require("./lib/koin-network/test-config");
 const { TestRuntime } = require("./lib/koin-network/test-runtime");
+const { operatorProgress, version: rewardRuntimeVersion } = require("./lib/koin-network/operator-progress");
 function createHandler({ runtime, config, secret, authApp }) {
   const wire = require("./lib/koin-network/payment-network").protocol({ chainId: config.deployment.chainId, domain: require("./lib/koin-network/payment-mode").testDomain(config.deployment, config.schedulerUrl) });
   const json = (res, code, value) => { res.writeHead(code, { "content-type": "application/json", "cache-control": "no-store" }); res.end(JSON.stringify(value)); };
@@ -10,12 +11,18 @@ function createHandler({ runtime, config, secret, authApp }) {
     res.setHeader("X-Content-Type-Options", "nosniff");
     try {
       const url = new URL(req.url, "http://test");
+      if (runtime.stopped && !["/health", "/health/earnings", "/operator/progress"].includes(url.pathname))
+        return json(res, 503, { error: "Service is restarting. Try again shortly." });
       if (authApp && require("./lib/credit-account-web").handles(url.pathname)) return authApp(req, res);
-      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, product: config.deployment.product || "legacy-reservations", purchaseQuotesUnlimited: require("./lib/koin-network/product").isUsd(config.deployment), providerQualificationRecovery: runtime.qualifier?.recoveryVersion === 1 ? 1 : 0, modelReadinessAdmission: runtime.qualifier?.readinessVersion === 1 ? 1 : 0, streamKeepaliveVersion: runtime.scheduler?.koinPrepaid?.streamKeepaliveVersion || 0, lastSuccess: (runtime.prepaid ? runtime.lastServing : runtime.lastSuccess) || null, lastSettlementSuccess: runtime.lastSuccess || null, lastRewardSuccess: runtime.lastRewardSuccess || null, rpcTransportVersion: require("./lib/koin-network/rpc-provider").transportVersion, rpcReadGroupVersion: require("./lib/koin-network/read-group").version, claimSponsorshipVersion: typeof runtime.claims?.sponsorshipStatus === "function" ? 1 : 0, rewardSummaryVersion: typeof runtime.rewardSummary === "function" ? 1 : 0, freeAllowanceRefreshVersion: typeof runtime.sponsorship?.check === "function" ? 1 : 0 });
-      if (url.pathname === "/operator/status" && req.method === "GET") {
+      if (url.pathname === "/health" && req.method === "GET") return json(res, 200, { mode: config.mode, chainId: config.deployment.chainId, mainnetPaymentsEnabled: wire.paymentsEnabled, product: config.deployment.product || "legacy-reservations", purchaseQuotesUnlimited: require("./lib/koin-network/product").isUsd(config.deployment), providerQualificationRecovery: runtime.qualifier?.recoveryVersion === 1 ? 1 : 0, modelReadinessAdmission: runtime.qualifier?.readinessVersion === 1 ? 1 : 0, streamKeepaliveVersion: runtime.scheduler?.koinPrepaid?.streamKeepaliveVersion || 0, lastSuccess: (runtime.prepaid ? runtime.lastServing : runtime.lastSuccess) || null, lastSettlementSuccess: runtime.lastSuccess || null, lastRewardSuccess: runtime.lastRewardSuccess || null, rewardRuntimeVersion, rewardStorage: (() => { const { schema, mode, ready } = require("./lib/koin-network/earning-health").rewardStorageStatus(runtime); return { schema, mode, ready }; })(), rpcTransportVersion: require("./lib/koin-network/rpc-provider").transportVersion, rpcBackoffVersion: require("./lib/koin-network/rpc-provider").backoffVersion, rpcReadGroupVersion: require("./lib/koin-network/read-group").version, claimSponsorshipVersion: typeof runtime.claims?.sponsorshipStatus === "function" ? 1 : 0, rewardSummaryVersion: typeof runtime.rewardSummary === "function" ? 1 : 0, freeAllowanceRefreshVersion: typeof runtime.sponsorship?.check === "function" ? 1 : 0 });
+      if (url.pathname === "/health/earnings" && req.method === "GET") {
+        const health = require("./lib/koin-network/earning-health").earningHealth(runtime);
+        return json(res, health.ready ? 200 : 503, health);
+      }
+      if (["/operator/status", "/operator/progress"].includes(url.pathname) && req.method === "GET") {
         const presented = crypto.createHash("sha256").update(String(req.headers["x-operator-secret"] || "")).digest();
         if (!crypto.timingSafeEqual(presented, crypto.createHash("sha256").update(secret).digest())) return json(res, 403, { error: "Test operator access required" });
-        return json(res, 200, runtime.status());
+        return json(res, 200, url.pathname === "/operator/progress" ? operatorProgress(runtime) : runtime.status());
       }
       if (!url.pathname.startsWith("/scheduler/")) return json(res, 404, { error: "Unknown Test route" });
       req.url = req.url.slice("/scheduler".length);
@@ -54,6 +61,63 @@ function createHandler({ runtime, config, secret, authApp }) {
     } catch (e) { if (!res.writableEnded && !res.destroyed) json(res, 400, { error: String(e.message).slice(0, 200) }); }
   };
 }
+async function startRuntimeServer({ runtime, server, port, onReady = () => {}, signals = process,
+  exit = code => process.exit(code), timers = { setInterval, clearInterval }, report = () => console.error("Runtime shutdown could not finish cleanly.") }) {
+  let starting = true, closing = false, draining = false, serverClosing = false, serverClosed = false, poll, exitCode = 0;
+  let resolveClosed;
+  const closed = new Promise(resolve => { resolveClosed = resolve; });
+  const finish = code => {
+    timers.clearInterval(poll);
+    signals.removeListener("SIGTERM", close); signals.removeListener("SIGINT", close);
+    server.removeListener("listening", closeAfterListen);
+    resolveClosed(); exit(code);
+  };
+  const check = () => {
+    if (!closing || draining || starting || !serverClosed || runtime.busy || runtime.availabilityBusy) return;
+    draining = true;
+    Promise.resolve().then(() => runtime.close()).then(() => finish(exitCode), () => { report(); finish(1); });
+  };
+  const closeHttp = () => {
+    if (serverClosing) return;
+    serverClosing = true; serverClosed = false;
+    server.close(error => {
+      serverClosing = false;
+      if (error && error.code !== "ERR_SERVER_NOT_RUNNING") { exitCode = 1; report(); return; }
+      serverClosed = true; check();
+    });
+  };
+  function close() {
+    if (closing) return closed;
+    closing = true; runtime.stopped = true;
+    try { runtime.stopScheduling(); } catch { exitCode = 1; report(); }
+    // Keep this poll referenced until all work drains. A fixed forced exit can
+    // interrupt a financial pass; the updater separately bounds its wait and
+    // refuses code activation if this process has not exited normally.
+    poll = timers.setInterval(check, 100);
+    closeHttp(); check(); return closed;
+  }
+  function closeAfterListen() { if (closing) closeHttp(); }
+  signals.on("SIGTERM", close); signals.on("SIGINT", close);
+  server.on("listening", closeAfterListen);
+  try {
+    // Storage initialization seals signed history and replays accepted reports.
+    // No socket, verifier or financial pass may run before that barrier finishes.
+    await runtime.initialize?.();
+    if (!closing) await runtime.client.verify();
+    if (!closing) {
+      await new Promise((resolve, reject) => {
+        const settle = (fn, value) => { server.removeListener("error", failed); server.removeListener("close", stopped); fn(value); };
+        const failed = error => settle(reject, error), stopped = () => { if (closing) settle(resolve); };
+        server.once("error", failed); server.once("close", stopped);
+        server.listen(port, "127.0.0.1", () => settle(resolve));
+      });
+      if (!closing) { await runtime.start(); if (!closing) onReady(); }
+    }
+  } catch (error) {
+    if (!closing) { exitCode = 1; close(); throw error; }
+  } finally { starting = false; check(); }
+  return { server, runtime, close };
+}
 async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
   if (!directory || !path.isAbsolute(directory)) throw Error("Absolute KAI_KOIN_TEST_CONFIG_DIR required");
   const config = configuration(JSON.parse(read(path.join(directory, "runtime.json"))));
@@ -62,6 +126,7 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
   if (!stateDir || !path.isAbsolute(stateDir) || /\/\.koinos-ai(\/|$)|\/opt\/koinos\/kai(\/|$)/.test(stateDir)) throw Error("Separate absolute Test state directory required");
   const secret = read(path.join(directory, "operator-secret"), 256, true).trim();
   if (!/^[a-f0-9]{64}$/.test(secret)) throw Error("Independent Test operator secret required");
+  const port = Number(process.env.KAI_KOIN_TEST_PORT || 3107); if (!Number.isInteger(port) || port < 1024 || port > 65535) throw Error("Invalid Test port");
   let publicAccounts, authApp;
   if (config.accountMode === "public") {
     // Existing verified sign-in implementation, separate Test state. No new
@@ -80,23 +145,10 @@ async function start(directory = process.env.KAI_KOIN_TEST_CONFIG_DIR) {
     accountService: publicAccounts?.service,
     accountsFile: path.join(directory, "invitations.json"), tokenizerDir: path.join(directory, "tokenizer"),
     qualificationsFile: path.join(directory, "qualifications.json"), operatorSecret: secret });
-  await runtime.client.verify();
   const server = http.createServer(createHandler({ runtime, config, secret, authApp }));
   server.requestTimeout = 190000; server.headersTimeout = 10000;
-  const port = Number(process.env.KAI_KOIN_TEST_PORT || 3107); if (!Number.isInteger(port) || port < 1024 || port > 65535) throw Error("Invalid Test port");
-  await new Promise(resolve => server.listen(port, "127.0.0.1", resolve)); await runtime.start();
-  console.log(JSON.stringify({ service: "koin-test", port, network: config.deployment.network, mainnetPaymentsEnabled: wire.paymentsEnabled }));
-  let closing = false;
-  const close = () => {
-    if (closing) return; closing = true; runtime.stopped = true; clearInterval(runtime.timer); server.close();
-    const timer = setInterval(async () => {
-      if (runtime.busy) return;
-      clearInterval(timer); await runtime.close(); process.exit(0);
-    }, 100); timer.unref();
-    setTimeout(() => process.exit(1), 25000).unref();
-  };
-  process.on("SIGTERM", close); process.on("SIGINT", close);
-  return { server, runtime };
+  return startRuntimeServer({ runtime, server, port, onReady: () =>
+    console.log(JSON.stringify({ service: "koin-test", port, network: config.deployment.network, mainnetPaymentsEnabled: wire.paymentsEnabled })) });
 }
 if (require.main === module) start().catch(e => { console.error(String(e.message).slice(0, 240)); process.exitCode = 1; });
-module.exports = { start, createHandler };
+module.exports = { start, createHandler, startRuntimeServer };

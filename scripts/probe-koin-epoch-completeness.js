@@ -1,17 +1,23 @@
 "use strict";
 const test = require("node:test"), assert = require("node:assert/strict"), fs = require("fs"), path = require("path");
 const { fixture, verifier } = require("./helpers/koin-cycle-fixture"), { DAY } = require("../lib/koin-network/policy"), { TestRuntime } = require("../lib/koin-network/test-runtime");
+const { KoinShadow } = require("../lib/koin-network/shadow"), { RewardObserver } = require("../lib/koin-network/reward-observer");
+const { Serializer, utils } = require("koilib"), ABI = require("../lib/koin-network/rewards-abi.json"), CABI = require("../lib/koin-network/credits-abi.json");
 async function setup(t) {
   const f = await fixture(t), pending = [{ id: "newer", createdAt: 2 * DAY + 1, settlement: { state: "needs_review" } }];
   let imported = 0;
-  const shadow = { state: { qualifications: {}, budgets: { 1: { epoch: 1, openedAt: DAY, version: 1, total: "50", availability: "35", work: "15" } }, days: { 1: { intervals: [{ start: DAY, end: 2 * DAY, slots: [] }], work: [] } } }, save() {}, tick() {} };
+  const shadow = Object.assign(Object.create(KoinShadow.prototype), { state: { qualifications: {}, budgets: { 1: { epoch: 1, openedAt: DAY, version: 1, total: "50", availability: "35", work: "15" } }, days: { 1: { intervals: [{ start: DAY, end: 2 * DAY, slots: [] }], work: [] } } }, save() {}, tick() {} });
+  f.advance(DAY + 59000); f.epochs.set("1", { ...f.baseEpoch("1"), opened_at: String(DAY) }); f.balances.liabilities = "50";
+  let spent = "0"; const originalRead = f.rpc.readContract, serializer = new Serializer(ABI.types);
+  f.rpc.readContract = async operation => operation.contract_id === f.target.credits && operation.entry_point === CABI.methods.get_spend.entry_point
+    ? { result: utils.encodeBase64url(await serializer.serialize({ amount: spent }, "koin.Result")) } : originalRead(operation);
   const runtime = Object.assign(Object.create(TestRuntime.prototype), { clock: () => 2 * DAY + 60000, stateDir: f.dir, rewardTarget: f.target, signers: { [f.target.verifier]: verifier },
     scheduler: { koinShadow: { ledger: shadow } }, qualifications: () => [], qualified: () => false,
     cycle: { days: () => ["1"], importManifest: () => { imported++; } },
     ledger: { pendingJobs: () => pending, pendingSponsorship: () => pending, settledJobs: () => [] },
-    rewardObserver: { inspectCycle: async args => { assert.equal(args.minimumTime, String(2 * DAY)); return { state: "verified", totalSpent: "0" }; } },
+    rewardObserver: new RewardObserver(f.rpc, { target: f.target, clock: f.clock }),
     client: { read: async (_kind, method) => method === "get_epoch" ? { epoch: { opened_at: String(DAY), version: "1", budget: "50", availability_budget: "35", work_budget: "15" } } : { amount: "0" } } });
-  return { f, runtime, pending, shadow, get imported() { return imported; } };
+  return { f, runtime, pending, shadow, setSpent(value) { spent = value; }, get imported() { return imported; } };
 }
 test("a newer-day review obligation cannot block an older reconciled irreversible reward epoch", async t => {
   const x = await setup(t), { f, runtime, pending } = x;
@@ -22,10 +28,11 @@ test("a newer-day review obligation cannot block an older reconciled irreversibl
 });
 
 test("unfinalized epoch boundaries and unexplained chain work cannot produce a signed root", async t => {
-  const { f, runtime } = await setup(t), file = path.join(f.dir, "manifest-1.json");
-  runtime.rewardObserver.inspectCycle = async () => ({ state: "reversible" });
+  const { f, runtime, setSpent } = await setup(t), file = path.join(f.dir, "manifest-1.json");
+  f.head.last_irreversible_block = "0";
   await runtime.collectRewards(); assert.equal(fs.existsSync(file), false);
-  runtime.rewardObserver.inspectCycle = async () => ({ state: "verified", totalSpent: "1" });
+  f.head.last_irreversible_block = f.head.head_topology.height; setSpent("1");
+  await runtime.collectRewards(); // The changed spend invalidates the earlier snapshot.
   await assert.rejects(runtime.collectRewards(), /Unexplained/); assert.equal(fs.existsSync(file), false);
 });
 

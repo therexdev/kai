@@ -31,9 +31,9 @@ test("independent allowance refresh stays current while settlement is blocked, c
   const gate = new SponsorshipReadiness({ freePolicy, version: 1, clock: () => now });
   const client = { d: { network: "isolated" }, verify: async () => { checks++; if (blocked) await new Promise(resolve => { finish = resolve; }); if (fail) throw Error("RPC down"); return verified; }, read: async () => pool };
   // The payment loop never resolves; allowance checks must still run.
-  const runtime = { sponsorship: gate, client, prices: {}, prepaid: false, tick: () => new Promise(() => {}) };
+  const runtime = { sponsorship: gate, client, prices: {}, prepaid: false, availabilityTick: async () => {}, tick: () => new Promise(() => {}) };
   TestRuntime.prototype.start.call(runtime);
-  t.after(() => { gate.close(); clearInterval(runtime.timer); });
+  t.after(() => { gate.close(); clearInterval(runtime.timer); clearInterval(runtime.availabilityTimer); runtime.releaseProcessMetrics?.(); });
   await gate.check(); assert.equal(gate.ready(), true);
   for (let i = 0; i < 8; i++) { now += 5000; t.mock.timers.tick(5000); await gate.check(); assert.equal(gate.ready(), true); }
   assert.equal(checks, 9);
