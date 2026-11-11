@@ -1,0 +1,26 @@
+name: Credit stream keep-alive checks
+on:
+  push:
+    branches: [fix/credit-stream-keepalive]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Verify idle streams, receipts, cancellation, recovery and safe installation
+        run: node --test --test-concurrency=2 scripts/probe-koin-credit-stream.js scripts/probe-koin-metered-stream.js scripts/probe-koin-public-stream.js scripts/probe-koin-prepaid.js scripts/probe-koin-rpc-read-groups.js deploy/koin-mainnet/update-credit-stream.test.js
+      - run: node --check test-server.js
