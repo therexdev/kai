@@ -1,0 +1,27 @@
+name: Claim resource recovery checks
+on:
+  push:
+    branches: [fix/claim-resource-recovery]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Verify claims, nonce recovery, resource budgets and safe installation
+        run: |
+          node -e 'require("node:child_process").execFileSync(process.execPath, ["--test", "--test-concurrency=2", ...require("./deploy/koin-mainnet/update-claim-resources").PROBES], { stdio: "inherit" })'
+      - run: node --check test-server.js
