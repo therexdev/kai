@@ -1,0 +1,663 @@
+diff --git a/scripts/probe-foundation.cjs b/scripts/probe-foundation.cjs
+new file mode 100644
+index 0000000..a7e4f4c
+--- /dev/null
++++ b/scripts/probe-foundation.cjs
+@@ -0,0 +1,123 @@
++"use strict";
++const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
++const dependencies = require("node:module").createRequire(process.env.KONDOR_TEST_PACKAGE || path.join(__dirname, "../package.json"));
++const sdk = dependencies("koilib"), ts = dependencies("typescript");
++const root = path.join(__dirname, "..");
++// Match public/sandbox.html: its ABI serializer comes from koilib's browser
++// bundle, not the Node entry point with a separately resolved protobuf version.
++const sandbox = { TextEncoder, TextDecoder, Uint8Array, Buffer, crypto: require("node:crypto").webcrypto };
++sandbox.window = sandbox;
++sandbox.self = sandbox;
++vm.runInNewContext(fs.readFileSync(path.join(path.dirname(dependencies.resolve("koilib")), "../dist/koinos.js"), "utf8"), sandbox);
++const database = {};
++const storageContext = { exports: {}, chrome: { storage: { local: {
++  get: (keys, cb) => cb(Object.fromEntries(keys.filter(k => database[k] !== undefined).map(k => [k, database[k]]))),
++  set: (value, cb) => { Object.assign(database, value); cb(); },
++} } } };
++vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(root, "src/ts/storage.ts"), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, storageContext);
++const storage = storageContext.exports;
++function component(file, extras = {}) {
++  let source = fs.readFileSync(path.join(root, file), "utf8");
++  if (source.includes("<script>")) source = source.split("<script>")[1].split("</script>")[0];
++  source = source.replace(/^import[\s\S]*?;\s*$/gm, "").replace("export default {", "module.exports = {");
++  const context = { module: { exports: {} }, ...sdk, storage, TextEncoder, TextDecoder,
++    Message: {}, ViewHelper: {}, Storage: {}, Sandbox: {}, Unlock: {},
++    console: { log() {}, warn() {}, error() {} }, process: { env: {} }, ...extras };
++  vm.runInNewContext(source, context);
++  return context.module.exports;
++}
++(async () => {
++  const foundation = "EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==";
++  // Simulate upgrading a wallet that saved only Mainnet and Harbinger.
++  database.networks = structuredClone(storage.DEFAULT_NETWORKS.slice(0, 2));
++  database.networks[0].rpcNodes = ["https://custom-mainnet.invalid"];
++  const networks = await storage.getNetworks();
++  assert.equal(networks.length, 3);
++  assert.equal(networks[0].rpcNodes[0], "https://custom-mainnet.invalid");
++  assert.equal(networks.find(n => n.tag === "foundation").chainId, foundation);
++  assert.equal(networks.find(n => n.tag === "foundation").manaMeter, undefined);
++  const mixin = component("src/shared/mixins/Storage.js");
++  const tokens = await mixin.methods._getTokens.call({ _read: async () => undefined });
++  assert.equal(tokens.filter(t => t.network === "foundation").length, 2);
++  const menu = component("src/index/components/AvatarMenu.vue");
++  const menuApp = { $store: { state: { networks, currentNetwork: 0 } }, _setCurrentNetwork: storage.setCurrentNetwork, closeDropdown() {} };
++  await menu.methods.selectNetwork.call(menuApp, 2);
++  assert.equal(await storage.getCurrentNetwork(), "foundation");
++  assert.equal(menu.computed.isTestnetMode.call(menuApp), true);
++  const widgets = component("src/index/components/WidgetTokens.vue", { emptyToken: "empty.png", WalletInfo: {}, TabPanel: {}, mapActions: () => ({}) });
++  let savedTokens;
++  await widgets.methods.updateSavedTokens.call({
++    $store: { state: { networks: networks.filter(n => n.tag === "foundation") } },
++    _getTokens: async () => tokens.filter(t => t.network === "foundation"),
++    _setTokens: async t => { savedTokens = t; },
++    _getAbi: async () => { throw Error("must not load absent nicknames service"); },
++  });
++  assert.equal(savedTokens.length, 2);
++  const signer = sdk.Signer.fromSeed("Kondor Foundation regression fixture"), address = signer.getAddress();
++  const customId = sdk.Signer.fromSeed("Kondor demo app fixture").getAddress();
++  const abi = { methods: { create_record: { entry_point: 1, argument: "app.create_args", return: "" } }, koilib_types: { nested: { app: { nested: { create_args: { fields: { title: { type: "string", id: 1 } } } } } } } };
++  const serializer = new sdk.Serializer(abi.koilib_types);
++  const transaction = await sdk.Transaction.prepareTransaction({ header: { payer: address, chain_id: foundation, nonce: "KAE=", rc_limit: "200000000" }, operations: [{ call_contract: { contract_id: customId, entry_point: 1, args: sdk.utils.encodeBase64url(await serializer.serialize({ title: "Feature request" }, "app.create_args")) } }] });
++  const view = component("src/popup/views/2-SignSendTransaction.vue");
++  const state = { accounts: [{ address, name: "Test account", privateKey: signer.getPrivateKey("wif") }] };
++  const app = { $store: { state }, ...view.data.call({ $store: { state } }), request: { args: { signerAddress: address, transaction: structuredClone(transaction), abis: { [customId]: abi } } } };
++  for (const [name, fn] of Object.entries(view.methods)) app[name] = fn.bind(app);
++  Object.assign(app, { _getAccounts: async () => state.accounts, _getNetworks: async () => networks, _getTokens: async () => tokens,
++    _getAbi: async () => undefined, newSandboxSerializer: async types => new sandbox.Serializer(types), alertDanger() {} });
++  let metadataCalls = 0;
++  const oldFetchAbi = sdk.Contract.prototype.fetchAbi;
++  sdk.Contract.prototype.fetchAbi = async () => { metadataCalls++; throw Error("Foundation must use the supplied ABI without an unsupported metadata RPC"); };
++  try {
++    await app.decodeTransaction();
++    assert.equal(app.payer, address);
++    assert.equal(app.network.tag, "foundation");
++    assert.equal(app.optimizeMana, false);
++    assert.equal(app.freeManaSharer, null);
++    assert.equal(app.nicknames, null);
++    assert.equal(metadataCalls, 0);
++    assert.equal(app.operations.length, 1);
++    assert.equal(app.operations[0].title, "Create record");
++    assert.ok(app.operations[0].args.some(a => a.data === "Feature request"));
++    await app.buildTransaction();
++    await app.signTransaction();
++    assert.equal(app.transaction.transaction.id, transaction.id);
++    assert.deepEqual(app.transaction.transaction.operations, transaction.operations);
++    assert.ok((await sdk.Signer.recoverAddresses(app.transaction.transaction)).includes(address));
++    if (process.env.KONDOR_LIVE_DRAFT) {
++      // Optional read-only check of the exact app's unsigned payload. No keys
++      // are supplied for this account; this block only decodes and rebuilds.
++      const { draft } = JSON.parse(fs.readFileSync(process.env.KONDOR_LIVE_DRAFT, "utf8"));
++      app.request.args = { signerAddress: draft.signerAddress, transaction: draft.transaction,
++        abis: { [draft.contractId]: draft.abi, [draft.guardId]: draft.guardAbi } };
++      await app.decodeTransaction();
++      assert.equal(app.payer, draft.transaction.header.payer);
++      assert.equal(app.operations.length, draft.transaction.operations.length);
++      await app.buildTransaction();
++      assert.equal(app.transaction.transaction.id, draft.transaction.id);
++      console.log("PASS: live app draft payer, both operation reviews and original transaction ID");
++    }
++    app.request.args.transaction.header.chain_id = "unknown-chain";
++    await assert.rejects(() => app.decodeTransaction(), /does not support.*chain/);
++  } finally { sdk.Contract.prototype.fetchAbi = oldFetchAbi; }
++  let submitted;
++  const tokenView = component("src/index/views/tokens/SendToken.vue", { router: { push() {} } });
++  const provider = {
++    getNextNonce: async () => "KAE=",
++    sendTransaction: async tx => { submitted = structuredClone(tx); return { transaction: { ...tx, wait: async () => ({ blockNumber: 1 }) }, receipt: {} }; },
++    wait: async () => ({ blockNumber: 1 }),
++  };
++  signer.provider = provider;
++  const koin = tokens.find(t => t.network === "foundation" && t.nickname === "koin");
++  const transfer = {
++    network: networks.find(n => n.tag === "foundation"), provider, signer,
++    serializer: new sandbox.Serializer(sdk.utils.tokenAbi.koilib_types), miniTokens: [koin],
++    tokenId2: koin.contractId, tokenDecimals: 8, address, payer: address, maxMana: 2,
++    amount: "1", to: customId, memo: "testnet fixture", alertSuccess() {}, alertDanger() {},
++    _getAbi: async () => { throw Error("must not request absent free-mana ABI"); },
++  };
++  await tokenView.methods.transfer.call(transfer);
++  assert.equal(submitted.header.chain_id, foundation);
++  assert.equal(submitted.header.payer, address);
++  assert.ok((await sdk.Signer.recoverAddresses(submitted)).includes(address));
++  console.log("PASS: existing-wallet network migration, Foundation tokens, operation review, correct payer, disabled unavailable mana services and valid transaction signature");
++})().catch(e => { console.error(e); process.exitCode = 1; });
+diff --git a/src/index/components/AccountMenu.vue b/src/index/components/AccountMenu.vue
+index 9f1c0c6..4ee7fc5 100644
+--- a/src/index/components/AccountMenu.vue
++++ b/src/index/components/AccountMenu.vue
+@@ -46,6 +46,7 @@
+         Update account
+       </router-link>
+       <a
++        v-if="koinosblocksUrl"
+         class="options-item"
+         :href="koinosblocksUrl + currentAddress"
+         target="_blank"
+@@ -57,6 +58,7 @@
+         View on KoinosBlocks
+       </a>
+       <a
++        v-if="$store.state.networks[$store.state.currentNetwork]?.tag === 'mainnet'"
+         class="options-item"
+         :href="'https://koiner.app/addresses/' + currentAddress"
+         target="_blank"
+@@ -68,6 +70,7 @@
+         View on Koiner
+       </a>
+       <a
++        v-if="$store.state.networks[$store.state.currentNetwork]?.nicknamesContractId"
+         class="options-item"
+         href="https://koinosbox.com/nicknames"
+         target="_blank"
+@@ -78,7 +81,7 @@
+         > Edit
+         Nickname
+       </a>
+-      <div>
++      <div v-if="$store.state.networks[$store.state.currentNetwork]?.kapProfileContractId">
+         <a
+           class="options-item"
+           href="https://kap.domains/account"
+@@ -118,6 +121,7 @@ export default {
+ 
+   mounted() {
+     this.loadAccount();
++    this.updateLinks();
+   },
+ 
+   methods: {
+@@ -149,13 +153,13 @@ export default {
+     },
+ 
+     updateLinks() {
+-      if (
+-        this.$store.state.networks[this.$store.state.currentNetwork].tag ===
+-        "harbinger"
+-      ) {
++      const tag = this.$store.state.networks[this.$store.state.currentNetwork]?.tag;
++      if (tag === "harbinger") {
+         this.koinosblocksUrl = "https://harbinger.koinosblocks.com/address/";
+-      } else {
++      } else if (tag === "mainnet") {
+         this.koinosblocksUrl = "https://koinosblocks.com/address/";
++      } else {
++        this.koinosblocksUrl = "";
+       }
+     },
+ 
+diff --git a/src/index/components/AvatarMenu.vue b/src/index/components/AvatarMenu.vue
+index 389ff21..a75816b 100644
+--- a/src/index/components/AvatarMenu.vue
++++ b/src/index/components/AvatarMenu.vue
+@@ -55,14 +55,16 @@
+ 
+         <div class="option">
+           <div
++            v-for="(network, index) in $store.state.networks"
++            :key="network.tag"
+             class="options-item"
+-            @click="toogleNetwork"
++            @click="selectNetwork(index)"
+           >
+             <img
+               src="../../../public/images/icon-import.png"
+               alt=""
+-            > Switch
+-            to {{ $store.state.currentNetwork === 1 ? "mainnet" : "testnet" }}
++            > {{ $store.state.currentNetwork === index ? "Selected:" : "Switch to" }}
++            {{ network.name }}
+           </div>
+           <div v-if="$store.state.mnemonic0">
+             <div
+@@ -147,15 +149,9 @@ export default {
+       });
+       return identicon;
+     },
+-    isTestnetMode: {
+-      get() {
+-        return this.$store.state.currentNetwork === 1;
+-      },
+-      set(value) {
+-        const networkIndex = value ? 1 : 0; // 1 for testnet, 0 for mainnet
+-        this.$store.state.currentNetwork = networkIndex;
+-        this._setCurrentNetwork(this.$store.state.networks[networkIndex].tag);
+-      },
++    isTestnetMode() {
++      const network = this.$store.state.networks[this.$store.state.currentNetwork];
++      return !!network && network.tag !== "mainnet";
+     },
+   },
+ 
+@@ -206,12 +202,12 @@ export default {
+       this.closeDropdown();
+     },
+ 
+-    toogleNetwork() {
+-      if (this.$store.state.currentNetwork) {
+-        this.$store.state.currentNetwork = 0;
+-      } else {
+-        this.$store.state.currentNetwork = 1;
+-      }
++    async selectNetwork(index) {
++      const network = this.$store.state.networks[index];
++      if (!network) return;
++      await this._setCurrentNetwork(network.tag);
++      this.$store.state.currentNetwork = index;
++      this.closeDropdown();
+     },
+ 
+     createAccount() {
+diff --git a/src/index/components/TabPanel.vue b/src/index/components/TabPanel.vue
+index de10cac..20e090c 100644
+--- a/src/index/components/TabPanel.vue
++++ b/src/index/components/TabPanel.vue
+@@ -432,14 +432,14 @@ export default {
+               if (tx.trx.receipt.events) {
+                 rawEvents = tx.trx.receipt.events;
+                 recordId = tx.trx.transaction.id;
+-                txOrBlockLink = `${explorer.tx}/${recordId}`;
++                txOrBlockLink = explorer?.tx ? `${explorer.tx}/${recordId}` : "";
+                 txOrBlockText = this.getTruncatedTransactionId(recordId);
+               }
+             } else if (tx.block) {
+               if (tx.block.receipt.events) {
+                 rawEvents = tx.block.receipt.events;
+                 recordId = tx.block.header.height;
+-                txOrBlockLink = `${explorer.block}/${recordId}`;
++                txOrBlockLink = explorer?.block ? `${explorer.block}/${recordId}` : "";
+                 txOrBlockText = `Block ${recordId}`;
+               }
+             }
+diff --git a/src/index/components/WidgetTokens.vue b/src/index/components/WidgetTokens.vue
+index 517bfae..4a5de8e 100644
+--- a/src/index/components/WidgetTokens.vue
++++ b/src/index/components/WidgetTokens.vue
+@@ -84,7 +84,8 @@ export default {
+         .toLocaleString();
+     },
+     isTestnet() {
+-      return this.$store.state.currentNetwork === 1;
++      const network = this.$store.state.networks[this.$store.state.currentNetwork];
++      return !!network && network.tag !== "mainnet";
+     },
+   },
+ 
+@@ -303,15 +304,12 @@ export default {
+     async updateSavedTokens() {
+       let tokens = await this._getTokens();
+ 
+-      const nicknamesAbi = await this._getAbi(
+-        "mainnet", // both mainnet and testnet use the same ABI
+-        this.$store.state.networks.find((n) => n.tag === "mainnet")
+-          .nicknamesContractId
+-      );
+-
+-      const serializer = await this.newSandboxSerializer(
+-        nicknamesAbi.koilib_types
++      const nicknameNetwork = this.$store.state.networks.find((n) => n.nicknamesContractId);
++      const nicknamesAbi = nicknameNetwork && await this._getAbi(
++        nicknameNetwork.tag,
++        nicknameNetwork.nicknamesContractId
+       );
++      const serializer = nicknamesAbi && await this.newSandboxSerializer(nicknamesAbi.koilib_types);
+ 
+       tokens = await Promise.all(
+         tokens.map(async (token) => {
+@@ -322,6 +320,7 @@ export default {
+             (n) => n.tag === token.network
+           );
+           const network = this.$store.state.networks[networkId];
++          if (!network?.nicknamesContractId) return token;
+           const provider = new Provider(network.rpcNodes);
+ 
+           const nicknames = new Contract({
+diff --git a/src/index/views/tokens/SendToken.vue b/src/index/views/tokens/SendToken.vue
+index 9929c59..482e219 100644
+--- a/src/index/views/tokens/SendToken.vue
++++ b/src/index/views/tokens/SendToken.vue
+@@ -95,6 +95,7 @@
+         <input
+           v-model="useFreeMana"
+           type="checkbox"
++          :disabled="!network || !network.freeManaSharer"
+         >
+         <label for="kondor-payer">Use free mana</label>
+       </div>
+@@ -258,6 +259,10 @@ export default {
+         );
+         this.network =
+           this.$store.state.networks[this.$store.state.currentNetwork];
++        if (!this.network.freeManaSharer) {
++          this.useFreeMana = false;
++          this.payer = this.address;
++        }
+         this.provider = new Provider(this.network.rpcNodes);
+         this.provider.onError = (error) => {
+           this.provider.currentNodeId = 0;
+@@ -605,18 +610,21 @@ export default {
+           serializer: this.serializer,
+         });
+ 
+-        const abiFreeManaSharer = await this._getAbi(
+-          this.network.tag,
+-          this.network.freeManaSharer
+-        );
+-        const freeManaSharer = new Contract({
+-          id: this.network.freeManaSharer,
+-          abi: abiFreeManaSharer,
+-          provider: this.provider,
+-          serializer: await this.newSandboxSerializer(
+-            abiFreeManaSharer.koilib_types
+-          ),
+-        });
++        let freeManaSharer;
++        if (this.network.freeManaSharer) {
++          const abiFreeManaSharer = await this._getAbi(
++            this.network.tag,
++            this.network.freeManaSharer
++          );
++          freeManaSharer = new Contract({
++            id: this.network.freeManaSharer,
++            abi: abiFreeManaSharer,
++            provider: this.provider,
++            serializer: await this.newSandboxSerializer(
++              abiFreeManaSharer.koilib_types
++            ),
++          });
++        }
+ 
+         const transaction = new Transaction({
+           provider: this.provider,
+@@ -634,32 +642,36 @@ export default {
+           memo: this.memo,
+         });
+ 
+-        // use mana meter
+-        transaction.transaction.header.payee = this.address;
+-        transaction.transaction.header.payer = this.network.manaMeter;
+-        transaction.transaction.header.rc_limit = Math.floor(
+-          0.9 * Number(await this.provider.getAccountRc(this.network.manaMeter))
+-        );
+-        transaction.transaction.id = Transaction.computeTransactionId(
+-          transaction.transaction.header
+-        );
+-        await transaction.prepare();
+-        await transaction.sign();
+-
+-        // adjust mana
+-        const { header, id } = await estimateAndAdjustMana({
+-          payer: this.payer || this.address,
+-          payee: this.payee,
+-          transaction,
+-          provider: this.provider,
+-          koinContract,
+-          freeManaSharer,
+-        });
+-        transaction.transaction.header = header;
+-        transaction.transaction.id = id;
+-        transaction.transaction.signatures = [];
++        if (this.network.manaMeter) {
++          // use mana meter
++          transaction.transaction.header.payee = this.address;
++          transaction.transaction.header.payer = this.network.manaMeter;
++          transaction.transaction.header.rc_limit = Math.floor(
++            0.9 * Number(await this.provider.getAccountRc(this.network.manaMeter))
++          );
++          transaction.transaction.id = Transaction.computeTransactionId(
++            transaction.transaction.header
++          );
++          await transaction.prepare();
++          await transaction.sign();
++
++          // adjust mana
++          const { header, id } = await estimateAndAdjustMana({
++            payer: this.payer || this.address,
++            payee: this.payee,
++            transaction,
++            provider: this.provider,
++            koinContract,
++            freeManaSharer,
++          });
++          transaction.transaction.header = header;
++          transaction.transaction.id = id;
++          transaction.transaction.signatures = [];
++        } else {
++          await transaction.prepare();
++        }
+ 
+-        // sign and send with mana updated
++        // Sign with the reviewed limit (or the meter's adjusted limit).
+         await transaction.sign();
+         const receipt = await transaction.send();
+ 
+diff --git a/src/popup/views/2-SignSendTransaction.vue b/src/popup/views/2-SignSendTransaction.vue
+index 1505570..fe46355 100644
+--- a/src/popup/views/2-SignSendTransaction.vue
++++ b/src/popup/views/2-SignSendTransaction.vue
+@@ -358,7 +358,7 @@
+           <input
+             v-model="useFreeMana"
+             type="checkbox"
+-            :disabled="externalSigners"
++            :disabled="externalSigners || !network || !network.freeManaSharer"
+           >
+           <label for="payer">Use free mana</label>
+         </div>
+@@ -366,7 +366,7 @@
+           <input
+             v-model="optimizeMana"
+             type="checkbox"
+-            :disabled="externalSigners"
++            :disabled="externalSigners || !network || !network.manaMeter"
+           >
+           <label for="payer">Optimize mana</label>
+         </div>
+@@ -480,7 +480,7 @@
+       </button>
+       <button
+         class="custom-button primary"
+-        :disabled="!unlocked || loadingEvents || loadingSkipEvents"
++        :disabled="!unlocked || !network || !network.chainId || !payer || loadingEvents || loadingSkipEvents"
+         @click="sendTransaction"
+       >
+         Sign
+@@ -788,6 +788,14 @@ export default {
+         return abi;
+       }
+ 
++      // Foundation's gateway does not expose invoke_system_call. The dApp
++      // supplies the ABI for these contract IDs, as in the existing fallback.
++      if (this.networkTag === "foundation" && this.abis?.[contractId]) {
++        abi = this.abis[contractId];
++        this.cacheAbis[contractId] = { success: true, abi };
++        return abi;
++      }
++
+       // try to get the ABI from the network
+       try {
+         abi = await contract.fetchAbi({
+@@ -875,7 +883,7 @@ export default {
+     },
+ 
+     async resolveAddress(address) {
+-      if (!address) return "";
++      if (!address || !this.nicknames) return "";
+       if (this.cacheNicknames[address]) {
+         return this.cacheNicknames[address].value;
+       }
+@@ -897,7 +905,7 @@ export default {
+     },
+ 
+     async getNicknameImage(nickname) {
+-      if (!nickname) return "";
++      if (!nickname || !this.nicknames) return "";
+       if (this.cacheNicknameImages[nickname]) {
+         return this.cacheNicknameImages[nickname].value;
+       }
+@@ -1211,6 +1219,13 @@ export default {
+ 
+         const { header } = this.request.args.transaction;
+         this.network = networks.find((n) => n.chainId === header.chain_id);
++        if (!this.network) {
++          throw new Error("Kondor does not support this transaction's chain: " + header.chain_id);
++        }
++        if (!utils.isChecksumAddress(header.payer || "")) {
++          throw new Error("The dApp did not provide a valid transaction payer");
++        }
++        this.optimizeMana = !!this.network.manaMeter;
+         this.provider = new Provider(this.network.rpcNodes);
+         this.provider.onError = (error) => {
+           this.provider.currentNodeId = 0;
+@@ -1222,31 +1237,37 @@ export default {
+         this.payer = header.payer;
+         this.payee = header.payee || "";
+ 
+-        const nicknamesAbi = await this._getAbi(
+-          this.networkTag,
+-          this.network.nicknamesContractId
+-        );
+-        this.nicknames = new Contract({
+-          id: this.network.nicknamesContractId,
+-          abi: nicknamesAbi,
+-          provider: this.provider,
+-          serializer: await this.newSandboxSerializer(
+-            nicknamesAbi.koilib_types
+-          ),
+-        }).functions;
+-
+-        const abiFreeManaSharer = await this._getAbi(
+-          this.network.tag,
+-          this.network.freeManaSharer
+-        );
+-        this.freeManaSharer = new Contract({
+-          id: this.network.freeManaSharer,
+-          abi: abiFreeManaSharer,
+-          provider: this.provider,
+-          serializer: await this.newSandboxSerializer(
+-            abiFreeManaSharer.koilib_types
+-          ),
+-        });
++        this.nicknames = null;
++        if (this.network.nicknamesContractId) {
++          const nicknamesAbi = await this._getAbi(
++            this.networkTag,
++            this.network.nicknamesContractId
++          );
++          this.nicknames = new Contract({
++            id: this.network.nicknamesContractId,
++            abi: nicknamesAbi,
++            provider: this.provider,
++            serializer: await this.newSandboxSerializer(
++              nicknamesAbi.koilib_types
++            ),
++          }).functions;
++        }
++
++        this.freeManaSharer = null;
++        if (this.network.freeManaSharer) {
++          const abiFreeManaSharer = await this._getAbi(
++            this.network.tag,
++            this.network.freeManaSharer
++          );
++          this.freeManaSharer = new Contract({
++            id: this.network.freeManaSharer,
++            abi: abiFreeManaSharer,
++            provider: this.provider,
++            serializer: await this.newSandboxSerializer(
++              abiFreeManaSharer.koilib_types
++            ),
++          });
++        }
+ 
+         this.tokens = (await this._getTokens()).filter(
+           (t) => t.network === this.network.tag
+diff --git a/src/shared/mixins/Storage.js b/src/shared/mixins/Storage.js
+index 45ba1f4..c1a4a29 100644
+--- a/src/shared/mixins/Storage.js
++++ b/src/shared/mixins/Storage.js
+@@ -204,6 +204,20 @@ export default {
+           image:
+             "https://files.peakd.com/file/peakd-hive/jga/AJdLAV524tVfwnkV7iCjPFE2HvArB8pDyLdNVZfEQYBUGhWJ7TMniKx8uYuoQyh.png",
+         },
++        {
++          network: "foundation",
++          contractId: "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
++          nickname: "koin",
++          symbol: "tKOIN",
++          decimals: 8,
++        },
++        {
++          network: "foundation",
++          contractId: "17n12ktwN79sR6ia9DDgCfmw77EgpbTyBi",
++          nickname: "vhp",
++          symbol: "tVHP",
++          decimals: 8,
++        },
+         ...otherTokens,
+       ];
+       return tokens;
+diff --git a/src/ts/storage.ts b/src/ts/storage.ts
+index be37307..f56c941 100644
+--- a/src/ts/storage.ts
++++ b/src/ts/storage.ts
+@@ -96,6 +96,13 @@ export const DEFAULT_NETWORKS: Network[] = [
+     freeManaSharer: "1NDqFZLVJUtuY3FNii8ZAJ4kAiUnESur1n",
+     manaMeter: "19jgVtCHfhzgzAWNVyRzhoH9G5aa9VTZCE",
+   },
++  {
++    name: "Koinos Foundation (testnet)",
++    tag: "foundation",
++    chainId: "EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==",
++    rpcNodes: ["https://testnet.koinosfoundation.org/jsonrpc"],
++    // This chain has no nickname, mana-meter or free-mana contracts.
++  },
+ ];
+ 
+ export async function setNetworks(networks: Network[]): Promise<void> {
+@@ -118,31 +125,15 @@ export async function getNetworks(strict = true): Promise<Network[]> {
+     networks = await read("networks", true);
+   }
+ 
+-  // take default values if not present
+-  networks!.forEach((network, i) => {
+-    const fields = ["rpcNodes"] as const;
+-    fields.forEach((field) => {
+-      if (!network[field]) {
+-        network[field] = DEFAULT_NETWORKS[i][field]! as string & string[];
+-      }
+-    });
+-  });
+-
+-  // force to use default values
+-  networks!.forEach((network, i) => {
+-    const fields = [
+-      "chainId",
+-      "nicknamesContractId",
+-      "kapNameServiceContractId",
+-      "kapProfileContractId",
+-      "freeManaSharer",
+-      "manaMeter",
+-      "explorer",
+-    ] as const;
+-    fields.forEach((field) => {
+-      network[field] = DEFAULT_NETWORKS[i][field]! as string &
+-        string[] & { tx: string; block: string };
+-    });
++  // Match by tag so newly supported chains are available to existing wallets.
++  // RPC overrides remain user settings; chain identity and system contracts are
++  // pinned to the supported network definitions.
++  networks = DEFAULT_NETWORKS.map((network) => {
++    const saved = networks!.find((n) => n.tag === network.tag);
++    return {
++      ...network,
++      rpcNodes: saved?.rpcNodes?.length ? saved.rpcNodes : [...network.rpcNodes],
++    };
+   });
+ 
+   return networks!;
