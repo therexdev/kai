@@ -46,7 +46,7 @@ async function checkLanguageLayout(page){
  return layout;
 }
 (async()=>{
- const browser=await chromium.launch({headless:true});
+ const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{})});
  const context=await browser.newContext({locale:'es-MX',viewport:{width:390,height:844}});await context.route('**/*',route);
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  const reports=[];
@@ -64,7 +64,9 @@ async function checkLanguageLayout(page){
  }
  await page.goto('http://kai.test/');await openLanguageMenu(page);await page.selectOption('[data-language-select]','de');await page.locator('#waitlist-email').fill('user@example.com');
  await page.selectOption('[data-language-select]','fr');assert.equal(await page.inputValue('#waitlist-email'),'user@example.com');
- assert.equal(await page.locator('.plugin-card').count(),11);assert.equal(await page.locator('.plugin-card a[href="https://github.com/therexdev/kai-plugin-brain"]').count(),1);
+ assert.equal(await page.locator('#features .build-bottom article').count(),3);
+ assert.equal(await page.locator('#mobile .mobile-slide').count(),6);
+ assert.equal(await page.locator('.hero .btn.primary').getAttribute('href'),'/beta');
  await page.goto('http://kai.test/network');assert.equal(await page.locator('html').getAttribute('lang'),'fr');
  assert.equal(await page.locator('#modelsBody tr td:first-child').textContent(),'Home');
  await openLanguageMenu(page);await page.selectOption('[data-language-select]','en');assert.equal(await page.locator('h1').textContent(),'AI, powered by people.');
@@ -90,6 +92,33 @@ async function checkLanguageLayout(page){
  assert.equal(await firstVisit.inputValue('[data-language-select]'),'en');
  assert.equal(await firstVisit.locator('[data-language-select] option:checked').textContent(),'EN');
  assert.equal(await firstVisit.evaluate(()=>localStorage.getItem('kai-website-language')),null);
+ // Conversion path, real development screenshots, and accessible carousel.
+ assert.deepEqual(await firstVisit.locator('main section[id]').evaluateAll(nodes=>nodes.map(n=>n.id)),['earn','how','features','mobile']);
+ assert.match(await firstVisit.locator('h1').innerText(),/Private AI\.[\s\S]*Shared power\.[\s\S]*Earn KOIN\./);
+ assert.equal(await firstVisit.locator('.hero .btn.primary').getAttribute('href'),'/beta');
+ assert.equal(await firstVisit.locator('#earn .btn.primary').getAttribute('href'),'/beta');
+ assert.equal(await firstVisit.locator('#mobile .dev-badge').textContent(),'In Development');
+ for(const width of [320,390,768,1440]){
+  await firstVisit.setViewportSize({width,height:900});
+  await firstVisit.emulateMedia({reducedMotion:'reduce'});
+  const rail=firstVisit.locator('#mobile-shots');
+  await rail.focus();await rail.press('Home');
+  await firstVisit.waitForFunction(()=>document.getElementById('mobile-prev').disabled);
+  await firstVisit.locator('#mobile-next').click();
+  await firstVisit.waitForFunction(()=>document.getElementById('mobile-shots').scrollLeft>5);
+  await rail.focus();await rail.press('End');
+  await firstVisit.waitForFunction(()=>document.getElementById('mobile-next').disabled);
+  assert.equal(await firstVisit.locator('#mobile-position').textContent(),'6 / 6');
+  assert.equal(await firstVisit.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,`home overflow at ${width}`);
+  await rail.press('Home');
+ }
+ // Load each lazy image through the normal keyboard path and inspect its bytes.
+ for(const link of await firstVisit.locator('.mobile-slide a').all())await link.focus();
+ await firstVisit.waitForFunction(()=>[...document.querySelectorAll('.mobile-slide img')].every(i=>i.complete&&i.naturalWidth===720&&i.naturalHeight===1280));
+ await firstVisit.locator('#mobile-shots').focus();await firstVisit.locator('#mobile-shots').press('Home');
+ await firstVisit.screenshot({path:path.join(__dirname,'website-network-home-desktop.png'),fullPage:true});
+ await firstVisit.setViewportSize({width:390,height:844});
+ await firstVisit.screenshot({path:path.join(__dirname,'website-network-home-mobile.png'),fullPage:true});
  await english.close();
  console.log(JSON.stringify({reports,errors},null,2));await browser.close();if(errors.length)process.exitCode=1;
 })().catch(e=>{console.error(e);process.exit(1)});
