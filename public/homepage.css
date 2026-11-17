@@ -22,7 +22,8 @@ html[lang=de] .hero h1{font-size:clamp(2.5rem,4.5vw,4rem)}
 .node-network{bottom:55px;left:0;transform:rotate(-2deg)}
 .node-earn{bottom:45px;right:0;transform:rotate(3deg)}
 .network-caption{position:absolute;bottom:0;left:0;right:0;text-align:center;font-size:.77rem}
-.belief-list{gap:32px;flex-wrap:wrap}
+.belief-list{grid-template-columns:repeat(3,minmax(0,1fr));gap:32px}
+.belief-inner>p br{display:block}
 .earn{background:white}
 .earn-step{align-items:start;margin-bottom:5px}
 .earn-step strong{display:block;font-size:.95rem}
@@ -56,3 +57,4 @@ html[lang=de] .hero h1{font-size:clamp(2.5rem,4.5vw,4rem)}
 @media(max-width:850px){.hero-grid{grid-template-columns:1fr}.hero-copy{max-width:640px}.network-art{max-width:520px;width:100%;margin:12px auto 0}.network-hub{width:172px;height:172px}.compute-node{min-width:156px;padding:17px 19px}.earn-visual{display:block}.earn-detail,.earn-detail+.earn-detail{grid-template-columns:44px 1fr;border-left:0;padding-left:0}.earn-detail+.earn-detail{margin-top:24px;padding-top:24px;border-top:1px solid var(--line)}.belief-list{gap:15px 24px}.mobile-slide{flex-basis:190px}.mobile-slide img{width:190px}}
 @media(max-width:560px){.hero h1{font-size:clamp(2.75rem,11.8vw,3.6rem)}.release-pill{flex-wrap:wrap;border-radius:14px}.hero-bottom{font-size:.72rem;gap:10px 16px}.network-art{height:420px;margin-top:20px}.network-hub{width:135px;height:135px}.network-hub img{width:35px;height:35px}.network-hub b{font-size:.92rem}.network-hub span{font-size:.64rem}.compute-node{min-width:0;width:43%;padding:12px 13px;border-radius:14px}.compute-node b{font-size:.78rem}.compute-node small{font-size:.62rem}.node-symbol{width:25px;height:25px;margin-bottom:7px}.node-local{top:38px}.node-models{top:48px}.node-network{bottom:48px}.node-earn{bottom:38px}.network-topline,.network-caption{font-size:.68rem}.belief-inner{align-items:start}.belief-list{gap:10px 20px}.earn-step p{font-size:.83rem}.mobile-preview{padding:38px 0}.mobile-heading{flex-direction:column;align-items:start;gap:18px;margin-bottom:20px}.mobile-heading p:not(.eyebrow){font-size:.86rem}.mobile-slide{flex-basis:185px}.mobile-slide img{width:185px}.mobile-shots{gap:18px}.carousel-controls{gap:10px}.mobile-preview .section-note{font-size:.68rem}}
 @media(prefers-reduced-motion:reduce){.mobile-shots{scroll-behavior:auto}}
+@media(max-width:560px){.belief-list{grid-template-columns:1fr;gap:12px}.belief-inner>p{max-width:270px}.belief-inner>p br{display:block}}

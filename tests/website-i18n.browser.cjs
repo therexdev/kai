@@ -116,6 +116,7 @@ async function checkLanguageLayout(page){
  for(const link of await firstVisit.locator('.mobile-slide a').all())await link.focus();
  await firstVisit.waitForFunction(()=>[...document.querySelectorAll('.mobile-slide img')].every(i=>i.complete&&i.naturalWidth===720&&i.naturalHeight===1280));
  await firstVisit.locator('#mobile-shots').focus();await firstVisit.locator('#mobile-shots').press('Home');
+ await firstVisit.locator('h1').click();await firstVisit.evaluate(()=>scrollTo({top:0,behavior:'instant'}));
  await firstVisit.screenshot({path:path.join(__dirname,'website-network-home-desktop.png'),fullPage:true});
  await firstVisit.setViewportSize({width:390,height:844});
  await firstVisit.screenshot({path:path.join(__dirname,'website-network-home-mobile.png'),fullPage:true});
