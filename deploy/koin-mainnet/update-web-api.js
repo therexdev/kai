@@ -31,6 +31,7 @@ const REQUIRED = [
 const ALLOWED = new Set([...REQUIRED, ".github/workflows/web-accounts-api.yml"]);
 const PROBES = [...new Set([...Backoff.PROBES, "scripts/probe-credit-gateway.js", "scripts/probe-credit-platform-dom.js", "scripts/probe-credit-account-web.js", "scripts/probe-koin-free-credits.js", "scripts/probe-wallet-credit-router.js", "scripts/probe-koin-device-free-router.js", "scripts/probe-purchase-quotes-http.js", "scripts/probe-mainnet-deployment-rpc.js", "deploy/koin-mainnet/update-web-api.test.js"])];
 const LOCKS = ["kai-web-api-update.lock", ...Backoff.LOCKS], PHASES = ["staged", "draining", "exited", "unit", "started", "ready"];
+const DEFAULT_POLICY = { BASE, REQUIRED, ALLOWED, PROBES, LOCKS };
 const hash = bytes => crypto.createHash("sha256").update(bytes).digest("hex"), equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 function command(exe, args, cwd, capture = false) { return execFileSync(exe, args, { cwd, encoding: "utf8", stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit", env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } }) || ""; }
 function real(file, directory = false) { const s = fs.lstatSync(file); if (s.isSymbolicLink() || (directory ? !s.isDirectory() : !s.isFile()) || (!directory && s.nlink !== 1)) throw Error("Real unlinked code-update path required"); return s; }
@@ -92,12 +93,13 @@ async function health({ fetchImpl = fetch, ...options } = {}) {
   } });
 }
 async function update({ repo = process.cwd(), paths: p = PATHS, run = command, log = console.log, drain = Prior.gracefulShutdown, checkHealth = health, enable = false, backupState = snapshotState,
-  storage = Storage, prepareSource = Release.stageRelease, checkRelease = Release.verifyRelease,
+  releasePolicy = DEFAULT_POLICY, storage = Storage, prepareSource = Release.stageRelease, checkRelease = Release.verifyRelease,
   assertStorageIdle = info => {
     const { assertWriterLeaseCount } = require("../../lib/koin-network/storage-writer-lease");
     assertWriterLeaseCount(path.join(p.state, "provider-devices"), 0, "provider source");
     assertWriterLeaseCount(info.directory, 0, "reward shadow");
   } } = {}) {
+  const { BASE, REQUIRED, ALLOWED, PROBES, LOCKS, PLAN_PREFIX = "kai-web-api" } = releasePolicy;
   for (const dir of [p.work, p.releases, p.config, p.state]) real(dir, true);
   const held = [];
   try {
@@ -115,7 +117,7 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, l
     const runtimeFile = path.join(p.config, "runtime.json"); if (real(runtimeFile).size > 1024 * 1024) throw Error("Oversized public configuration");
     const expected = runtimeTarget(runtimeFile), configuration = JSON.parse(fs.readFileSync(runtimeFile)), identity = storage.storageIdentity(configuration);
     if (configuration.accountMode !== "public" || configuration.deployment?.product !== "prepaid-usd-v1") throw Error("Existing public USD credit accounts required");
-    const planFile = path.join(p.work, "kai-web-api-plan-" + target + ".json");
+    const planFile = path.join(p.work, PLAN_PREFIX + "-plan-" + target + ".json");
     if (enable) enableEnvironment(p, { allowChange: !fs.existsSync(planFile), log });
     const fingerprint = Release.configFingerprint(p.config);
     const inspect = () => storage.inspectStorage(p.state, { identity }), activationHash = activationFingerprint(inspect());

@@ -9,7 +9,7 @@
     const response = await fetch(url, { method, credentials: "same-origin", cache: "no-store", headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
     const value = await response.json();
     if (!response.ok) {
-      if (response.status === 401) location.assign("/account?next=/platform");
+      if (response.status === 401) location.assign("/login?next=" + encodeURIComponent(window.KaiAccountRoutes.destination(location.pathname + location.search + location.hash)));
       throw Error(value.error?.message || value.error || "Request failed. Please try again.");
     }
     return value;
@@ -18,12 +18,25 @@
     $(id).onclick = async () => { $(id).disabled = true; notice(""); try { await fn(); } catch (e) { notice(e.message, true); } finally { $(id).disabled = false; } };
   }
   function form(id, fn) { $(id).onsubmit = async e => { e.preventDefault(); notice(""); try { await fn(); } catch (err) { notice(err.message, true); } }; }
-  function tab(id) {
+  const titles = { overview: "Your account", playground: "Chat", billing: "Credits & billing", keys: "API keys", usage: "Usage", wallets: "Wallets", devices: "Devices", security: "Account & security" };
+  function tab(id, updateUrl = true) {
+    if (!Object.hasOwn(titles, id)) id = "overview";
     document.querySelectorAll(".tab").forEach(n => { n.hidden = n.id !== id; });
-    document.querySelectorAll(".nav[data-tab]").forEach(n => n.classList.toggle("active", n.dataset.tab === id));
+    document.querySelectorAll(".nav[data-tab]").forEach(n => { n.classList.toggle("active", n.dataset.tab === id); if (n.dataset.tab === id) n.setAttribute("aria-current", "page"); else n.removeAttribute("aria-current"); });
+    $("page-title").textContent = titles[id]; document.title = titles[id] + " — Koinos AI";
+    document.querySelector(".wallet-bar").hidden = ["wallets", "devices", "security"].includes(id);
+    if (updateUrl) window.history.pushState(null, "", "/account" + (id === "overview" ? "" : "#" + id));
     if (id === "keys") loadKeys().catch(e => notice(e.message, true));
+    document.dispatchEvent(new CustomEvent("kai-account-tab", { detail: id }));
   }
   document.querySelectorAll("[data-tab]").forEach(n => { n.onclick = () => tab(n.dataset.tab); });
+  window.addEventListener("popstate", () => tab(location.hash.slice(1), false));
+  window.addEventListener("hashchange", () => tab(location.hash.slice(1), false));
+  try {
+    const pending = JSON.parse(sessionStorage.getItem("kai-login-return") || "null"); sessionStorage.removeItem("kai-login-return");
+    if (pending?.expires > Date.now() && !location.hash && !location.search) window.history.replaceState(null, "", window.KaiAccountRoutes.destination(pending.path));
+  } catch {}
+  tab(new URLSearchParams(location.search).has("code") ? "devices" : location.hash.slice(1), false);
   function selected() { return wallet || null; }
   async function refresh() {
     const data = await api("/platform/api/overview?wallet=" + encodeURIComponent(wallet)); overview = data;
@@ -54,7 +67,7 @@
   $("model").onchange = modelLimit;
   $("wallet").onchange = async () => { wallet = $("wallet").value; try { await refresh(); } catch (e) { notice(e.message, true); } };
   action("refresh", refresh);
-  action("logout", async () => { await api("/auth/logout", {}); location.assign("/account"); });
+  action("logout", async () => { await api("/auth/logout", {}); location.assign("/login"); });
   action("connect", async () => {
     if (!overview || !window.kondor) throw Error("Wait for the page to load and enable the Kondor browser wallet.");
     const addresses = await kondor.getAccounts();
@@ -62,7 +75,7 @@
     const address = addresses[0].address, ts = Date.now(), input = new TextEncoder().encode(`link|${address}|${overview.account.id}|${ts}`);
     const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", input));
     const raw = await kondor.getSigner(address).signHash(hash), signature = btoa(String.fromCharCode(...new Uint8Array(Object.values(raw))));
-    await api("/account/wallets", { address, ts, signature }); wallet = address; await refresh(); notice("Wallet connected. Select it whenever you want to use its purchased credits.");
+    await api("/account/wallets", { address, ts, signature }); wallet = address; await refresh(); notice("Wallet connected. Select it whenever you want to use its purchased credits."); document.dispatchEvent(new Event("kai-wallet-linked"));
   });
   async function loadKeys() {
     const data = await api("/platform/api/keys"); $("key-list").replaceChildren();
@@ -156,5 +169,6 @@
     if (data.purchase.state === "confirmed") { try { localStorage.removeItem("kai-web-purchase-" + overview.account.id); } catch {} $("tx").value = ""; }
   }
   form("recover", async () => { await checkPurchase(); await refresh(); });
+  document.addEventListener("kai-wallet-unlinked", event => { if (wallet === event.detail) wallet = ""; refresh().catch(e => notice(e.message, true)); });
   refresh().catch(e => notice(e.message, true));
 })();

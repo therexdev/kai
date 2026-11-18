@@ -3,7 +3,8 @@ const test = require("node:test"), assert = require("node:assert/strict"), fs = 
 const U = require("./update-web-api");
 process.umask(0o077);
 const blob = bytes => crypto.createHash("sha1").update("blob " + Buffer.byteLength(bytes) + "\0").update(bytes).digest("hex");
-function fixture(t) {
+function fixture(t, updater = U) {
+  const U = updater;
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "claim-resources-update-")); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const p = { work: root, releases: path.join(root, "releases"), config: path.join(root, "config"), state: path.join(root, "state"), unit: path.join(root, U.UNIT) };
   for (const file of [p.releases, p.config, p.state]) fs.mkdirSync(file);
@@ -205,4 +206,16 @@ test("real read-only source and shadow anchor checks reject either live writer w
     for (const file of f.journals) assert.equal(fs.readFileSync(file, "utf8"), "existing payment bytes");
     assert.equal(fs.readFileSync(f.sourceFile, "utf8"), "unsupported sentinel"); assert.equal(fs.readFileSync(f.markerFile, "utf8"), "verified marker");
   }
+});
+
+const UI = require("./update-account-ui");
+test("account UI update uses the activated web release and preserves all financial state", async t => {
+  const f = fixture(t, UI); assert.equal((await UI.update(f.options)).installed, true); f.assertPreserved();
+  assert.equal((await UI.update(f.options)).unchanged, true);
+  assert.equal(f.calls.filter(row => row[0] === "drain").length, 1);
+  assert.equal(fs.readdirSync(f.p.work).some(name => name.startsWith("kai-account-ui-plan-")), true);
+});
+test("account UI update refuses an unknown current release and changes outside the reviewed UI", async t => {
+  const f = fixture(t, UI); f.loaded = path.join(f.p.releases, U.BASE); await assert.rejects(UI.update(f.options), /Unexpected active/); f.assertNoStop();
+  const g = fixture(t, UI); g.changed = UI.REQUIRED.join("\n") + "\nlib/accounts.js"; await assert.rejects(UI.update(g.options), /exact reviewed/); g.assertNoStop();
 });
