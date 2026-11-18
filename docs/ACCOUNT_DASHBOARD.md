@@ -14,7 +14,7 @@ Run from the reviewed clean checkout after `npm ci --include=dev --ignore-script
 /usr/bin/node deploy/koin-mainnet/update-account-ui.js
 ```
 
-This accepts the deployed web API release `697ff9721e55c76487f21eae484c60f2f653fb5e` as its base. It reuses the existing clean-drain, stopped-state backup, writer checks and resumable forward-only updater. It does not change environment values, accounts, balances, reward storage, payment journals or RPC settings. It refuses an unexpected active version or unrelated source changes. Health must report both `webApiVersion: 1` and `accountUiVersion: 1`. Deploy this backend before the website redirects and Login navigation.
+This accepts the deployed web API release `697ff9721e55c76487f21eae484c60f2f653fb5e` as its base. It reuses the existing clean-drain, stopped-state backup, writer checks and resumable forward-only updater. It does not change environment values, accounts, balances, reward storage, payment journals or RPC settings. It refuses an unexpected active version or unrelated source changes. Health must report both `webApiVersion: 1` and `accountUiVersion: 1`. The companion website change can deploy first: its new redirects activate only after health confirms both capabilities.
 
 ## Verification
 
