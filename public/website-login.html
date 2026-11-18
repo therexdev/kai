@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Log in — Koinos AI</title><link rel="stylesheet" href="/account-ui/platform.css"><script defer src="/account-ui/account-routes.js"></script><script defer src="/account-ui/login.js"></script></head>
+<body class="login-page"><header class="login-header"><a class="brand" href="https://koinosai.com"><span class="mark">K</span>Koinos AI</a><a href="https://koinosai.com">Back to website ↗</a></header>
+<main class="login-main"><div class="login-intro"><p class="eyebrow">YOUR KOINOS AI ACCOUNT</p><h1>Welcome back.</h1><p>Access your existing node dashboard and website tools.</p></div>
+<section class="card login-card" aria-labelledby="login-title"><h2 id="login-title">Log in to website tools</h2><p class="small">Use the sign-in you used for your existing website tools.</p>
+<p id="login-status" class="notice" role="status">Loading sign-in options…</p><button id="retry-login" class="secondary" hidden>Try again</button>
+<div id="google-method" hidden><a id="google-login" class="secondary login-button" href="/auth/google">Continue with Google</a><p class="login-divider">or use email</p></div>
+<form id="email-form" hidden><label for="login-email">Email address</label><input id="login-email" type="email" autocomplete="email" placeholder="you@example.com" required>
+<div id="email-code-step" hidden><label for="login-code">Verification code</label><input id="login-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit code"><p class="small">Check your email for a six-digit code. It expires after 10 minutes.</p></div>
+<button id="email-submit" class="primary login-button" type="submit">Continue with email</button><button id="change-email" class="quiet login-button" type="button" hidden>Use a different email</button></form>
+<div id="passkey-method" hidden><button id="passkey-login" class="quiet login-button" type="button">Log in with a passkey</button><p class="small">For an existing account with a saved passkey.</p></div>
+<p class="small login-privacy">By signing in, you can manage your account and access the network. <a href="https://koinosai.com/privacy">Privacy policy</a></p></section>
+<p class="login-caption">Your existing website data and connections stay in place.</p></main></body></html>

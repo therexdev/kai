@@ -23,7 +23,7 @@
 </style>
 <link rel="icon" href="/redesign/brand-mark.svg" type="image/svg+xml"><meta name="theme-color" content="#f5f8ff">
 <link rel="stylesheet" href="/i18n/language.css">
-</head>
+<link rel="stylesheet" href="/account-ui/website-shell.css"></head>
 <body><header class="kai-site-header"><div class="kai-header-inner"><a class="kai-brand" href="/"><img src="/redesign/brand-mark.svg" alt=""><span>Koinos<em>AI</em></span></a><nav class="kai-site-links" aria-label="Main"><a href="/">Home</a><a href="/network">Network</a><a href="/beta">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account" aria-current="page">Account</a></nav><a class="btn btn-signal" href="/beta">Get Core Beta ↗</a><details class="kai-site-menu"><summary>Menu</summary><nav aria-label="Mobile"><a href="/">Home</a><a href="/network">Network</a><a href="/beta">Get KAI</a><a href="/dashboard">Dashboard</a><a href="/account" aria-current="page">Account</a><a href="/beta">Get Core Beta</a></nav></details></div></header>
 <main class="kai-account-layout"><aside class="kai-account-intro"><div><p class="eyebrow">Your KAI account</p><h2>KAI, wherever you are.</h2><p>Manage your website sign-in, linked devices and existing web access.</p></div><img src="/redesign/kai-companion.svg" alt="KAI, your AI companion"></aside><div class="kai-account-main">
   <h1 id="title">Account</h1><section class="card"><h2>Network credits & API</h2><p>Use daily free credits, buy credits with KOIN, and create API keys without running KAI Core.</p><p><a class="btn" href="/platform">Open your network account →</a> <a class="body-link" href="/platform/docs">API documentation</a></p><p class="muted">Use your existing network sign-in to access its credits. The legacy website account below remains separate; accounts and balances are not automatically merged.</p></section>
@@ -122,6 +122,7 @@
   <p class="muted" style="margin-top:26px"><a href="/">← koinosai.com</a></p>
 </div></main><footer class="kai-site-footer"><div class="kai-footer-inner"><p class="kai-copyright">© 2026 Koinos AI · Think. Build. Grow.</p><nav aria-label="Footer"><a href="/docs/">Docs</a><a href="/updates">Updates</a><a href="/privacy">Privacy</a><a href="https://github.com/therexdev/kai-core">GitHub</a><a href="mailto:contact@koinosai.com">Contact</a></nav></div></footer>
 
+<script src="/account-ui/website-shell.js"></script>
 <script src="/i18n/catalogs.js"></script>
 <script src="/i18n/i18n.js"></script>
 <script>
@@ -181,13 +182,13 @@ async function refresh() {
   } catch {
     account = null;
   }
-  if (!account) await applyMethods();
+  if (!account) { location.replace("/website-login?next=" + encodeURIComponent(location.pathname === "/link" ? location.pathname + location.search : "/account/website")); return; }
   const inEl = $("signedIn"), outEl = $("signedOut");
   inEl.classList.toggle("hide", !account);
   outEl.classList.toggle("hide", !!account);
   const linking = new URLSearchParams(location.search).get("code");
   if (linking) $("linkCode").value = linking;
-  KaiI18n.setText($("title"), location.pathname === "/link" ? "Approve a device" : "Account");
+  KaiI18n.setText($("title"), location.pathname === "/link" ? "Approve a device" : "Website access");
   if (!account) return;
   /*
    * Arrived here from a gated page? Go back to it now that we can get in.
