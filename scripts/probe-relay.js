@@ -30,18 +30,24 @@ const test = async (name, fn) => {
 
 (async () => {
   /* ---- stub local /v1 API (what the desktop gateway serves) ---- */
-  let sawAuth = null;
+  let sawAuth = null, sawBody = null;
   const local = http.createServer((req, res) => {
     let raw = "";
     req.on("data", (c) => { raw += c; });
     req.on("end", () => {
       sawAuth = req.headers.authorization || null;
+      sawBody = raw;
       if (req.url === "/v1/models") {
         res.writeHead(200, { "content-type": "application/json" });
-        return res.end(JSON.stringify({ object: "list", data: [{ id: "koinos-fast" }] }));
+        return res.end(JSON.stringify({ object: "list", data: [{ id: "koinos-fast", context_window: 32768, context_mode: "auto" }] }));
       }
       if (req.url === "/v1/chat/completions") {
-        res.writeHead(200, { "content-type": "text/event-stream" });
+        const input = JSON.parse(raw);
+        if (input.context_tokens > 32768) {
+          res.writeHead(400, { "content-type": "application/json" });
+          return res.end(JSON.stringify({ error: { message: "Requested context exceeds the model's context limit.", type: "context_limit" } }));
+        }
+        res.writeHead(200, { "content-type": "text/event-stream", "x-kai-context-size": "16384", "x-private-fixture": "must-not-cross", "set-cookie": "must-not-cross" });
         res.write('data: {"choices":[{"delta":{"content":"Hello "}}]}\n\n');
         setTimeout(() => res.write('data: {"choices":[{"delta":{"content":"world."}}]}\n\n'), 120);
         setTimeout(() => { res.write("data: [DONE]\n\n"); res.end(); }, 240);
@@ -79,7 +85,7 @@ const test = async (name, fn) => {
       body: job.method === "GET" ? undefined : Buffer.from(job.body, "base64"),
     });
     const outHeaders = {};
-    for (const k of ["content-type", "cache-control"]) if (localRes.headers.get(k)) outHeaders[k] = localRes.headers.get(k);
+    for (const k of ["content-type", "cache-control", "x-kai-context-size", "x-private-fixture", "set-cookie"]) if (localRes.headers.get(k)) outHeaders[k] = localRes.headers.get(k);
     await fetch(`${R}/relay/respond/${job.reqId}`, {
       method: "POST",
       headers: { ...auth, "x-kai-status": String(localRes.status), "x-kai-headers": Buffer.from(JSON.stringify(outHeaders)).toString("base64") },
@@ -119,16 +125,22 @@ const test = async (name, fn) => {
     assert.strictEqual(r.status, 200);
     const j = await r.json();
     assert.strictEqual(j.data[0].id, "koinos-fast");
+    assert.strictEqual(j.data[0].context_window, 32768);
+    assert.strictEqual(j.data[0].context_mode, "auto");
   });
 
   await test("POST chat round-trips SSE chunk by chunk with auth intact", async () => {
+    const payload = JSON.stringify({ model: "koinos-fast", stream: true, max_tokens: 2048, context_tokens: 12000, messages: [{ role: "system", content: "synthetic context ".repeat(1500) }, { role: "user", content: "hi" }] });
     const r = await fetch(`${R}/r/${id}/v1/chat/completions`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer caller-api-key" },
-      body: JSON.stringify({ model: "koinos-fast", stream: true, messages: [{ role: "user", content: "hi" }] }),
+      body: payload,
     });
     assert.strictEqual(r.status, 200);
     assert.ok((r.headers.get("content-type") || "").includes("text/event-stream"));
+    assert.strictEqual(r.headers.get("x-kai-context-size"), "16384");
+    assert.strictEqual(r.headers.get("x-private-fixture"), null);
+    assert.strictEqual(r.headers.get("set-cookie"), null);
     let body = "";
     const reader = r.body.getReader();
     const dec = new TextDecoder();
@@ -137,6 +149,24 @@ const test = async (name, fn) => {
     assert.strictEqual(text, "Hello world.");
     assert.ok(body.includes("data: [DONE]"));
     assert.strictEqual(sawAuth, "Bearer caller-api-key");
+    assert.strictEqual(sawBody, payload);
+  });
+
+  await test("model rejection status and reason survive the relay unchanged", async () => {
+    const r = await fetch(`${R}/r/${id}/v1/chat/completions`, { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model: "koinos-fast", context_tokens: 65536, messages: [{ role: "user", content: "hi" }] }) });
+    assert.strictEqual(r.status, 400);
+    assert.deepStrictEqual(await r.json(), { error: { message: "Requested context exceeds the model's context limit.", type: "context_limit" } });
+    assert.strictEqual(r.headers.get("x-kai-context-size"), null);
+  });
+
+  await test("only valid verified allocation headers cross the relay", async () => {
+    for (const value of ["1024", "262144", "512", "262145", "16384.5", "16384 private", "016384", "16384\r\nx-private: secret"]) {
+      const result = { status: null, headers: null, writableEnded: false, writeHead(status, headers) { this.status = status; this.headers = headers; }, on() {} };
+      const request = { headers: { "x-kai-status": "200", "x-kai-headers": Buffer.from(JSON.stringify({ "X-Kai-Context-Size": value })).toString("base64") }, pipe() {}, on() {} };
+      relay._pipeRespond(request, { writableEnded: false }, { jobs: new Map() }, { publicRes: result, reqId: "fixture" });
+      assert.strictEqual(result.headers["x-kai-context-size"], ["1024", "262144"].includes(value) ? value : undefined);
+    }
   });
 
   await test("oversized public body -> 413", async () => {
