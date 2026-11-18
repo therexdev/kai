@@ -7,7 +7,7 @@ const chat = { model: "fixture", messages: [{ role: "user", content: "Hi" }], ma
 test("verified signup, walletless grants, key secrecy, account isolation, expiry and revocation", async t => {
   const s = await service(t), alice = await s.signup("alice@example.test"), bob = await s.signup("bob@example.test");
   assert.equal(alice.data.token, undefined); assert.equal((await s.raw("/platform")).status, 302);
-  assert.equal((await s.raw("/platform", undefined, { cookie: alice.cookie })).status, 200);
+  assert.equal((await s.raw("/account", undefined, { cookie: alice.cookie })).status, 200);
   const created = await s.createKey(alice); assert.equal(created.status, 201, JSON.stringify(created.value));
   const { secret, key } = created.value; assert.match(secret, /^kai_api_/);
   assert.ok(!JSON.stringify(s.auth.service.db.prepare("SELECT * FROM credit_api_keys").all()).includes(secret));
