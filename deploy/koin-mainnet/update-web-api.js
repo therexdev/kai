@@ -1,11 +1,12 @@
 "use strict";
 // Code-only, forward-only maintenance of the already activated SQLite runtime.
-// Never migrate, copy, restore, or open a writer on production reward journals.
+// Preserve production journals; snapshot them only after a verified clean stop.
+// Never restore historical payment data or open a second journal writer.
 const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto"), { execFileSync } = require("node:child_process");
 const Prior = require("./update-reward-runtime"), Release = require("./update-reward-storage"),
   { validateUnit, runtimeTarget } = require("./update-wallet-access"), Storage = require("../../lib/koin-network/shadow-storage-activation");
-const BASE = "13901fd6c623375b0957fc5e600c3633e6ba2aeb", { UNIT, PATHS } = Prior;
-const Backoff = require("./update-claim-resources");
+const BASE = "9c0776e55c4512149e015695bc7f2e8e35b8f753", { UNIT, PATHS } = Prior;
+const Backoff = require("./update-rpc-adaptive");
 const REQUIRED = [
   "lib/credit-api-keys.js",
   "lib/credit-gateway.js",
@@ -21,12 +22,14 @@ const REQUIRED = [
   "scripts/helpers/credit-gateway-fixture.js",
   "scripts/probe-credit-gateway.js",
   "scripts/probe-credit-platform-dom.js",
+  "scripts/probe-mainnet-deployment-rpc.js",
+  "tests/credit-platform.browser.cjs",
   "docs/WEB_ACCOUNTS_API.md",
   "deploy/koin-mainnet/update-web-api.js",
   "deploy/koin-mainnet/update-web-api.test.js"
 ];
 const ALLOWED = new Set([...REQUIRED, ".github/workflows/web-accounts-api.yml"]);
-const PROBES = [...new Set([...Backoff.PROBES, "scripts/probe-credit-gateway.js", "scripts/probe-credit-platform-dom.js", "scripts/probe-credit-account-web.js", "scripts/probe-koin-free-credits.js", "scripts/probe-wallet-credit-router.js", "scripts/probe-koin-device-free-router.js", "scripts/probe-purchase-quotes-http.js", "deploy/koin-mainnet/update-web-api.test.js"])];
+const PROBES = [...new Set([...Backoff.PROBES, "scripts/probe-credit-gateway.js", "scripts/probe-credit-platform-dom.js", "scripts/probe-credit-account-web.js", "scripts/probe-koin-free-credits.js", "scripts/probe-wallet-credit-router.js", "scripts/probe-koin-device-free-router.js", "scripts/probe-purchase-quotes-http.js", "scripts/probe-mainnet-deployment-rpc.js", "deploy/koin-mainnet/update-web-api.test.js"])];
 const LOCKS = ["kai-web-api-update.lock", ...Backoff.LOCKS], PHASES = ["staged", "draining", "exited", "unit", "started", "ready"];
 const hash = bytes => crypto.createHash("sha256").update(bytes).digest("hex"), equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 function command(exe, args, cwd, capture = false) { return execFileSync(exe, args, { cwd, encoding: "utf8", stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit", env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } }) || ""; }
@@ -36,6 +39,39 @@ function atomic(file, bytes, mode = 0o600) {
   const temporary = file + "." + crypto.randomUUID() + ".tmp", fd = fs.openSync(temporary, "wx", mode);
   try { fs.writeFileSync(fd, bytes); fs.fchmodSync(fd, mode); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
   try { fs.renameSync(temporary, file); syncDirectory(path.dirname(file)); } finally { if (fs.existsSync(temporary)) fs.unlinkSync(temporary); }
+}
+function enableEnvironment(p, { allowChange = true, log = console.log } = {}) {
+  const file = path.join(p.config, "account.env"), stat = real(file);
+  if (stat.size > 1024 * 1024) throw Error("Oversized account environment");
+  const before = fs.readFileSync(file), source = before.toString("utf8");
+  if (!Buffer.from(source).equals(before)) throw Error("Account environment must be UTF-8");
+  const entries = [...source.matchAll(/^[ \t]*KAI_WEB_API_ENABLED[ \t]*=.*$/gm)];
+  if (entries.length > 1) throw Error("Duplicate web API environment settings require review");
+  if (entries.length && !/^[ \t]*KAI_WEB_API_ENABLED[ \t]*=[ \t]*(?:[01]|"[01]"|'[01]')[ \t]*\r?$/.test(entries[0][0])) throw Error("Unexpected web API environment setting");
+  if (entries.length && /^[ \t]*KAI_WEB_API_ENABLED[ \t]*=[ \t]*(?:1|"1"|'1')[ \t]*\r?$/.test(entries[0][0])) return;
+  if (!allowChange) throw Error("Existing deployment plan requires its unchanged enabled environment");
+  const after = entries.length ? source.slice(0, entries[0].index) + "KAI_WEB_API_ENABLED=1" + source.slice(entries[0].index + entries[0][0].length) : source + (source.endsWith("\n") ? "" : "\n") + "KAI_WEB_API_ENABLED=1\n";
+  const backup = fs.mkdtempSync(path.join(p.work, "kai-web-api-env-")); fs.chmodSync(backup, 0o700);
+  fs.writeFileSync(path.join(backup, "account.env"), before, { flag: "wx", mode: 0o600, flush: true });
+  syncDirectory(backup); syncDirectory(p.work);
+  const temporary = file + "." + crypto.randomUUID() + ".tmp", fd = fs.openSync(temporary, "wx", 0o600);
+  try {
+    fs.writeFileSync(fd, after); fs.fchownSync(fd, stat.uid, stat.gid); fs.fchmodSync(fd, stat.mode & 0o777); fs.fsyncSync(fd);
+  } finally { fs.closeSync(fd); }
+  try {
+    const current = real(file);
+    if (current.ino !== stat.ino || current.dev !== stat.dev || current.ctimeMs !== stat.ctimeMs || !fs.readFileSync(file).equals(before)) throw Error("Concurrent account configuration change preserved");
+    fs.renameSync(temporary, file); syncDirectory(p.config);
+  } finally { if (fs.existsSync(temporary)) fs.unlinkSync(temporary); }
+  log("Enabled web accounts and API. Private environment backup: " + backup);
+}
+function snapshotState({ paths: p, run = command }) {
+  const directory = fs.mkdtempSync(path.join(p.work, "kai-web-api-state-")); fs.chmodSync(directory, 0o700);
+  const archive = path.join(directory, "state-before-update.tar");
+  run("tar", ["-cpf", archive, "-C", p.state, "."]);
+  real(archive); fs.chmodSync(archive, 0o600);
+  const fd = fs.openSync(archive, "r"); try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); } syncDirectory(directory); syncDirectory(p.work);
+  return archive;
 }
 function activationFingerprint(info) {
   if (info?.mode !== "sqlite-shadow" || !info.descriptor) throw Error("Existing verified SQLite activation required; no migration will be attempted");
@@ -55,7 +91,7 @@ async function health({ fetchImpl = fetch, ...options } = {}) {
     return { ok: response.ok, status: response.status, text: async () => body };
   } });
 }
-async function update({ repo = process.cwd(), paths: p = PATHS, run = command, log = console.log, drain = Prior.gracefulShutdown, checkHealth = health,
+async function update({ repo = process.cwd(), paths: p = PATHS, run = command, log = console.log, drain = Prior.gracefulShutdown, checkHealth = health, enable = false, backupState = snapshotState,
   storage = Storage, prepareSource = Release.stageRelease, checkRelease = Release.verifyRelease,
   assertStorageIdle = info => {
     const { assertWriterLeaseCount } = require("../../lib/koin-network/storage-writer-lease");
@@ -77,9 +113,13 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, l
     const baseDir = path.join(p.releases, BASE), targetDir = path.join(p.releases, target), current = show("WorkingDirectory");
     if (![baseDir, targetDir].includes(current)) throw Error("Unexpected active reward runtime release");
     const runtimeFile = path.join(p.config, "runtime.json"); if (real(runtimeFile).size > 1024 * 1024) throw Error("Oversized public configuration");
-    const expected = runtimeTarget(runtimeFile), identity = storage.storageIdentity(JSON.parse(fs.readFileSync(runtimeFile))), fingerprint = Release.configFingerprint(p.config);
+    const expected = runtimeTarget(runtimeFile), configuration = JSON.parse(fs.readFileSync(runtimeFile)), identity = storage.storageIdentity(configuration);
+    if (configuration.accountMode !== "public" || configuration.deployment?.product !== "prepaid-usd-v1") throw Error("Existing public USD credit accounts required");
+    const planFile = path.join(p.work, "kai-web-api-plan-" + target + ".json");
+    if (enable) enableEnvironment(p, { allowChange: !fs.existsSync(planFile), log });
+    const fingerprint = Release.configFingerprint(p.config);
     const inspect = () => storage.inspectStorage(p.state, { identity }), activationHash = activationFingerprint(inspect());
-    const manifest = Release.treeManifest(repo, target, run), treeHash = hash(JSON.stringify(manifest)), planFile = path.join(p.work, "kai-web-api-plan-" + target + ".json");
+    const manifest = Release.treeManifest(repo, target, run), treeHash = hash(JSON.stringify(manifest));
     let plan;
     if (fs.existsSync(planFile)) {
       const stat = real(planFile);
@@ -131,6 +171,13 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, l
       assertStorageIdle(inspect());
     };
     assertQuiescent(); checkRelease(targetDir, manifest); assertQuiescent();
+    if (!plan.snapshot) {
+      plan.snapshot = backupState({ paths: p, run }); assertQuiescent(); save(plan.phase);
+      log("Consistent stopped-service state snapshot: " + plan.snapshot);
+    }
+    if (typeof plan.snapshot !== "string" || path.dirname(path.dirname(plan.snapshot)) !== p.work || !path.basename(path.dirname(plan.snapshot)).startsWith("kai-web-api-state-")) throw Error("Unexpected state snapshot path");
+    const snapshot = real(plan.snapshot);
+    if (snapshot.uid !== process.getuid?.() || (snapshot.mode & 0o777) !== 0o600 || !snapshot.size) throw Error("Private completed state snapshot required");
     if (!fs.readFileSync(p.unit).equals(nextUnit)) atomic(p.unit, nextUnit, plan.mode); save("unit");
     assertQuiescent(); run("systemctl", ["daemon-reload"]); assertQuiescent();
     if (show("WorkingDirectory") !== targetDir) throw Error("New unit was not loaded");
@@ -144,7 +191,8 @@ async function update({ repo = process.cwd(), paths: p = PATHS, run = command, l
   } finally { for (const file of held.reverse()) fs.rmdirSync(file); }
 }
 if (require.main === module) {
-  if (process.argv.length !== 2 || process.getuid?.() !== 0 || Number(process.versions.node.split(".")[0]) < 22 || /^\/(root|home)\//.test(process.execPath)) throw Error("Run with system Node 22+ as root, with no arguments");
-  process.umask(0o077); update().catch(error => { console.error(error.message); process.exitCode = 1; });
+  const args = process.argv.slice(2);
+  if ((args.length && (args.length !== 1 || args[0] !== "--enable")) || process.getuid?.() !== 0 || Number(process.versions.node.split(".")[0]) < 22 || /^\/(root|home)\//.test(process.execPath)) throw Error("Run with system Node 22+ as root; optional --enable activates the web API");
+  process.umask(0o077); update({ enable: args[0] === "--enable" }).catch(error => { console.error(error.message); process.exitCode = 1; });
 }
-module.exports = { update, health, activationFingerprint, BASE, REQUIRED, ALLOWED, PROBES, LOCKS, UNIT, PATHS };
+module.exports = { update, health, activationFingerprint, enableEnvironment, snapshotState, BASE, REQUIRED, ALLOWED, PROBES, LOCKS, UNIT, PATHS };

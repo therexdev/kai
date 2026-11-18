@@ -2,6 +2,16 @@
 const test = require("node:test"), assert = require("node:assert/strict");
 const fs = require("node:fs"), os = require("node:os"), path = require("node:path");
 const { Signer, Serializer, utils } = require("koilib");
+// Bind the native transport boundary to the per-test HTTP fixture before loading
+// the deployment modules. These probes must never contact a public RPC.
+require("node:test").mock.method(require("../lib/koin-network/rpc-http"), "rpcFetch", (...args) => globalThis.fetch(...args));
+// These deployment tests exercise identity retries and durable transaction
+// recovery. The dedicated RPC suites exercise real queues and cooldown clocks;
+// don't let one test's 503 incident leak into the next test's fixture URLs.
+const scheduling = require("../lib/koin-network/rpc-scheduler");
+require("node:test").mock.method(scheduling, "endpointAttempt", () => ({ throttle() {}, success() {}, close() {} }));
+require("node:test").mock.method(scheduling, "endpointSlot", async (_url, signal) => { signal.throwIfAborted(); return () => {}; });
+require("node:test").mock.method(scheduling, "endpointStats", () => ({ active: 0, queued: 0 }));
 const { prepare, verifyIdentity, MAINNET_CHAIN, MAINNET_TOKEN, ROLES } = require("../deploy/koin-mainnet/prepare");
 const { configure, checkFunding } = require("../deploy/koin-mainnet/setup");
 const { deploy } = require("../deploy/koin-test/setup");

@@ -20,6 +20,7 @@ jobs:
           scripts/probe-koin-free-credits.js scripts/probe-koin-public-stream.js
           scripts/probe-koin-credit-stream.js scripts/probe-wallet-credit-router.js
           scripts/probe-koin-device-free-router.js scripts/probe-purchase-quotes-http.js
+          scripts/probe-mainnet-deployment-rpc.js
           deploy/koin-mainnet/update-web-api.test.js
       - name: Check browser and server syntax
         run: |
@@ -27,3 +28,20 @@ jobs:
           node --check lib/credit-gateway.js
           node --check lib/credit-api-keys.js
           node --check test-server.js
+  portal-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/credit-platform.browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: credit-platform-browser-preview
+          path: tests/credit-platform-preview/*.png
+          if-no-files-found: ignore

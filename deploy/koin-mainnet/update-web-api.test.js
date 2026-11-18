@@ -21,6 +21,7 @@ function fixture(t) {
   const state = () => ({ ActiveState: active, MainPID: pid, ExecMainPID: execPid, ExecMainCode: "1", ExecMainStatus: status, Result: result, NRestarts: restarts });
   const run = (exe, args) => {
     calls.push([exe, ...args]); hook(exe, args);
+    if (exe === "tar") { assert.equal(active, "inactive"); fs.writeFileSync(args[1], "fixture-state-archive"); }
     if (exe === "git") { if (args[0] === "rev-parse") return target; if (args[0] === "status") return dirty; if (args[0] === "diff") return changed; if (args[0] === "ls-tree") return "100644 blob " + blob("source") + "\ttest-server.js\0"; }
     if (exe === "systemctl") {
       if (args[0] === "show") { const values = { ...state(), WorkingDirectory: loaded, FragmentPath: p.unit, DropInPaths: dropIns, Restart: restart, RestartForceExitStatus: "", UnitFileState: "enabled" }, key = args.at(-1).split("=")[1]; return key.includes(",") ? key.split(",").map(k => k + "=" + values[k]).join("\n") : values[key]; }
@@ -47,7 +48,47 @@ test("code preflight precedes clean drain and both writer checks; activation and
   assert.ok(index("stage") < drain); assert.ok(f.calls.findIndex(row => row[0] === process.execPath && row[1] === "--test") < drain);
   assert.ok(f.calls.findIndex(row => row.some(v => String(v).endsWith("check-rpc-recovery.js"))) < drain);
   assert.deepEqual(f.calls[drain], ["drain", 240000]); assert.ok(drain < index("storage-idle")); assert.ok(index("storage-idle") < start);
+  assert.ok(index("tar") > drain && index("tar") < start);
   assert.equal((await U.update(f.options)).unchanged, true); assert.equal(f.calls.filter(row => row[0] === "drain").length, 1); f.assertPreserved();
+});
+test("enable preserves other environment bytes and ownership, saves a private backup and is idempotent", t => {
+  const f = fixture(t), file = path.join(f.p.config, "account.env"), bytes = Buffer.from('# existing config\nSMTP_PASS="test-secret"\nKAI_WEB_API_ENABLED=0\nGOOGLE_CLIENT_ID=test\n');
+  fs.writeFileSync(file, bytes); fs.chmodSync(file, 0o640); const before = fs.statSync(file);
+  U.enableEnvironment(f.p, { log: message => f.logs.push(message) });
+  assert.equal(fs.readFileSync(file, "utf8"), bytes.toString().replace("KAI_WEB_API_ENABLED=0", "KAI_WEB_API_ENABLED=1"));
+  const after = fs.statSync(file); assert.equal(after.uid, before.uid); assert.equal(after.gid, before.gid); assert.equal(after.mode & 0o777, 0o640);
+  const dirs = fs.readdirSync(f.p.work).filter(n => n.startsWith("kai-web-api-env-")); assert.equal(dirs.length, 1);
+  const backup = path.join(f.p.work, dirs[0]); assert.equal(fs.statSync(backup).mode & 0o777, 0o700);
+  assert.deepEqual(fs.readFileSync(path.join(backup, "account.env")), bytes); assert.equal(fs.statSync(path.join(backup, "account.env")).mode & 0o777, 0o600);
+  assert.doesNotMatch(f.logs.join("\n"), /test-secret/);
+  U.enableEnvironment(f.p, { allowChange: false }); assert.equal(fs.statSync(file).ino, after.ino); assert.equal(fs.statSync(file).mtimeMs, after.mtimeMs);
+});
+test("enable rejects ambiguous, linked and changed deployment settings", t => {
+  for (const value of ["KAI_WEB_API_ENABLED=0\nKAI_WEB_API_ENABLED=1\n", "KAI_WEB_API_ENABLED=unexpected\n"]) {
+    const f = fixture(t), file = path.join(f.p.config, "account.env"); fs.writeFileSync(file, value);
+    assert.throws(() => U.enableEnvironment(f.p)); assert.equal(fs.readFileSync(file, "utf8"), value); f.assertNoStop();
+  }
+  const f = fixture(t), file = path.join(f.p.config, "account.env"); fs.symlinkSync(f.secretFile, file); assert.throws(() => U.enableEnvironment(f.p), /Real unlinked/);
+  fs.unlinkSync(file); fs.writeFileSync(file, "EXISTING=value"); assert.throws(() => U.enableEnvironment(f.p, { allowChange: false }), /unchanged enabled environment/);
+});
+test("enabled deployment resumes without rewriting configuration or repeating the snapshot", async t => {
+  const f = fixture(t), file = path.join(f.p.config, "account.env"); fs.writeFileSync(file, "EXISTING=value\n");
+  f.options.enable = true; assert.equal((await U.update(f.options)).installed, true);
+  assert.equal(fs.readFileSync(file, "utf8"), "EXISTING=value\nKAI_WEB_API_ENABLED=1\n");
+  assert.equal((await U.update(f.options)).unchanged, true); assert.equal(f.calls.filter(c => c[0] === "tar").length, 1);
+});
+test("failed state backup leaves the clean stopped service recoverable without installing new code", async t => {
+  const f = fixture(t); f.hook = exe => { if (exe === "tar") throw Error("snapshot disk full"); };
+  await assert.rejects(U.update(f.options), /snapshot disk full/); assert.equal(f.active, "inactive"); assert.deepEqual(fs.readFileSync(f.p.unit), f.oldUnit);
+  assert.equal(f.calls.some(c => c[0] === "systemctl" && c[1] === "start"), false);
+  f.hook = () => {}; assert.equal((await U.update(f.options)).installed, true); f.assertPreserved();
+});
+test("state snapshot includes SQLite sidecars and recovery anchors in a private archive", t => {
+  const f = fixture(t), sidecar = path.join(f.p.state, "cycle.sqlite-wal"); fs.writeFileSync(sidecar, "latest-wal");
+  const archive = U.snapshotState({ paths: f.p }); const exec = require("node:child_process").execFileSync;
+  assert.equal(exec("tar", ["-xOf", archive, "./cycle.sqlite-wal"], { encoding: "utf8" }), "latest-wal");
+  assert.match(exec("tar", ["-tf", archive], { encoding: "utf8" }), /recovery-anchor.sqlite/);
+  assert.equal(fs.statSync(archive).mode & 0o777, 0o600); assert.equal(fs.statSync(path.dirname(archive)).mode & 0o777, 0o700);
 });
 test("unreviewed source, wrong service, missing activation, locks and failed tests do not stop production", async t => {
   for (const kind of ["dirty", "extra", "missing", "restart", "override", "release", "legacy", "missing-db", "lock", "probe"]) {
@@ -127,7 +168,7 @@ test("orphan staged release and unclean initial service require review without a
 test("health requires claim recovery, keep-alives, RPC backoff and v4 SQLite/earnings readiness on both origins", async () => {
   const now = 1800000000000, expected = { chainId: "chain" };
   for (const broken of [null, "local", "public", "worker", "stale"]) {
-    const fetchImpl = async url => new Response(JSON.stringify(url.endsWith("/health") ? { chainId: "chain", rpcBackoffVersion: 1, streamKeepaliveVersion: 1, claimResourceRecoveryVersion: 1, webApiVersion: (broken === "local" && url.startsWith("http:")) || (broken === "public" && url.startsWith("https:")) ? undefined : 1, rewardRuntimeVersion: 4, rewardStorage: { schema: 1, mode: "sqlite-shadow", ready: broken !== "worker" } } : { schema: 1, ready: true, observedAt: now, reasons: [], lastAvailabilitySuccess: now - (broken === "stale" ? 100000 : 1000), currentEpoch: { epoch: String(Math.floor(now / 86400000)), budgetPresent: true, dayPresent: true, openedAt: now - 100000, intervalCount: 1, lastIntervalEnd: now - 30000 } }));
+    const fetchImpl = async url => new Response(JSON.stringify(url.endsWith("/health") ? { chainId: "chain", rpcReliabilityVersion: 1, rpcBackoffVersion: 1, streamKeepaliveVersion: 1, claimResourceRecoveryVersion: 1, webApiVersion: (broken === "local" && url.startsWith("http:")) || (broken === "public" && url.startsWith("https:")) ? undefined : 1, rewardRuntimeVersion: 4, rewardStorage: { schema: 1, mode: "sqlite-shadow", ready: broken !== "worker" } } : { schema: 1, ready: true, observedAt: now, reasons: [], lastAvailabilitySuccess: now - (broken === "stale" ? 100000 : 1000), currentEpoch: { epoch: String(Math.floor(now / 86400000)), budgetPresent: true, dayPresent: true, openedAt: now - 100000, intervalCount: 1, lastIntervalEnd: now - 30000 } }));
     const options = { expected, fetchImpl, clock: () => now, timeoutMs: 0, checkWallet: async () => {} };
     if (broken) await assert.rejects(U.health(options)); else await U.health(options);
   }
