@@ -1,0 +1,29 @@
+name: Web accounts and API
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  credits-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Verify accounts, billing, API, portal and rollout recovery
+        run: >-
+          node --test
+          scripts/probe-credit-gateway.js scripts/probe-credit-platform-dom.js
+          scripts/probe-credit-account-web.js scripts/probe-koin-prepaid.js
+          scripts/probe-koin-free-credits.js scripts/probe-koin-public-stream.js
+          scripts/probe-koin-credit-stream.js scripts/probe-wallet-credit-router.js
+          scripts/probe-koin-device-free-router.js scripts/probe-purchase-quotes-http.js
+          deploy/koin-mainnet/update-web-api.test.js
+      - name: Check browser and server syntax
+        run: |
+          node --check public/platform/platform.js
+          node --check lib/credit-gateway.js
+          node --check lib/credit-api-keys.js
+          node --check test-server.js
