@@ -21,6 +21,13 @@ async function fixture(t) {
     (async () => {
       const chunks = []; for await (const chunk of req) chunks.push(chunk);
       const body = JSON.parse(Buffer.concat(chunks)); f.calls.push(body);
+      if (f.mode.startsWith("gateway-")) {
+        res.writeHead(429, { "Content-Type": "application/json", "Retry-After": "60" });
+        if (f.mode === "gateway-stall") { res.write("{"); return; }
+        if (f.mode === "gateway-drop") { res.write("{"); setImmediate(() => res.destroy()); return; }
+        if (f.mode === "gateway-oversize") { res.end(" ".repeat(8193)); return; }
+        res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, error: { code: -32005, message: "RPC rate limit", data: "private upstream body" } })); return;
+      }
       if (f.mode === "headers") return;
       if (f.mode === "body" || (f.mode === "broadcast" && body.method === "chain.submit_transaction")) {
         res.writeHead(200, { "Content-Type": "application/json" }); res.write("{"); return;
@@ -47,6 +54,24 @@ async function fixture(t) {
   f.provider = (options = {}) => new PinnedRpcProvider([f.url], chainId, { fetchImpl: f.fetchImpl, ...options });
   return f;
 }
+test("bounded gateway bodies preserve HTTP backoff through truncation and close sockets before settlement", { timeout: 5000 }, async t => {
+  const f = await fixture(t);
+  for (const mode of ["gateway-known", "gateway-stall", "gateway-drop", "gateway-oversize"]) {
+    f.mode = mode;
+    const started = Date.now();
+    const response = await f.fetchImpl(f.url, { method: "POST", redirect: "error", body: JSON.stringify({ id: 17, method: "chain.get_chain_id" }), signal: new AbortController().signal });
+    assert.equal(f.active, 0); assert.equal(response.status, 429); assert.equal(response.retryAfterMs, 60000);
+    assert.ok(Date.now() - started < 1500, "An unfinished error body must not consume the normal RPC deadline");
+    assert.equal(response.gatewayReason, mode === "gateway-known" ? "rate_limit" : undefined);
+    assert.doesNotMatch(JSON.stringify(response), /private upstream/);
+    assert.equal(await response.text(), "");
+  }
+  f.mode = "gateway-stall"; const controller = new AbortController();
+  const pending = f.fetchImpl(f.url, { method: "POST", redirect: "error", body: JSON.stringify({ id: 18, method: "chain.get_chain_id" }), signal: controller.signal });
+  const rejected = assert.rejects(pending, { code: "ABORT_ERR" });
+  while (f.calls.length < 5) await pause(5);
+  controller.abort(); await rejected; assert.equal(f.active, 0);
+});
 test("real HTTPS header/body stalls release both RPC slots after deadlines, repeatedly, without a process restart", { timeout: 10000 }, async t => {
   const f = await fixture(t), p = f.provider({ timeoutMs: 300, attemptTimeoutMs: 300 });
   for (const mode of ["headers", "body", "headers", "body"]) {

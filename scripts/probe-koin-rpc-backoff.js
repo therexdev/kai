@@ -162,7 +162,7 @@ test("only one full recovery attempt runs while other clients immediately use a 
   const p = f.provider([url], fetchImpl);
   await assert.rejects(f.settle(p.getChainId()), /temporarily unavailable/);
   failed = false; await f.advance(1000);
-  const recovery = p.call("chain.get_head_info", {}); await flush(); await f.advance(50);
+  const recovery = p.call("chain.get_head_info", {}); await flush(); await f.advance(200);
   assert.equal(typeof releaseOperation, "function");
   assert.equal(f.scheduler.stats(url).recovering, true);
   assert.deepEqual(await f.settle(f.provider([url, backup], fetchImpl).call("chain.get_head_info", {})), { ok: true });
