@@ -193,7 +193,9 @@ async function main() {
      * must NOT pretend to offer create, or someone will click a button that
      * cannot work and conclude the feature is broken.
      */
-    const acctPage = await raw(port, "/account", cookie);
+    // Test the website session/grant page directly. /account can redirect to
+    // the separate hosted account service once that service reports ready.
+    const acctPage = await raw(port, "/account/website", cookie);
     check(acctPage.status === 200, "the account page serves");
     check(/Legacy web access/.test(acctPage.body), "it labels retained web access as legacy");
     check(/Signed-in browsers/.test(acctPage.body), "…and a signed-in-browsers section");
