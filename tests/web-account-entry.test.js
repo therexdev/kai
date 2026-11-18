@@ -1,7 +1,7 @@
 "use strict";
 const { test } = require("node:test"), assert = require("node:assert/strict"), express = require("express"), http = require("node:http");
 test("network account entry uses fixed destinations without forwarding queries or cookies", async t => {
-  const app = express(); app.use(require("../lib/web-account-entry").webAccountEntry());
+  const app = express(); app.use(require("../lib/web-account-entry").webAccountEntry({ fetchImpl: async () => ({ ok: true, json: async () => ({ webApiVersion: 1 }) }) }));
   const server = http.createServer(app); await new Promise(r => server.listen(0, "127.0.0.1", r));
   t.after(() => new Promise(r => { server.closeAllConnections(); server.close(r); }));
   const base = "http://127.0.0.1:" + server.address().port;

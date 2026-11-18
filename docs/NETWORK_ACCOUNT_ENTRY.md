@@ -7,3 +7,12 @@ Deploy after the separate `codex/web-accounts-api` backend change is installed, 
 The inference API base is `https://credits.koinosai.com/v1`. Keep `api.koinosai.com` as the blockchain RPC. The homepage still prioritizes installing Core, downloading models and sharing compute.
 
 Validation: `node --test tests/web-account-entry.test.js tests/beta-launch.test.js`.
+
+
+## Dedicated login and account sidebar
+
+The public navigation now says **Log in**, including a visible mobile-header link. `/login` opens the credit service login and `/account` opens its unified dashboard only after `/health` advertises `accountUiVersion: 1`. The website caches this capability for 20 seconds and keeps the last successful capability on transient failures. Before activation, it keeps the currently deployed destinations, so website rollout can precede the VPS update without exposing missing routes.
+
+The previous website database remains intact. Existing node, builder and legacy workspace gates go through `/website-login` and back to their original tool; a short-lived HttpOnly return cookie preserves Google's existing callback. It carries only an allowlisted local path, never a session token. `/account/website` retains management of older website sessions, grants and wallet links. This compatibility surface is labeled Website access and uses the same sidebar design as the node dashboard. These historical identities are not automatically merged into the network-credit account.
+
+Validate with `node --test tests/web-account-entry.test.js tests/account-login-navigation.test.js tests/beta-launch.test.js`. Deploy the account dashboard backend using its reviewed `update-account-ui.js` command. The website will then switch Login and Account to the new pages automatically; no second website deployment is needed.
