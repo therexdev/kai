@@ -53,6 +53,7 @@ async function checkLanguageLayout(page){
  for(const url of ['/','/network','/beta','/privacy','/account','/dashboard','/updates','/docs/','/app','/build']){
   await page.goto('http://kai.test'+url);await page.waitForTimeout(150);
   const report=await page.evaluate(()=>({path:location.pathname,lang:document.documentElement.lang,selector:document.querySelectorAll('[data-language-select]').length,heading:document.querySelector('h1,h2')?.textContent,overflow:document.documentElement.scrollWidth>innerWidth+1}));reports.push(report);assert.equal(report.lang,'es',url);assert.equal(report.selector,1,url);assert.equal(report.overflow,false,url);
+  if(await page.locator('.account-shell').count())assert.equal(await page.locator('[data-language-select]').isVisible(),true,url+' language selector stays available in the sidebar');
   if(url==='/app'){
    assert.equal(await page.locator('#composer-input').getAttribute('placeholder'),'Pregunta lo que quieras…');
    assert.equal(await page.locator('#doc-ai-input').getAttribute('placeholder'),'Pregunta sobre este documento…');
