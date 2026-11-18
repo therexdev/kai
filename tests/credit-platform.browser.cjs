@@ -29,11 +29,16 @@ const { service } = require("../scripts/helpers/credit-gateway-fixture");
     await page.locator("#key-list button").click();
     assert.equal((await s.call("/v1/credits", undefined, { authorization: "Bearer " + key })).status, 401);
     await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(await page.locator("#logout").isVisible(), true);
+    assert.equal(await page.locator('.sidebar-bottom a[href="/account"]').isVisible(), true);
+    assert.equal(await page.locator(".mobile-docs").isVisible(), true);
     for (const tab of ["overview", "playground", "keys", "usage"]) {
       await page.locator(`[data-tab="${tab}"]`).first().click();
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, tab + " must fit mobile width");
       await page.screenshot({ path: path.join(screenshots, "mobile-" + tab + ".png"), fullPage: true });
     }
+    await page.locator("#logout").click(); await page.waitForURL(s.base + "/account");
+    assert.equal((await page.request.get(s.base + "/platform", { maxRedirects: 0 })).status(), 302);
     assert.deepEqual(errors, []);
     console.log("Browser checks passed: desktop/mobile, real gateway chat, API key create/hide/revoke, no page errors.");
   } finally {
