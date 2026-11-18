@@ -321,6 +321,7 @@ try {
 // One page serves sign-in, the account view, and device-link approval; the
 // /link deep-link is what the desktop app shows next to its code.
 app.get(["/account", "/link"], (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "account.html")));
+app.use(require("./lib/web-account-entry").webAccountEntry());
 
 // KAI Build shares account identity, but has its own durable projects and jobs.
 // The privileged deployment signer runs as a separate OS service.
