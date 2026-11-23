@@ -15,14 +15,15 @@
     document.querySelector(".sidebar > .eyebrow").textContent = "YOUR WORKSPACE";
     const controls = $("playground").querySelector(".controls"), settings = make("details", undefined, "chat-settings"), summary = make("summary", "Chat settings");
     const options = make("div", undefined, "chat-settings-body");
-    options.append($("tokens").closest("label"), $("chat-free").closest("label"), document.querySelector(".wallet-bar"), ...$("playground").querySelectorAll(".card > .small"));
+    options.append($("tokens").closest(".token-settings"), $("chat-free").closest("label"), document.querySelector(".wallet-bar"), ...$("playground").querySelectorAll(".card > .small"));
     settings.append(summary, options); controls.append(settings);
     $("playground").querySelector(".section-title").hidden = true;
   }
   let overview, wallet = "", history = [], controller, draft, quotePending = false;
   const notice = (message, error = false) => { $("notice").textContent = message; $("notice").hidden = !message; $("notice").classList.toggle("error", error); };
-  async function api(url, body, method = body ? "POST" : "GET") {
-    const response = await fetch(url, { method, credentials: "same-origin", cache: "no-store", headers: { ...(body ? { "content-type": "application/json" } : {}), ...(overview?.account?.id ? { "x-kai-account": overview.account.id } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const chatUI = window.KaiChatUI.create({ messages: $("messages"), prompt: $("prompt"), form: $("chat"), send: $("send"), notice });
+  async function api(url, body, method = body ? "POST" : "GET", signal) {
+    const response = await fetch(url, { method, credentials: "same-origin", cache: "no-store", signal, headers: { ...(body ? { "content-type": "application/json" } : {}), ...(overview?.account?.id ? { "x-kai-account": overview.account.id } : {}) }, body: body ? JSON.stringify(body) : undefined });
     const value = await response.json();
     if (!response.ok) {
       if (response.status === 401) login();
@@ -128,7 +129,10 @@
     const models = data.models.filter(m => m.available), prior = $("model").value;
     $("model-count").textContent = String(models.length); $("model").replaceChildren();
     for (const m of models) $("model").add(new Option(m.label + (m.freeEligible ? " · free eligible" : ""), m.model));
-    if (models.some(m => m.model === prior)) $("model").value = prior;
+    // A fresh Chat visit starts on GPT OSS 120B when it is available. Balance
+    // refreshes keep the model the person selected during this visit.
+    const preferred = prior || (workspace ? "akash-gpt-oss-120b" : "");
+    if (models.some(m => m.model === preferred)) $("model").value = preferred;
     $("send").disabled = !models.length || !!controller; modelLimit();
     $("base-url").textContent = data.apiBase;
     $("usage-rows").replaceChildren();
@@ -142,8 +146,17 @@
     $("chat-free").disabled = !data.account.wallets.length; $("key-free").disabled = !wallet; $("key-purchase").disabled = !wallet;
     try { const pending = JSON.parse(localStorage.getItem("kai-web-purchase-" + data.account.id) || "null"); if (pending) { $("tx").value = pending.txId; $("purchase-status").textContent = "Payment " + pending.txId + " needs confirmation. Select wallet " + pending.wallet + " and check the transaction before making another payment."; } } catch { /* Storage may be disabled. */ }
   }
-  function modelLimit() { const model = overview?.models.find(m => m.model === $("model").value); if (model) { $("tokens").max = model.maxOutput; if (Number($("tokens").value) > model.maxOutput) $("tokens").value = model.maxOutput; } }
+  function modelLimit() {
+    const model = overview?.models.find(m => m.model === $("model").value);
+    if (model) {
+      $("tokens").max = model.maxOutput;
+      if ($("auto-tokens").checked || Number($("tokens").value) > model.maxOutput) $("tokens").value = model.maxOutput;
+      $("context-limit").textContent = "Up to " + model.maxOutput.toLocaleString() + " reply tokens · " + Number(model.contextTokens).toLocaleString() + " total context tokens. Automatic mode leaves room for your conversation.";
+    }
+  }
   $("model").onchange = modelLimit;
+  $("auto-tokens").onchange = modelLimit;
+  $("tokens").oninput = () => { $("auto-tokens").checked = false; };
   $("wallet").onchange = async () => { wallet = $("wallet").value; rememberWallet(); try { await refresh(); } catch (e) { notice(e.message, true); } };
   action("refresh", refresh);
   action("logout", async () => { await api("/auth/logout", {}); login(); });
@@ -184,19 +197,23 @@
   });
   action("copy-key", async () => { await navigator.clipboard.writeText($("secret").value); notice("API key copied."); });
   action("hide-key", () => { $("secret").value = ""; $("new-key").hidden = true; });
-  function message(role, text) {
-    $("messages").querySelector(".empty")?.remove();
-    const div = make("div", undefined, "message " + role), content = make("span", text); div.append(make("strong", role === "user" ? "YOU" : "KOINOS AI"), content); $("messages").append(div); return content;
-  }
+  function message(role, text) { return chatUI.message(role, text); }
   form("chat", async () => {
     if (controller) return;
     if (!overview || !$("model").value) throw Error("Models are still loading. Please try again shortly.");
     const text = $("prompt").value.trim(); if (!text) return;
-    const outgoing = [...history, { role: "user", content: text }]; message("user", text); const answer = message("assistant", "Connecting to a provider…");
-    controller = new AbortController(); $("send").disabled = true; $("stop").hidden = false; $("prompt").value = ""; let content = "", done = false;
+    const outgoing = [...history, { role: "user", content: text }], model = $("model").value;
+    chatUI.latest(); message("user", text); const answer = message("assistant", "Connecting to a provider…");
+    controller = new AbortController(); $("send").disabled = true; $("stop").hidden = false; $("prompt").value = ""; chatUI.resize(); chatUI.busy(true); chatUI.status("Checking conversation size…");
+    let content = "", done = false, usage, finishReason;
     try {
+      const limits = await api("/platform/api/chat/limits", { model, messages: outgoing }, "POST", controller.signal);
+      if (controller.signal.aborted) throw new DOMException("Stopped", "AbortError");
+      const maxTokens = Math.min($("auto-tokens").checked ? limits.modelMaxOutput : Number($("tokens").value), limits.maxOutput);
+      $("tokens").value = maxTokens;
+      chatUI.status("Waiting for " + (overview.models.find(m => m.model === model)?.label || model) + "…");
       const response = await fetch("/platform/api/chat", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID(), "x-kai-account": overview.account.id }, signal: controller.signal,
-        body: JSON.stringify({ model: $("model").value, messages: outgoing, max_tokens: Number($("tokens").value), stream: true, freeOnly: $("chat-free").checked }) });
+        body: JSON.stringify({ model, messages: outgoing, max_tokens: maxTokens, stream: true, stream_options: { include_usage: true }, freeOnly: $("chat-free").checked }) });
       if (!response.ok) { const data = await response.json(); throw Error(data.error?.message || "Request failed"); }
       const reader = response.body.getReader(), decoder = new TextDecoder(); let buffer = "";
       while (true) {
@@ -207,19 +224,27 @@
           if (!frame.startsWith("data: ")) continue;
           const value = frame.slice(6); if (value === "[DONE]") { done = true; continue; }
           const data = JSON.parse(value); if (data.error) throw Error(data.error.message);
-          content += data.choices?.[0]?.delta?.content || ""; answer.textContent = content || "Waiting for the model…"; $("messages").scrollTop = $("messages").scrollHeight;
+          if (data.usage) usage = data.usage;
+          finishReason = data.choices?.[0]?.finish_reason || finishReason;
+          content += data.choices?.[0]?.delta?.content || ""; answer.set(content || "Waiting for the model…");
+          if (content) chatUI.status("Generating response…");
         }
       }
       if (!done) throw Error("Connection ended before the reply finished.");
+      answer.finish(content);
+      if (usage) answer.meta(Number(usage.completion_tokens).toLocaleString() + " reply tokens");
+      chatUI.status(finishReason === "length" ? "Reply reached its output limit. You can ask to continue." : "Response complete");
       history = [...outgoing, { role: "assistant", content }]; saveHistory();
     } catch (e) {
       const reason = e.name === "AbortError" ? "Stopped. Only verified delivered usage is charged." : e.message;
-      if (!content) answer.textContent = reason; else { history = [...outgoing, { role: "assistant", content }]; saveHistory(); notice(reason, true); }
+      if (!content) { answer.finish(reason); if (!$("prompt").value) { $("prompt").value = text; chatUI.resize(); } }
+      else { answer.finish(content); history = [...outgoing, { role: "assistant", content }]; saveHistory(); notice(reason, true); }
+      chatUI.status(reason);
       throw e.name === "AbortError" ? Error(reason) : e;
-    } finally { controller = null; $("stop").hidden = true; $("send").disabled = false; await refresh().catch(() => {}); }
+    } finally { controller = null; $("stop").hidden = true; $("send").disabled = false; chatUI.busy(false); paintHistory(); await refresh().catch(() => {}); }
   });
   action("stop", () => controller?.abort());
-  action("clear", () => { if (controller) throw Error("Stop the current reply first."); history = []; currentChat = null; paintHistory(); $("messages").replaceChildren(make("p", "What would you like to work on?", "empty")); });
+  action("clear", () => { if (controller) throw Error("Stop the current reply first."); history = []; currentChat = null; paintHistory(); chatUI.reset(); $("prompt").value = ""; chatUI.resize(); $("prompt").focus(); });
   let historyAccount = null, savedChats = [], currentChat = null;
   function initHistory(accountId) {
     if (!workspace || historyAccount === accountId) return;
@@ -233,13 +258,23 @@
   }
   function paintHistory() {
     if (!$("chat-history")) return;
+    $("export-chat").disabled = !history.length || !!controller;
     $("chat-history").replaceChildren();
     for (const item of savedChats) {
-      const row = make("div", undefined, "saved-chat"), open = make("button", item.title, "nav"), remove = make("button", "×", "quiet");
+      const row = make("div", undefined, "saved-chat"), open = make("button", item.title, "nav"), rename = make("button", "✎", "quiet"), remove = make("button", "×", "quiet");
       open.title = item.title; open.classList.toggle("active", item.id === currentChat); remove.setAttribute("aria-label", "Delete chat: " + item.title);
-      open.onclick = () => { if (controller) return notice("Stop the current reply before changing chats.", true); currentChat = item.id; history = item.messages.map(m => ({ ...m })); $("messages").replaceChildren(); history.forEach(m => message(m.role, m.content)); paintHistory(); };
+      open.onclick = () => { if (controller) return notice("Stop the current reply before changing chats.", true); currentChat = item.id; history = item.messages.map(m => ({ ...m })); chatUI.reset(); history.forEach(m => message(m.role, m.content)); paintHistory(); document.body.classList.remove("show-chats"); $("toggle-chats").setAttribute("aria-expanded", "false"); };
+      rename.setAttribute("aria-label", "Rename chat: " + item.title);
+      rename.onclick = () => {
+        if (controller) return notice("Stop the current reply before renaming a chat.", true);
+        const input = make("input"); input.value = item.title; input.maxLength = 80; input.setAttribute("aria-label", "Chat title");
+        row.replaceChildren(input); input.focus(); input.select();
+        let finished = false;
+        const finish = save => { if (finished) return; finished = true; if (save && input.value.trim()) { item.title = input.value.trim(); persistHistory(); } paintHistory(); };
+        input.onkeydown = e => { if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); finish(e.key === "Enter"); } }; input.onblur = () => finish(true);
+      };
       remove.onclick = () => { if (controller || !confirm("Delete this chat from this browser?")) return; savedChats = savedChats.filter(c => c.id !== item.id); if (currentChat === item.id) $("clear").click(); persistHistory(); paintHistory(); };
-      row.append(open, remove); $("chat-history").append(row);
+      row.append(open, rename, remove); $("chat-history").append(row);
     }
   }
   function persistHistory() {
@@ -250,10 +285,18 @@
   function saveHistory() {
     if (!workspace || !historyAccount) return;
     currentChat ||= crypto.randomUUID();
-    const entry = { id: currentChat, title: history.find(m => m.role === "user")?.content.slice(0, 60) || "New chat", messages: history.slice(-200) };
+    const entry = { id: currentChat, title: savedChats.find(c => c.id === currentChat)?.title || history.find(m => m.role === "user")?.content.slice(0, 60) || "New chat", messages: history.slice(-200) };
     savedChats = [entry, ...savedChats.filter(c => c.id !== currentChat)].slice(0, 40); persistHistory(); paintHistory();
   }
   $("sidebar-new-chat").onclick = () => $("clear").click();
+  $("toggle-chats").onclick = () => { const open = document.body.classList.toggle("show-chats"); $("toggle-chats").setAttribute("aria-expanded", String(open)); };
+  action("export-chat", () => {
+    if (!history.length) return;
+    const title = savedChats.find(c => c.id === currentChat)?.title || "KAI conversation";
+    const text = "# " + title + "\n\n" + history.map(m => "## " + (m.role === "user" ? "You" : "Koinos AI") + "\n\n" + m.content).join("\n\n");
+    const url = URL.createObjectURL(new Blob([text], { type: "text/markdown;charset=utf-8" })), link = make("a");
+    link.href = url; link.download = "kai-conversation.md"; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
   form("buy", async () => {
     if (quotePending) return; if (vaultRequest) throw Error("Resolve the pending KOIN Vault request before starting another purchase."); if (!wallet) throw Error("Connect and select your payment wallet first.");
     if ($("tx").value) throw Error("Check the previous transaction before starting another purchase.");
