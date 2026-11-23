@@ -15,7 +15,7 @@ jobs:
       - name: Verify accounts, billing, API, portal and rollout recovery
         run: >-
           node --test
-          scripts/probe-credit-gateway.js scripts/probe-credit-platform-dom.js scripts/probe-account-dashboard.js scripts/probe-workspace-links.js scripts/probe-credit-wallet-links.js scripts/probe-accounts.js
+          scripts/probe-credit-gateway.js scripts/probe-credit-platform-dom.js scripts/probe-account-dashboard.js scripts/probe-workspace-links.js scripts/probe-credit-wallet-links.js scripts/probe-credit-vault.js scripts/probe-accounts.js
           scripts/probe-credit-account-web.js scripts/probe-koin-prepaid.js
           scripts/probe-koin-free-credits.js scripts/probe-koin-public-stream.js
           scripts/probe-koin-credit-stream.js scripts/probe-wallet-credit-router.js

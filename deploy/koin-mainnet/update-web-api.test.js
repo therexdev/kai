@@ -220,19 +220,63 @@ test("account UI update refuses an unknown current release and changes outside t
   const g = fixture(t, UI); g.changed = UI.REQUIRED.join("\n") + "\nlib/accounts.js"; await assert.rejects(UI.update(g.options), /exact reviewed/); g.assertNoStop();
 });
 
-test("workspace rollout preserves financial state from either reviewed managed-inference revision and resumes once", async t => {
+test("workspace rollout preserves the installed Android account release and financial state, then resumes once", async t => {
   const W = require("./update-workspace");
   for (const base of W.BASES) {
     const f = fixture(t, { ...W, BASE: base });
     assert.equal((await W.update(f.options)).installed, true); f.assertPreserved();
     assert.equal((await W.update(f.options)).unchanged, true);
     assert.equal(f.calls.filter(c => c[0] === "tar").length, 1);
+    assert.ok(f.calls.some(row => row[0] === "git" && row[1] === "merge-base" && row[3] === "1622f662dbea16c6cbd874f3be07e5be8983bb58"));
   }
 });
 test("workspace rollout rejects unknown installed code and unreviewed files before stopping anything", async t => {
   const W = require("./update-workspace");
-  const unknown = fixture(t, W); unknown.loaded = path.join(unknown.p.releases, "c".repeat(40));
-  await assert.rejects(W.update(unknown.options), /Unexpected installed/); unknown.assertNoStop();
+  for (const base of ["c".repeat(40), "69498976bd58b5416ac906eb26bc541e5652d251"]) {
+    const unknown = fixture(t, W); unknown.loaded = path.join(unknown.p.releases, base);
+    await assert.rejects(W.update(unknown.options), error => error.message.includes(base) && error.message.includes(W.BASE)); unknown.assertNoStop();
+  }
   const changed = fixture(t, W); changed.changed = W.REQUIRED.join("\n") + "\nlib/unreviewed.js";
   await assert.rejects(W.update(changed.options), /exact reviewed/); changed.assertNoStop();
+});
+test("workspace health requires Android support and the new capabilities on both origins", async () => {
+  const W = require("./update-workspace"), now = 1800000000000;
+  const capabilities = { nativeAccountVersion: 1, workspaceUiVersion: 1, workspaceSsoVersion: 1, deviceLinkRecoveryVersion: 2, creditWalletLinksVersion: 1 };
+  for (const origin of ["http:", "https:"]) for (const missing of [null, ...Object.keys(capabilities)]) {
+    const fetchImpl = async url => {
+      const value = url.endsWith("/health") ? { chainId: "chain", rpcReliabilityVersion: 1, rpcBackoffVersion: 1, streamKeepaliveVersion: 1, claimResourceRecoveryVersion: 1, webApiVersion: 1, rewardRuntimeVersion: 4, rewardStorage: { schema: 1, mode: "sqlite-shadow", ready: true }, ...capabilities }
+        : { schema: 1, ready: true, observedAt: now, reasons: [], lastAvailabilitySuccess: now - 1000, currentEpoch: { epoch: String(Math.floor(now / 86400000)), budgetPresent: true, dayPresent: true, openedAt: now - 100000, intervalCount: 1, lastIntervalEnd: now - 30000 } };
+      if (missing && url.startsWith(origin)) delete value[missing];
+      return new Response(JSON.stringify(value));
+    };
+    const options = { expected: { chainId: "chain" }, fetchImpl, clock: () => now, timeoutMs: 0, checkWallet: async () => {} };
+    if (missing) await assert.rejects(W.health(options), /Workspace and account-link recovery/); else await W.health(options);
+  }
+});
+const Android = require("./update-android-account");
+test("Android account update accepts the observed installed premium release and preserves financial state", async t => {
+  const f = fixture(t, Android);
+  f.loaded = path.join(f.p.releases, "69498976bd58b5416ac906eb26bc541e5652d251");
+  assert.equal((await Android.update(f.options)).installed, true);
+  assert.equal((await Android.update(f.options)).unchanged, true);
+  assert.equal(f.calls.filter(row => row[0] === "drain").length, 1);
+  assert.equal(f.calls.filter(row => row[0] === "tar").length, 1);
+  assert.ok(f.calls.some(row => row[0] === "git" && row[1] === "merge-base" && row[3] === "69498976bd58b5416ac906eb26bc541e5652d251"));
+  const plan = JSON.parse(fs.readFileSync(path.join(f.p.work, "kai-android-account-plan-" + f.target + ".json")));
+  assert.equal(plan.base, "69498976bd58b5416ac906eb26bc541e5652d251");
+  assert.equal(plan.phase, "ready");
+  f.assertPreserved();
+});
+test("Android account preflight rejects wrong releases and unrelated changes before staging or stopping", async t => {
+  for (const kind of ["previous-pin", "unknown-release", "unrelated-source"]) {
+    const f = fixture(t, Android);
+    if (kind === "previous-pin") f.loaded = path.join(f.p.releases, "ed35690b0a4d681aa4dd1f2972c95d7a5de724eb");
+    if (kind === "unknown-release") f.loaded = path.join(f.p.releases, "b".repeat(40));
+    if (kind === "unrelated-source") f.changed = Android.REQUIRED.join("\n") + "\nlib/koin-network/prepaid-ledger.js";
+    await assert.rejects(Android.update(f.options), kind === "unrelated-source" ? /exact reviewed/ : /Unexpected active/);
+    f.assertNoStop();
+    f.assertPreserved();
+    assert.equal(fs.existsSync(f.targetDir), false);
+    assert.equal(fs.readdirSync(f.p.work).some(name => name.startsWith("kai-android-account-plan-")), false);
+  }
 });
