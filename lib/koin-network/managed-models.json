@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "provider": "akashml",
+  "models": [
+    { "model": "akash-gpt-oss-120b", "label": "GPT OSS 120B", "upstream": "openai/gpt-oss-120b", "contextTokens": 131072, "maxOutputTokens": 8192, "markupBps": 2500, "input": "3700000", "output": "18700000", "cache": "3700000" },
+    { "model": "akash-llama33-70b", "label": "Llama 3.3 70B", "upstream": "meta-llama/Llama-3.3-70B-Instruct", "contextTokens": 131072, "maxOutputTokens": 8192, "markupBps": 2500, "input": "20000000", "output": "52000000", "cache": "10000000" },
+    { "model": "akash-qwen38-27b", "label": "Qwen 3.8 27B", "upstream": "Qwen/Qwen3.8-27B", "contextTokens": 262144, "maxOutputTokens": 8192, "markupBps": 2500, "input": "22500000", "output": "198000000", "cache": "5000000" },
+    { "model": "akash-glm53", "label": "GLM 5.3", "upstream": "zai-org/GLM-5.3", "contextTokens": 1000000, "maxOutputTokens": 8192, "markupBps": 2500, "input": "19000000", "output": "440000000", "cache": "19000000" },
+    { "model": "akash-qwen36-35b-a3b", "label": "Qwen 3.6 35B A3B", "upstream": "Qwen/Qwen3.6-35B-A3B", "contextTokens": 262144, "maxOutputTokens": 8192, "markupBps": 1500, "input": "10000000", "output": "90000000", "cache": "5000000" },
+    { "model": "akash-kimi-k31-pro", "label": "Kimi K3.1 Pro", "upstream": "moonshotai/Kimi-K3.1-Pro", "contextTokens": 1000000, "maxOutputTokens": 8192, "markupBps": 1500, "input": "175000000", "output": "1000000000", "cache": "18000000" }
+  ]
+}

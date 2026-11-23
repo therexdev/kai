@@ -1,0 +1,23 @@
+name: Managed network inference
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  billing:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Verify billing, daily credits, routing, receipts and reward exclusion
+        run: node -e 'require("node:child_process").execFileSync(process.execPath, ["--test", "--test-concurrency=2", ...require("./deploy/koin-mainnet/update-managed-inference").PROBES], { stdio: "inherit" })'
+      - run: node --check test-server.js
