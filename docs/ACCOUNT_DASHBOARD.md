@@ -1,3 +1,5 @@
+> Updated workspace navigation and shared sign-in are described in [ACCOUNT_WORKSPACE.md](ACCOUNT_WORKSPACE.md). The release below describes the previous dashboard.
+
 # One account dashboard and dedicated login
 
 `/login` is the public email/Google/passkey entry. Verified sessions open `/account`, which contains overview, chat, credits and billing, API keys, usage, wallets, device approvals and security in the existing sidebar layout. `/platform` remains a redirect alias and `/platform/docs` remains public. Existing API paths and credentials are unchanged.

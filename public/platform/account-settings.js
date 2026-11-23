@@ -3,10 +3,11 @@
   const $ = id => document.getElementById(id);
   const make = (tag, text, cls) => { const node = document.createElement(tag); node.textContent = text; if (cls) node.className = cls; return node; };
   const notice = (text, error = false) => { $("notice").textContent = text; $("notice").hidden = !text; $("notice").classList.toggle("error", error); };
+  let currentAccountId;
   async function api(url, body, method = body ? "POST" : "GET") {
-    const response = await fetch(url, { method, credentials: "same-origin", cache: "no-store", headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
+    const response = await fetch(url, { method, credentials: "same-origin", cache: "no-store", headers: { ...(body ? { "content-type": "application/json" } : {}), ...(currentAccountId ? { "x-kai-account": currentAccountId } : {}) }, body: body ? JSON.stringify(body) : undefined });
     const data = await response.json();
-    if (!response.ok) { if (response.status === 401) location.assign("/login?next=" + encodeURIComponent(window.KaiAccountRoutes.destination(location.pathname + location.search + location.hash))); throw Error(data.error?.message || data.error || "Please try again."); }
+    if (!response.ok) { if (response.status === 401) { if (new URLSearchParams(location.search).get("embed") === "workspace") window.parent.postMessage({ type: "kai-workspace-login" }, "https://koinosai.com"); else location.assign("/login?next=" + encodeURIComponent(window.KaiAccountRoutes.destination(location.pathname + location.search + location.hash))); } throw Error(data.error?.message || data.error || "Please try again."); }
     return data;
   }
   function action(button, fn) {
@@ -14,21 +15,33 @@
   }
   async function refreshAccount() {
     const { account } = await api("/account/api");
+    currentAccountId = account.id;
     $("email").textContent = account.email || "Your KAI account";
     $("profile-email").textContent = account.email || "No email address";
     $("profile-methods").textContent = [account.email && "Email", account.google && "Google", account.passkeys?.length && "Passkey"].filter(Boolean).join(" · ");
     $("account-wallets").replaceChildren();
     for (const wallet of account.wallets || []) {
       const row = make("div", "", "key-row"), info = make("div", "", "wallet-info"), unlink = make("button", "Unlink", "danger");
-      info.append(make("strong", wallet.address, "wallet-address")); row.append(info, unlink);
+      info.append(make("strong", wallet.address, "wallet-address"));
+      if (wallet.creditAccessOnly) { info.append(make("p", "Linked Core credits · original balance and daily allowance")); unlink.textContent = "Remove credit access"; }
+      const primary = make("button", account.primaryCreditWallet === wallet.address ? "Primary account" : "Make primary", "secondary");
+      primary.disabled = account.primaryCreditWallet === wallet.address;
+      action(primary, async () => { await api("/account/credit-primary", { address: wallet.address }); await refreshAccount(); document.dispatchEvent(new CustomEvent("kai-credit-primary-changed", { detail: wallet.address })); });
+      info.append(primary);
+      row.append(info, unlink);
       action(unlink, async () => {
-        if (!confirm("Unlink " + wallet.address + "? Its purchased balance stays with the wallet. Wallet-bound API keys cannot use it while it is unlinked.")) return;
-        await api("/account/wallets/" + encodeURIComponent(wallet.address), undefined, "DELETE");
+        if (!confirm("Unlink " + wallet.address + "? Its purchased balance stays with the wallet. " + (wallet.creditAccessOnly ? "This website account loses credit access and its API keys for this wallet are revoked. Core keeps its original wallet connection." : "Wallet-bound API keys cannot use it while it is unlinked."))) return;
+        await api((wallet.creditAccessOnly ? "/account/credit-wallets/" : "/account/wallets/") + encodeURIComponent(wallet.address), undefined, "DELETE");
         await refreshAccount(); document.dispatchEvent(new CustomEvent("kai-wallet-unlinked", { detail: wallet.address }));
       });
       $("account-wallets").append(row);
     }
     if (!account.wallets?.length) $("account-wallets").append(make("p", "No wallets connected yet. Your daily free allowance is available without one."));
+    if (account.primaryCreditWallet) {
+      const reset = make("button", "Use order added", "quiet");
+      action(reset, async () => { await api("/account/credit-primary", { address: null }); await refreshAccount(); document.dispatchEvent(new CustomEvent("kai-credit-primary-changed", { detail: account.wallets[0]?.address || "" })); });
+      $("account-wallets").append(reset);
+    }
     $("account-passkeys").replaceChildren();
     for (const passkey of account.passkeys || []) $("account-passkeys").append(make("p", passkey.label || "Saved passkey"));
     if (!account.passkeys?.length) $("account-passkeys").append(make("p", "No passkeys added yet."));

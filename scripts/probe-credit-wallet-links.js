@@ -1,0 +1,144 @@
+"use strict";
+const test = require("node:test"), assert = require("node:assert/strict"), crypto = require("node:crypto");
+const { Signer } = require("koilib"), { service } = require("./helpers/credit-gateway-fixture");
+const { message, revokeMessage, WINDOW, CreditWalletLinks } = require("../lib/credit-wallet-links");
+const P = require("../lib/koin-network/job-protocol"), bearer = token => ({ authorization: "Bearer " + token });
+const chat = { model: "fixture", messages: [{ role: "user", content: "Use my Core credits" }], max_tokens: 16 };
+const balance = c => ({ purchased: c.purchased, free: c.free, available: c.available });
+async function proof(s, user, wallet = s.f.buyer, ts = Date.now(), origin = s.base) {
+  const address = wallet.getAddress(), hash = crypto.createHash("sha256").update(message(origin, address, user.account.id, ts)).digest();
+  return { address, ts, signature: Buffer.from(await wallet.signHash(hash)).toString("base64") };
+}
+test("Core credit access preserves owner, purchased balance and daily allowance across web, API and wallet sessions", async t => {
+  const s = await service(t), owner = await s.signup("original-core@example.test"), web = await s.signup("website-login@example.test");
+  const second = Signer.fromSeed("unshared-core-wallet");
+  await s.link(owner); await s.link(owner, second);
+  s.auth.service.configureWalletCredits({ target: s.f.target, schedulerUrl: s.base + "/scheduler" });
+  const c = s.auth.service.walletCredits.challenge({ address: s.f.owner, deviceId: P.hash("core-device"), freeOnly: false });
+  const connected = s.auth.service.walletCredits.verify({ challengeId: c.nonce, signature: Buffer.from(await s.f.buyer.signHash(require("../lib/wallet-credit-auth").challengeHash(c))).toString("base64") });
+  const id = "0x1220" + P.hash("existing-core-purchase"), ledger = s.prepaid.ledger;
+  ledger.queuePurchase(id, s.f.owner); ledger.confirmPurchase(id, { state: "finalized", txId: id, owner: s.f.owner, amount: "100000000", height: "3", blockId: "0x1220" + P.hash("block") });
+  const ownerKey = (await s.createKey(owner, { wallet: s.f.owner })).value;
+  const pending = s.call("/v1/chat/completions", chat, bearer(ownerKey.secret)); await s.result(await s.dispatch()); assert.equal((await pending).status, 200);
+  const before = (await s.call("/v1/credits", undefined, bearer(ownerKey.secret))).value;
+  assert.ok(BigInt(before.credits.free.available) < 1000n); assert.equal(before.credits.purchased.available, "100000000");
+  const approved = await proof(s, web);
+  assert.equal((await s.call("/account/credit-wallets", approved, { cookie: web.cookie })).status, 200);
+  assert.equal((await s.call("/account/credit-wallets", approved, { cookie: web.cookie })).status, 200, "lost link response can be retried");
+  s.auth.service.creditLinks = new CreditWalletLinks(s.auth.service);
+  const view = (await s.call("/auth/session", undefined, { cookie: web.cookie })).value.account;
+  assert.equal(view.id, web.account.id); assert.equal(view.email, "website-login@example.test");
+  assert.equal(view.wallets.length, 1); assert.equal(view.wallets[0].creditAccountId, owner.account.id);
+  assert.equal(s.auth.service.accountView(s.auth.service.getAccount(web.account.id)).wallets.length, 0, "credit access never transfers wallet ownership");
+  assert.equal(s.auth.service.creditSessionAccount(connected.token).id, owner.account.id);
+  assert.equal(s.auth.service.accountView(s.auth.service.getAccount(owner.account.id)).wallets.length, 2);
+  const current = (await s.call("/platform/api/overview?wallet=" + s.f.owner, undefined, { cookie: web.cookie })).value;
+  assert.deepEqual(balance(current.credits), balance(before.credits)); assert.equal(current.account.id, web.account.id);
+  assert.equal((await s.call("/platform/api/overview?wallet=" + second.getAddress(), undefined, { cookie: web.cookie })).status, 400);
+  assert.equal((await s.call("/account/wallets/" + s.f.owner, undefined, { cookie: web.cookie }, "DELETE")).status, 404);
+  assert.equal((await s.call("/platform/api/keys", undefined, { cookie: web.cookie })).value.keys.length, 0);
+  const key = (await s.createKey(web, { wallet: s.f.owner, freeOnly: false, scopes: ["inference", "billing:read", "billing:purchase"] })).value;
+  assert.deepEqual(balance((await s.call("/v1/credits", undefined, bearer(key.secret))).value.credits), balance(before.credits));
+  const quote = await s.call("/v1/credits/purchase-quote", { dollars: "1" }, bearer(key.secret));
+  assert.equal(quote.status, 200); assert.equal(quote.value.signerAddress, s.f.owner); assert.equal(quote.value.transaction.signatures?.length || 0, 0);
+  s.prepaid.ledger.free.isAvailable = () => false;
+  const paid = s.call("/platform/api/chat", { ...chat, creditWallet: s.f.owner, freeOnly: false }, { cookie: web.cookie });
+  const job = await s.dispatch(); assert.equal(ledger.job(job.id).funding.accountId, P.hash("verified-account:" + owner.account.id));
+  await s.result(job); assert.equal((await paid).status, 200);
+  const after = (await s.call("/v1/credits", undefined, bearer(key.secret))).value;
+  assert.ok(BigInt(after.credits.purchased.spent) > 0n);
+  assert.deepEqual(balance((await s.call("/v1/credits", undefined, bearer(ownerKey.secret))).value.credits), balance(after.credits));
+  assert.equal(s.auth.service.db.prepare("SELECT COUNT(*) AS n FROM accounts").get().n, 2);
+});
+test("credit-link consent binds wallet, account and origin; scoped sessions cannot approve account links", async t => {
+  const s = await service(t), web = await s.signup("proof@example.test"), other = await s.signup("other-proof@example.test");
+  const valid = await proof(s, web);
+  for (const bad of [await proof(s, web, s.f.buyer, Date.now() - WINDOW - 1), await proof(s, web, s.f.buyer, Date.now(), "https://wrong.example"), { ...valid, ts: valid.ts + 1 }, { ...valid, extra: true }])
+    assert.notEqual((await s.call("/account/credit-wallets", bad, { cookie: web.cookie })).status, 200);
+  assert.equal((await s.call("/account/credit-wallets", valid, { cookie: other.cookie })).status, 401);
+  assert.equal((await s.call("/account/credit-wallets", valid, { cookie: web.cookie, origin: "https://wrong.example" })).status, 403);
+  assert.equal((await s.call("/account/credit-wallets", valid)).status, 401);
+  assert.equal((await s.call("/account/credit-wallets", valid, { cookie: web.cookie })).status, 200);
+  s.auth.service.configureWalletCredits({ target: s.f.target, schedulerUrl: s.base + "/scheduler" });
+  const c = s.auth.service.walletCredits.challenge({ address: s.f.owner, deviceId: P.hash("scoped"), freeOnly: false });
+  const scoped = s.auth.service.walletCredits.verify({ challengeId: c.nonce, signature: Buffer.from(await s.f.buyer.signHash(require("../lib/wallet-credit-auth").challengeHash(c))).toString("base64") });
+  assert.equal((await s.call("/account/credit-wallets", valid, bearer(scoped.token))).status, 401);
+  assert.equal(s.auth.service.accountView(s.auth.service.getAccount(other.account.id)).wallets.length, 0);
+});
+test("unlink revokes delegated keys and active work, rejects proof replay, and leaves Core credits accessible", async t => {
+  const s = await service(t), web = await s.signup("revoke@example.test"), svc = s.auth.service;
+  const original = svc._newAccount({});
+  svc.db.prepare("INSERT INTO wallets(address,account_id,label,linked_at) VALUES(?,?,NULL,?)").run(s.f.owner, original.id, Date.now());
+  svc.configureWalletCredits({ target: s.f.target, schedulerUrl: s.base + "/scheduler" });
+  const consent = await proof(s, web);
+  assert.equal((await s.call("/account/credit-wallets", consent, { cookie: web.cookie })).status, 200);
+  const key = (await s.createKey(web, { wallet: s.f.owner })).value;
+  const pending = await s.raw("/v1/chat/completions", { ...chat, stream: true }, bearer(key.secret)); await s.dispatch();
+  assert.equal((await s.call("/account/credit-wallets/" + s.f.owner, undefined, { cookie: web.cookie }, "DELETE")).status, 200);
+  assert.match(await pending.text(), /revoked/); assert.equal(s.prepaid.ledger.activeJobs().length, 0);
+  assert.equal((await s.call("/account/credit-wallets", consent, { cookie: web.cookie })).status, 409);
+  const renewed = await proof(s, web, s.f.buyer, consent.ts + 1);
+  assert.equal((await s.call("/account/credit-wallets", renewed, { cookie: web.cookie })).status, 200);
+  assert.equal((await s.call("/v1/credits", undefined, bearer(key.secret))).status, 401, "relinking cannot revive old API keys");
+  const newerKey = (await s.createKey(web, { wallet: s.f.owner })).value;
+  svc.unlinkWallet(original, s.f.owner);
+  assert.equal((await s.call("/v1/credits", undefined, bearer(newerKey.secret))).status, 401);
+  assert.equal((await s.call("/account/credit-wallets", await proof(s, web, s.f.buyer, consent.ts + 2), { cookie: web.cookie })).status, 409);
+  assert.equal(svc.db.prepare("SELECT account_id FROM wallet_credit_identities WHERE address=?").get(s.f.owner).account_id, original.id);
+  assert.equal(svc.db.prepare("SELECT COUNT(*) AS n FROM accounts").get().n, 2);
+});
+test("the Core wallet can revoke shared access without a website session; old revocations cannot remove new consent", async t => {
+  const s = await service(t), web = await s.signup("wallet-revocation@example.test"), original = s.auth.service._newAccount({});
+  s.auth.service.db.prepare("INSERT INTO wallets(address,account_id,label,linked_at) VALUES(?,?,NULL,?)").run(s.f.owner, original.id, Date.now());
+  const consent = await proof(s, web); await s.call("/account/credit-wallets", consent, { cookie: web.cookie });
+  const key = (await s.createKey(web, { wallet: s.f.owner })).value;
+  const ts = Date.now(), hash = crypto.createHash("sha256").update(revokeMessage(s.base, s.f.owner, ts)).digest();
+  const withdrawal = { address: s.f.owner, ts, signature: Buffer.from(await s.f.buyer.signHash(hash)).toString("base64") };
+  assert.equal((await s.call("/auth/credit-wallets/revoke", consent)).status, 401, "link consent cannot revoke permissions");
+  assert.equal((await s.call("/auth/credit-wallets/revoke", withdrawal)).status, 200);
+  assert.equal((await s.call("/v1/credits", undefined, bearer(key.secret))).status, 401);
+  assert.equal(s.auth.service.db.prepare("SELECT account_id FROM wallets WHERE address=?").get(s.f.owner).account_id, original.id);
+  await s.call("/account/credit-wallets", await proof(s, web, s.f.buyer, consent.ts + 1), { cookie: web.cookie });
+  assert.equal((await s.call("/auth/credit-wallets/revoke", withdrawal)).status, 200);
+  assert.equal(s.auth.service.creditLinks.wallets(web.account).length, 1, "retry of an old revocation does not remove a later link");
+});
+test("a changed website login cannot approve or spend under the previously displayed account", async t => {
+  const s = await service(t), a = await s.signup("first-tab@example.test"), b = await s.signup("changed-login@example.test");
+  const headers = { cookie: b.cookie, "x-kai-account": a.account.id };
+  assert.equal((await s.call("/platform/api/chat", { ...chat, creditWallet: null }, headers)).status, 409);
+  assert.equal((await s.call("/account/credit-wallets", await proof(s, a), headers)).status, 409);
+  assert.equal((await s.call("/platform/api/keys", { name: "old tab", dailyLimitAtoms: "1" }, headers)).status, 409);
+  assert.equal(s.prepaid.ledger.activeJobs().length, 0);
+});
+test("Chat uses the primary account then order added, and retries remain on their original balance", async t => {
+  const s = await service(t), web = await s.signup("simple-credit-order@example.test"), first = s.f.owner, secondSigner = Signer.fromSeed("second-credit-account"), second = secondSigner.getAddress();
+  await s.link(web); await s.link(web, secondSigner);
+  s.auth.service.db.prepare("UPDATE wallets SET linked_at=? WHERE address=?").run(1000, first);
+  s.auth.service.db.prepare("UPDATE wallets SET linked_at=? WHERE address=?").run(2000, second);
+  s.prepaid.ledger.free.isAvailable = () => false;
+  function fund(wallet, name) {
+    const id = "0x1220" + P.hash(name); s.prepaid.ledger.queuePurchase(id, wallet);
+    s.prepaid.ledger.confirmPurchase(id, { state: "finalized", txId: id, owner: wallet, amount: "100000", height: "3", blockId: "0x1220" + P.hash("block") });
+  }
+  const headers = id => ({ cookie: web.cookie, "idempotency-key": id });
+  async function send(id, expected) {
+    const pending = s.call("/platform/api/chat", { ...chat, freeOnly: false }, headers(id)), job = await s.dispatch();
+    assert.equal(s.prepaid.ledger.job(job.id).owner, expected); await s.result(job);
+    assert.equal((await pending).status, 200); return job;
+  }
+  fund(second, "second-credit-purchase");
+  await send("auto-empty-primary", second);
+  fund(first, "first-credit-purchase");
+  assert.equal((await s.call("/account/credit-primary", { address: second }, { cookie: web.cookie })).status, 200);
+  assert.equal((await s.call("/account/api", undefined, { cookie: web.cookie })).value.account.primaryCreditWallet, second);
+  await send("auto-chosen-primary", second);
+  await s.call("/account/credit-primary", { address: null }, { cookie: web.cookie });
+  const original = await send("auto-order-added", first), before = s.prepaid.ledger.balance(first);
+  await s.call("/account/credit-primary", { address: second }, { cookie: web.cookie });
+  assert.equal((await s.call("/platform/api/chat", { ...chat, freeOnly: false }, headers("auto-order-added"))).status, 200);
+  assert.deepEqual(s.prepaid.ledger.balance(first), before); assert.equal(s.prepaid.ledger.job(original.id).owner, first);
+  await s.call("/account/wallets/" + first, undefined, { cookie: web.cookie }, "DELETE");
+  const secondBefore = s.prepaid.ledger.balance(second);
+  assert.equal((await s.call("/platform/api/chat", { ...chat, freeOnly: false }, headers("auto-order-added"))).status, 403);
+  assert.deepEqual(s.prepaid.ledger.balance(second), secondBefore, "unlinking cannot resubmit a saved request on another balance");
+});

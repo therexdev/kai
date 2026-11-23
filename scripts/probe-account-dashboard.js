@@ -28,7 +28,9 @@ test("settings remain usable independently of the credit overview and isolate se
   for (const name of ["account-routes.js", "account-settings.js"]) w.eval(fs.readFileSync(path.join(__dirname, "../public/platform", name), "utf8"));
   for (let n = 0; n < 100 && !$("account-wallets").querySelector("button"); n++) await new Promise(r => setTimeout(r, 10));
   assert.equal($("profile-email").textContent, "settings@example.test"); assert.match($("account-wallets").textContent, new RegExp(s.f.owner));
-  await $("account-wallets").querySelector("button").onclick();
+  await $("account-wallets").querySelector("button.secondary").onclick();
+  assert.equal((await s.call("/account/api", undefined, { cookie: alice.cookie })).value.account.primaryCreditWallet, s.f.owner);
+  await $("account-wallets").querySelector("button.danger").onclick();
   assert.equal((await s.call("/account/api", undefined, { cookie: alice.cookie })).value.account.wallets.length, 0);
   assert.equal((await s.call("/account/api", undefined, { cookie: bob.cookie })).value.account.email, "other@example.test");
   assert.equal((await s.call("/account/sessions/revoke-all", {}, { cookie: alice.cookie, origin: "https://evil.test" })).status, 403);

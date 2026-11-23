@@ -219,3 +219,20 @@ test("account UI update refuses an unknown current release and changes outside t
   const f = fixture(t, UI); f.loaded = path.join(f.p.releases, U.BASE); await assert.rejects(UI.update(f.options), /Unexpected active/); f.assertNoStop();
   const g = fixture(t, UI); g.changed = UI.REQUIRED.join("\n") + "\nlib/accounts.js"; await assert.rejects(UI.update(g.options), /exact reviewed/); g.assertNoStop();
 });
+
+test("workspace rollout preserves financial state from either reviewed managed-inference revision and resumes once", async t => {
+  const W = require("./update-workspace");
+  for (const base of W.BASES) {
+    const f = fixture(t, { ...W, BASE: base });
+    assert.equal((await W.update(f.options)).installed, true); f.assertPreserved();
+    assert.equal((await W.update(f.options)).unchanged, true);
+    assert.equal(f.calls.filter(c => c[0] === "tar").length, 1);
+  }
+});
+test("workspace rollout rejects unknown installed code and unreviewed files before stopping anything", async t => {
+  const W = require("./update-workspace");
+  const unknown = fixture(t, W); unknown.loaded = path.join(unknown.p.releases, "c".repeat(40));
+  await assert.rejects(W.update(unknown.options), /Unexpected installed/); unknown.assertNoStop();
+  const changed = fixture(t, W); changed.changed = W.REQUIRED.join("\n") + "\nlib/unreviewed.js";
+  await assert.rejects(W.update(changed.options), /exact reviewed/); changed.assertNoStop();
+});

@@ -1,0 +1,70 @@
+"use strict";
+const test = require("node:test"), assert = require("node:assert/strict"), crypto = require("node:crypto");
+const { service } = require("./helpers/credit-gateway-fixture");
+const hash = value => crypto.createHash("sha256").update(value).digest("base64url");
+const nonce = () => crypto.randomBytes(32).toString("base64url");
+test("device approval retries recover one session and cannot change account or restore revoked access", async t => {
+  const s = await service(t), a = await s.signup("device@example.test"), b = await s.signup("other-device@example.test");
+  const { value: d } = await s.call("/auth/device/start", {});
+  assert.equal(new URL(d.verifyUrl).searchParams.get("code"), d.userCode);
+  const poll = (secret = d.deviceSecret) => s.call("/auth/device/poll", { userCode: d.userCode, deviceSecret: secret });
+  assert.equal((await poll()).value.pending, true);
+  assert.equal((await s.call("/auth/device/approve", { userCode: d.userCode.replace("-", " ").toLowerCase() }, { cookie: a.cookie })).status, 200);
+  const first = await poll(); assert.equal(first.value.account.id, a.account.id);
+  assert.equal((await s.call("/auth/device/approve", { userCode: d.userCode }, { cookie: a.cookie })).status, 200);
+  assert.equal((await s.call("/auth/device/approve", { userCode: d.userCode }, { cookie: b.cookie })).status, 409);
+  const retry = await poll(); assert.equal(retry.value.token, first.value.token);
+  assert.equal((await poll("wrong-secret")).status, 401);
+  const rows = s.auth.service.db.prepare("SELECT * FROM device_codes").all();
+  assert.ok(!JSON.stringify(rows).includes(d.deviceSecret)); assert.ok(!JSON.stringify(rows).includes(first.value.token));
+  await s.call("/auth/logout", {}, { authorization: "Bearer " + first.value.token });
+  assert.equal((await poll()).status, 401);
+});
+test("expired and wrong-service codes give a recoverable explanation without changing identity", async t => {
+  const s = await service(t), a = await s.signup("expired@example.test");
+  s.auth.service.siteOrigin = "https://credits.koinosai.com";
+  const d = s.auth.service.startDeviceLink(); assert.match(d.userCode, /^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+  assert.throws(() => s.auth.service.approveDeviceLink("WEB-ABCD-EFGH", a.account.id), /other KAI account page/);
+  s.auth.service.db.prepare("UPDATE device_codes SET expires_at = 0 WHERE user_code = ?").run(d.userCode);
+  assert.throws(() => s.auth.service.approveDeviceLink(d.userCode, a.account.id), /new code/);
+  assert.throws(() => s.auth.service.pollDeviceLink(d.userCode, d.deviceSecret), /expired/);
+});
+test("workspace handoff uses a fixed callback, browser login, single-use code and S256 verifier", async t => {
+  const s = await service(t), user = await s.signup("handoff@example.test"), state = nonce(), verifier = nonce();
+  const route = "/auth/workspace/authorize?" + new URLSearchParams({ state, challenge: hash(verifier), redirect_uri: "https://evil.test" });
+  const login = await s.raw(route); assert.equal(login.status, 302); assert.match(login.headers.get("location"), /^\/login\?next=/);
+  const returnPath = new URL(login.headers.get("location"), s.base).searchParams.get("next");
+  assert.equal(returnPath.includes("evil.test"), false);
+  assert.equal((await s.raw("/login?next=" + encodeURIComponent(returnPath), undefined, { cookie: user.cookie })).headers.get("location"), returnPath);
+  const approved = await s.raw(route, undefined, { cookie: user.cookie });
+  const redirect = new URL(approved.headers.get("location"));
+  assert.equal(redirect.origin + redirect.pathname, "https://koinosai.com/auth/workspace/callback");
+  assert.equal(redirect.searchParams.get("state"), state);
+  const code = redirect.searchParams.get("code");
+  assert.equal((await s.call("/auth/workspace/exchange", { code, verifier: nonce() })).status, 401);
+  const identity = await s.call("/auth/workspace/exchange", { code, verifier });
+  assert.equal(identity.status, 200); assert.equal(identity.value.subject, user.account.id); assert.equal(identity.value.emailVerified, true);
+  assert.equal(identity.value.token, undefined);
+  assert.equal((await s.call("/auth/workspace/exchange", { code, verifier })).status, 401);
+  assert.equal((await s.raw("/auth/workspace/authorize?state=bad&challenge=bad", undefined, { cookie: user.cookie })).status, 400);
+});
+test("workspace and account routes share the same browser session and keep code approval explicit", async t => {
+  const s = await service(t), user = await s.signup("areas@example.test");
+  assert.equal((await s.raw("/app")).headers.get("location"), "https://koinosai.com/chat");
+  assert.equal((await s.raw("/login", undefined, { cookie: user.cookie })).headers.get("location"), "/workspace/chat");
+  for (const route of ["/app?embed=workspace", "/account"]) assert.equal((await s.raw(route, undefined, { cookie: user.cookie })).status, 200);
+  const d = (await s.call("/auth/device/start", {})).value;
+  await s.raw("/link?code=" + d.userCode, undefined, { cookie: user.cookie });
+  assert.equal(s.auth.service.pollDeviceLink(d.userCode, d.deviceSecret), null, "opening a link never approves a device");
+});
+
+test("OAuth return survives blocked browser storage using an HTTP-only allowlisted cookie", async t => {
+ const s = await service(t), user = await s.signup("oauth-return@example.test");
+ const login = await s.raw("/login?next=" + encodeURIComponent("/link?code=ABCD-2345"));
+ const cookie = login.headers.getSetCookie().find(c => c.startsWith("kai_login_return=")); assert.match(cookie, /HttpOnly/);
+ const callback = await s.raw("/account", undefined, { cookie: user.cookie + "; " + cookie.split(";")[0] });
+ assert.equal(callback.headers.get("location"), "/account?code=ABCD-2345#devices");
+ assert.match(callback.headers.get("set-cookie"), /Expires=Thu, 01 Jan 1970/);
+ const bad = await s.raw("/account", undefined, { cookie: user.cookie + "; kai_login_return=" + encodeURIComponent("https://evil.test") });
+ assert.equal(bad.headers.get("location"), "/account");
+});
