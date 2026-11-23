@@ -2,7 +2,9 @@
 // Use the existing forward-only code updater, its clean drain, consistent state
 // snapshot, writer leases and resumable deployment plan. No ledger migration.
 const Web = require("./update-web-api");
-const BASE = "438b1359d39576bf27325810022058424bbd6e3f";
+// Installed production revision. Its tree is byte-identical to the reviewed
+// 438b135 merge commit; the service still runs this original account-UI commit.
+const BASE = "7631e4ef28368f868c3c91e49c968d5bf6639cde";
 const REQUIRED = [
   "lib/credit-gateway.js", "lib/koin-network/free-credits.js", "lib/koin-network/model-catalog.js",
   "lib/koin-network/network-overview.js", "lib/koin-network/prepaid-ledger.js", "lib/koin-network/prepaid-router.js",

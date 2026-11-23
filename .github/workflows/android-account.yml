@@ -2,7 +2,7 @@ name: Android account and Vault
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['lib/accounts.js', 'lib/credit-*.js', 'public/platform/**', 'scripts/probe-credit-vault.js', 'deploy/koin-mainnet/update-android-account.js', '.github/workflows/android-account.yml']
+    paths: ['lib/accounts.js', 'lib/credit-*.js', 'lib/koin-network/model-catalog.js', 'public/platform/**', 'scripts/probe-credit-vault.js', 'deploy/koin-mainnet/update-android-account.js', 'deploy/koin-mainnet/update-web-api.test.js', '.github/workflows/android-account.yml']
 jobs:
   verify:
     runs-on: ubuntu-latest

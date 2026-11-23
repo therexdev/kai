@@ -14,13 +14,15 @@ The user opens KOIN Vault to approve connection/payment and returns manually; th
 
 ## Deployment
 
-This change is based on the reviewed premium integration at `ed35690b0a4d681aa4dd1f2972c95d7a5de724eb`. The updater **requires that release to be installed first** and refuses other bases. It must not be run over an unrelated active release. From the clean, pinned checkout, with system Node 22+ on the existing server:
+This change is based on the observed installed premium integration at `69498976bd58b5416ac906eb26bc541e5652d251`. The updater **requires that release to be installed first** and refuses other bases. It must not be run over an unrelated active release. From the clean, pinned checkout, with system Node 22+ on the existing server:
 
 ```
 npm ci --include=dev --ignore-scripts
 /usr/bin/node deploy/koin-mainnet/update-android-account.js
 curl --fail --silent --show-error https://credits.koinosai.com/health
 ```
+
+The earlier Android updater expected `ed35690b0a4d681aa4dd1f2972c95d7a5de724eb` and stopped with `Unexpected active reward runtime release`. That failure occurs before staging code, creating a deployment plan or stopping the service. The installed release includes the same premium application code plus its deployment correction; this update retains that correction and the installed release's ancestry. Do not edit the base hash in a server checkout to bypass this check.
 
 The updater reuses existing clean shutdown, SQLite snapshot, lease checks and forward recovery. Preserve the service's account database, configuration and payment journals. Confirm `nativeAccountVersion:1` and test the same account on phone and browser. If a newer premium release is installed, rebase and review the updater's exact base before deployment; do not bypass the guard.
 

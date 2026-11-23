@@ -2,8 +2,9 @@
 // Deliberately requires the reviewed premium-model release first; never replaces
 // an unrelated live payment runtime or silently enables upstream providers.
 const Web=require("./update-web-api");
-const BASE="ed35690b0a4d681aa4dd1f2972c95d7a5de724eb";
-const REQUIRED=["lib/accounts.js","lib/credit-gateway.js","lib/credit-vault.js","lib/koin-network/model-catalog.js","public/platform/index.html","public/platform/platform.js","test-server.js","scripts/probe-credit-vault.js","deploy/koin-mainnet/update-android-account.js","docs/ANDROID_ACCOUNT.md"];
+// Observed kai-koin-prepaid.service WorkingDirectory on the production server.
+const BASE="69498976bd58b5416ac906eb26bc541e5652d251";
+const REQUIRED=["lib/accounts.js","lib/credit-gateway.js","lib/credit-vault.js","lib/koin-network/model-catalog.js","public/platform/index.html","public/platform/platform.js","test-server.js","scripts/probe-credit-vault.js","deploy/koin-mainnet/update-android-account.js","deploy/koin-mainnet/update-web-api.test.js","docs/ANDROID_ACCOUNT.md"];
 const ALLOWED=new Set([...REQUIRED,".github/workflows/android-account.yml"]);
 const PROBES=["scripts/probe-accounts.js","scripts/probe-credit-account-web.js","scripts/probe-account-dashboard.js","scripts/probe-credit-gateway.js","scripts/probe-credit-platform-dom.js","scripts/probe-credit-vault.js","deploy/koin-mainnet/update-web-api.test.js"];
 const LOCKS=["kai-android-account-update.lock",...Web.LOCKS];

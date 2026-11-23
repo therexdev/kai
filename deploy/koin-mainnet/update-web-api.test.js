@@ -219,3 +219,31 @@ test("account UI update refuses an unknown current release and changes outside t
   const f = fixture(t, UI); f.loaded = path.join(f.p.releases, U.BASE); await assert.rejects(UI.update(f.options), /Unexpected active/); f.assertNoStop();
   const g = fixture(t, UI); g.changed = UI.REQUIRED.join("\n") + "\nlib/accounts.js"; await assert.rejects(UI.update(g.options), /exact reviewed/); g.assertNoStop();
 });
+
+const Android = require("./update-android-account");
+test("Android account update accepts the observed installed premium release and preserves financial state", async t => {
+  const f = fixture(t, Android);
+  f.loaded = path.join(f.p.releases, "69498976bd58b5416ac906eb26bc541e5652d251");
+  assert.equal((await Android.update(f.options)).installed, true);
+  assert.equal((await Android.update(f.options)).unchanged, true);
+  assert.equal(f.calls.filter(row => row[0] === "drain").length, 1);
+  assert.equal(f.calls.filter(row => row[0] === "tar").length, 1);
+  assert.ok(f.calls.some(row => row[0] === "git" && row[1] === "merge-base" && row[3] === "69498976bd58b5416ac906eb26bc541e5652d251"));
+  const plan = JSON.parse(fs.readFileSync(path.join(f.p.work, "kai-android-account-plan-" + f.target + ".json")));
+  assert.equal(plan.base, "69498976bd58b5416ac906eb26bc541e5652d251");
+  assert.equal(plan.phase, "ready");
+  f.assertPreserved();
+});
+test("Android account preflight rejects wrong releases and unrelated changes before staging or stopping", async t => {
+  for (const kind of ["previous-pin", "unknown-release", "unrelated-source"]) {
+    const f = fixture(t, Android);
+    if (kind === "previous-pin") f.loaded = path.join(f.p.releases, "ed35690b0a4d681aa4dd1f2972c95d7a5de724eb");
+    if (kind === "unknown-release") f.loaded = path.join(f.p.releases, "b".repeat(40));
+    if (kind === "unrelated-source") f.changed = Android.REQUIRED.join("\n") + "\nlib/koin-network/prepaid-ledger.js";
+    await assert.rejects(Android.update(f.options), kind === "unrelated-source" ? /exact reviewed/ : /Unexpected active/);
+    f.assertNoStop();
+    f.assertPreserved();
+    assert.equal(fs.existsSync(f.targetDir), false);
+    assert.equal(fs.readdirSync(f.p.work).some(name => name.startsWith("kai-android-account-plan-")), false);
+  }
+});
