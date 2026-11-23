@@ -11,6 +11,8 @@ test("dashboard renders live fixture balances and safely creates, copies, hides 
   Object.defineProperty(w.navigator, "clipboard", { value: { writeText: async value => { copied = value; } } });
   w.fetch = (url, options = {}) => fetch(s.base + url, { ...options, headers: { ...options.headers, cookie: user.cookie } });
   w.eval(fs.readFileSync(path.join(__dirname, "../public/platform/account-routes.js"), "utf8"));
+  w.eval(fs.readFileSync(path.join(__dirname, "../public/platform/markdown-it.min.js"), "utf8"));
+  w.eval(fs.readFileSync(path.join(__dirname, "../public/platform/chat-ui.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(__dirname, "../public/platform/platform.js"), "utf8"));
   await until(() => $("email").textContent === "ui@example.test");
   assert.equal($("free").textContent, "0.01"); assert.equal($("paid").textContent, "0"); assert.equal($("model-count").textContent, "1");
@@ -43,6 +45,8 @@ test("Chat can use linked purchased credits even when billing displays the accou
   w.localStorage.setItem("kai-credit-wallet-" + user.account.id, "");
   w.fetch = (url, options = {}) => fetch(s.base + url, { ...options, headers: { ...options.headers, cookie: user.cookie } });
   w.eval(fs.readFileSync(path.join(__dirname, "../public/platform/account-routes.js"), "utf8"));
+  w.eval(fs.readFileSync(path.join(__dirname, "../public/platform/markdown-it.min.js"), "utf8"));
+  w.eval(fs.readFileSync(path.join(__dirname, "../public/platform/chat-ui.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(__dirname, "../public/platform/platform.js"), "utf8"));
   await until(() => $("model").value === "fixture");
   assert.equal($("wallet").value, "", "the billing selection is retained");
