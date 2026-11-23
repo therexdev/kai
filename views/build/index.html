@@ -6,6 +6,7 @@
     <title>Build on Koinos with KAI</title>
     <link rel="icon" href="/redesign/brand-mark.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/build/assets/build.css?v=runner-20261103" />
+    <link rel="stylesheet" href="/build-workspace.css?v=workspace-20261123" />
     <script src="/producer-signer/kondor.min.js" defer></script>
     <script src="/build/assets/qrcode.js" defer></script>
     <script src="/build/assets/wallets.js" defer></script>
@@ -18,27 +19,16 @@
   <body>
     <div class="builder">
       <aside class="sidebar">
-        <a class="brand" href="/chat"
-          ><img src="/redesign/brand-mark.svg" alt="" /><span
-            >Koinos<em>AI</em></span
-          ></a
-        ><span class="sidebar-label">YOUR WORKSPACE</span>
-        <nav class="workspace-area" aria-label="Dashboard areas"><a class="active" href="/chat">AI workspace</a><a href="https://credits.koinosai.com/account">Credits & API</a></nav>
-        <nav class="primary-nav" aria-label="Koinos AI">
-          <a href="/chat"><span aria-hidden="true">◌</span> Chat</a
-          ><a class="active" href="/build" aria-current="page"
-            ><span aria-hidden="true">⌘</span> Build <small>BETA</small></a
-          ><a href="https://credits.koinosai.com/account"><span aria-hidden="true">▦</span> Dashboard</a>
+        <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">K</span>Koinos AI</a>
+        <p class="sidebar-label">YOUR WORKSPACE</p>
+        <nav class="workspace-area" aria-label="Dashboard areas"><a class="active" aria-current="page" href="/chat">AI workspace</a><a href="https://credits.koinosai.com/account">Credits & API</a></nav>
+        <nav class="primary-nav" aria-label="AI workspace">
+          <a href="/chat">Chat</a>
+          <a class="active" href="/build" aria-current="page">Build</a>
+          <button id="new-project" class="new-project">+ New project</button>
         </nav>
         <div class="project-label">
-          <span>YOUR PROJECTS</span
-          ><button
-            id="new-project"
-            class="icon-button"
-            aria-label="Create project"
-          >
-            +
-          </button>
+          <span>YOUR PROJECTS</span>
         </div>
         <div id="project-list" class="project-list"></div>
         <button id="import-project" class="import-button">Import project</button
@@ -48,10 +38,12 @@
           accept="application/json,.json"
           hidden
         />
-        <div class="sidebar-bottom">
-          <span id="account-name"></span
-          ><a href="https://credits.koinosai.com/account#security">Account settings ↗</a>
+        <div class="workspace-account-links">
+          <a href="https://credits.koinosai.com/account#devices">Connect KAI Core</a>
+          <a href="https://credits.koinosai.com/account#billing">Credits & usage</a>
+          <a href="https://credits.koinosai.com/account#security">Account settings</a>
         </div>
+        <div class="sidebar-bottom"><a href="/beta">Get KAI Core ↗</a><a href="https://credits.koinosai.com/account">Dashboard ↗</a></div>
       </aside>
       <main class="main">
         <header class="topbar">
@@ -60,13 +52,14 @@
               id="menu-toggle"
               class="icon-button mobile-menu"
               aria-label="Toggle projects"
+              aria-controls="project-list"
               aria-expanded="false"
             >
-              ☰</button
-            ><a href="/build" class="breadcrumb">Build</a
-            ><span id="project-crumb" hidden></span>
+              ☰</button>
+            <div class="workspace-heading"><p>YOUR AI, POWERED BY PEOPLE</p><h1><a href="/build" class="breadcrumb">Build</a></h1><span id="project-crumb" hidden></span></div>
           </div>
           <div class="topbar-actions">
+            <span id="account-name" class="account-label"></span>
             <span id="network" class="pill">Koinos</span
             ><a
               id="live-link"

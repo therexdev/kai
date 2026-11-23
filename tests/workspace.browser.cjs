@@ -1,6 +1,6 @@
 "use strict";
 // Two real loopback services behind intercepted HTTPS test origins. No request
-// reaches production. Build's existing HTML is used without its project scripts.
+// reaches production. Both the chat gateway and Build run their real handlers.
 const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), http = require("node:http"), os = require("node:os"), express = require("express");
 const { chromium, _electron } = require("playwright");
 const CREDIT = "https://credits.koinosai.com", WEBSITE = "https://koinosai.com";
@@ -17,12 +17,10 @@ const CREDIT = "https://credits.koinosai.com", WEBSITE = "https://koinosai.com";
   app.use(require("../lib/web-account-entry").webAccountEntry({ accounts, fetchImpl: (url, init) => {
     assert.ok(url.startsWith(CREDIT + "/")); return fetch(s.base + url.slice(CREDIT.length), init);
   } }));
-  app.get("/build", (req, res) => {
-    assert.ok(accounts.accountOf(req));
-    const html = fs.readFileSync(path.join(__dirname, "../views/build/index.html"), "utf8").replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, "");
-    res.type("html").send(html);
-  });
-  app.get("/build/assets/build.css", (_req, res) => res.sendFile(path.join(__dirname, "../views/build/build.css")));
+  const builder = new (require("../lib/builder/service").Builder)({ stateDir: dir, autoStart: false, agent: { configured: false, model: "fixture" } });
+  cleanup.push(() => builder.close());
+  builder.store.create(existing.id, "Existing saved project", "plugin", require("../lib/builder/projects").starter("plugin", "Existing saved project"));
+  app.use(express.json(), require("../lib/builder/router").createBuilderRouter({ accounts, stateDir: dir, builder }).router);
   app.use(express.static(path.join(__dirname, "../public")));
   const server = http.createServer(app); await new Promise(r => server.listen(0, "127.0.0.1", r));
   const webBase = "http://127.0.0.1:" + server.address().port;
@@ -37,7 +35,7 @@ const CREDIT = "https://credits.koinosai.com", WEBSITE = "https://koinosai.com";
       const electron = await _electron.launch({ executablePath: process.env.KAI_TEST_ELECTRON, args: ["--ozone-platform=headless", entry], env });
       browser = { page: () => electron.firstWindow(), close: () => electron.close() };
     } else {
-      const instance = await chromium.launch({ headless: true }); browser = { page: () => instance.newPage(), close: () => instance.close() };
+      const instance = await chromium.launch({ headless: true, ...(process.env.KAI_TEST_CHROMIUM ? { executablePath: process.env.KAI_TEST_CHROMIUM } : {}) }); browser = { page: () => instance.newPage(), close: () => instance.close() };
     }
     const page = await browser.page(), errors = [];
     page.setDefaultTimeout(15000); page.setDefaultNavigationTimeout(15000);
@@ -80,6 +78,7 @@ const CREDIT = "https://credits.koinosai.com", WEBSITE = "https://koinosai.com";
     await page.waitForURL(WEBSITE + "/chat");
     const chat = page.frameLocator("#chat-workspace");
     await chat.locator("#email").getByText("shared-browser@example.test", { exact: true }).waitFor();
+    assert.equal(await chat.getByRole("link", { name: /Documents|Tasks|Earlier workspace/ }).count(), 0);
     await chat.locator("#prompt").fill("A real chat at the website address");
     await submitChat(chat);
     const job = await s.dispatch().catch(async e => {
@@ -95,9 +94,26 @@ const CREDIT = "https://credits.koinosai.com", WEBSITE = "https://koinosai.com";
     const cookies = await page.context().cookies(WEBSITE), session = cookies.find(c => c.name === "kai_session");
     assert.equal(accounts.service.sessionAccount(session.value).id, existing.id);
     await openFrameLink(chat.getByRole("link", { name: "Build", exact: true })); await page.waitForURL(WEBSITE + "/build");
+    await page.locator("#project-list").getByText("Existing saved project", { exact: true }).waitFor();
+    await page.locator("#new-project").click(); await page.locator("#project-title").fill("Workspace project");
+    await page.locator("#template-select").selectOption("plugin"); await page.locator("#create-submit").click();
+    await page.locator("#project-crumb").getByText("Workspace project", { exact: true }).waitFor();
+    assert.equal(builder.store.list(existing.id).length, 2);
+    await page.screenshot({ path: path.join(images, "build-desktop.png"), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(await page.getByRole("link", { name: "Chat", exact: true }).isVisible(), true);
+    assert.equal(await page.getByRole("link", { name: "Credits & API", exact: true }).isVisible(), true);
+    await page.locator("#menu-toggle").click();
+    await page.locator("#project-list").getByText("Existing saved project", { exact: true }).click();
+    await page.locator("#project-crumb").getByText("Existing saved project", { exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.screenshot({ path: path.join(images, "build-mobile.png"), fullPage: true });
     await page.getByRole("link", { name: "Chat", exact: true }).click(); await page.waitForURL(WEBSITE + "/chat");
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await chat.locator("#email").getByText("shared-browser@example.test", { exact: true }).waitFor();
     assert.equal(accounts.service.db.prepare("SELECT COUNT(*) AS n FROM sessions").get().n, 1, "workspace switches reuse the website session");
+    await page.goto(WEBSITE + "/app/history#tasks"); await page.waitForURL(WEBSITE + "/chat");
+    await chat.locator("#prompt").waitFor();
     await openFrameLink(chat.locator('[data-area-link="account"]')); await page.waitForURL(CREDIT + "/account");
     await page.locator("#email").getByText("shared-browser@example.test", { exact: true }).waitFor();
     const d = (await s.call("/auth/device/start", {})).value; assert.match(d.userCode, /^[A-Z2-9]{4}-[A-Z2-9]{4}$/);

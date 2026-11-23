@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: therexdev/kai
-          ref: ff9d58991fe7acf0ef0107d231cb6e904c46af88
+          ref: af24b3e62ef9c53aa26df8c46fb555ef2af65ea7
           path: .credit-backend
           persist-credentials: false
       - run: npm ci --ignore-scripts --prefix .credit-backend
