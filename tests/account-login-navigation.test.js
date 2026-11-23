@@ -12,6 +12,8 @@ async function fixture(t, ready) {
 }
 test("public login and account switch only after the new backend is verified", async t => {
   const s = await fixture(t, false); assert.equal((await s.get("/account")).status, 200);
+  assert.equal((await s.get("/app/history")).headers.get("location"), "/chat");
+  assert.equal((await s.get("/chat")).status, 503, "unavailable chat never redirects back to the retired dashboard");
   assert.equal((await s.get("/login")).headers.get("location"), "https://credits.koinosai.com/account?next=/platform"); assert.equal(s.calls, 1);
   s.active = true;
   for (const [route, target] of [["/login", "/login"], ["/account", "/account"], ["/platform", "/account"]]) {

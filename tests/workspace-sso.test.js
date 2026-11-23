@@ -64,7 +64,8 @@ test("forged identities and failed exchanges cannot create sessions, and return 
   }
   assert.equal(s.accounts.service.db.prepare("SELECT COUNT(*) AS n FROM accounts").get().n, 0);
   assert.equal(require("../public/account-ui/account-routes").destination("//evil.test"), "/dashboard");
-  assert.equal(require("../public/account-ui/account-routes").destination("/app/history#docs"), "/app/history#docs");
+  for (const old of ["/app#chat", "/app#docs", "/app/history#tasks", "/app/history#wallet"])
+    assert.equal(require("../public/account-ui/account-routes").destination(old), "/chat");
 });
 
 test("opening Build from the workspace checks the current shared login even with an older website session", async t => {
@@ -78,5 +79,6 @@ test("opening Build from the workspace checks the current shared login even with
   const response = await fetch(base + "/website-login?next=%2Fbuild", { redirect: "manual", headers: { cookie: "kai_session=" + token } });
   assert.match(response.headers.get("location"), /^https:\/\/credits\.koinosai\.com\/auth\/workspace\/authorize\?/);
   assert.match(response.headers.get("set-cookie"), /kai_workspace_state=/);
-  assert.equal((await fetch(base + "/app", { redirect: "manual" })).headers.get("location"), "/chat");
+  for (const old of ["/app", "/app/", "/app/history", "/app/history/"])
+    assert.equal((await fetch(base + old, { redirect: "manual" })).headers.get("location"), "/chat");
 });
