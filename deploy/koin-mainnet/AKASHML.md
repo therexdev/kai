@@ -73,10 +73,15 @@ Catalog listing alone must not repeatedly readvertise an exhausted account.
    the source or a PR exists.
 2. On the existing server, inspect the service's current source revision and
    configuration paths. The supplied forward-only updater is pinned to backend
-   base `438b1359d39576bf27325810022058424bbd6e3f` and the existing
+   installed base `7631e4ef28368f868c3c91e49c968d5bf6639cde` and the existing
    `kai-koin-prepaid.service` deployment. If the actual service uses another
    base, unit or paths, adapt and review that boundary first. Never point the
    original installer at an existing ledger.
+
+   This installed commit and the previously documented merge commit
+   `438b1359d39576bf27325810022058424bbd6e3f` have the identical Git tree
+   `3c09192eeb2fd7570d500e26c9213536fcd6c83b`. The production unit still points
+   to the original account-UI commit; the updater now checks that exact path.
 3. Install this clean reviewed backend commit using system Node 22+:
 
    ```sh
