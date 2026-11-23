@@ -689,7 +689,7 @@ async function main() {
     /* ------------------------------------------------------------------ */
     console.log("\n12) the browser is never handed its own session token");
     const shell = await jsonReq(port, "GET", "/app", { cookie: mine.cookie });
-    check(shell.status === 200 && !shell.body.includes("sk_"), "no token in the shell");
+    check(shell.status === 302 && !shell.body.includes("sk_"), "retired dashboard redirects without exposing a session token");
     const clientJs = fs.readFileSync(path.join(ROOT, "views", "app.js"), "utf8");
     check(!/sessionToken/.test(clientJs), "the client never even names one");
     const meBody = await jsonReq(port, "GET", "/account/api", { cookie: mine.cookie });

@@ -86,8 +86,17 @@ const CREDIT = "https://credits.koinosai.com", WEBSITE = "https://koinosai.com";
       console.error("Chat state:", await chat.locator("#chat").evaluate(form => ({ valid: form.checkValidity(), prompt: document.getElementById("prompt").value, disabled: document.getElementById("send").disabled, model: document.getElementById("model").value, messages: document.getElementById("messages").textContent })));
       throw e;
     });
-    await s.result(job, "Shared login and real chat work together");
+    await s.result(job, "Shared login and real chat work together\n\n```js\n1\n```");
     await chat.getByText("Shared login and real chat work together", { exact: true }).waitFor();
+    if (!process.env.KAI_TEST_ELECTRON) {
+      await page.context().grantPermissions(["clipboard-write"], { origin: CREDIT });
+      await page.context().grantPermissions(["clipboard-read"], { origin: WEBSITE });
+      await chat.locator(".code-copy").click();
+      assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "1\n", "copy works through the embedded workspace permission policy");
+      await chat.locator("#export-chat").waitFor({ state: "visible" });
+      const download = page.waitForEvent("download"); await chat.locator("#export-chat").click();
+      assert.equal((await download).suggestedFilename(), "kai-conversation.md", "the embedded workspace permits an explicit export");
+    }
     assert.equal(page.url(), WEBSITE + "/chat");
     const images = path.join(__dirname, "website-workspace-preview"); fs.mkdirSync(images, { recursive: true });
     await page.screenshot({ path: path.join(images, "chat-desktop.png"), fullPage: true });

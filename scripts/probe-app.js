@@ -1,32 +1,10 @@
 "use strict";
 
 /*
- * Probe: the Koinos AI web app shell (/app) — task #79.
- *
- * Boots the REAL server (child process, throwaway state dir, random port) and
- * pins the property the whole design rests on:
- *
- *   THE SHELL IS NOT IN THE STATIC TREE.
- *
- * `app.use(express.static(PUBLIC_DIR))` serves that directory to the open
- * internet. A gated page cannot live inside it — not "should not", CANNOT.
- * So the shell lives in views/, reachable through exactly one route, and that
- * route asks who you are first. Section 2 tries every spelling an attacker
- * would try (/app.html, /views/app.html, a traversal) and every one must miss.
- *
- * The rest: the gate redirects a signed-out browser to a door instead of
- * handing it a JSON error it will render as text; a signed-in browser gets the
- * shell with a CSP that has no 'unsafe-inline' in script-src and headers that
- * keep it out of caches and frames; the account view carries the grants the
- * shell renders; and the client script is genuinely servable, because a shell
- * whose <script> 404s is a blank page.
- *
- * Sessions are written straight into the accounts DB rather than driven
- * through the sign-in flow: this probe is about the ROUTE's gate, and
- * probe-accounts.js already walks email/passkey/Google end to end against a
- * mock transport. Boring beats duplicated.
- *
- * Old code (no /app route, no views/app.html): sections 1-6 fail.
+ * Verify that retired /app pages redirect to Chat without exposing sessions.
+ * The old source remains outside the static tree and its account/grant APIs
+ * retain their security checks. The shared-workspace browser suite exercises
+ * the new Chat and Build UI against the real account and credit services.
  */
 
 const { spawn } = require("child_process");
@@ -90,10 +68,10 @@ async function main() {
     if (!up) return;
 
     /* ------------------------------------------------------------------ */
-    console.log("\n1) the shell is gated");
+    console.log("\n1) the retired dashboard opens the Chat workspace");
     const anon = await raw(port, "/app");
     check(anon.status === 302, `signed out -> redirect (got ${anon.status})`);
-    check(String(anon.headers.location || "").startsWith("/account"), "redirect points at the sign-in page");
+    check(anon.headers.location === "/chat", "redirect points at the Chat workspace");
     check(!/view-gate|nav-item/.test(anon.body), "the shell's markup does not leak in the redirect body");
     // The desktop app talks JSON; a browser asking for a page gets a door.
     // What must never happen is the shell rendering for an anonymous caller.
@@ -116,7 +94,7 @@ async function main() {
     }
 
     /* ------------------------------------------------------------------ */
-    console.log("\n3) a real session gets in");
+    console.log("\n3) a real session also leaves the retired dashboard");
     // Write an account + session directly into the DB the server just opened.
     const { DatabaseSync } = require("node:sqlite");
     const db = new DatabaseSync(path.join(stateDir, "accounts", "accounts.sqlite"));
@@ -130,25 +108,28 @@ async function main() {
     const cookie = { cookie: `kai_session=${encodeURIComponent(token)}` };
 
     const shell = await raw(port, "/app", cookie);
-    check(shell.status === 200, `signed in -> 200 (got ${shell.status})`);
-    check(/id="view-gate"/.test(shell.body) && /id="view-wallet"/.test(shell.body), "the shell body is the shell");
-    check(/src="\/app\/app\.js"/.test(shell.body), "the shell loads its client script");
+    check(shell.status === 302 && shell.headers.location === "/chat", `signed in -> Chat redirect (got ${shell.status})`);
+    check(!/id="view-gate"|id="view-wallet"/.test(shell.body), "the old dashboard is not served");
+    for (const old of ["/app/", "/app/history", "/app/history/"]) {
+      const response = await raw(port, old, cookie);
+      check(response.status === 302 && response.headers.location === "/chat", `${old} opens Chat`);
+    }
 
     /* ------------------------------------------------------------------ */
-    console.log("\n4) headers a signed-in page needs");
+    console.log("\n4) redirects and the new workspace shell do not leak authority");
     const h = shell.headers;
-    const csp = String(h["content-security-policy"] || "");
-    check(csp.includes("script-src 'self'"), "CSP pins script-src to self");
-    check(!/script-src[^;]*unsafe-inline/.test(csp), "CSP has no 'unsafe-inline' in script-src");
-    check(csp.includes("frame-ancestors 'none'"), "CSP forbids framing");
-    check(csp.includes("object-src 'none'") && csp.includes("base-uri 'none'"), "CSP closes object-src and base-uri");
-    check(String(h["x-frame-options"] || "").toUpperCase() === "DENY", "X-Frame-Options: DENY");
     check(/no-store/.test(String(h["cache-control"] || "")), "Cache-Control: no-store");
-    check(/noindex/.test(String(h["x-robots-tag"] || "")), "X-Robots-Tag: noindex");
+    check(h["referrer-policy"] === "no-referrer", "the redirect sends no referrer");
     check(String(h["x-content-type-options"] || "") === "nosniff", "nosniff");
+    check(!shell.body.includes(token) && !shell.headers.location.includes(token), "no session token in the response or destination");
     // A CSP with no inline-script escape hatch is only honest if the page has
     // no inline script to need one. Assert the shell actually has none.
-    const shellSrc = fs.readFileSync(path.join(ROOT, "views", "app.html"), "utf8");
+    const shellSrc = fs.readFileSync(path.join(ROOT, "public", "chat.html"), "utf8");
+    const { JSDOM } = require("jsdom"), dom = new JSDOM(shellSrc), frame = dom.window.document.getElementById("chat-workspace");
+    check(frame.getAttribute("src") === "https://credits.koinosai.com/app?embed=workspace", "the Chat issuer is fixed");
+    check(frame.getAttribute("allow") === "clipboard-write", "copy permission does not grant clipboard reading");
+    check(frame.getAttribute("sandbox").includes("allow-downloads"), "explicit chat exports are allowed");
+    dom.window.close();
     check(!/<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?\S[\s\S]*?<\/script>/.test(shellSrc),
       "the shell contains no inline script (so the strict CSP is not a lie)");
     check(!/\son[a-z]+\s*=/.test(shellSrc), "the shell uses no inline event handlers");

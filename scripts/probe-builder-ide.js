@@ -155,7 +155,8 @@ test("real HTTP and editor workflow creates, edits, checks, reviews, exports and
     // Re-open via the real project switch control to refresh without waiting for polling.
     await until(() => !$("code-editor").readOnly || builder.store.detail(user.id, project.id).proposal);
     $("project-list").querySelector(".active").click();
-    await until(() => !$("review-pending").hidden);
+    // Rendering the proposal precedes the async action's finally/controls.
+    await until(() => !$("review-pending").hidden && !$("send").disabled);
     assert.equal($("proposal-diff").querySelector("img"), null);
     assert.match($("proposal-diff").textContent, /<img src=x/);
     assert.equal($("send").disabled, false);
@@ -164,7 +165,7 @@ test("real HTTP and editor workflow creates, edits, checks, reviews, exports and
     const proposalId = builder.store.detail(user.id, project.id).proposal.id;
     assert.equal((await post(base + "/proposals/" + proposalId, { action: "apply", revision: 2 }, otherToken)).status, 404);
     $("apply-proposal").click();
-    await until(() => builder.store.owned(user.id, project.id).revision === 3 && $("review-pending").hidden);
+    await until(() => builder.store.owned(user.id, project.id).revision === 3 && $("review-pending").hidden && !$("send").disabled);
     assert.match(builder.store.files(user.id, project.id).files["notes/plan.md"], /Proposed/);
     assert.equal($("send").disabled, false);
     // The existing guided creation process opens the same full source model,
