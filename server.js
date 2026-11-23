@@ -804,7 +804,7 @@ function appHeaders(res) {
   res.setHeader("Cache-Control", "no-store, private");
 }
 
-app.get("/app", (req, res) => {
+app.get(["/app", "/app/history"], (req, res) => {
   if (!accounts) {
     return res.status(503).type("text/plain").send("Accounts are not configured on this server.");
   }
@@ -812,7 +812,7 @@ app.get("/app", (req, res) => {
   // why this asks `accountOf` (resolve, don't answer) instead of the JSON
   // gate. `?next` is a literal this server wrote, never anything from the
   // request, so there is no open-redirect to be had here.
-  if (!accounts.accountOf(req)) return res.redirect("/account?next=/app");
+  if (!accounts.accountOf(req)) return res.redirect("/account?next=" + encodeURIComponent(req.path));
   appHeaders(res);
   return res.sendFile(APP_SHELL);
 });

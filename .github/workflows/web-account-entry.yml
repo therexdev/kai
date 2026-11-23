@@ -12,5 +12,32 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: node --test tests/web-account-entry.test.js tests/account-login-navigation.test.js tests/beta-launch.test.js
+      - run: node --test tests/web-account-entry.test.js tests/account-login-navigation.test.js tests/workspace-sso.test.js tests/beta-launch.test.js
       - run: node --check server.js
+  workspace-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Checkout the reviewed companion credit service
+        uses: actions/checkout@v4
+        with:
+          repository: therexdev/kai
+          ref: ff9d58991fe7acf0ef0107d231cb6e904c46af88
+          path: .credit-backend
+          persist-credentials: false
+      - run: npm ci --ignore-scripts --prefix .credit-backend
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/workspace.browser.cjs
+        env:
+          KAI_CREDIT_BACKEND: ${{ github.workspace }}/.credit-backend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shared-workspace-preview
+          path: tests/website-workspace-preview/*.png
+          if-no-files-found: ignore
