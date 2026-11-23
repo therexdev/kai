@@ -89,9 +89,17 @@ const CREDIT = "https://credits.koinosai.com", WEBSITE = "https://koinosai.com";
     await s.result(job, "Shared login and real chat work together\n\n```js\n1\n```");
     await chat.getByText("Shared login and real chat work together", { exact: true }).waitFor();
     if (!process.env.KAI_TEST_ELECTRON) {
-      await page.context().grantPermissions(["clipboard-write"], { origin: CREDIT });
-      await page.context().grantPermissions(["clipboard-read"], { origin: WEBSITE });
+      await chat.locator("#send:not([disabled])").waitFor();
+      const clipboardPolicy = await chat.locator("body").evaluate(() => ({
+        write: document.featurePolicy.allowsFeature("clipboard-write"),
+        read: document.featurePolicy.allowsFeature("clipboard-read")
+      }));
+      assert.deepEqual(clipboardPolicy, { write: true, read: false });
+      // Exercise the actual click permission and wait for the asynchronous
+      // write to finish before inspecting the clipboard from the parent.
       await chat.locator(".code-copy").click();
+      await chat.locator(".code-copy").filter({ hasText: /^Copied$/ }).waitFor();
+      await page.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: WEBSITE });
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "1\n", "copy works through the embedded workspace permission policy");
       await chat.locator("#export-chat").waitFor({ state: "visible" });
       const download = page.waitForEvent("download"); await chat.locator("#export-chat").click();
