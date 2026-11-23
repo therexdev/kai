@@ -1,0 +1,43 @@
+# Chat workspace and account-link recovery
+
+The website workspace is https://koinosai.com/chat and https://koinosai.com/build. Website login lands on /chat; /app#chat redirects there. Credits & API remains https://credits.koinosai.com/account (with /platform as an alias). The Chat page keeps the website address and uses an authenticated, same-site credit-service frame; account and dashboard navigation opens the separate API area at the top level. Build remains /build on the website; a fixed-client, S256-PKCE handoff signs the user into their saved website workspace. API keys remain server credentials, never a prerequisite for browser chat.
+
+The workspace has Chat, Build, Documents and Tasks navigation. New chat history is stored in this browser, keyed to the authenticated account; the UI identifies that storage. Earlier chats/documents/tasks remain at https://koinosai.com/app/history. Their existing grant-backed execution and saved data are preserved. Build projects and job history are untouched. No purchased balance, wallet, grant, payment or reward journal moves between accounts. A wallet-signed credit link gives the website login access to one existing Core balance without changing its owner. It does not expose the original account's other wallets, sessions, passkeys or API keys. The original account remains the daily-allowance and financial-recovery identity. This is not a credit-account merge.
+
+## Linking existing Core credits
+
+Core Settings → KAI account & credits offers Link to my website account for a wallet-only connection. Approve the device code while signed into the same login used by Chat and API, then choose Link this Core wallet. The native review identifies the recipient and wallet before signing a domain-separated proof. Kondor uses the same proof and explicit review. Signatures bind the service, wallet, recipient and five-minute timestamp; a durable proof journal rejects reuse after revocation. Linking does not move credits, create another free allowance for that wallet, grant account administration, or authorize a KOIN transaction.
+
+Chat uses an optional Primary account setting, then linked credit accounts in the order added. It chooses one balance that can cover the request, without splitting a charge. A saved request remains pinned to its original balance when retried, even after the primary setting changes. Removing access cannot resubmit it against another balance. API keys remain bound to the wallet explicitly selected when the key is created. The billing selector is for viewing balances and making purchases; it is not an extra chat spending rule. Web, API and Core requests resolve that wallet to its original funding identity. Core retains the original financial-recovery directory. Purchase quotes remain unsigned until approved in the selected wallet; a Core-only wallet can purchase in Core, with the resulting balance available on the website.
+
+Remove credit access in Credits & API → Wallets, or use Remove shared credit access in Core with a fresh wallet signature. Removing a link immediately revokes that recipient's wallet-bound API keys. New links cannot restore those keys. The original wallet account and balance remain intact. No email match or device code alone grants wallet credit access. Existing account ownership recovery is still required if its original wallet link was removed.
+
+## Sign-in and security
+
+Device codes include the issuing service in their exact prefilled browser link. Codes retain the eight-character format accepted by existing Android clients. Repeating approval with the same account is harmless; a different account cannot take over an approved code. The device secret recovers exactly the same session until code expiration, including after a server restart. Only hashes are persisted; a revoked session cannot be recreated by replaying the code. All prior sessions remain valid.
+
+Core defaults to KAI account & credits, opens the system browser with the returned prefilled URL, matching Android, and shows the connected account. Sign out/change account and Disconnect saved account are visible recovery actions. Transient polling failures keep the code; concurrent polls share one request. Approved replies remain in memory until secure storage succeeds, and cancellation/sign-out/new-code epochs reject old replies. No wallet or account data is silently reset. A changed browser login cannot silently authorize a request reviewed under the prior account.
+
+Website sign-in handoff has a fixed HTTPS issuer and callback, a browser-state cookie, a server-stored verifier, two-minute one-use authorization codes, and an allowlist of return paths. The website maps the issuer subject to a local workspace ID. On first verified sign-in it reuses an existing account only for the issuer-verified email, preserving that account's projects; no balances or wallet identities are imported. Existing site sessions/Connections remain separately revocable. Credits sign-out-all does not revoke an existing Build session; the security page explicitly identifies that boundary. OAuth return routes also use an HTTP-only cookie so browser storage restrictions do not lose device approval or Build return paths.
+
+## Rollout
+
+There are companion changes in therexdev/kai's website branch and payment-runtime branch, plus therexdev/kai-core. Publish neither old kaiapp nor an unsigned Core installer.
+
+1. Review and deploy the website change from claude/kai-production-website-fqx4pf using its existing deployment process. It continues the old routing until health advertises both workspace capabilities.
+2. Inspect kai-koin-prepaid.service WorkingDirectory. The updater accepts only reviewed managed-inference revisions 69498976bd58b5416ac906eb26bc541e5652d251 or 661c59ab9552bf38783034f168b78ae6912b1dec; these have identical Git trees. It refuses an unexpected installation. From the clean reviewed payment-runtime checkout, with development dependencies installed, run:
+
+   ```sh
+   sudo /usr/bin/node deploy/koin-mainnet/update-workspace.js
+   ```
+
+   The existing updater drains work, snapshots stopped state, checks writer leases, stages source, and resumes its recorded forward-only plan. Account migrations add the device receipt column, handoff tables, wallet credit-permission tables and the optional primary-account setting. No environment replacement, signing-key change or payment replay is needed.
+3. Verify /health reports workspaceUiVersion:1, workspaceSsoVersion:1 and deviceLinkRecoveryVersion:2 and creditWalletLinksVersion:1, along with the existing web/API capability. Website routing refreshes within 20 seconds of successful health checks.
+4. Build and verify the Core change through the established signed release pipeline. No installer is included in this source change.
+5. Live acceptance: sign in with Google and email; open Chat; confirm the address remains koinosai.com/chat; switch to koinosai.com/build and credits.koinosai.com/account without another login; confirm existing projects; click Login in Core, approve its prefilled browser page, and confirm the current Android client still connects; retry a used approval on the same account; sign out/change account; link an existing Core wallet, compare its balance in Chat/API/Core, remove access and verify API-key revocation. Never move wallet ownership to clear an error.
+
+## Verification
+
+Run node --test scripts/probe-workspace-links.js scripts/probe-accounts.js scripts/probe-account-dashboard.js scripts/probe-credit-gateway.js scripts/probe-credit-account-web.js scripts/probe-credit-platform-dom.js plus the updater, wallet-credit and device-free regression suites. Browser coverage: node tests/credit-platform.browser.cjs. KAI_TEST_ELECTRON may name an installed Electron executable for the same isolated browser tests when standalone Chromium is unavailable. CI continues to use Chromium.
+
+Companion website tests cover state binding, fixed destinations, account isolation and preserving the existing verified-email workspace ID. Core runs npm test, npm run test:services and npm run test:foundation-native. Fixture email, signed synthetic providers and synthetic profiles verify implementation; live Google consent, Windows secure storage and real balances still need release acceptance. No live inference credits are used by these checks.

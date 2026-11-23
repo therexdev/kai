@@ -57,8 +57,9 @@ test("verified public signup reaches real metered HTTP streaming without a walle
   while (!(await reader.read()).done) {};
   // Linking more wallets cannot multiply this verified account's free grant
   // or combine the separately attributed purchased balances.
-  const originalView = auth.service.accountView.bind(auth.service);
-  auth.service.accountView = a => ({ ...originalView(a), wallets: [{ address: f.owner }, { address: f.provider }] });
+  // Persist the actual ownership records: delegated credit access now resolves
+  // the funding identity from these rows, rather than trusting a display view.
+  for (const address of [f.owner, f.provider]) auth.service.db.prepare("INSERT INTO wallets(address,account_id,linked_at) VALUES(?,?,?)").run(address, account.id, Date.now());
   const id = "0x1220" + P.hash("second-wallet-purchase"); router.ledger.queuePurchase(id, f.provider);
   router.ledger.confirmPurchase(id, { state: "finalized", txId: id, owner: f.provider, amount: "500" });
   assert.equal((await post("/koin/prepaid/status")).status, 400, "multiple wallets require explicit selection");

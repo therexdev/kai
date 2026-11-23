@@ -35,3 +35,17 @@ test("portal and documentation assets exist, no remote scripts, opt-in account e
   for (const node of dom.window.document.querySelectorAll("script[src]")) assert.match(node.getAttribute("src"), /^\/platform\/assets\//);
   for (const node of dom.window.document.querySelectorAll("label[for]")) assert.ok(dom.window.document.getElementById(node.htmlFor));
 });
+test("Chat can use linked purchased credits even when billing displays the account allowance", async t => {
+  const s = await service(t), user = await s.signup("chat-credit-choice@example.test"); await s.link(user);
+  const response = await s.raw("/app?embed=workspace", undefined, { cookie: user.cookie });
+  const dom = new JSDOM(await response.text(), { url: s.base + "/app?embed=workspace", runScripts: "outside-only" }); t.after(() => dom.window.close());
+  const w = dom.window, $ = id => w.document.getElementById(id);
+  w.localStorage.setItem("kai-credit-wallet-" + user.account.id, "");
+  w.fetch = (url, options = {}) => fetch(s.base + url, { ...options, headers: { ...options.headers, cookie: user.cookie } });
+  w.eval(fs.readFileSync(path.join(__dirname, "../public/platform/account-routes.js"), "utf8"));
+  w.eval(fs.readFileSync(path.join(__dirname, "../public/platform/platform.js"), "utf8"));
+  await until(() => $("model").value === "fixture");
+  assert.equal($("wallet").value, "", "the billing selection is retained");
+  assert.equal($("chat-free").disabled, false); assert.equal($("chat-free").checked, false);
+  assert.equal($("key-free").disabled, true, "API keys still use their explicitly selected wallet");
+});

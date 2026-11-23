@@ -1,7 +1,7 @@
 "use strict";
 (() => {
   const $ = id => document.getElementById(id), routes = window.KaiAccountRoutes;
-  const next = routes.destination(new URLSearchParams(location.search).get("next"));
+  const next = routes.destination(new URLSearchParams(location.search).get("next") || "/workspace/chat");
   const say = (text, error = false) => { $("login-status").textContent = text; $("login-status").hidden = !text; $("login-status").classList.toggle("error", error); };
   const remember = () => { try { sessionStorage.setItem("kai-login-return", JSON.stringify({ path: next, expires: Date.now() + 10 * 60 * 1000 })); } catch {} };
   const finish = () => { try { sessionStorage.removeItem("kai-login-return"); } catch {} location.replace(next); };
