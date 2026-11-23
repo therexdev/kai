@@ -1,0 +1,19 @@
+name: Inference error diagnostics
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['lib/koin-network/**', 'lib/credit-gateway.js', 'test-server.js', 'scripts/probe-inference-diagnostics.js', 'scripts/helpers/credit-gateway-fixture.js', 'deploy/koin-mainnet/update-inference-diagnostics.js', 'deploy/koin-mainnet/update-web-api.test.js', '.github/workflows/inference-diagnostics.yml']
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '${{ matrix.node }}'
+          cache: npm
+      - run: npm ci --include=dev --ignore-scripts
+      - run: node -e 'require("node:child_process").execFileSync(process.execPath, ["--test", "--test-concurrency=2", ...require("./deploy/koin-mainnet/update-inference-diagnostics").PROBES], {stdio:"inherit"})'

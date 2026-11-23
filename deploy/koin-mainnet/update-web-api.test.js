@@ -247,3 +247,27 @@ test("Android account preflight rejects wrong releases and unrelated changes bef
     assert.equal(fs.readdirSync(f.p.work).some(name => name.startsWith("kai-android-account-plan-")), false);
   }
 });
+
+const Diagnostics = require("./update-inference-diagnostics");
+test("diagnostics update pins the installed account release, snapshots once and preserves financial state", async t => {
+  const f = fixture(t, Diagnostics);
+  assert.equal(Diagnostics.BASE, "1622f662dbea16c6cbd874f3be07e5be8983bb58");
+  assert.equal((await Diagnostics.update(f.options)).installed, true);
+  assert.equal((await Diagnostics.update(f.options)).unchanged, true);
+  assert.equal(f.calls.filter(row => row[0] === "drain").length, 1);
+  assert.equal(f.calls.filter(row => row[0] === "tar").length, 1);
+  const plan = JSON.parse(fs.readFileSync(path.join(f.p.work, "kai-inference-diagnostics-plan-" + f.target + ".json")));
+  assert.equal(plan.base, Diagnostics.BASE); assert.equal(plan.phase, "ready"); f.assertPreserved();
+});
+test("diagnostics preflight rejects unrelated releases and source before stopping the service", async t => {
+  for (const kind of ["release", "source"]) {
+    const f = fixture(t, Diagnostics);
+    if (kind === "release") f.loaded = path.join(f.p.releases, Android.BASE);
+    else f.changed = Diagnostics.REQUIRED.join("\n") + "\nlib/koin-network/managed-protocol.js";
+    await assert.rejects(Diagnostics.update(f.options), kind === "release" ? /Unexpected active/ : /exact reviewed/);
+    f.assertNoStop(); f.assertPreserved(); assert.equal(fs.existsSync(f.targetDir), false);
+  }
+});
+test("diagnostics activation health requires the new marker", async () => {
+  await assert.rejects(Diagnostics.health({ timeoutMs: 0, expected: { chainId: "fixture" }, fetchImpl: async () => ({ ok: true, text: async () => JSON.stringify({ nativeAccountVersion: 1 }) }) }), /diagnostics are not active/);
+});
