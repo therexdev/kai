@@ -37,9 +37,56 @@
     if (pending?.expires > Date.now() && !location.hash && !location.search) window.history.replaceState(null, "", window.KaiAccountRoutes.destination(pending.path));
   } catch {}
   tab(new URLSearchParams(location.search).has("code") ? "devices" : location.hash.slice(1), false);
+  let vaultSession = null, vaultRequest = null, vaultPolling = false, vaultAccount = "";
+  function saveVault() {
+    if (!overview) return;
+    try { sessionStorage.setItem("kai-vault-" + overview.account.id, JSON.stringify({ session: vaultSession, request: vaultRequest })); } catch { notice("Keep this page open until the wallet request is resolved."); }
+  }
+  function restoreVault() {
+    if (!overview || vaultAccount === overview.account.id) return;
+    vaultAccount = overview.account.id; vaultSession = null; vaultRequest = null;
+    try { const saved=JSON.parse(sessionStorage.getItem("kai-vault-"+vaultAccount)||"null"); if(saved?.session?.expiresAt>Date.now()){vaultSession=saved.session;vaultRequest=saved.request;} } catch {}
+    if(vaultRequest) $("vault-payment-open").hidden=false;
+    if(vaultSession) checkVault().catch(e=>notice(e.message,true));
+  }
+  function vaultCredentials() { return { sessionId:vaultSession.sessionId, secret:vaultSession.secret }; }
+  function walletLink(uri) {
+    const url=new URL(uri); if(url.origin!=="https://koinvault.app" || url.pathname!=="/")throw Error("Invalid wallet destination");
+    const link=$("vault-open"); link.href=url.href;link.hidden=false;link.rel="noopener noreferrer";link.referrerPolicy="no-referrer";
+  }
+  action("vault-connect", async()=> {
+    if(vaultSession) { walletLink("https://koinvault.app/");await checkVault();return; }
+    vaultSession=await api("/platform/api/vault/connect",{});saveVault();walletLink(vaultSession.uri);
+    $("vault-status").textContent="Open KOIN Vault, approve the connection, then return here.";
+  });
+  action("vault-check",checkVault);
+  async function checkVault() {
+    if(!vaultSession || vaultPolling || !overview)return;
+    vaultPolling=true;const session=vaultSession,account=overview.account.id;
+    try {
+      const s=await api("/platform/api/vault/status",vaultCredentials());
+      if(session!==vaultSession || account!==overview?.account.id)return;
+      if(!s.connected) { $("vault-status").textContent="Waiting for connection approval in KOIN Vault.";return; }
+      if(session.address && session.address!==s.address)throw Error("Wallet address changed. Reconnect KOIN Vault.");
+      const newlyConnected=!session.address;session.address=s.address;saveVault();walletLink("https://koinvault.app/");
+      $("vault-status").textContent="Connected: "+s.address;
+      if(newlyConnected){wallet=s.address;await refresh();document.dispatchEvent(new Event("kai-wallet-linked"));}
+      if(vaultRequest?.requestId) {
+        const result=await api("/platform/api/vault/result",{...vaultCredentials(),requestId:vaultRequest.requestId});
+        $("purchase-status").textContent="KOIN Vault: "+result.status+". Submission is verified separately before credits are added.";
+        if(result.txid){$("tx").value=result.txid;wallet=result.wallet;localStorage.setItem("kai-web-purchase-"+account,JSON.stringify({txId:result.txid,wallet}));await checkPurchase();}
+        if(["approved","rejected"].includes(result.status)){vaultRequest=null;saveVault();await refresh();}
+        if(result.status==="failed")notice("Wallet reported failure. Check its transaction history before starting another payment.",true);
+      } else if(vaultRequest?.unknown) notice("The wallet request outcome is unknown. Inspect KOIN Vault and use the transaction checker before making another payment.",true);
+    } finally {vaultPolling=false;}
+  }
+  // Only read while visible. Never retry the transaction request or broadcast.
+  setInterval(()=>{if(!document.hidden && vaultSession)checkVault().catch(e=>notice(e.message,true));},5000);
+  window.addEventListener("focus",()=>{if(vaultSession)checkVault().catch(e=>notice(e.message,true));});
+  action("vault-disconnect",()=>{if(vaultRequest)throw Error("Check the pending payment before disconnecting. Its status is preserved.");vaultSession=null;vaultRequest=null;saveVault();$("vault-open").hidden=true;$("vault-status").textContent="Connection removed from this browser. You can also revoke it in KOIN Vault.";});
   function selected() { return wallet || null; }
   async function refresh() {
-    const data = await api("/platform/api/overview?wallet=" + encodeURIComponent(wallet)); overview = data;
+    const data = await api("/platform/api/overview?wallet=" + encodeURIComponent(wallet)); overview = data; restoreVault();
     $("email").textContent = data.account.email || "Your KAI account";
     $("wallet").replaceChildren(new Option("Account daily allowance", ""));
     for (const w of data.account.wallets) $("wallet").add(new Option(w.address, w.address));
@@ -139,12 +186,13 @@
   action("stop", () => controller?.abort());
   action("clear", () => { if (controller) throw Error("Stop the current reply first."); history = []; $("messages").replaceChildren(make("p", "What would you like to work on?", "empty")); });
   form("buy", async () => {
-    if (quotePending) return; if (!wallet) throw Error("Connect and select your payment wallet first.");
+    if (quotePending) return; if (vaultRequest) throw Error("Resolve the pending KOIN Vault request before starting another purchase."); if (!wallet) throw Error("Connect and select your payment wallet first.");
     if ($("tx").value) throw Error("Check the previous transaction before starting another purchase.");
     quotePending = true;
     try {
       draft = await api("/platform/api/purchase-quote", { dollars: $("dollars").value, creditWallet: selected() });
       $("purchase-review").textContent = `Pay ${draft.koin} KOIN for ${draft.credits} credits. Wallet: ${draft.signerAddress}. Quote expires ${new Date(draft.expiresAt).toLocaleTimeString()}.`;
+      $("approve-purchase").textContent = vaultSession?.address === draft.signerAddress ? "Approve in KOIN Vault" : "Approve in Kondor";
       $("purchase-dialog").showModal();
     } finally { quotePending = false; }
   });
@@ -152,6 +200,13 @@
   action("approve-purchase", async () => {
     if (!draft || draft.expiresAt <= Date.now()) throw Error("Quote expired. Request a fresh quote.");
     const reviewed = draft; draft = null; $("purchase-dialog").close();
+    if(vaultSession?.address===reviewed.signerAddress) {
+      vaultRequest={unknown:true};saveVault();
+      const result=await api("/platform/api/vault/request",{...vaultCredentials(),quoteId:reviewed.vaultQuoteId});
+      vaultRequest={requestId:result.requestId};saveVault();walletLink("https://koinvault.app/");$("vault-payment-open").hidden=false;
+      $("purchase-status").textContent="Open KOIN Vault to approve this payment, then return here. Do not repeat the purchase while it is pending.";
+      return;
+    }
     const provider = kondor.getProvider("mainnet");
     if (await provider.getChainId() !== reviewed.chainId) throw Error("Select Koinos mainnet in Kondor.");
     const signed = await kondor.getSigner(reviewed.signerAddress).signTransaction(structuredClone(reviewed.transaction), reviewed.abis);
@@ -166,7 +221,7 @@
     if (!wallet) throw Error("Select the wallet used for this purchase.");
     const data = await api("/platform/api/purchases", { creditWallet: selected(), txId: $("tx").value.trim() });
     $("purchase-status").textContent = "Payment status: " + data.purchase.state + ".";
-    if (data.purchase.state === "confirmed") { try { localStorage.removeItem("kai-web-purchase-" + overview.account.id); } catch {} $("tx").value = ""; }
+    if (data.purchase.state === "confirmed") { vaultRequest=null;saveVault();$("vault-payment-open").hidden=true; try { localStorage.removeItem("kai-web-purchase-" + overview.account.id); } catch {} $("tx").value = ""; }
   }
   form("recover", async () => { await checkPurchase(); await refresh(); });
   document.addEventListener("kai-wallet-unlinked", event => { if (wallet === event.detail) wallet = ""; refresh().catch(e => notice(e.message, true)); });

@@ -1,0 +1,16 @@
+name: Android account and Vault
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['lib/accounts.js', 'lib/credit-*.js', 'public/platform/**', 'scripts/probe-credit-vault.js', 'deploy/koin-mainnet/update-android-account.js', '.github/workflows/android-account.yml']
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --include=dev --ignore-scripts
+      - run: node -e 'require("node:child_process").execFileSync(process.execPath, ["--test", "--test-concurrency=2", ...require("./deploy/koin-mainnet/update-android-account").PROBES], {stdio:"inherit"})'
