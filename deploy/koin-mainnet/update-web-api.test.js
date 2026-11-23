@@ -280,3 +280,43 @@ test("Android account preflight rejects wrong releases and unrelated changes bef
     assert.equal(fs.readdirSync(f.p.work).some(name => name.startsWith("kai-android-account-plan-")), false);
   }
 });
+
+const Diagnostics = require("./update-inference-diagnostics");
+test("diagnostics update pins the installed workspace release, snapshots once and preserves financial state", async t => {
+  const f = fixture(t, Diagnostics);
+  assert.equal(Diagnostics.BASE, "624506571fece651f33a2ce00b9f136859eebcf6");
+  assert.equal((await Diagnostics.update(f.options)).installed, true);
+  assert.equal((await Diagnostics.update(f.options)).unchanged, true);
+  assert.equal(f.calls.filter(row => row[0] === "drain").length, 1);
+  assert.equal(f.calls.filter(row => row[0] === "tar").length, 1);
+  const plan = JSON.parse(fs.readFileSync(path.join(f.p.work, "kai-inference-diagnostics-plan-" + f.target + ".json")));
+  assert.equal(plan.base, Diagnostics.BASE); assert.equal(plan.phase, "ready"); f.assertPreserved();
+});
+test("diagnostics preflight rejects unrelated releases and source before stopping the service", async t => {
+  for (const kind of ["release", "old-diagnostics-base", "source"]) {
+    const f = fixture(t, Diagnostics);
+    if (kind === "release") f.loaded = path.join(f.p.releases, Android.BASE);
+    else if (kind === "old-diagnostics-base") f.loaded = path.join(f.p.releases, "1622f662dbea16c6cbd874f3be07e5be8983bb58");
+    else f.changed = Diagnostics.REQUIRED.join("\n") + "\nlib/koin-network/managed-protocol.js";
+    await assert.rejects(Diagnostics.update(f.options), kind === "source" ? /exact reviewed/ : /Unexpected active/);
+    f.assertNoStop(); f.assertPreserved(); assert.equal(fs.existsSync(f.targetDir), false);
+  }
+});
+test("diagnostics activation health requires the new marker", async () => {
+  await assert.rejects(Diagnostics.health({ timeoutMs: 0, expected: { chainId: "fixture" }, fetchImpl: async () => ({ ok: true, text: async () => JSON.stringify({ nativeAccountVersion: 1 }) }) }), /diagnostics are not active/);
+});
+
+test("diagnostics health preserves workspace, native account and wallet-link capability checks", async () => {
+  const now = 1800000000000;
+  const capabilities = { inferenceDiagnosticsVersion: 1, nativeAccountVersion: 1, workspaceUiVersion: 1, workspaceSsoVersion: 1, deviceLinkRecoveryVersion: 2, creditWalletLinksVersion: 1 };
+  for (const missing of [null, ...Object.keys(capabilities)]) {
+    const fetchImpl = async url => {
+      const value = url.endsWith("/health") ? { chainId: "chain", rpcReliabilityVersion: 1, rpcBackoffVersion: 1, streamKeepaliveVersion: 1, claimResourceRecoveryVersion: 1, webApiVersion: 1, rewardRuntimeVersion: 4, rewardStorage: { schema: 1, mode: "sqlite-shadow", ready: true }, ...capabilities }
+        : { schema: 1, ready: true, observedAt: now, reasons: [], lastAvailabilitySuccess: now - 1000, currentEpoch: { epoch: String(Math.floor(now / 86400000)), budgetPresent: true, dayPresent: true, openedAt: now - 100000, intervalCount: 1, lastIntervalEnd: now - 30000 } };
+      if (missing) delete value[missing];
+      return new Response(JSON.stringify(value));
+    };
+    const options = { expected: { chainId: "chain" }, fetchImpl, clock: () => now, timeoutMs: 0, checkWallet: async () => {} };
+    if (missing) await assert.rejects(Diagnostics.health(options)); else await Diagnostics.health(options);
+  }
+});

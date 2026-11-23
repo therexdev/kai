@@ -2,7 +2,7 @@
 // Isolated QA only. All keys, mail delivery, prices and chain evidence are fixtures.
 const path = require("node:path"), http = require("node:http"), { Signer } = require("koilib");
 const { fixture } = require("./koin-prepaid-fixture"), P = require("../../lib/koin-network/job-protocol");
-async function service(t, { port = 0 } = {}) {
+async function service(t, { port = 0, managedFetch } = {}) {
   const f = fixture(t), mails = [], clock = f.options.clock;
   const auth = require("../../lib/accounts").createAccounts({ stateDir: path.join(f.dir, "identity"), siteOrigin: "http://localhost", sendMail: async mail => mails.push(mail) });
   const verifier = Signer.fromSeed("web-api-verifier"), address = n => Signer.fromSeed("web-api-" + n).getAddress();
@@ -12,14 +12,20 @@ async function service(t, { port = 0 } = {}) {
     admin: address("admin"), verifier: verifier.getAddress(), mining: address("mining"), operations: address("operations"), masterNode: require("../../lib/koin-network/product").MASTER_NODE };
   const client = new (require("../../lib/koin-network/chain").KoinChain)(deployment, { getNextNonce: async () => "KAE=", getTransactionsById: async () => ({ transactions: [] }) });
   const wire = require("../../lib/koin-network/payment-network").protocol(f.target), worker = { address: f.provider, proof: "signed", models: ["fixture"], capabilities: { [wire.capability]: 1, koinMeteredStreaming: 1 } };
+  const M = require("../../lib/koin-network/managed-protocol"), { ManagedProvider, ManagedMeter } = require("../../lib/koin-network/managed-provider");
+  const managed = managedFetch && new ManagedProvider({ key: "fixture-only-managed-secret", signer: verifier, verifier: verifier.getAddress(), domain: f.target.domain, clock,
+    fetchImpl: async (url, init) => url.endsWith("/models") ? Response.json({ data: M.models.map(m => ({ id: m.upstream, pricing: { input: Number(m.input) / 1e14, output: Number(m.output) / 1e14, input_cache_read: Number(m.cache) / 1e14 } })) }) : managedFetch(url, init) });
+  if (managed) await managed.refresh();
   const prepaid = require("../../lib/koin-network/prepaid-router").createPrepaidRouter({ ...f.options, dataDir: path.join(f.dir, "service"), accounts: auth.service, client,
     publicAccounts: true, freePolicy: { version: 1, accountDaily: "1000", networkDaily: "20000", originDaily: "10000", accountConcurrent: 4, eligibleModels: ["fixture"] },
     networkOverview: () => ({ observedAt: clock(), validUntil: clock() + 15000, models: [{ id: "fixture", available: true, providers: 1, freeEligible: true }] }),
+    ...(managed ? { managed, meter: new ManagedMeter(f.meter), freePolicy: { version: 1, accountDaily: "100000000", networkDaily: "300000000", originDaily: "200000000", accountConcurrent: 4, eligibleModels: M.models.map(m => m.model) },
+      networkOverview: () => ({ observedAt: clock(), validUntil: clock() + 15000, models: M.models.map(m => ({ id: m.model, available: managed.ready(m.model), providers: 1, freeEligible: true })) }) } : {}),
     qualify: () => true, accept: ({ output }) => !!output.trim(),
     purchaseQuote: async (account, dollars) => ({ args: await require("../../lib/koin-network/purchase-quote").issue({ deployment, signer: verifier, account,
       amount: require("../../lib/koin-network/purchase-quote").nativeForDollars(dollars, "25000000"), usdPerKoin: "25000000", version: 1, now: clock() }) }) });
   const confirmed = new Map(); prepaid.purchases.inspect = async (id, owner) => confirmed.get(id)?.owner === owner ? confirmed.get(id) : { state: "pending" };
-  const runtime = { client, config: { maxRcPerTransaction: "500000000" }, scheduler: { koinPrepaid: prepaid } };
+  const runtime = { client, managed, config: { maxRcPerTransaction: "500000000" }, scheduler: { koinPrepaid: prepaid } };
   const gateway = require("../../lib/credit-gateway").createCreditGateway({ accounts: auth, runtime, clock });
   const web = require("../../lib/credit-account-web").createCreditAccountWeb(auth.router, { gateway: gateway.router });
   const server = http.createServer(require("../../test-server").createHandler({ runtime,
