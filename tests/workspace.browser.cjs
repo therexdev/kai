@@ -95,11 +95,20 @@ const CREDIT = "https://credits.koinosai.com", WEBSITE = "https://koinosai.com";
         read: document.featurePolicy.allowsFeature("clipboard-read")
       }));
       assert.deepEqual(clipboardPolicy, { write: true, read: false });
-      // Exercise the actual click permission and wait for the asynchronous
-      // write to finish before inspecting the clipboard from the parent.
+      // Approve the test browser's native clipboard prompt for both origins;
+      // the iframe policy above still prohibits reading from inside Chat.
+      await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
       await chat.locator(".code-copy").click();
-      await chat.locator(".code-copy").filter({ hasText: /^Copied$/ }).waitFor();
-      await page.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: WEBSITE });
+      try { await chat.locator(".code-copy").filter({ hasText: /^Copied$/ }).waitFor(); }
+      catch (error) {
+        console.error("Copy state:", await chat.locator("body").evaluate(async () => ({
+          focused: document.hasFocus(), active: navigator.userActivation.isActive,
+          permission: (await navigator.permissions.query({ name: "clipboard-write" })).state,
+          button: document.querySelector(".code-copy").textContent,
+          notice: document.getElementById("notice").textContent
+        })));
+        throw error;
+      }
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "1\n", "copy works through the embedded workspace permission policy");
       await chat.locator("#export-chat").waitFor({ state: "visible" });
       const download = page.waitForEvent("download"); await chat.locator("#export-chat").click();
