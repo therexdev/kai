@@ -51,7 +51,9 @@ test("response and usage failures remain distinct without changing validation or
   const cases = [
     ["invalid_json", () => new Response("{" + privateText)],
     ["invalid_response", () => Response.json({ choices: [{ message: { content: null } }] })],
-    ["empty_output", () => { const v = good(); v.choices[0] = { message: { content: "", reasoning_content: privateText }, finish_reason: "length" }; v.usage.completion_tokens_details = { reasoning_tokens: 40 }; return Response.json(v); }],
+    ["reasoning_only", () => { const v = good(); v.choices[0] = { message: { content: "", reasoning_content: privateText }, finish_reason: "length" }; v.usage.completion_tokens_details = { reasoning_tokens: 40 }; return Response.json(v); }],
+    ["empty_output", () => { const v=good();v.choices[0].message.content="";return Response.json(v); }],
+    ["output_exhausted", () => { const v=good();v.choices[0].message.content="";v.choices[0].finish_reason="length";return Response.json(v); }],
     ["unsupported_finish", () => { const v = good(); v.choices[0].finish_reason = "content_filter"; return Response.json(v); }],
     ["unexpected_tool_calls", () => { const v = good(); v.choices[0].message.tool_calls = [{ arguments: privateText }]; return Response.json(v); }],
     ["missing_usage", () => { const v = good(); delete v.usage; return Response.json(v); }],
@@ -64,7 +66,7 @@ test("response and usage failures remain distinct without changing validation or
   for (const [code, response] of cases) {
     const s = await setup(t, async () => response()), d = await failure(s, code);
     assert.equal(d.upstreamStatus, 200); assert.equal(s.provider.ready(s.input.model), true);
-    if (code === "empty_output") { assert.equal(d.finishReason, "length"); assert.equal(d.contentChars, 0); assert.equal(d.reasoningChars, privateText.length); assert.equal(d.reasoningTokens, 40); }
+    if (code === "reasoning_only") { assert.equal(d.finishReason, "length"); assert.equal(d.contentChars, 0); assert.equal(d.reasoningChars, privateText.length); assert.equal(d.reasoningTokens, 40); }
   }
 });
 test("transport, timeout and explicit cancellation preserve the failing stage", async t => {

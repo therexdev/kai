@@ -1,0 +1,144 @@
+TAP version 13
+# (node:11) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: HTTP rejections retain status, bounded classification and hashed correlation, never raw bodies
+ok 1 - HTTP rejections retain status, bounded classification and hashed correlation, never raw bodies
+  ---
+  duration_ms: 415.25003
+  type: 'test'
+  ...
+# Subtest: response and usage failures remain distinct without changing validation or availability
+ok 2 - response and usage failures remain distinct without changing validation or availability
+  ---
+  duration_ms: 564.092363
+  type: 'test'
+  ...
+# Subtest: transport, timeout and explicit cancellation preserve the failing stage
+ok 3 - transport, timeout and explicit cancellation preserve the failing stage
+  ---
+  duration_ms: 73.245542
+  type: 'test'
+  ...
+# Subtest: receipt failures are distinguishable, and diagnostics cannot modify a charged job
+ok 4 - receipt failures are distinguishable, and diagnostics cannot modify a charged job
+  ---
+  duration_ms: 55.588559
+  type: 'test'
+  ...
+# Subtest: sanitizer rejects arbitrary fields and HTTP classification has size and time bounds
+ok 5 - sanitizer rejects arbitrary fields and HTTP classification has size and time bounds
+  ---
+  duration_ms: 252.640535
+  type: 'test'
+  ...
+# Subtest: authenticated HTTP and SSE deliver persistent diagnostics and preserve account isolation and billing
+ok 6 - authenticated HTTP and SSE deliver persistent diagnostics and preserve account isolation and billing
+  ---
+  duration_ms: 851.431612
+  type: 'test'
+  ...
+# (node:12) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: all six models use normal authenticated HTTP credits, negotiated catalogs, signed receipts and one provider
+ok 7 - all six models use normal authenticated HTTP credits, negotiated catalogs, signed receipts and one provider
+  ---
+  duration_ms: 1002.359636
+  type: 'test'
+  ...
+# (node:13) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: all six customer tariffs use precisely 25% or 15% markup
+ok 8 - all six customer tariffs use precisely 25% or 15% markup
+  ---
+  duration_ms: 21.325562
+  type: 'test'
+  ...
+# Subtest: cached input and supplier discounts receive the same markup with one final ceiling
+ok 9 - cached input and supplier discounts receive the same markup with one final ceiling
+  ---
+  duration_ms: 4.835851
+  type: 'test'
+  ...
+# Subtest: free-only usage debits the shared daily balance once, survives restart, and earns no KOIN
+ok 10 - free-only usage debits the shared daily balance once, survives restart, and earns no KOIN
+  ---
+  duration_ms: 155.338487
+  type: 'test'
+  ...
+# Subtest: paid-first uses the existing purchased ledger and recovery never repeats an upstream POST
+ok 11 - paid-first uses the existing purchased ledger and recovery never repeats an upstream POST
+  ---
+  duration_ms: 66.692664
+  type: 'test'
+  ...
+# Subtest: stale health, missing models and price increases hide endpoints instead of inventing availability
+ok 12 - stale health, missing models and price increases hide endpoints instead of inventing availability
+  ---
+  duration_ms: 45.088175
+  type: 'test'
+  ...
+# Subtest: a supplier without prompt-cache pricing remains usable at its normal input rate
+ok 13 - a supplier without prompt-cache pricing remains usable at its normal input rate
+  ---
+  duration_ms: 16.31747
+  type: 'test'
+  ...
+# Subtest: network and negotiated catalogs agree while the supplier key is absent and add exactly one healthy provider
+ok 14 - network and negotiated catalogs agree while the supplier key is absent and add exactly one healthy provider
+  ---
+  duration_ms: 64.088036
+  type: 'test'
+  ...
+# Subtest: missing usage, supplier errors and cancellation release holds without a charge
+ok 15 - missing usage, supplier errors and cancellation release holds without a charge
+  ---
+  duration_ms: 106.451843
+  type: 'test'
+  ...
+# Subtest: a single managed provider is counted once across six models and stays out of the worker registry
+ok 16 - a single managed provider is counted once across six models and stays out of the worker registry
+  ---
+  duration_ms: 15.241559
+  type: 'test'
+  ...
+# Subtest: managed quotes and receipts verify in desktop, and tampered usage or signatures fail
+ok 17 - managed quotes and receipts verify in desktop, and tampered usage or signatures fail
+  ---
+  duration_ms: 33.768735
+  type: 'test'
+  ...
+# Subtest: credentials are server-only, protected and never serialized
+ok 18 - credentials are server-only, protected and never serialized
+  ---
+  duration_ms: 9.631155
+  type: 'test'
+  ...
+# (node:19) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: native requests fail closed until a model is explicitly enabled
+ok 19 - native requests fail closed until a model is explicitly enabled
+  ---
+  duration_ms: 712.787188
+  type: 'test'
+  ...
+# Subtest: real gateway forwards schemas and paired IDs, signs tool output, bills once and resumes without replay
+ok 20 - real gateway forwards schemas and paired IDs, signs tool output, bills once and resumes without replay
+  ---
+  duration_ms: 299.424631
+  type: 'test'
+  ...
+# Subtest: metadata participates in quote commitments; malformed or unpaired calls cannot become execution
+ok 21 - metadata participates in quote commitments; malformed or unpaired calls cannot become execution
+  ---
+  duration_ms: 2.482493
+  type: 'test'
+  ...
+1..21
+# tests 21
+# suites 0
+# pass 21
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2584.314106
