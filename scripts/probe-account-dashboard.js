@@ -1,0 +1,40 @@
+"use strict";
+const test = require("node:test"), assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), { JSDOM } = require("jsdom");
+const { service } = require("./helpers/credit-gateway-fixture");
+const { destination } = require("../public/platform/account-routes");
+test("login destinations allow only account sections and explicit device approval", () => {
+  for (const input of ["https://evil.test", "//evil.test", "/\\evil.test", "/account\n//evil.test", "/account?next=https://evil.test", "/auth/logout", "/account#<script>", "/account?code=<img>"]) assert.equal(destination(input), "/account", input);
+  assert.equal(destination("/platform#keys"), "/account#keys");
+  assert.equal(destination("/link?code=ABCD-1234"), "/account?code=ABCD-1234#devices");
+});
+test("one gated dashboard, dedicated login, legacy aliases and no account API interception", async t => {
+  const s = await service(t), user = await s.signup("routing@example.test");
+  const login = await s.raw("/login"); assert.equal(login.status, 200); assert.match(await login.text(), /login-email/);
+  const account = await s.raw("/account"); assert.equal(account.status, 302); assert.equal(account.headers.get("location"), "/login?next=%2Faccount");
+  for (const route of ["/platform", "/platform/"]) assert.equal((await s.raw(route)).headers.get("location"), "/account");
+  const link = await s.raw("/link?code=ABCD-1234&next=https://evil.test"); assert.equal(link.headers.get("location"), "/account?code=ABCD-1234#devices");
+  assert.equal((await s.raw("/login?next=%2Fplatform%23keys", undefined, { cookie: user.cookie })).headers.get("location"), "/account#keys");
+  assert.equal((await s.raw("/login?next=%2F%5Cevil.test", undefined, { cookie: user.cookie })).headers.get("location"), "/account");
+  const html = await s.raw("/account", undefined, { cookie: user.cookie }); assert.equal(html.status, 200); assert.match(await html.text(), /id="security"/);
+  assert.equal((await s.call("/account/api", undefined, { cookie: user.cookie })).value.account.id, user.account.id);
+  assert.equal((await s.call("/account/api")).status, 401);
+  assert.equal((await s.raw("/account", {}, { cookie: user.cookie })).status, 404);
+});
+test("settings remain usable independently of the credit overview and isolate sessions and wallets", async t => {
+  const s = await service(t), alice = await s.signup("settings@example.test"), bob = await s.signup("other@example.test"); await s.link(alice);
+  const dom = new JSDOM(fs.readFileSync(path.join(__dirname, "../public/platform/index.html"), "utf8"), { url: s.base + "/account#security", runScripts: "outside-only" }); t.after(() => dom.window.close());
+  const w = dom.window, $ = id => w.document.getElementById(id);
+  w.confirm = () => true; w.fetch = (url, options = {}) => { assert.ok(!url.startsWith("/platform/api/"), "settings must not depend on the credit RPC"); return fetch(s.base + url, { ...options, headers: { ...options.headers, cookie: alice.cookie } }); };
+  for (const name of ["account-routes.js", "account-settings.js"]) w.eval(fs.readFileSync(path.join(__dirname, "../public/platform", name), "utf8"));
+  for (let n = 0; n < 100 && !$("account-wallets").querySelector("button"); n++) await new Promise(r => setTimeout(r, 10));
+  assert.equal($("profile-email").textContent, "settings@example.test"); assert.match($("account-wallets").textContent, new RegExp(s.f.owner));
+  await $("account-wallets").querySelector("button.secondary").onclick();
+  assert.equal((await s.call("/account/api", undefined, { cookie: alice.cookie })).value.account.primaryCreditWallet, s.f.owner);
+  await $("account-wallets").querySelector("button.danger").onclick();
+  assert.equal((await s.call("/account/api", undefined, { cookie: alice.cookie })).value.account.wallets.length, 0);
+  assert.equal((await s.call("/account/api", undefined, { cookie: bob.cookie })).value.account.email, "other@example.test");
+  assert.equal((await s.call("/account/sessions/revoke-all", {}, { cookie: alice.cookie, origin: "https://evil.test" })).status, 403);
+  assert.equal((await s.call("/account/sessions/revoke-all", {}, { cookie: alice.cookie })).status, 200);
+  assert.equal((await s.call("/account/api", undefined, { cookie: alice.cookie })).status, 401);
+  assert.equal((await s.call("/account/api", undefined, { cookie: bob.cookie })).status, 200);
+});

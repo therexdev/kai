@@ -136,10 +136,10 @@ test("a failed pinned read group removes queued siblings, closes active reads, a
     groupSignal = signal;
     return scope.run(signal, () => withSignal(signal, run));
   };
-  rejected = assert.rejects(readGroup(p, Array.from({ length: 12 }, (_, index) => () => p.call("chain.read_contract", { index }))),
+  rejected = assert.rejects(readGroup(p, Array.from({ length: 12 }, (_, index) => () => index === 11 ? p.call("chain.submit_transaction", { broadcast: false, transaction: {} }) : p.call("chain.read_contract", { index }))),
     error => error.code === "koin_rpc_chain_mismatch");
   await twoStarted.promise;
-  assert.equal(calls.length, 2, "Two held probes leave the other ten group reads queued");
+  assert.equal(calls.length, 2, "Shared read pin and independent simulation pin occupy both slots");
   firstResponse.resolve();
   await rejected;
   assert.equal(groupSignal.aborted, true);

@@ -234,7 +234,7 @@ async function main() {
   check(r.status === 200 && r.data.token?.startsWith("sk_"), "the device receives its own session token");
   const appToken = r.data.token;
   r = await call("/auth/device/poll", { body: { userCode: dev.userCode, deviceSecret: dev.deviceSecret } });
-  check(r.status === 404, "the code is consumed — single use");
+  check(r.status === 200 && r.data.token === appToken, "a lost reply recovers the same session, without issuing another");
   r = await call("/auth/session", { headers: { authorization: `Bearer ${appToken}` } });
   check(r.status === 200 && r.data.account.id === accountId, "the app token belongs to the same account");
 

@@ -113,10 +113,10 @@ test("queued foreground deadlines do not bypass occupied sockets or send after c
   });
   const holders = new PinnedRpcProvider([endpoint], "fixture", { timeoutMs: 2000, attemptTimeoutMs: 500, fetchImpl });
   const controller = new AbortController();
-  const active = readScope("background", () => readGroup(holders, [
-    () => holders.call("chain.get_chain_id", {}, { signal: controller.signal }),
-    () => holders.call("chain.get_chain_id", {}, { signal: controller.signal }),
-  ]));
+  // Independent owners must occupy two physical slots; one group's overlapping
+  // chain-ID reads now intentionally share a single probe.
+  const active = Promise.all([1, 2].map(() => readScope("background", () =>
+    holders.call("chain.get_chain_id", {}, { signal: controller.signal }))));
   const activeResult = active.catch(error => error);
   t.after(async () => { controller.abort(); allowClose(); await activeResult; });
   await twoStarted;
@@ -157,11 +157,13 @@ test("real TLS foreground reads get a turn after held background sockets close, 
   } });
   const p = new PinnedRpcProvider([endpoint], "fixture", { fetchImpl, timeoutMs: 3000, attemptTimeoutMs: 2000 });
   const start = (trafficClass, count) => {
-    const result = readScope(trafficClass, () => p.withSignal(abort.signal, () => readGroup(p, Array.from({ length: count }, () => () => p.getChainId()))));
+    const result = Promise.all(Array.from({ length: count }, () => readScope(trafficClass, () =>
+      p.withSignal(abort.signal, () => p.getChainId()))));
     pending.push(result); result.catch(() => {}); return result;
   };
   const occupied = start("background", 2); await started;
   const background = start("background", 8), foreground = start("availability", 1);
+  await new Promise(resolve => setImmediate(resolve));
   assert.equal(endpointStats(endpoint).queued, 9); assert.equal(trace.length, 2);
   held.forEach(reply => reply()); await foreground;
   assert.ok(trace.indexOf("availability") >= 2 && trace.indexOf("availability") <= 3, "Foreground is dispatched before the queued background batch drains");
