@@ -337,3 +337,24 @@ test("Chat UI rollout refuses another installed base or unreviewed runtime chang
     await assert.rejects(WorkspaceUI.update(f.options), changed ? /exact reviewed/ : /Unexpected active/); f.assertNoStop();
   }
 });
+
+const NativeTools=require("./update-native-tools");
+test("Android native transport rollout snapshots once and preserves payment state and configuration",async t=>{
+ const f=fixture(t,NativeTools);
+ assert.equal(NativeTools.BASE,"cac28b9ca7b3ac3f098593607dcba896e5d63acf");
+ assert.equal((await NativeTools.update(f.options)).installed,true);
+ assert.equal((await NativeTools.update(f.options)).unchanged,true);
+ assert.equal(f.calls.filter(row=>row[0]==="drain").length,1);
+ assert.equal(f.calls.filter(row=>row[0]==="tar").length,1);
+ const plan=JSON.parse(fs.readFileSync(path.join(f.p.work,"kai-native-tools-plan-"+f.target+".json")));
+ assert.equal(plan.base,NativeTools.BASE);assert.equal(plan.phase,"ready");f.assertPreserved();
+});
+test("Android native rollout rejects an unexpected active release or unrelated source before stopping",async t=>{
+ for(const kind of ["release","source"]){
+  const f=fixture(t,NativeTools);
+  if(kind==="release")f.loaded=path.join(f.p.releases,Diagnostics.BASE);
+  else f.changed=NativeTools.REQUIRED.join("\n")+"\npublic/unreviewed.html";
+  await assert.rejects(NativeTools.update(f.options),kind==="source"?/exact reviewed/:/Unexpected active/);
+  f.assertNoStop();f.assertPreserved();assert.equal(fs.existsSync(f.targetDir),false);
+ }
+});
