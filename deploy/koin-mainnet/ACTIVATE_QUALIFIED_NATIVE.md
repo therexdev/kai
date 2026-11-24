@@ -1,0 +1,19 @@
+# Activate the qualified GPT OSS route
+
+Prerequisite: protocol 2 release `65c1d21b85705cd26acc63bd1eedaf5af4ef6400` is active, and the operator has completed `check-native-tools.js akash-gpt-oss-120b --probe --max-output 4096`. Its protected evidence is at `/var/lib/kai-koin-prepaid/native-qualification/routes.json`; the existing supplier key file is `/etc/kai-koin-prepaid/akashml-api-key`.
+
+The operator's first recorded successful probe used two calls: 160 input/50 output tokens, then 250 input/26 output tokens. This is supplier tool-call/result/continuation evidence, not a phone or real connector acceptance test.
+
+Fetch this helper's commit without checking it out over the pinned deployed release. Extract `activate-qualified-native.js` into a private temporary file outside the checkout and run `/usr/bin/node <temporary-file> --enable-gpt-oss` as root. The helper imports the already installed release's qualification, drain and health functions. It never calls the supplier.
+
+Before changing configuration, it validates the installed unit and evidence under the service identity. It accepts only the observed key-file source and either absent or already matching native settings; conflicting/duplicate settings stop the operation. It backs up the complete original `account.env` privately, preserves every existing byte, and atomically appends only the evidence path and GPT OSS allowlist entry with the original ownership and mode 0600. Credential values are never printed.
+
+The helper shares the code updater's locks and uses SIGTERM with the application's normal clean drain. It never calls `systemctl stop/restart`, escalates to SIGKILL, copies or restores journals, replaces code, or bypasses readiness checks. It verifies the original process's normal exit and unchanged restart count before starting the same installed release. Health and the new process's relevant environment are checked before reporting `enabled: true`.
+
+If the four-minute drain wait expires, the service can continue draining and the helper stops without escalation. Rerun this same helper to resume after the clean exit. Configuration is idempotent, and an already active correctly configured process is health-checked without another restart. A health failure after startup preserves the running process. Preserve the configuration backup; do not rerun the earlier code updater, whose completed plan predates this configuration change.
+
+After success, install Android 0.5.2, refresh Account and select GPT OSS 120B. The signed qualification expires seven days after its probe; requalification is explicit and billable. Other models remain disabled for native tools until independently qualified and enabled. Physical-device and live document/email acceptance remain outstanding.
+
+Eight command-simulation tests cover preservation/idempotency, invalid evidence/unit, duplicate/conflicting settings, drain timeout/resume, health failure/resume, abnormal exit, concurrent configuration changes, process restart during drain, expired evidence, shared locks and protected-file checks. The existing runtime shutdown tests also validate that financial passes are allowed to drain before journals close. Production activation is verified only by the operator's resulting output.
+
+The combined activation, reward-runtime updater and HTTP runtime-startup gate passed all 39 tests with zero failures/skips on Node 24.22.3. Installed helper exports and same-release service-unit validation were checked separately. The activation tests are included in the managed-inference CI matrix for Node 22 and 24.
