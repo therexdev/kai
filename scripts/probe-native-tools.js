@@ -3,9 +3,17 @@ const test=require("node:test"),assert=require("node:assert/strict"),{service}=r
 const N=require("../lib/koin-network/native-chat"),M=require("../lib/koin-network/managed-protocol"),P=require("../lib/koin-network/job-protocol");
 const model=M.models[0].model;
 const tools=[{type:"function",function:{name:"find_tools",description:"Discover document actions",parameters:{type:"object",properties:{accountId:{type:"string"}},required:["accountId"]}}}];
-const input={model,messages:[{role:"user",content:"Research ecosystem projects and create a document"}],tools,tool_choice:"auto",parallel_tool_calls:false,max_tokens:128};
+const input={model,native_protocol:2,messages:[{role:"user",content:"Research ecosystem projects and create a document"}],tools,tool_choice:"auto",parallel_tool_calls:false,max_tokens:128};
 const call={id:"call_docs_1",type:"function",function:{name:"find_tools",arguments:'{"accountId":"docs-fixture"}'}};
-function enable(t) { const old=process.env.KAI_NATIVE_TOOL_MODELS; process.env.KAI_NATIVE_TOOL_MODELS=model; t.after(()=>old===undefined?delete process.env.KAI_NATIVE_TOOL_MODELS:process.env.KAI_NATIVE_TOOL_MODELS=old); }
+function enable(t) {
+  const fs=require("node:fs"),path=require("node:path"),os=require("node:os"),Q=require("../lib/koin-network/native-qualification");
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),"native-qualification-test-")),file=path.join(dir,"routes.json");
+  const names=["KAI_NATIVE_TOOL_MODELS","KAI_NATIVE_QUALIFICATION_FILE","KAI_AKASHML_API_KEY","KAI_AKASHML_API_KEY_FILE"],old=Object.fromEntries(names.map(n=>[n,process.env[n]]));
+  const key="fixture-only-managed-secret";
+  fs.writeFileSync(file,JSON.stringify({schema:1,routes:[Q.evidence(model,[{input:10,output:10},{input:20,output:10}],key)]}),{mode:0o600});
+  process.env.KAI_NATIVE_TOOL_MODELS=model;process.env.KAI_NATIVE_QUALIFICATION_FILE=file;process.env.KAI_AKASHML_API_KEY=key;delete process.env.KAI_AKASHML_API_KEY_FILE;
+  t.after(()=>{for(const n of names) old[n]===undefined?delete process.env[n]:process.env[n]=old[n];fs.rmSync(dir,{recursive:true,force:true});});
+}
 test("native requests fail closed until a model is explicitly enabled",async t=>{
   let posts=0;const s=await service(t,{managedFetch:()=>{posts++;assert.fail("Must reject before a paid inference");}}),u=await s.signup("native-disabled@example.test");
   const key=(await s.createKey(u,{dailyLimitAtoms:"100000000"})).value.secret,h={authorization:"Bearer "+key};
@@ -42,4 +50,21 @@ test("metadata participates in quote commitments; malformed or unpaired calls ca
   assert.throws(()=>N.packAnswer({role:"assistant",content:null,tool_calls:[call]},"stop"));
   assert.throws(()=>N.encode([{role:"system",content:"",kai_tools:tools}],tools),/Internal/);
   assert.deepEqual(N.unpackAnswer(N.packAnswer({role:"assistant",content:null,tool_calls:[call]},"tool_calls")).message.tool_calls,[call]);
+});
+test("sealed continuation survives billed gateway streaming and rejects tampering before supplier IO",async t=>{
+ enable(t);let posts=0;
+ const s=await service(t,{managedFetch:async(_url,init)=>{
+  const body=JSON.parse(init.body);posts++;
+  if(posts>1) assert.equal(body.messages.find(m=>m.tool_calls).reasoning_content,"private fixture state");
+  return Response.json({choices:[{message:posts===1?{role:"assistant",content:"",tool_calls:[call],reasoning_content:"private fixture state"}:{role:"assistant",content:"Verified continuation"},finish_reason:posts===1?"tool_calls":"stop"}],usage:{prompt_tokens:100,completion_tokens:20,total_tokens:120}});
+ }}),u=await s.signup("native-replay@example.test"),key=(await s.createKey(u,{dailyLimitAtoms:"100000000"})).value.secret,h={authorization:"Bearer "+key};
+ const first=await s.call("/v1/chat/completions",input,h);assert.equal(first.status,200,JSON.stringify(first.value));
+ const assistant=first.value.choices[0].message;assert.match(assistant.kai_replay,/^kr1\./);assert.ok(!JSON.stringify(first.value).includes("private fixture state"));
+ const history=[...input.messages,assistant,{role:"tool",tool_call_id:call.id,content:"Synthetic outcome"}];
+ const follow=await s.raw("/v1/chat/completions",{...input,messages:history,stream:true,stream_options:{include_usage:true}},h);
+ const text=await follow.text();assert.match(text,/Verified continuation/);assert.match(text,/"usage"/);assert.ok(!text.includes("private fixture state"));assert.equal(posts,2);
+ const bad=structuredClone(history);bad[1].tool_calls[0].function.arguments='{"accountId":"changed"}';
+ const rejected=await s.call("/v1/chat/completions",{...input,messages:bad},h);assert.equal(rejected.status,400);assert.equal(rejected.value.error.code,"managed_native_replay_invalid");assert.equal(posts,2);
+ assert.ok(!JSON.stringify(rejected.value).includes("private fixture state"));
+ const old=await s.call("/v1/chat/completions",{...input,native_protocol:undefined},h);assert.equal(old.status,400);assert.equal(posts,2);
 });

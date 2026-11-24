@@ -22,5 +22,5 @@ jobs:
         run: >-
           node -e 'require("node:child_process").execFileSync(process.execPath, ["--test", "--test-concurrency=2", ...require("./deploy/koin-mainnet/update-managed-inference").PROBES], { stdio: "inherit" })'
       - name: Verify native tool transport and idempotent recovery
-        run: node --test scripts/probe-native-tools.js
+        run: node --test scripts/probe-native-tools.js scripts/probe-native-qualification.js
       - run: node --check test-server.js

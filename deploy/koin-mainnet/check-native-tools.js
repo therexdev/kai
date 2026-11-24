@@ -1,20 +1,39 @@
 #!/usr/bin/env node
 "use strict";
-// Explicit operator-run probe. It creates one synthetic provider inference per
-// model; no connection credentials, customer content or external tools execute.
-const {secret}=require("../../lib/koin-network/managed-provider"),M=require("../../lib/koin-network/managed-protocol"),N=require("../../lib/koin-network/native-chat");
+const fs = require("node:fs"), path = require("node:path"), { secret } = require("../../lib/koin-network/managed-provider"), M = require("../../lib/koin-network/managed-protocol");
+const { probe } = require("../../lib/koin-network/native-probe");
 async function main() {
-  const model=M.find(process.argv[2]);
-  if(process.argv.length!==4 || process.argv[3]!=="--probe" || !model) throw Error("Usage: node deploy/koin-mainnet/check-native-tools.js <managed-model-id> --probe");
-  const key=secret();if(!key) throw Error("Configure the protected AkashML credential source first");
-  const tools=[{type:"function",function:{name:"native_probe",description:"Return the supplied synthetic value",parameters:{type:"object",properties:{value:{type:"string"}},required:["value"]}}}];
-  const response=await fetch("https://api.akashml.com/v1/chat/completions",{method:"POST",redirect:"error",signal:AbortSignal.timeout(60000),headers:{authorization:"Bearer "+key,"content-type":"application/json"},
-    body:JSON.stringify({model:model.upstream,messages:[{role:"user",content:"Call native_probe once with value kai_probe. Do not answer in prose."}],tools,tool_choice:"auto",parallel_tool_calls:false,max_completion_tokens:512})});
-  if(!response.ok) throw Error("Provider probe failed with HTTP "+response.status);
-  const raw=await response.text();if(Buffer.byteLength(raw)>200000) throw Error("Probe response too large");
-  const value=JSON.parse(raw),choice=value.choices?.[0],answer=N.unpackAnswer(N.packAnswer(choice?.message,choice?.finish_reason));
-  const call=answer.message.tool_calls?.[0];
-  if(answer.message.tool_calls?.length!==1 || call.function.name!=="native_probe" || JSON.parse(call.function.arguments).value!=="kai_probe" || !Number.isSafeInteger(value.usage?.prompt_tokens) || !Number.isSafeInteger(value.usage?.completion_tokens)) throw Error("Provider did not complete a valid native tool call with usage");
-  console.log(JSON.stringify({model:model.model,nativeTools:1,checkedAt:new Date().toISOString(),usage:value.usage}));
+  const [, , model, flag, budgetFlag, count] = process.argv, maxOutput = Number(count);
+  if (process.argv.length !== 6 || flag !== "--probe" || budgetFlag !== "--max-output" || !M.find(model) || !Number.isSafeInteger(maxOutput) || maxOutput < 512 || maxOutput > Math.min(8192, M.find(model).maxOutputTokens))
+    throw Error("Usage: node deploy/koin-mainnet/check-native-tools.js <model> --probe --max-output <512..8192>");
+  const key = secret(), file = process.env.KAI_NATIVE_QUALIFICATION_FILE;
+  if (!key || !file || !path.isAbsolute(file)) throw Error("Configure the protected supplier key and absolute KAI_NATIVE_QUALIFICATION_FILE first");
+  process.umask(0o077);
+  const lock = fs.openSync(file + ".lock", "wx", 0o600);
+  let temporary;
+  try {
+    let data = { schema: 1, routes: [] };
+    if (fs.existsSync(file)) {
+      const st = fs.lstatSync(file);
+      if (!st.isFile() || st.isSymbolicLink() || st.size > 131072 || (st.mode & 0o077)) throw Error("Qualification file must be a protected regular file");
+      data = JSON.parse(fs.readFileSync(file, "utf8"));
+      if (data.schema !== 1 || !Array.isArray(data.routes) || data.routes.length > 32) throw Error("Invalid qualification file");
+    }
+    data.routes = data.routes.filter(r => r.record?.model !== model);
+    function save() {
+      temporary = file + "." + process.pid + ".tmp";
+      const fd = fs.openSync(temporary, "wx", 0o600);
+      try { fs.writeFileSync(fd, JSON.stringify(data, null, 2) + "\n"); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+      fs.renameSync(temporary, file); temporary = undefined;
+      const dir = fs.openSync(path.dirname(file), "r"); try { fs.fsyncSync(dir); } finally { fs.closeSync(dir); }
+    }
+    // A failed requalification revokes old evidence; no retry or paid escalation.
+    save();
+    const evidence = await probe({ model, key, maxOutput });
+    data.routes.push(evidence); save();
+    console.log(JSON.stringify({ model, qualified: true, protocol: 2, calls: 2, usage: evidence.record.usage, expiresAt: evidence.record.expiresAt,
+      enabled: false, next: "Review evidence before adding this model to KAI_NATIVE_TOOL_MODELS. This probe does not change the allowlist." }));
+  } finally { if (temporary) fs.rmSync(temporary, { force: true }); fs.closeSync(lock); fs.rmSync(file + ".lock", { force: true }); }
 }
-main().catch(()=>{console.error("Native tool probe did not pass. Leave this model out of KAI_NATIVE_TOOL_MODELS. Check protected server diagnostics; no tool was executed.");process.exitCode=1;});
+if (require.main === module) main().catch(() => { console.error("Native qualification failed. No external tool ran; no automatic retry occurred. Check protected configuration and rerun explicitly."); process.exitCode = 1; });
+module.exports = { main };

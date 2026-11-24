@@ -358,3 +358,19 @@ test("Android native rollout rejects an unexpected active release or unrelated s
   f.assertNoStop();f.assertPreserved();assert.equal(fs.existsSync(f.targetDir),false);
  }
 });
+const NativeQualification=require("./update-native-qualification");
+test("qualified native rollout preserves financial state and resumes with one stopped snapshot",async t=>{
+ const f=fixture(t,NativeQualification);
+ assert.equal((await NativeQualification.update(f.options)).installed,true);
+ assert.equal((await NativeQualification.update(f.options)).unchanged,true);
+ assert.equal(f.calls.filter(c=>c[0]==="tar").length,1);f.assertPreserved();
+});
+test("qualified native rollout rejects wrong active release and unrelated source before downtime",async t=>{
+ for(const kind of ["base","source"]){const f=fixture(t,NativeQualification);
+  if(kind==="base")f.loaded=path.join(f.p.releases,"b".repeat(40));else f.changed=NativeQualification.REQUIRED.join("\n")+"\npublic/unreviewed.html";
+  await assert.rejects(NativeQualification.update(f.options),kind==="base"?/Unexpected active/:/exact reviewed/);f.assertNoStop();
+ }
+});
+test("qualified native health rejects transport without qualification gate",async()=>{
+ await assert.rejects(NativeQualification.health({timeoutMs:0,expected:{chainId:"fixture"},fetchImpl:async()=>({ok:true,text:async()=>JSON.stringify({nativeToolTransportVersion:2,nativeQualificationVersion:1})})}),/Qualified native/);
+});
