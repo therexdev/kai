@@ -26,8 +26,8 @@ cd /root/kai-purchase-limit-update
 curl -fsS https://credits.koinosai.com/health
 ```
 
-The updater requires the installed inference-diagnostics release
-`75dc78be85b0f72112fb21432140149ae935d002`. If another release is active, it
+The updater requires the installed native-qualification release
+`65c1d21b85705cd26acc63bd1eedaf5af4ef6400`. If another release is active, it
 stops before replacing it. Do not reset production to satisfy that check;
 prepare the update against the actual installed release instead.
 

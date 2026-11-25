@@ -1,12 +1,12 @@
 "use strict";
 const test = require("node:test"), assert = require("node:assert/strict");
-const U = require("./update-purchase-limit"), Prior = require("./update-inference-diagnostics"), Web = require("./update-web-api");
+const U = require("./update-purchase-limit"), Prior = require("./update-native-qualification"), Web = require("./update-web-api");
 test("purchase update uses the existing state-preserving updater and exact installed base", async () => {
   const previous = Web.update; let received;
   Web.update = async options => { received = options; return "verified"; };
   try { assert.equal(await U.update({ repo: "/fixture" }), "verified"); } finally { Web.update = previous; }
   assert.equal(received.repo, "/fixture");
-  assert.equal(received.releasePolicy.BASE, "75dc78be85b0f72112fb21432140149ae935d002");
+  assert.equal(received.releasePolicy.BASE, "65c1d21b85705cd26acc63bd1eedaf5af4ef6400");
   assert.equal(received.checkHealth, U.health);
   for (const probe of Prior.PROBES) assert.ok(U.PROBES.includes(probe));
   for (const lock of Prior.LOCKS) assert.ok(U.LOCKS.includes(lock));

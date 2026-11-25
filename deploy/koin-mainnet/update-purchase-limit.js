@@ -1,6 +1,6 @@
 "use strict";
-const Web = require("./update-web-api"), Prior = require("./update-inference-diagnostics");
-const BASE = "75dc78be85b0f72112fb21432140149ae935d002";
+const Web = require("./update-web-api"), Prior = require("./update-native-qualification");
+const BASE = "65c1d21b85705cd26acc63bd1eedaf5af4ef6400";
 const REQUIRED = ["lib/koin-network/purchase-limits.js", "lib/koin-network/purchase-price.js", "lib/koin-network/purchase-quote-journal.js", "lib/koin-network/v4-price-validation.js", "test-server.js", "scripts/probe-koin-merchant-reference.js", "scripts/probe-koin-purchase-journal.js", "deploy/koin-mainnet/update-purchase-limit.js", "deploy/koin-mainnet/PURCHASE_LIMIT.md", "V4_PURCHASE_PRICING.md"];
 const ALLOWED = new Set([...REQUIRED, "scripts/probe-koin-purchase-preflight.js", "deploy/koin-mainnet/update-purchase-limit.test.js", ".github/workflows/purchase-limit.yml"]);
 const PROBES = [...new Set([...Prior.PROBES, "scripts/probe-koin-purchase-price.js", "scripts/probe-koin-merchant-reference.js", "scripts/probe-koin-v4-price-validation.js", "scripts/probe-koin-v4-history-reader.js", "scripts/probe-koin-v4-purchase-oracle.js", "scripts/probe-koin-purchase-journal.js", "scripts/probe-purchase-quotes-http.js", "scripts/probe-koin-purchase-preflight.js", "deploy/koin-mainnet/update-purchase-limit.test.js"])];

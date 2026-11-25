@@ -320,3 +320,57 @@ test("diagnostics health preserves workspace, native account and wallet-link cap
     if (missing) await assert.rejects(Diagnostics.health(options)); else await Diagnostics.health(options);
   }
 });
+
+const WorkspaceUI = require("./update-workspace-ui");
+test("Chat UI rollout preserves diagnostics and financial state and resumes exactly once", async t => {
+  const f = fixture(t, WorkspaceUI);
+  assert.equal(WorkspaceUI.BASE, "a0c9d9ecb80ebaf5632b052643f7298947f80f96");
+  assert.equal((await WorkspaceUI.update(f.options)).installed, true);
+  assert.equal((await WorkspaceUI.update(f.options)).unchanged, true);
+  assert.equal(f.calls.filter(row => row[0] === "drain").length, 1); f.assertPreserved();
+});
+test("Chat UI rollout refuses another installed base or unreviewed runtime changes before draining", async t => {
+  for (const changed of [false, true]) {
+    const f = fixture(t, WorkspaceUI);
+    if (changed) f.changed = WorkspaceUI.REQUIRED.join("\n") + "\nlib/koin-network/prepaid-ledger.js";
+    else f.loaded = path.join(f.p.releases, Diagnostics.BASE);
+    await assert.rejects(WorkspaceUI.update(f.options), changed ? /exact reviewed/ : /Unexpected active/); f.assertNoStop();
+  }
+});
+
+const NativeTools=require("./update-native-tools");
+test("Android native transport rollout snapshots once and preserves payment state and configuration",async t=>{
+ const f=fixture(t,NativeTools);
+ assert.equal(NativeTools.BASE,"cac28b9ca7b3ac3f098593607dcba896e5d63acf");
+ assert.equal((await NativeTools.update(f.options)).installed,true);
+ assert.equal((await NativeTools.update(f.options)).unchanged,true);
+ assert.equal(f.calls.filter(row=>row[0]==="drain").length,1);
+ assert.equal(f.calls.filter(row=>row[0]==="tar").length,1);
+ const plan=JSON.parse(fs.readFileSync(path.join(f.p.work,"kai-native-tools-plan-"+f.target+".json")));
+ assert.equal(plan.base,NativeTools.BASE);assert.equal(plan.phase,"ready");f.assertPreserved();
+});
+test("Android native rollout rejects an unexpected active release or unrelated source before stopping",async t=>{
+ for(const kind of ["release","source"]){
+  const f=fixture(t,NativeTools);
+  if(kind==="release")f.loaded=path.join(f.p.releases,Diagnostics.BASE);
+  else f.changed=NativeTools.REQUIRED.join("\n")+"\npublic/unreviewed.html";
+  await assert.rejects(NativeTools.update(f.options),kind==="source"?/exact reviewed/:/Unexpected active/);
+  f.assertNoStop();f.assertPreserved();assert.equal(fs.existsSync(f.targetDir),false);
+ }
+});
+const NativeQualification=require("./update-native-qualification");
+test("qualified native rollout preserves financial state and resumes with one stopped snapshot",async t=>{
+ const f=fixture(t,NativeQualification);
+ assert.equal((await NativeQualification.update(f.options)).installed,true);
+ assert.equal((await NativeQualification.update(f.options)).unchanged,true);
+ assert.equal(f.calls.filter(c=>c[0]==="tar").length,1);f.assertPreserved();
+});
+test("qualified native rollout rejects wrong active release and unrelated source before downtime",async t=>{
+ for(const kind of ["base","source"]){const f=fixture(t,NativeQualification);
+  if(kind==="base")f.loaded=path.join(f.p.releases,"b".repeat(40));else f.changed=NativeQualification.REQUIRED.join("\n")+"\npublic/unreviewed.html";
+  await assert.rejects(NativeQualification.update(f.options),kind==="base"?/Unexpected active/:/exact reviewed/);f.assertNoStop();
+ }
+});
+test("qualified native health rejects transport without qualification gate",async()=>{
+ await assert.rejects(NativeQualification.health({timeoutMs:0,expected:{chainId:"fixture"},fetchImpl:async()=>({ok:true,text:async()=>JSON.stringify({nativeToolTransportVersion:2,nativeQualificationVersion:1})})}),/Qualified native/);
+});
