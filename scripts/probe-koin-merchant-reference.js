@@ -50,7 +50,8 @@ test("merchant reference is explicit, native-bound, and compatible with the exis
 });
 test("merchant reference converts the actual pool and stablecoin observations without asserting redemption", () => {
   const f = fixture(), q = V.validate(f);
-  assert.equal(q.usdPerKoin, "10000000000"); assert.equal(q.maxPurchaseUsdAtoms, "100000000"); assert.equal(q.maxPurchaseKoinAtoms, "1000000");
+  assert.equal(q.usdPerKoin, "10000000000"); assert.equal(q.maxPurchaseUsdAtoms, "100000000000"); assert.equal(q.maxPurchaseKoinAtoms, "1000000000");
+  assert.equal(q.marketDepthUsdAtoms, "100000000"); assert.equal(q.marketDepthKoinAtoms, "1000000");
   assert.equal(q.expiresAt, f.now + 15000, "expiry is bounded by real market/feed evidence without an invented parity timer");
   const provenance = q.sources.at(-1);
   assert.equal(provenance.source, "merchant:vkoin-exchange-reference"); assert.equal(provenance.redemptionVerified, false);
@@ -61,7 +62,7 @@ test("merchant reference converts the actual pool and stablecoin observations wi
   assert.notEqual(V.referenceHash(f.reference, { ...f.policy, version: 3 }), provenance.policyHash);
   assert.notEqual(V.referenceHash(f.reference, { ...f.policy, maxSlippageBps: 99 }), provenance.policyHash);
   f.usdt.usdAtoms = "99900000";
-  assert.equal(V.validate(f).usdPerKoin, "9990000000"); assert.equal(V.validate(f).maxPurchaseUsdAtoms, "99900000");
+  assert.equal(V.validate(f).usdPerKoin, "9990000000"); assert.equal(V.validate(f).marketDepthUsdAtoms, "99900000");
 });
 test("merchant mode retains canonical history, every-block bid/ask depth, stablecoin and expiry guards", () => {
   for (const change of [f => f.history.blocks.splice(2, 1), f => f.history.blocks[2].parentHash = hash(999),
@@ -84,21 +85,25 @@ test("merchant oracle needs matching archives, clears stale or reorganized cache
   const unavailable = purchasePrice({ mode: "mainnet-pilot", deployment: f.deployment });
   await assert.rejects(unavailable.read(), e => e.code === "PURCHASE_PRICE_UNAVAILABLE", "schema2 is never activated by a default");
 });
-test("purchase size cannot exceed the executable USD notional, even by one native atom or rounded quote", () => {
-  const q = V.validate(fixture()); // synthetic $100/KOIN, $1 depth => 0.01 KOIN.
-  assert.doesNotThrow(() => assertPurchaseSize(q, "1000000"));
-  assert.throws(() => assertPurchaseSize(q, "1000001"), e => e.code === "PURCHASE_DEPTH_EXCEEDED");
-  assert.throws(() => assertPurchaseSize(q, "1000000000"), e => e.code === "PURCHASE_DEPTH_EXCEEDED");
+test("merchant purchases use the USD sales ceiling while invalid depth still stops pricing", () => {
+  const q = V.validate(fixture()), Limits = require("../lib/koin-network/purchase-limits");
+  const Q = require("../lib/koin-network/purchase-quote");
+  for (const dollars of ["1", "10", "40", "999.99", "1000"]) {
+    assert.doesNotThrow(() => assertPurchaseSize(q, Q.nativeForDollars(dollars, q.usdPerKoin)));
+  }
+  assert.throws(() => assertPurchaseSize(q, String(BigInt(q.maxPurchaseKoinAtoms) + 1n)), { code: "PURCHASE_LIMIT_EXCEEDED" });
+  assert.throws(() => Limits.assertDollars("1000.01"), { code: "PURCHASE_LIMIT_EXCEEDED" });
   assert.throws(() => assertPurchaseSize({ usdPerKoin: q.usdPerKoin }, "1"), /depth.*unavailable/);
   assert.doesNotThrow(() => assertPurchaseSize({ usdPerKoin: q.usdPerKoin }, "1", { isolated: true }));
-  assert.throws(() => assertPurchaseSize({ usdPerKoin: "1", maxPurchaseUsdAtoms: "1", maxPurchaseKoinAtoms: "100000000" }, "100000001"), e => e.code === "PURCHASE_DEPTH_EXCEEDED");
-  const f = fixture(); f.usdt.usdAtoms = "99900000"; const depeggedWithinPolicy = V.validate(f);
-  assert.equal(depeggedWithinPolicy.maxPurchaseUsdAtoms, "99900000");
-  const amount = require("../lib/koin-network/purchase-quote").nativeForDollars("1", depeggedWithinPolicy.usdPerKoin);
-  assert.throws(() => assertPurchaseSize(depeggedWithinPolicy, amount), e => e.code === "PURCHASE_DEPTH_EXCEEDED");
+  const legacy = { usdPerKoin: "1", maxPurchaseUsdAtoms: "1", maxPurchaseKoinAtoms: "100000000" };
+  assert.throws(() => assertPurchaseSize(legacy, "100000001"), { code: "PURCHASE_DEPTH_EXCEEDED" });
+  const f = fixture(); f.usdt.usdAtoms = "99900000";
+  const adjusted = V.validate(f);
+  assert.equal(adjusted.marketDepthUsdAtoms, "99900000");
+  assert.doesNotThrow(() => assertPurchaseSize(adjusted, Q.nativeForDollars("1000", adjusted.usdPerKoin)));
 });
 
-test("depth uses the unrounded exchange price and exposes a pack ceiling that accommodates native rounding", () => {
+test("market depth remains precise while the full USD sales pack accommodates native rounding", () => {
   function atSquareRoot(sqrt) {
     const f = fixture(), spot = V.price(String(sqrt)), probe = 1000000n;
     for (const row of f.history.blocks) {
@@ -109,25 +114,24 @@ test("depth uses the unrounded exchange price and exposes a pack ceiling that ac
     }
     return V.validate(f);
   }
-  // About $0.037 per KOIN. Native rounding cannot falsely advertise a $1
-  // pack when the precise executable $1 native limit is slightly lower.
+  // About $0.037 per KOIN: the old $1 depth cap fell just below $1.
   const q = atSquareRoot(1523983631873073519507169280n);
   const nativeForDollars = require("../lib/koin-network/purchase-quote").nativeForDollars;
   assert.doesNotThrow(() => assertPurchaseSize(q, nativeForDollars("0.99", q.usdPerKoin)));
-  assert.throws(() => assertPurchaseSize(q, nativeForDollars("1", q.usdPerKoin)), e => e.code === "PURCHASE_DEPTH_EXCEEDED");
-  assert.ok(BigInt(q.maxPurchaseUsdAtoms) < 100000000n);
+  assert.doesNotThrow(() => assertPurchaseSize(q, nativeForDollars("1000", q.usdPerKoin)));
+  assert.ok(BigInt(q.marketDepthUsdAtoms) < 100000000n);
   assert.doesNotThrow(() => assertPurchaseSize(q, q.maxPurchaseKoinAtoms));
-  assert.throws(() => assertPurchaseSize(q, String(BigInt(q.maxPurchaseKoinAtoms) + 1n)), e => e.code === "PURCHASE_DEPTH_EXCEEDED");
+  assert.throws(() => assertPurchaseSize(q, String(BigInt(q.maxPurchaseKoinAtoms) + 1n)), e => e.code === "PURCHASE_LIMIT_EXCEEDED");
   // Near one USD atom per KOIN, flooring the quoted price can otherwise
   // overstate native depth materially rather than by a rounding fraction.
   const tiny = atSquareRoot(970000000000000000000000n);
   assert.equal(tiny.usdPerKoin, "1");
-  assert.ok(BigInt(tiny.maxPurchaseKoinAtoms) < 7000000000000000n);
-  assert.throws(() => assertPurchaseSize(tiny, nativeForDollars("1", tiny.usdPerKoin)), e => e.code === "PURCHASE_DEPTH_EXCEEDED");
+  assert.ok(BigInt(tiny.marketDepthKoinAtoms) < 7000000000000000n);
+  assert.doesNotThrow(() => assertPurchaseSize(tiny, nativeForDollars("1000", tiny.usdPerKoin)));
   assert.doesNotThrow(() => assertPurchaseSize(tiny, tiny.maxPurchaseKoinAtoms));
 });
 
-test("a higher spot within the allowed window reduces the native ceiling to units actually tested at every block", () => {
+test("market-depth diagnostics retain the weakest block without lowering the merchant sales ceiling", () => {
   const f = fixture(), row = f.history.blocks.at(-1), probe = BigInt(row.probeUsdtAtoms);
   row.sqrtPriceX96 = String((1n << 96n) * 1001n / 1000n);
   const spot = V.price(row.sqrtPriceX96);
@@ -136,8 +140,8 @@ test("a higher spot within the allowed window reduces the native ceiling to unit
   row.sellUsdtAtoms = String(BigInt(row.sellVkoinAtoms) * spot * 990000n / (100n * V.SCALE * 1000000n));
   const q = V.validate(f);
   assert.equal(q.usdPerKoin, "10000000000", "the final anchor has no elapsed time and must not replace the window price");
-  assert.ok(BigInt(q.maxPurchaseKoinAtoms) < 1000000n, "the average-price depth limit would exceed the higher-price block's probe");
-  for (const r of f.history.blocks) assert.ok(BigInt(q.maxPurchaseKoinAtoms) <= BigInt(r.sellVkoinAtoms));
+  assert.ok(BigInt(q.marketDepthKoinAtoms) < 1000000n, "the average-price depth limit would exceed the higher-price block's probe");
+  for (const r of f.history.blocks) assert.ok(BigInt(q.marketDepthKoinAtoms) <= BigInt(r.sellVkoinAtoms));
   assert.doesNotThrow(() => assertPurchaseSize(q, q.maxPurchaseKoinAtoms));
-  assert.throws(() => assertPurchaseSize(q, "1000000"), e => e.code === "PURCHASE_DEPTH_EXCEEDED");
+  assert.doesNotThrow(() => assertPurchaseSize(q, "1000000000"));
 });

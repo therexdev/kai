@@ -8,7 +8,9 @@ The approved Ethereum v4 pool and token ordering are pinned in `purchase-price.j
 
 `v4-purchase-oracle.js` requires two reviewed HTTPS archive hosts whose complete observations agree. Warm-up runs independently of settlement and existing-credit use. Every read rechecks the canonical anchor and the selected reference rule (including fresh signed parity evidence in schema 1). A failed refresh clears the quote cache. Quote expiry cannot outlive the earliest underlying evidence, and the signed purchase quote uses that remaining lifetime.
 
-Both schemas return a conservative `maxPurchaseKoinAtoms` calculated from the configured minimum executable USDT probe and the highest unrounded pool price in the window/reference ratio, so it fits every checked block. The quote price remains the time-weighted average. The runtime checks the native purchase amount against the depth bound **before signing**. `maxPurchaseUsdAtoms` is the credited USD value of that native ceiling at the final integer quote rate. Upward native-atom rounding cannot exceed the checked depth. This is a raw notional ceiling, not an advertised USD pack size: choose a probe larger than the supported packs to leave rounding/depeg headroom. It is not an aggregate sales limit.
+Merchant-reference credit purchases have a **$1,000 USD per-transaction sales limit**. They transfer native KOIN to KAI and do not execute a swap against the reference pool. The configured minimum two-direction depth probe still validates the price in every block, but its notional is no longer mistaken for the maximum credit pack. The exact native ceiling uses the same upward native-atom rounding as a $1,000 pack; the signed summary includes its actual credited USD ceiling. Requests over $1,000 are rejected before a new intent is signed. Native-denominated requests are checked at the verified rate as well.
+
+Full archived merchant evidence retains `marketDepthKoinAtoms` and `marketDepthUsdAtoms`, plus `purchaseLimitKind: merchant-usd` and its version. These are measurements of the reference market, **not** a claim that a $1,000 pool swap would satisfy the slippage threshold. The merchant accepts the larger sales exposure. Price policy identity and the price evidence requirements do not change; the separate sales ceiling is bound into each existing signed provenance summary. Signed-parity configurations retain the original conservative depth ceiling, based on the highest unrounded window price. See [the rollout instructions](deploy/koin-mainnet/PURCHASE_LIMIT.md).
 
 ## Configuration and trust decisions
 
@@ -76,7 +78,7 @@ signed pricing. Quote issuance never adds or removes purchased credits.
 
 Journal corruption, missing tracked files, detected rollback, a backward service
 clock or unavailable pricing evidence still pauses new quote issuance. Individual
-quotes retain their verified liquidity ceiling and expiry. The independent
+quotes retain their signed purchase ceiling and expiry. The independent
 purchased-credit ledger, already-signed payment attribution and settlement remain
 available. Preserve the journal directory and external recovery anchor when
 operating on service state; never delete them to recover a transaction. Full evidence remains private operator data; customers receive the signed-ID-bound summary, observation time, expiry, reference/policy hashes and size ceiling.
