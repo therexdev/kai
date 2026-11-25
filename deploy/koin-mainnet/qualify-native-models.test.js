@@ -18,3 +18,9 @@ test("invalid limits and model lists fail before a supplier call",async()=>{
     await assert.rejects(qualify({...config,probe:()=>{calls++;},log:()=>{}}));
   assert.equal(calls,0);
 });
+
+test("qualification refuses a different installed release before changing route evidence",()=>{
+  const { verifyInstalled }=require("./qualify-native-models"),{ RELEASE }=require("./activate-qualified-native");
+  verifyInstalled((_,args)=>args.at(-1)==="--property=WorkingDirectory" ? RELEASE : "kai-koin-prepaid");
+  assert.throws(()=>verifyInstalled(()=>"other-release"),/qualification was not changed/);
+});

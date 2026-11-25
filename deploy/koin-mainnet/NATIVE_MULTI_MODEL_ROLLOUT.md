@@ -26,6 +26,6 @@ The legacy `--enable-gpt-oss` flag still works. Unknown IDs, duplicate IDs, dupl
 
 ## Validation and remaining checks
 
-14 operator-helper tests pass, including mixed successful/failed qualification, all six routes, preservation of existing settings, expired evidence, concurrency and clean restart. The existing native transport/qualification suites pass 12 tests with mocked supplier calls. No live supplier qualification or production activation was performed from the development workspace.
+15 operator-helper tests pass, including mixed successful/failed qualification, all six routes, preservation of existing settings, expired evidence, concurrency and clean restart. The existing native transport/qualification suites pass 12 tests with mocked supplier calls. No live supplier qualification or production activation was performed from the development workspace.
 
 After activation, refresh the Android model list. Check each passing model using a synthetic research → document → email → sheet → edit chat, reviewing exact write cards and checking the returned service objects. Include an interrupted/resumed attempt. Retain a new all-chat report; transport success alone does not establish task quality or delivery.

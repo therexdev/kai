@@ -19,6 +19,10 @@ async function qualify({ models, maxOutput, probe, log = console.log }) {
   const report = { passed, failed, maxSupplierCalls: models.length * 2, maxOutputTokensPerCall: maxOutput, enabled: false };
   log(JSON.stringify(report)); return report;
 }
+function verifyInstalled(run = (exe, args) => execFileSync(exe,args,{encoding:"utf8",stdio:["ignore","pipe","pipe"]}).trim()) {
+  for (const [key,value] of Object.entries({ WorkingDirectory: RELEASE, User: "kai-koin-prepaid", Group: "kai-koin-prepaid" }))
+    if (run("systemctl",["show","kai-koin-prepaid.service","--value","--property="+key]) !== value) throw Error("Unexpected installed service identity; qualification was not changed");
+}
 function productionProbe(model, maxOutput) {
   const raw = execFileSync("runuser", ["-u", "kai-koin-prepaid", "--", "env", "-i", "PATH=/usr/bin:/bin",
     ...Object.entries(VALUES).filter(([k]) => k !== "KAI_NATIVE_TOOL_MODELS").map(([k,v]) => `${k}=${v}`),
@@ -31,8 +35,9 @@ if (require.main === module) {
   if (process.getuid?.() !== 0 || process.execPath !== "/usr/bin/node" || args.length !== 4 || args[0] !== "--models" || args[2] !== "--max-output")
     throw Error("Run as root: /usr/bin/node qualify-native-models.js --models all|<IDs> --max-output <512..8192>");
   process.umask(0o077);
+  verifyInstalled();
   qualify({ models: args[1] === "all" ? MODELS : args[1].split(","), maxOutput: Number(args[3]), probe: productionProbe })
     .then(r => { if(r.failed.length) process.exitCode=1; })
     .catch(() => { console.error("Qualification stopped; no activation or automatic retry occurred."); process.exitCode=1; });
 }
-module.exports = { qualify };
+module.exports = { qualify, verifyInstalled };
