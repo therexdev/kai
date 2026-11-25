@@ -22,7 +22,23 @@ on the scheduler, with system Node 22 or newer:
 ```bash
 git clone --single-branch --branch fix/credit-purchase-limit-1000 https://github.com/therexdev/kai.git /root/kai-purchase-limit-update
 cd /root/kai-purchase-limit-update
+npm ci --include=dev --ignore-scripts
 /usr/bin/node deploy/koin-mainnet/update-purchase-limit.js
+curl -fsS https://credits.koinosai.com/health
+```
+
+Install the locked dependencies in this checkout before starting the updater.
+Its early runtime checks load `koilib`, and the pre-deployment tests also need
+the development dependencies. The updater installs production dependencies
+separately in the staged service release; that does not prepare this checkout.
+
+If an existing checkout stopped with `Cannot find module 'koilib'`, continue
+from the same checked-out release:
+
+```bash
+cd /root/kai-purchase-limit-update &&
+npm ci --include=dev --ignore-scripts &&
+/usr/bin/node deploy/koin-mainnet/update-purchase-limit.js &&
 curl -fsS https://credits.koinosai.com/health
 ```
 
