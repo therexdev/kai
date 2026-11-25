@@ -73,3 +73,27 @@ test("shared lock, unprotected configuration and linked file refuse mutation", a
   const g = fixture(t); fs.chmodSync(g.file, 0o644); await assert.rejects(A.activate(g.options)); assert.deepEqual(fs.readFileSync(g.file), g.before);
   const h = fixture(t), target = path.join(h.work, "original"); fs.renameSync(h.file, target); fs.symlinkSync(target, h.file); await assert.rejects(A.activate(h.options)); assert.deepEqual(fs.readFileSync(target), h.before);
 });
+
+
+test("multiple qualified routes activate together and preserve an existing native route", async t => {
+  const f=fixture(t);
+  fs.writeFileSync(f.file,A.desired(f.before));
+  const seen=[];
+  const qualify=f.deps.qualify;
+  f.deps.qualify=model => { seen.push(model);return qualify(); };
+  await A.activate({...f.options,models:["akash-glm53","akash-kimi-k31-pro","akash-qwen36-35b-a3b"]});
+  assert.match(fs.readFileSync(f.file,"utf8"),/KAI_NATIVE_TOOL_MODELS=akash-gpt-oss-120b,akash-glm53,akash-kimi-k31-pro,akash-qwen36-35b-a3b/);
+  assert.equal(new Set(seen).size,4);
+  assert.equal(f.calls.filter(c=>c==="start").length,1);
+});
+test("one unqualified route blocks the whole configuration change before drain", async t => {
+  const f=fixture(t),qualify=f.deps.qualify;
+  f.deps.qualify=model => model==="akash-glm53" ? null : qualify();
+  await assert.rejects(A.activate({...f.options,models:[A.MODEL,"akash-glm53"]}),/qualification/);
+  assert.deepEqual(fs.readFileSync(f.file),f.before);
+  assert.ok(!f.calls.includes("drain"));
+});
+test("unknown or duplicate model requests cannot alter configuration", () => {
+  const before=Buffer.from("KAI_AKASHML_API_KEY_FILE="+A.VALUES.KAI_AKASHML_API_KEY_FILE+"\n");
+  for(const models of [[],["unknown"],[A.MODEL,A.MODEL]]) assert.throws(()=>A.desired(before,models),/distinct managed/);
+});
