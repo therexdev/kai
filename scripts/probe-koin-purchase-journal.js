@@ -53,6 +53,23 @@ test("signed provenance commits the exact sanitized full evidence and rejects ch
   assert.equal(JSON.parse(row.body).history.blocks.length, 7);
   assert.equal(JSON.parse(row.body).archiveProviderHashes.length, 2);
 });
+test("$10, $40 and $1,000 receive verified merchant quotes; over-limit requests never sign", async t => {
+  const f = await fixture(t), issuer = f.create();
+  for (const [index, dollars] of ["10", "40", "1000"].entries()) {
+    const result = await f.issue(issuer, index + 1, dollars);
+    const q = await Q.verify(f.deployment, result.args, { now: f.clock.now, version: 1 });
+    Provenance.verify(q, result.priceDetails, { expectedPricingPolicyHash: f.scope.pricingPolicyHash });
+    assert.equal(q.credits, String(BigInt(dollars) * Q.USD_ATOMS));
+    const archived = JSON.parse(issuer.journal.db.prepare("SELECT body FROM evidence WHERE hash=?").get(result.priceDetails.evidenceHash).body);
+    assert.equal(archived.price.marketDepthUsdAtoms, "1000000000", "the original $10 price probe remains recorded");
+    assert.equal(archived.price.purchaseLimitKind, "merchant-usd");
+    assert.deepEqual(await f.issue(issuer, index + 1, dollars), result, "retry reuses the exact signed quote");
+  }
+  await assert.rejects(f.issue(issuer, 4, "1000.01"), { code: "PURCHASE_LIMIT_EXCEEDED" });
+  const limit = (await f.oracle.read()).maxPurchaseKoinAtoms;
+  await assert.rejects(issuer.issue(f.customer, String(BigInt(limit) + 1n), "KOIN", f.customer, hex(5)), { code: "PURCHASE_LIMIT_EXCEEDED" });
+  assert.equal(issuer.journal.db.prepare("SELECT COUNT(*) AS n FROM quotes").get().n, 3);
+});
 test("concurrent unused quotes have no per-account or global daily allowance", async t => {
   const f = await fixture(t, "100000000"), a = f.create(), b = f.create();
   const results = await Promise.all(Array.from({ length: 24 }, (_, i) => f.issue(i % 2 ? a : b, i + 1, "1", i < 12 ? f.customer : f.address("concurrent-" + i))));

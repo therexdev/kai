@@ -1,0 +1,19 @@
+name: Credit purchase limit
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['lib/koin-network/purchase-*.js', 'lib/koin-network/v4-*.js', 'test-server.js', 'scripts/probe-koin-*.js', 'deploy/koin-mainnet/update-purchase-limit*', '.github/workflows/purchase-limit.yml']
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '${{ matrix.node }}'
+          cache: npm
+      - run: npm ci --include=dev --ignore-scripts
+      - run: node -e 'require("node:child_process").execFileSync(process.execPath, ["--test", "--test-concurrency=2", ...require("./deploy/koin-mainnet/update-purchase-limit").PROBES], {stdio:"inherit"})'

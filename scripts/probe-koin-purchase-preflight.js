@@ -129,7 +129,7 @@ test("explicit merchant reference validates market observations without claiming
   assert.equal(report.reference.bridgeRedemptionVerified, false);
   assert.equal(report.reference.commercialPolicyApproved, false);
   assert.equal(report.quoteValidation.usdPerKoinAtoms, "10000000000");
-  assert.equal(report.quoteValidation.maxPurchaseUsdAtoms, "100000000");
+  assert.equal(report.quoteValidation.maxPurchaseUsdAtoms, "100000000000");
   assert.equal(report.purchasesEnabled, false); assert.equal(report.signed, false);
   assert.deepEqual(f.snapshot(), before);
   assert.ok(!serialize(report).includes(PRIVATE_MARKER));
