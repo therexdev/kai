@@ -1,10 +1,10 @@
 # Activate the qualified GPT OSS route
 
-Prerequisite: protocol 2 release `65c1d21b85705cd26acc63bd1eedaf5af4ef6400` is active, and the operator has completed `check-native-tools.js akash-gpt-oss-120b --probe --max-output 4096`. Its protected evidence is at `/var/lib/kai-koin-prepaid/native-qualification/routes.json`; the existing supplier key file is `/etc/kai-koin-prepaid/akashml-api-key`.
+Prerequisite: protocol 2 release `65c1d21b85705cd26acc63bd1eedaf5af4ef6400` or the compatible purchase-limit release `a7cf99f42cc853255d295cba19ccb609cd884ba6` is active, and the operator has completed `check-native-tools.js akash-gpt-oss-120b --probe --max-output 4096`. Its protected evidence is at `/var/lib/kai-koin-prepaid/native-qualification/routes.json`; the existing supplier key file is `/etc/kai-koin-prepaid/akashml-api-key`. See [multi-model rollout](NATIVE_MULTI_MODEL_ROLLOUT.md) for current qualification and activation instructions.
 
 The operator's first recorded successful probe used two calls: 160 input/50 output tokens, then 250 input/26 output tokens. This is supplier tool-call/result/continuation evidence, not a phone or real connector acceptance test.
 
-Fetch this helper's commit without checking it out over the pinned deployed release. Extract `activate-qualified-native.js` into a private temporary file outside the checkout and run `/usr/bin/node <temporary-file> --enable-gpt-oss` as root. The helper imports the already installed release's qualification, drain and health functions. It never calls the supplier.
+Fetch this helper's commit into a complete checkout outside the deployed release. From that checkout, run `/usr/bin/node deploy/koin-mainnet/activate-qualified-native.js --enable-gpt-oss` as root. Keep the helper's sibling module and model manifest in place; do not extract just one file. The helper imports the already installed release's qualification, drain and health functions. It never calls the supplier.
 
 Before changing configuration, it validates the installed unit and evidence under the service identity. It accepts only the observed key-file source and either absent or already matching native settings; conflicting/duplicate settings stop the operation. It backs up the complete original `account.env` privately, preserves every existing byte, and atomically appends only the evidence path and GPT OSS allowlist entry with the original ownership and mode 0600. Credential values are never printed.
 

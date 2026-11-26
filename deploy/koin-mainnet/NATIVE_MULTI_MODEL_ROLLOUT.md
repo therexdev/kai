@@ -4,7 +4,14 @@ This extends the existing GPT-OSS-only activation helper to any explicit subset 
 
 ## Run on the existing scheduler host
 
-Use the source checkout containing this update, outside the installed release. The helpers intentionally require the installed release `/opt/kai-koin-prepaid/releases/65c1d21b85705cd26acc63bd1eedaf5af4ef6400` and its protected key-file configuration. A different installed service identity is a stop, not permission to overwrite it.
+Use the complete source checkout containing this update, outside the installed release. Both helpers select the installed `WorkingDirectory` from these reviewed releases:
+
+- `/opt/kai-koin-prepaid/releases/65c1d21b85705cd26acc63bd1eedaf5af4ef6400` — native qualification/replay protocol 2.
+- `/opt/kai-koin-prepaid/releases/a7cf99f42cc853255d295cba19ccb609cd884ba6` — the same native implementation plus the $1,000 credit purchase limit.
+
+The native adapter, qualification contract, probe, model policy and drain implementation were compared between these revisions and are unchanged. Qualification executes the selected release's probe; activation reads its qualification module, validates its unit without changing the release path, and uses its deployment locks and health checks. On the purchase-limit release, health must still confirm the $1,000 limit. No code updater or rollback is needed.
+
+Unknown releases, changed service identities or a different release appearing during the operation stop for review. Qualification rechecks the selected identity before each model. Keep the existing protected key-file configuration; do not edit the allowlisted release paths to bypass a stop.
 
 As root, from this checkout:
 
@@ -26,6 +33,6 @@ The legacy `--enable-gpt-oss` flag still works. Unknown IDs, duplicate IDs, dupl
 
 ## Validation and remaining checks
 
-15 operator-helper tests pass, including mixed successful/failed qualification, all six routes, preservation of existing settings, expired evidence, concurrency and clean restart. The existing native transport/qualification suites pass 12 tests with mocked supplier calls. No live supplier qualification or production activation was performed from the development workspace.
+21 operator-helper tests and 12 native transport/qualification tests pass on Node 22.23.2, matching the operator's runtime. Coverage includes both reviewed releases, purchase-limit health/locks, selected-release probe paths, mid-operation release changes, mixed successful/failed qualification, all six routes, preservation of existing settings, expired evidence, concurrency and clean restart. Supplier calls and systemd operations are mocked. These suites run in the Node 22/24 CI matrix. No live supplier qualification or production activation was performed from the development workspace.
 
 After activation, refresh the Android model list. Check each passing model using a synthetic research → document → email → sheet → edit chat, reviewing exact write cards and checking the returned service objects. Include an interrupted/resumed attempt. Retain a new all-chat report; transport success alone does not establish task quality or delivery.

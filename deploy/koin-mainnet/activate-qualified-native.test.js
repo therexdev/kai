@@ -97,3 +97,41 @@ test("unknown or duplicate model requests cannot alter configuration", () => {
   const before=Buffer.from("KAI_AKASHML_API_KEY_FILE="+A.VALUES.KAI_AKASHML_API_KEY_FILE+"\n");
   for(const models of [[],["unknown"],[A.MODEL,A.MODEL]]) assert.throws(()=>A.desired(before,models),/distinct managed/);
 });
+
+test("activation uses the installed release for qualification, unit validation, locks and health", async t => {
+  const { RELEASES, UNIT, USER } = require("./native-rollout-release");
+  for (const release of RELEASES) {
+    const f = fixture(t), loaded = [], calls = [];
+    let installed = release;
+    const runtimeName = release === RELEASES[1] ? "update-purchase-limit" : "update-native-qualification";
+    const run = (exe, args, cwd) => {
+      if (exe === "systemctl") {
+        const values = { WorkingDirectory: installed, User: USER, Group: USER, DropInPaths: "", Restart: "on-failure", FragmentPath: "/etc/systemd/system/" + UNIT };
+        return values[args.at(-1).slice("--property=".length)];
+      }
+      assert.equal(exe, "runuser"); assert.equal(cwd, release);
+      assert.ok(args.at(-1).includes(release + "/lib/koin-network/native-qualification"));
+      calls.push("qualify"); return JSON.stringify({ version: 2 });
+    };
+    const load = name => {
+      loaded.push(name);
+      if (name.endsWith("update-reward-runtime")) return {};
+      if (name.endsWith("update-wallet-access")) return {
+        PATHS: { unit: f.file, config: f.work },
+        validateUnit(bytes, paths, old, target) { assert.deepEqual(bytes, f.before); assert.equal(old, release); assert.equal(target, release); calls.push("unit"); },
+        runtimeTarget(file) { assert.equal(file, path.join(f.work, "runtime.json")); return "expected-runtime"; },
+      };
+      assert.equal(name, "deploy/koin-mainnet/" + runtimeName);
+      return { LOCKS: [runtimeName + ".lock"], health: async options => { assert.equal(options.expected, "expected-runtime"); calls.push(runtimeName + " health"); } };
+    };
+    const deps = A.production(run, A.VALUES, undefined, load);
+    assert.equal(deps.release, release); assert.deepEqual(deps.locks, [runtimeName + ".lock"]);
+    deps.guard(); assert.deepEqual(deps.qualify(), { version: 2 }); await deps.health();
+    assert.deepEqual(calls, ["unit", "qualify", runtimeName + " health"]);
+    installed = RELEASES.find(r => r !== release);
+    assert.throws(() => deps.guard(), /release changed/);
+    const loadedBefore = loaded.length;
+    assert.throws(() => A.production(run, A.VALUES, release, load), /release changed/);
+    assert.equal(loaded.length, loadedBefore, "do not load another release during activation");
+  }
+});
