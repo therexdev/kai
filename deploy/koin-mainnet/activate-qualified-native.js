@@ -1,21 +1,34 @@
 "use strict";
 // Operator-only configuration activation for the already installed protocol 2.
 // No supplier calls, process kill escalation, code replacement or journal restore.
-const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto"), { execFileSync } = require("node:child_process");
-const RELEASE = "/opt/kai-koin-prepaid/releases/65c1d21b85705cd26acc63bd1eedaf5af4ef6400";
-const UNIT = "kai-koin-prepaid.service", USER = "kai-koin-prepaid", MODEL = "akash-gpt-oss-120b";
+const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto");
+const { RELEASES, UNIT, USER, command, verifyInstalled } = require("./native-rollout-release");
+const RELEASE = RELEASES[0], MODEL = "akash-gpt-oss-120b";
 const VALUES = { KAI_AKASHML_API_KEY_FILE: "/etc/kai-koin-prepaid/akashml-api-key", KAI_NATIVE_QUALIFICATION_FILE: "/var/lib/kai-koin-prepaid/native-qualification/routes.json", KAI_NATIVE_TOOL_MODELS: MODEL };
-const command = (exe, args, cwd) => execFileSync(exe, args, { cwd, encoding: "utf8", timeout: 20000, stdio: ["ignore", "pipe", "pipe"] }).trim();
 function clean(s) { return s.ActiveState === "inactive" && s.MainPID === "0" && s.ExecMainCode === "1" && s.ExecMainStatus === "0" && s.Result === "success"; }
-function desired(bytes) {
+const MODELS = require("../../lib/koin-network/managed-models.json").models.map(m => m.model);
+function validateModels(models) {
+  if (!Array.isArray(models) || !models.length || models.some(m => !MODELS.includes(m)) || new Set(models).size !== models.length) throw Error("Choose distinct managed model IDs");
+  return models;
+}
+function desired(bytes, models = [MODEL]) {
+  validateModels(models);
   const text = bytes.toString("utf8"); if (!Buffer.from(text).equals(bytes)) throw Error("Environment must be UTF-8");
   if (/^[ \t]*KAI_AKASHML_API_KEY[ \t]*=/m.test(text)) throw Error("Expected only the existing protected key-file source");
   let result = text;
-  for (const [key, value] of Object.entries(VALUES)) {
+  const values = { ...VALUES, KAI_NATIVE_TOOL_MODELS: models.join(",") };
+  for (const [key, value] of Object.entries(values)) {
     const rows = [...text.matchAll(new RegExp("^[ \\t]*" + key + "[ \\t]*=([^\\r\\n]*)", "gm"))];
     if (rows.length > 1) throw Error("Duplicate managed native configuration");
     if (rows.length) {
       let current = rows[0][1].trim(); if ((current.startsWith('"') && current.endsWith('"')) || (current.startsWith("'") && current.endsWith("'"))) current = current.slice(1, -1);
+      if (key === "KAI_NATIVE_TOOL_MODELS") {
+        const existing = current ? current.split(",").map(m => m.trim()) : [];
+        if (existing.length) validateModels(existing);
+        const merged = [...new Set([...existing, ...models])].join(",");
+        if (current !== merged) result = result.replace(rows[0][0], key + "=" + merged);
+        continue;
+      }
       if (current !== value) throw Error("Existing managed native configuration differs; preserve it for review");
     } else {
       if (key === "KAI_AKASHML_API_KEY_FILE") throw Error("Expected the configured protected supplier key file");
@@ -30,37 +43,43 @@ function real(file) {
   return s;
 }
 function syncDir(dir) { const fd = fs.openSync(dir, "r"); try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); } }
-function production(run) {
-  const at = p => require(path.join(RELEASE, p)), prior = at("deploy/koin-mainnet/update-reward-runtime"), native = at("deploy/koin-mainnet/update-native-qualification"), wallet = at("deploy/koin-mainnet/update-wallet-access");
+function production(run, values = VALUES, expectedRelease, load) {
+  const release = verifyInstalled(run, expectedRelease);
+  const at = load || (p => require(path.join(release, p))), prior = at("deploy/koin-mainnet/update-reward-runtime"), wallet = at("deploy/koin-mainnet/update-wallet-access");
+  const runtime = at(release === RELEASES[1] ? "deploy/koin-mainnet/update-purchase-limit" : "deploy/koin-mainnet/update-native-qualification");
   return {
-    locks: native.LOCKS,
+    release,
+    locks: runtime.LOCKS,
     guard() {
-      for (const [key, expected] of Object.entries({ WorkingDirectory: RELEASE, User: USER, Group: USER, DropInPaths: "", Restart: "on-failure", FragmentPath: wallet.PATHS.unit }))
-        if (run("systemctl", ["show", UNIT, "--value", "--property=" + key]) !== expected) throw Error("Unexpected installed service identity");
-      wallet.validateUnit(fs.readFileSync(wallet.PATHS.unit), wallet.PATHS, RELEASE, RELEASE);
+      verifyInstalled(run, release);
+      wallet.validateUnit(fs.readFileSync(wallet.PATHS.unit), wallet.PATHS, release, release);
     },
     state: () => prior.processState(run),
     drain: options => prior.gracefulShutdown({ ...options, run, timeoutMs: 240000 }),
-    qualify() {
-      const code = `const q=require(${JSON.stringify(path.join(RELEASE, "lib/koin-network/native-qualification"))}).capability(${JSON.stringify(MODEL)});if(!q)process.exit(1);console.log(JSON.stringify(q));`;
-      return JSON.parse(run("runuser", ["-u", USER, "--", "env", "-i", "PATH=/usr/bin:/bin", ...Object.entries(VALUES).map(([k,v]) => `${k}=${v}`), "/usr/bin/node", "-e", code], RELEASE));
+    qualify(model = MODEL) {
+      const code = `const q=require(${JSON.stringify(path.join(release, "lib/koin-network/native-qualification"))}).capability(${JSON.stringify(model)});if(!q)process.exit(1);console.log(JSON.stringify(q));`;
+      return JSON.parse(run("runuser", ["-u", USER, "--", "env", "-i", "PATH=/usr/bin:/bin", ...Object.entries(values).map(([k,v]) => `${k}=${v}`), "/usr/bin/node", "-e", code], release));
     },
     loaded(pid) {
       if (!/^[1-9][0-9]*$/.test(pid)) throw Error("Invalid running process identity");
       const bytes = fs.readFileSync(`/proc/${pid}/environ`); if (bytes.length > 1048576) throw Error("Oversized process environment");
       const entries = bytes.toString().split("\0");
       // Inspect only these fields; never print or persist environment secrets.
-      return !entries.some(v => v.startsWith("KAI_AKASHML_API_KEY=")) && Object.entries(VALUES).every(([k,v]) => entries.filter(x => x.startsWith(k + "=")).join() === `${k}=${v}`);
+      return !entries.some(v => v.startsWith("KAI_AKASHML_API_KEY=")) && Object.entries(values).every(([k,v]) => entries.filter(x => x.startsWith(k + "=")).join() === `${k}=${v}`);
     },
-    health: () => native.health({ expected: wallet.runtimeTarget(path.join(wallet.PATHS.config, "runtime.json")) }),
+    health: () => runtime.health({ expected: wallet.runtimeTarget(path.join(wallet.PATHS.config, "runtime.json")) }),
   };
 }
-async function activate({ run = command, deps, work = "/root", file = "/etc/kai-koin-prepaid/account.env", log = console.log } = {}) {
-  deps ||= production(run); const held = [];
+async function activate({ run = command, deps, work = "/root", file = "/etc/kai-koin-prepaid/account.env", log = console.log, models = [MODEL] } = {}) {
+  validateModels(models);
+  const live = !deps; deps ||= production(run); const held = [];
   try {
     for (const name of ["kai-native-activation.lock", ...deps.locks]) { const lock = path.join(work, name); fs.mkdirSync(lock, { mode: 0o700 }); held.push(lock); }
-    deps.guard(); const st = real(file), before = fs.readFileSync(file), after = desired(before);
-    const qualify = () => { const q = deps.qualify(); if (q?.version !== 2 || q.replay !== "sealed-v1" || !/^[a-f0-9]{64}$/.test(q.qualificationId) || q.expiresAt <= Date.now() + 60000) throw Error("Current qualification with at least one minute remaining is required"); return q; };
+    deps.guard(); const st = real(file), before = fs.readFileSync(file), after = desired(before, models);
+    const enabled = after.toString().match(/^[ \t]*KAI_NATIVE_TOOL_MODELS[ \t]*=([^\r\n]*)/m)[1].replace(/^["']|["']$/g, "").split(",").map(m => m.trim());
+    // Validate every route in the resulting allowlist, including routes already enabled.
+    if (live) deps = production(run, { ...VALUES, KAI_NATIVE_TOOL_MODELS: enabled.join(",") }, deps.release);
+    const qualify = () => enabled.map(model => { const q = deps.qualify(model); if (q?.version !== 2 || q.replay !== "sealed-v1" || !/^[a-f0-9]{64}$/.test(q.qualificationId) || q.expiresAt <= Date.now() + 60000) throw Error("Current qualification with at least one minute remaining is required"); return { model, ...q }; });
     qualify(); let state = deps.state();
     if (!(state.ActiveState === "active" && state.MainPID !== "0" && state.MainPID === state.ExecMainPID) && !clean(state)) throw Error("Service must be active or normally stopped; no restart will be forced");
     if (!before.equals(after)) {
@@ -87,13 +106,16 @@ async function activate({ run = command, deps, work = "/root", file = "/etc/kai-
     else if (state.ActiveState !== "active" || !deps.loaded(state.MainPID)) throw Error("Service has not completed its clean configuration transition");
     await deps.health(); unchanged(); state = deps.state();
     if (state.ActiveState !== "active" || !deps.loaded(state.MainPID)) throw Error("Running service did not load the qualified configuration");
-    const q = qualify();
-    log(JSON.stringify({ model: MODEL, enabled: true, protocol: 2, qualificationId: q.qualificationId, expiresAt: q.expiresAt, supplierCalls: 0 }));
+    for (const q of qualify()) log(JSON.stringify({ model: q.model, enabled: true, protocol: 2, qualificationId: q.qualificationId, expiresAt: q.expiresAt, supplierCalls: 0 }));
   } finally { for (const lock of held.reverse()) fs.rmdirSync(lock); }
 }
 if (require.main === module) {
-  if (process.getuid?.() !== 0 || process.execPath !== "/usr/bin/node" || process.argv.length !== 3 || process.argv[2] !== "--enable-gpt-oss") throw Error("Run with /usr/bin/node as root and --enable-gpt-oss");
+  const args = process.argv.slice(2);
+  const models = args.length === 1 && args[0] === "--enable-gpt-oss" ? [MODEL] :
+    args.length === 2 && args[0] === "--enable-models" ? args[1].split(",") : null;
+  if (process.getuid?.() !== 0 || process.execPath !== "/usr/bin/node" || !models) throw Error("Run with /usr/bin/node as root and --enable-models <comma-separated IDs>");
+  validateModels(models);
   process.umask(0o077);
-  activate().catch(error => { console.error(error.message); console.error("Activation paused. Configuration and current journals were preserved. Rerun this same helper to resume; do not force-stop the service or rerun the code updater."); process.exitCode = 1; });
+  activate({ models }).catch(error => { console.error(error.message); console.error("Activation paused. Configuration and current journals were preserved. Rerun this same helper to resume; do not force-stop the service or rerun the code updater."); process.exitCode = 1; });
 }
-module.exports = { activate, desired, VALUES, RELEASE, MODEL };
+module.exports = { activate, desired, production, VALUES, RELEASE, MODEL, MODELS, validateModels };

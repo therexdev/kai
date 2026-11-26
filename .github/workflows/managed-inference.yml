@@ -24,5 +24,5 @@ jobs:
       - name: Verify native tool transport and idempotent recovery
         run: node --test scripts/probe-native-tools.js scripts/probe-native-qualification.js
       - name: Verify qualified route activation and resumable clean restart
-        run: node --test deploy/koin-mainnet/activate-qualified-native.test.js
+        run: node --test deploy/koin-mainnet/activate-qualified-native.test.js deploy/koin-mainnet/qualify-native-models.test.js deploy/koin-mainnet/native-rollout-release.test.js
       - run: node --check test-server.js
